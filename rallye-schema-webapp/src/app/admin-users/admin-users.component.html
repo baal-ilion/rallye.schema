@@ -1,0 +1,52 @@
+<div class="panel panel-default">
+  <div class="panel-heading">Gestion des utilisateurs</div>
+  <div class="panel-body">
+  <!--   <button (click)="onNewUser()" *ngIf="mode=='List'" class="btn btn-success">
+        <fa-icon [icon]="['fas', 'user-plus']"></fa-icon>
+    </button> -->
+    <p></p>
+    <div *ngIf="mode=='new-user'">
+      <form #f="ngForm" (ngSubmit)="onSaveUser(f.value)">
+        <div class="form-group">
+          <label class="control-label">Name</label>
+          <input class="form-control" name="name" ngModel type="text">
+        </div>
+        <button class="btn btn-success" type="submit">Save</button>
+      </form>
+      <p></p>
+    </div>
+    <table *ngIf="users && mode=='List'" class="table">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">Name</th>
+          <th scope="col"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let u of users._embedded.appUsers; index as i">
+          <th scope="row">{{ i + 1 }}</th>
+          <td>{{u.userName}}</td>
+          <td>
+           <!--  <button (click)="onDeleteUser(u)" class="btn btn-danger">
+                <fa-icon [icon]="['fas', 'user-times']"></fa-icon>
+            </button>
+            <button (click)="onEditUser(u)" class="btn btn-success">
+                <fa-icon [icon]="['fas', 'user-edit']"></fa-icon>
+            </button> -->
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div *ngIf="mode=='edit-user'">
+      <form #f="ngForm" (ngSubmit)="onUpdateUser(f.value)">
+        <div class="form-group">
+          <label class="control-label">Name</label>
+          <input [(ngModel)]="curentUser.name" class="form-control" name="name" ngModel type="text">
+        </div>
+        <button class="btn btn-success" type="submit">Save</button>
+      </form>
+      <p></p>
+    </div>
+  </div>
+</div>

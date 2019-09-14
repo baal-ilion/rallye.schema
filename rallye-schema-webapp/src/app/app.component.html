@@ -1,0 +1,43 @@
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <!-- Brand -->
+  <a class="navbar-brand" href="#">{{title}}</a>
+  <button class="navbar-toggler" type="button" [attr.aria-expanded]="!collapsed" (click)="collapsed = !collapsed"
+    aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  <div class="navbar-collapse" [class.collapse]="collapsed" id="navbarSupportedContent">
+
+    <!-- Links -->
+    <ul class="navbar-nav mr-auto">
+      <li class="nav-item">
+        <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
+      </li>
+
+      <!-- Dropdown -->
+      <li ngbDropdown display="dynamic" *ngIf="isAdmin()" class="nav-item">
+        <a ngbDropdownToggle class="nav-link" href="#" id="navbardrop" role="button" data-toggle="dropdown"
+          aria-haspopup="true" aria-expanded="false">
+          Admin
+        </a>
+        <div ngbDropdownMenu aria-labelledby="navbardrop">
+          <a *ngIf="isAdmin()" ngbDropdownItem routerLink="/adminUsers">Gestion des utilisateurs</a>
+        </div>
+      </li>
+    </ul>
+    <ul class="navbar-nav justify-content-end">
+      <li *ngIf="isAuthenticated()" class="nav-item"><span class="navbar-text">{{username()}}</span></li>
+      <li class="nav-item" *ngIf="!isAuthenticated()">
+        <a class="nav-link" routerLink="/login">Login</a>
+      </li>
+      <li class="nav-item" *ngIf="isAuthenticated()">
+        <a class="nav-link" (click)="logOut()" routerLink="/">Logout</a>
+      </li>
+    </ul>
+  </div>
+</nav>
+<div class="raw">
+  <div class="col-md-9">
+    <router-outlet></router-outlet>
+  </div>
+</div>
