@@ -43,5 +43,6 @@ public class AppUserRepositoryTests {
 
 		// then
 		assertEquals(userToFound, found);
+
 	}
 }

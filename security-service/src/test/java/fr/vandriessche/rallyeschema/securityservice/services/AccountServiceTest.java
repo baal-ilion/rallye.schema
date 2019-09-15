@@ -3,31 +3,36 @@ package fr.vandriessche.rallyeschema.securityservice.services;
 import static org.junit.Assert.fail;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringRunner;
 
-class AccountServiceTest {
+@RunWith(SpringRunner.class)
+@SpringBootTest
+public class AccountServiceTest {
 
 	@Test
-	void testSaveUser() {
+	public void testSaveUser() {
 		fail("Not yet implemented");
 	}
 
 	@Test
-	void testSaveRole() {
+	public void testSaveRole() {
 		fail("Not yet implemented");
 	}
 
 	@Test
-	void testLoadUser() {
+	public void testLoadUser() {
 		fail("Not yet implemented");
 	}
 
 	@Test
-	void testAddRoleToUser() {
+	public void testAddRoleToUser() {
 		fail("Not yet implemented");
 	}
 
 	@Test
-	void testRemoveRoleToUser() {
+	public void testRemoveRoleToUser() {
 		fail("Not yet implemented");
 	}
 
