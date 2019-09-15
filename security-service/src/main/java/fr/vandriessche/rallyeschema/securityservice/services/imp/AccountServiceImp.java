@@ -1,4 +1,4 @@
-package fr.vandriessche.rallyeschema.securityservice.services;
+package fr.vandriessche.rallyeschema.securityservice.services.imp;
 
 import javax.validation.constraints.NotBlank;
 
@@ -11,6 +11,7 @@ import fr.vandriessche.rallyeschema.securityservice.dao.AppRoleRepository;
 import fr.vandriessche.rallyeschema.securityservice.dao.AppUserRepository;
 import fr.vandriessche.rallyeschema.securityservice.entities.AppRole;
 import fr.vandriessche.rallyeschema.securityservice.entities.AppUser;
+import fr.vandriessche.rallyeschema.securityservice.services.AccountService;
 import fr.vandriessche.rallyeschema.securityservice.util.SystemAppRole;
 
 @Service
