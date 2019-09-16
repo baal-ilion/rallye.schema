@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.PersistentEntityResource;
 import org.springframework.data.rest.webmvc.PersistentEntityResourceAssembler;
 import org.springframework.data.rest.webmvc.RepositoryRestController;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,7 +24,7 @@ public class AccountController {
 	public @ResponseBody ResponseEntity<PersistentEntityResource> register(@RequestBody UserForm user,
 			PersistentEntityResourceAssembler resourceAssembler) {
 		var appUser = accountService.saveUser(user.getUserName(), user.getPassword(), user.getConfirmedPassword());
-		return ResponseEntity.ok(resourceAssembler.toResource(appUser));
+		return ResponseEntity.status(HttpStatus.CREATED).body(resourceAssembler.toResource(appUser));
 	}
 }
 

@@ -16,8 +16,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 	@Autowired
 	private UserDetailsServiceImpl userDetailsService;
-	@Autowired
-	private BCryptPasswordEncoder bCryptPasswordEncoder;
 
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
@@ -32,11 +30,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
 	@Override
 	protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-		auth.userDetailsService(userDetailsService).passwordEncoder(bCryptPasswordEncoder);
+		auth.userDetailsService(userDetailsService).passwordEncoder(encoder());
 	}
 
 	@Bean
-	BCryptPasswordEncoder getBCPE() {
+	BCryptPasswordEncoder encoder() {
 		return new BCryptPasswordEncoder();
 	}
 }
