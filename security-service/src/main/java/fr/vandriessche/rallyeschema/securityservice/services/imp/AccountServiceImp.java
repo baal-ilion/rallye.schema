@@ -3,7 +3,7 @@ package fr.vandriessche.rallyeschema.securityservice.services.imp;
 import javax.validation.constraints.NotBlank;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,7 +22,7 @@ public class AccountServiceImp implements AccountService {
 	@Autowired
 	private AppUserRepository appUserRepository;
 	@Autowired
-	private BCryptPasswordEncoder bCryptPasswordEncoder;
+	private PasswordEncoder passwordEncoder;
 
 	@Override
 	public AppUser saveUser(@NotBlank String userName, String password, String confirmedPassword) {
@@ -33,7 +33,7 @@ public class AccountServiceImp implements AccountService {
 			throw new RuntimeException("Please confirm your password");
 		user = new AppUser();
 		user.setUserName(userName);
-		user.setPassWord(bCryptPasswordEncoder.encode(password));
+		user.setPassWord(passwordEncoder.encode(password));
 		user.setActivated(true);
 
 		AppRole role = appRoleRepository.findByRoleName(SystemAppRole.USER.name());
