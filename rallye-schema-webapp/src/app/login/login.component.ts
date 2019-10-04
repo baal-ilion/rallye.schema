@@ -2,6 +2,11 @@ import { Component, OnInit } from '@angular/core';
 import { AuthenticationService } from '../authentication.service';
 import { Router } from '@angular/router';
 
+interface LoginResponse {
+  access_token: string;
+  access_expiration: number;
+}
+
 @Component({
   selector: 'app-login',
   templateUrl: './login.component.html',
@@ -16,8 +21,8 @@ export class LoginComponent implements OnInit {
   }
 
   onLogin(user) {
-    this.authenticationService.login(user).subscribe(resp => {
-      const jwt = resp.headers.get('Authorization');
+    this.authenticationService.login(user).subscribe((resp) => {
+      const jwt = resp["access_token"];
       this.authenticationService.saveToken(jwt);
       this.router.navigateByUrl('/');
     }, err => {
@@ -25,3 +30,4 @@ export class LoginComponent implements OnInit {
     });
   }
 }
+

@@ -1,6 +1,7 @@
 package fr.vandriessche.rallyeschema.securityservice.security;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -12,17 +13,23 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.oauth2.common.util.JacksonJsonParser;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.context.WebApplicationContext;
+
+import lombok.extern.java.Log;
 
 @RunWith(SpringRunner.class)
 @WebAppConfiguration
 @SpringBootTest
+@Log
 public class AuthenticationTests {
 	@Autowired
 	private WebApplicationContext wac;
@@ -40,20 +47,25 @@ public class AuthenticationTests {
 	}
 
 	private String obtainAccessToken(String username, String password) throws Exception {
+		MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+		params.add("grant_type", "password");
+		params.add("username", username);
+		params.add("password", password);
 
-		String userString = "{\"userName\":\"" + username + "\",\"passWord\":\"" + password + "\"}";
+		ResultActions result = mockMvc
+				.perform(post("/oauth/token").params(params).with(httpBasic("webapp", "123456"))
+						.accept("application/json;charset=UTF-8"))
+				.andExpect(status().isOk()).andExpect(content().contentType("application/json;charset=UTF-8"));
 
-		ResultActions result = mockMvc.perform(post("/login").contentType(CONTENT_TYPE).content(userString))
-				.andExpect(status().isOk());
+		String resultString = result.andReturn().getResponse().getContentAsString();
 
-		String resultString = result.andReturn().getResponse().getHeader("Authorization");
-
-		return resultString.substring(7);
+		JacksonJsonParser jsonParser = new JacksonJsonParser();
+		return jsonParser.parseMap(resultString).get("access_token").toString();
 	}
 
 	@Test
 	public void givenNoToken_whenGetSecureRequest_thenUnauthorized() throws Exception {
-		mockMvc.perform(get("/appUsers")).andExpect(status().isForbidden()/* .isUnauthorized() */);
+		mockMvc.perform(get("/appUsers")).andExpect(status().isUnauthorized());
 	}
 
 	@Test
@@ -64,13 +76,22 @@ public class AuthenticationTests {
 	}
 
 	@Test
-	public void givenToken_whenPostGetSecureRequest_thenOk() throws Exception {
+	public void givenValidRole_whenGetSecureRequest_thenOk() throws Exception {
 		String accessToken = obtainAccessToken("admin", "1234");
+		mockMvc.perform(get("/appUsers").header("Authorization", "Bearer " + accessToken)).andExpect(status().isOk());
+	}
+
+	@Test
+	public void givenToken_whenPostGetSecureRequest_thenOk() throws Exception {
 
 		String userString = "{\"userName\":\"user6\",\"password\":\"1234\",\"confirmedPassword\":\"1234\"}";
 
-		mockMvc.perform(post("/register").header("Authorization", "Bearer " + accessToken).contentType(CONTENT_TYPE)
-				.content(userString).accept(CONTENT_TYPE)).andExpect(status().isCreated());
+		mockMvc.perform(
+				post("/register")/* .header("Authorization", "Bearer " + accessToken) */.contentType(CONTENT_TYPE)
+						.content(userString).accept(CONTENT_TYPE))
+				.andExpect(status().isCreated());
+
+		String accessToken = obtainAccessToken("admin", "1234");
 
 		mockMvc.perform(get("/appUsers/search/findByUserName").param("userName", "user6")
 				.header("Authorization", "Bearer " + accessToken).accept(CONTENT_TYPE)).andExpect(status().isOk())

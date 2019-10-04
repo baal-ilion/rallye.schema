@@ -12,7 +12,7 @@ export class UserService {
   }
 
   getRessource(url) {
-    const httpHeaders = new HttpHeaders({ Authorization: this.authenticationService.jwt });
+    const httpHeaders = new HttpHeaders({ Authorization: 'Bearer ' + this.authenticationService.jwt });
     return this.http.get(url, { headers: httpHeaders });
   }
 
