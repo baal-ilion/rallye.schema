@@ -23,12 +23,20 @@ export class AppComponent implements OnInit {
     return this.authenticationService.isUser();
   }
 
-  isAuthenticated() {
-    return this.authenticationService.isAuthenticated();
+  username() {
+    return this.authenticationService.username();
+  }
+
+  isLoggedIn() {
+    return this.authenticationService.isLoggedIn();
   }
 
   ngOnInit(): void {
-    this.authenticationService.loadToken();
+    this.authenticationService.isLoggedIn();
+  }
+
+  login() {
+    this.authenticationService.obtainAccessToken();
   }
 
   logOut() {
@@ -36,7 +44,4 @@ export class AppComponent implements OnInit {
     this.router.navigateByUrl('/');
   }
 
-  username() {
-    return this.authenticationService.username;
-  }
 }

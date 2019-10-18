@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { UserService } from '../user.service';
 import { Router } from '@angular/router';
+import { AuthenticationService } from '../authentication.service';
 
 @Component({
   selector: 'app-admin-users',
@@ -12,7 +13,7 @@ export class AdminUsersComponent implements OnInit {
   curentUser;
   users;
 
-  constructor(private userService: UserService, private router: Router) {
+  constructor(private userService: UserService, private authenticationService: AuthenticationService, private router: Router) {
   }
 
   ngOnInit() {
@@ -25,7 +26,7 @@ export class AdminUsersComponent implements OnInit {
       return;
     }
     const url = user._links.self.href;
-    this.userService.deleteRessource(url).subscribe(data => {
+    this.authenticationService.deleteResource(url).subscribe(data => {
       this.curentUser = undefined;
       this.mode = 'List';
       this.loadUsers();
@@ -49,7 +50,7 @@ export class AdminUsersComponent implements OnInit {
  */  }
 
   onEditUser(user) {
-    this.userService.getRessource(user._links.self.href).subscribe(data => {
+    this.authenticationService.getResource(user._links.self.href).subscribe(data => {
       this.curentUser = data;
       this.mode = 'edit-user';
     }, err => {
@@ -59,7 +60,7 @@ export class AdminUsersComponent implements OnInit {
 
   onUpdateUser(value) {
     if (this.curentUser) {
-      this.userService.patchRessource(this.curentUser._links.self.href, value).subscribe(data => {
+      this.authenticationService.patchResource(this.curentUser._links.self.href, value).subscribe(data => {
         this.mode = 'List';
         this.curentUser = undefined;
         this.loadUsers();
@@ -72,6 +73,7 @@ export class AdminUsersComponent implements OnInit {
   private loadUsers() {
     this.userService.getAllUsers().subscribe(data => {
       this.users = data;
+      console.log(data);
     }, err => {
       console.log(err);
     });

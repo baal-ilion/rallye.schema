@@ -26,11 +26,11 @@
       </li>
     </ul>
     <ul class="navbar-nav justify-content-end">
-      <li *ngIf="isAuthenticated()" class="nav-item"><span class="navbar-text">{{username()}}</span></li>
-      <li class="nav-item" *ngIf="!isAuthenticated()">
-        <a class="nav-link" routerLink="/login">Login</a>
+      <li *ngIf="isLoggedIn()" class="nav-item"><span class="navbar-text">{{username()}}</span></li>
+      <li class="nav-item" *ngIf="!isLoggedIn()">
+        <a class="nav-link" (click)="login()" routerLink="/">Login</a>
       </li>
-      <li class="nav-item" *ngIf="isAuthenticated()">
+      <li class="nav-item" *ngIf="isLoggedIn()">
         <a class="nav-link" (click)="logOut()" routerLink="/">Logout</a>
       </li>
     </ul>

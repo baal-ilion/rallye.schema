@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.util.JacksonJsonParser;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -24,12 +25,9 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.context.WebApplicationContext;
 
-import lombok.extern.java.Log;
-
 @RunWith(SpringRunner.class)
 @WebAppConfiguration
 @SpringBootTest
-@Log
 public class AuthenticationTests {
 	@Autowired
 	private WebApplicationContext wac;
@@ -96,5 +94,44 @@ public class AuthenticationTests {
 		mockMvc.perform(get("/appUsers/search/findByUserName").param("userName", "user6")
 				.header("Authorization", "Bearer " + accessToken).accept(CONTENT_TYPE)).andExpect(status().isOk())
 				.andExpect(content().contentType(CONTENT_TYPE)).andExpect(jsonPath("$.userName", is("user6")));
+	}
+
+	@Test
+	public void implicit_request() throws Exception {
+		/*
+		 * "http://localhost:8080/oauth/authorize?response_type=token" +
+		 * "&client_id=webapp" + "&state=el7WXM8S8wskCE3AL24HGxfEA3r7tj26GOSECZ3tIUxMc"
+		 * + "&redirect_uri=http%3A%2F%2Flocalhost%3A4200%2F" + "&scope=read%20write"
+		 */
+		{
+			MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+			params.add("response_type", "token");
+			params.add("client_id", "webapp");
+			params.add("state", "el7WXM8S8wskCE3AL24HGxfEA3r7tj26GOSECZ3tIUxMc");
+			params.add("redirect_uri", "http://localhost:4200/");
+			params.add("scope", "read write");
+
+			ResultActions result = mockMvc
+					.perform(post("/oauth/authorize").params(params)/* .header("Referer", "http://localhost:4200/") */)
+					.andExpect(status().isFound());
+
+			MockHttpServletResponse rep = result.andReturn().getResponse();
+			String resultString = result.andReturn().getResponse().getContentAsString();
+			String redirectedUrl = result.andReturn().getResponse().getRedirectedUrl();
+		}
+		{
+			MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+			params.add("username", "admin");
+			params.add("password", "1234");
+
+			ResultActions result = mockMvc.perform(post("/login").params(params)).andExpect(status().isFound());
+
+			MockHttpServletResponse rep = result.andReturn().getResponse();
+			String resultString = result.andReturn().getResponse().getContentAsString();
+			String redirectedUrl = result.andReturn().getResponse().getRedirectedUrl();
+		} /*
+			 * JacksonJsonParser jsonParser = new JacksonJsonParser(); return
+			 * jsonParser.parseMap(resultString).get("access_token").toString();
+			 */
 	}
 }

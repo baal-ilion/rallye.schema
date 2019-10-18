@@ -81,13 +81,12 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
 
 	@Override
 	public void configure(final ClientDetailsServiceConfigurer clients) throws Exception {
-		clients.jdbc(this.dataSource);
-		/*
-		 * .withClient("webapp") .authorizedGrantTypes("password", "refresh_token",
-		 * "client_credentials").authorities("ROLE_CLIENT") .scopes("read",
-		 * "write").accessTokenValiditySeconds(300).secret(passwordEncoder.encode(
-		 * "123456")).and() .build();
-		 */
+		// clients.jdbc(this.dataSource);
+
+		clients.inMemory().withClient("webapp")
+				.authorizedGrantTypes("password", "refresh_token", "client_credentials", "implicit")
+				.authorities("ROLE_CLIENT").scopes("read", "write").autoApprove(true).accessTokenValiditySeconds(300)
+				.redirectUris("http://localhost:4200/").secret(passwordEncoder.encode("123456")).and().build();
 
 	}
 

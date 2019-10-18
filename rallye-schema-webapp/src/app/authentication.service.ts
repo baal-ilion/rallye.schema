@@ -1,6 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { JwtHelperService } from '@auth0/angular-jwt';
+import { OAuthService } from 'angular-oauth2-oidc';
+import { Router } from '@angular/router';
+import { Observable } from 'rxjs';
 
 
 @Injectable({
@@ -8,71 +11,99 @@ import { JwtHelperService } from '@auth0/angular-jwt';
 })
 export class AuthenticationService {
 
-  host = 'http://localhost:8080';
-  jwt;
-  username;
-  roles: Array<string>;
+  host = 'http://localhost:8080';//1/spring-security-oauth-server';
 
-  constructor(private http: HttpClient) {
-  }
-
-  login(user) {
-    const params = new URLSearchParams();
-    params.append('grant_type', 'password');
-    params.append('username', user.username);
-    params.append('password', user.password);
-    const header = new HttpHeaders({
-      'Content-type': 'application/x-www-form-urlencoded; charset=utf-8',
-      Authorization: 'Basic ' + btoa('webapp:123456')
+  constructor(private http: HttpClient, private oauthService: OAuthService, private router: Router) {
+    this.oauthService.configure({
+      loginUrl: this.host + '/oauth/authorize',
+      redirectUri: 'http://localhost:4200/',
+      clientId: 'webapp',
+      scope: 'read write',
+      oidc: false
     });
-
-    return this.http.post(this.host + '/oauth/token', params.toString(), { headers: header });
+    this.oauthService.setStorage(sessionStorage);
+    this.oauthService.tryLogin({});
+    this.oauthService.setupAutomaticSilentRefresh();
   }
 
-  saveToken(jwt: string) {
-    localStorage.setItem('token', jwt);
-    this.jwt = jwt;
-    this.parseJWT();
+  obtainAccessToken() {
+    this.oauthService.initImplicitFlow();
   }
 
-  parseJWT() {
-    if (this.jwt) {
-      console.log(this.jwt);
-      const jwtHelper = new JwtHelperService();
-      const jwtObject = jwtHelper.decodeToken(this.jwt);
-      console.log(jwtObject);
-      this.username = jwtObject.user_name;
-      this.roles = jwtObject.authorities;
-      console.log('name=' + this.username);
-      console.log('roles=' + this.roles);
-      console.log('admin=' + this.isAdmin());
-      console.log('user=' + this.isUser());
-    } else {
-      this.username = undefined;
-      this.roles = undefined;
+  isLoggedIn() {
+    console.log(this.oauthService.getAccessToken());
+    if (this.oauthService.getAccessToken() === null) {
+      return false;
     }
-  }
-
-  isAdmin() {
-    return this.roles && this.roles.indexOf('ROLE_ADMIN') >= 0;
-  }
-
-  isUser() {
-    return this.roles && this.roles.indexOf('ROLE_USER') >= 0;
-  }
-
-  isAuthenticated() {
-    return this.roles && (this.isAdmin() || this.isUser());
-  }
-
-  loadToken() {
-    this.jwt = localStorage.getItem('token');
-    this.parseJWT();
+    return true;
   }
 
   logout() {
-    localStorage.removeItem('token');
-    this.jwt = undefined;
-    this.parseJWT();
+    this.oauthService.logOut();
   }
+
+  isAdmin() {
+    let jwt = this.oauthService.getAccessToken();
+    //console.log(jwt);
+    if (jwt === null) {
+      return false;
+    }
+    const jwtHelper = new JwtHelperService();
+    const jwtObject = jwtHelper.decodeToken(jwt);
+    //console.log(jwtObject);
+    return jwtObject.authorities && jwtObject.authorities.indexOf('ROLE_ADMIN') >= 0;
+  }
+
+  isUser() {
+    let jwt = this.oauthService.getAccessToken();
+    //console.log(jwt);
+    if (jwt === null) {
+      return false;
+    }
+    const jwtHelper = new JwtHelperService();
+    const jwtObject = jwtHelper.decodeToken(jwt);
+    //console.log(jwtObject);
+    return jwtObject.authorities && jwtObject.authorities.indexOf('ROLE_USER') >= 0;
+  }
+
+  username() {
+    let jwt = this.oauthService.getAccessToken();
+    //console.log(jwt);
+    if (jwt === null) {
+      return null;
+    }
+    const jwtHelper = new JwtHelperService();
+    const jwtObject = jwtHelper.decodeToken(jwt);
+    return jwtObject.user_name;
+  }
+
+  getResource(resourceUrl) {
+    const httpheaders = new HttpHeaders({
+      Authorization: 'Bearer ' + this.oauthService.getAccessToken()
+    });
+    return this.http.get(resourceUrl, { headers: httpheaders });
+  }
+
+  deleteResource(url) {
+    const headers = new HttpHeaders({
+      'Content-type': 'application/x-www-form-urlencoded; charset=utf-8',
+      Authorization: 'Bearer ' + this.oauthService.getAccessToken()
+    });
+    return this.http.delete(url, { headers });
+  }
+
+  postResource(url, value) {
+    const headers = new HttpHeaders({
+      Authorization: 'Bearer ' + this.oauthService.getAccessToken()
+    });
+    return this.http.post(url, value, { headers });
+  }
+
+  patchResource(url, value) {
+    const headers = new HttpHeaders({
+      Authorization: 'Bearer ' + this.oauthService.getAccessToken()
+    });
+    return this.http.patch(url, value, { headers });
+  }
+
 }
