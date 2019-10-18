@@ -12,5 +12,6 @@
 	<!-- sub modules -->
 	<modules>
 		<module>security-service</module>
+		<module>FormScannerHelloWorld</module>
 	</modules>
 </project>
