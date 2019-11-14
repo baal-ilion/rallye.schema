@@ -1,0 +1,12 @@
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <h1>Etape : {{param.stage}}, Page : {{param.page}}</h1>
+  </div>
+  <div class="row justify-content-center">
+    <textarea [readOnly]='true'>{{param.template}}</textarea>
+  </div>
+  <div *ngIf="param" class="row justify-content-center">
+    <app-details-template-param [param]="param" ></app-details-template-param>
+  </div>
+  <button class="btn-info" ngbButtonLabel (click)='openModifyResponceFileParam()'>Modify Param</button>
+</div>

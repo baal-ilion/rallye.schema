@@ -1,0 +1,22 @@
+<div>
+  <h1>Etape : {{stage.stage}}, Equipe : {{stage.team}}</h1>
+  <div class="container-fluid">
+    <div class="row align-items-start">
+      <div *ngIf="files">
+        <div *ngFor="let file of files | async" class="col-6">
+          <div style="position: relative;" class="responce-file">
+            <img src="http://localhost:8080/downloadResponceFile/{{file.id}}"
+              alt="Etape : {{file.stage}}, Page : {{file.page}}, Equipe : {{file.team}}"
+              style="width: 100%; height: auto;" />
+          </div>
+        </div>
+      </div>
+      <div *ngIf="results" class="container col-6">
+        <div *ngFor="let result of results" class="row align-items-center">
+          <label class="col">{{result.name}} </label>
+          <ui-switch [(ngModel)]="result.resultValue" size="small" class="col"></ui-switch>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

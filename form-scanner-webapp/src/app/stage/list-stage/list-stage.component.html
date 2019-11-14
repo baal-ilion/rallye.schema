@@ -1,0 +1,14 @@
+<button class="btn-info" ngbButtonLabel *ngIf='showStage' (click)='showStages(false)'>Hide Stages</button>
+
+<button class="btn-info" ngbButtonLabel *ngIf='!showStage' (click)='showStages(true)'>Show Stages</button>
+
+<div [hidden]="!showStage">
+  <div *ngIf='stages' class="panel panel-primary">
+    <div class="panel-heading">List of Files</div>
+    <div *ngFor="let stage of stages | async">
+      <div class="panel-body">
+        <app-details-stage [stage]='stage'></app-details-stage>
+      </div>
+    </div>
+  </div>
+</div>
