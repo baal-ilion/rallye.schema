@@ -14,7 +14,7 @@ export class DetailsResponceFileParamComponent implements OnInit {
   constructor(private responceFileParamService: ResponceFileParamService, private modalService: NgbModal) { }
 
   ngOnInit() {
-    this.param.img = 'http://localhost:8080/downloadResponceFile/5dbec6971e2d1d78a85ce97b';
+    this.param.img = 'http://localhost:8080/responceFileModel/' + this.param.id;
   }
 
   openModifyResponceFileParam() {
@@ -22,12 +22,7 @@ export class DetailsResponceFileParamComponent implements OnInit {
     modalRef.componentInstance.param = this.param;
     modalRef.result.then((result) => {
       console.log(result);
-      this.responceFileParamService.updateResponceFileParam({
-        id: this.param.id,
-        stage: result.stage,
-        page: result.page,
-        template: result.template
-      }).subscribe(data => {
+      this.responceFileParamService.updateResponceFileParam(result).subscribe(data => {
         this.param = data;
         this.ngOnInit();
       }, err => {

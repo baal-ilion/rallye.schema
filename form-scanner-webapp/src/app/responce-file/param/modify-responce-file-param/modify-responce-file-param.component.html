@@ -21,14 +21,22 @@
             <input type="file" class="custom-file-input" multiple id="importFile"
               (change)="selectFile($event.target.files)" formControlName="templateFile">
             <label class="custom-file-label" #labelImport for="importFile"><i class="fas fa-search"></i> Choose
-              file</label>
+              template file</label>
           </div>
         </div>
-        <textarea class="form-control" [readOnly]='true' formControlName="template"></textarea>
+        <div class="input-group">
+          <div class="custom-file">
+            <input type="file" class="custom-file-input" multiple id="importFileModel"
+              (change)="selectFileModel($event.target.files)" formControlName="responceFileModel">
+            <label class="custom-file-label" #labelImportModel for="importFileModel"><i class="fas fa-search"></i>
+              Choose
+              model file</label>
+          </div>
+        </div>
         <div *ngIf="detailsParam.template" class="row justify-content-center">
-          <app-details-template-param [param]="detailsParam" ></app-details-template-param>
+          <app-details-template-param [param]="detailsParam"></app-details-template-param>
         </div>
-        </div>
+      </div>
     </div>
   </div>
   <div class="modal-footer">

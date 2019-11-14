@@ -15,7 +15,11 @@ export class ResponceFileParamService {
     return this.http.get(this.host + '/responceFileParams');
   }
 
-  updateResponceFileParam(param): Observable<any> {
+  createResponceFileParam(param): Observable<any> {
     return this.http.post(this.host + '/responceFileParam', param);
+  }
+
+  updateResponceFileParam(param): Observable<any> {
+    return this.http.put(this.host + '/responceFileParam', param);
   }
 }

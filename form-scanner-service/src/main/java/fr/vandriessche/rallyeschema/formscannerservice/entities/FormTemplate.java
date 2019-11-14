@@ -12,7 +12,6 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-//@AllArgsConstructor
 public class FormTemplate {
 	private HashMap<String, FormGroup> groups = new HashMap<>();
 	private HashMap<Corners, FormPoint> corners = new HashMap<>();

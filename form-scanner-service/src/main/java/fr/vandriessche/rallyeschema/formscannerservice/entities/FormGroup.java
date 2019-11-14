@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-//@AllArgsConstructor
 public class FormGroup {
 	private HashMap<String, FormQuestion> fields = new HashMap<>();
 	private HashMap<String, FormArea> areas = new HashMap<>();

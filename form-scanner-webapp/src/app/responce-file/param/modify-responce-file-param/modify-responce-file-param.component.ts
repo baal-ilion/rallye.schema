@@ -12,8 +12,11 @@ export class ModifyResponceFileParamComponent implements OnInit {
   @Input() param: any;
   @ViewChild('labelImport', { static: false })
   labelImport: ElementRef;
+  @ViewChild('labelImportModel', { static: false })
+  labelImportModel: ElementRef;
 
   templateFile: File;
+  responceFileModel: File;
   myForm: FormGroup;
   detailsParam = { template: '', img: '' };
 
@@ -22,7 +25,7 @@ export class ModifyResponceFileParamComponent implements OnInit {
 
   ngOnInit() {
     this.detailsParam.template = this.param.template;
-    this.detailsParam.img = 'http://localhost:8080/downloadResponceFile/5dbec6971e2d1d78a85ce97b';
+    this.detailsParam.img = 'http://localhost:8080/responceFileModel/' + this.param.id;
     this.createForm();
   }
 
@@ -31,12 +34,22 @@ export class ModifyResponceFileParamComponent implements OnInit {
       stage: this.param.stage,
       page: this.param.page,
       template: this.param.template,
-      templateFile: ''
+      templateFile: '',
+      responceFileModel: ''
     });
   }
 
   private submitForm() {
-    this.activeModal.close(this.myForm.value);
+    const formData = new FormData();
+    const data = {
+      id: this.param.id,
+      stage: this.myForm.value.stage,
+      page: this.myForm.value.page,
+      template: this.myForm.value.template
+    };
+    formData.append('responceFileParam', JSON.stringify(data));
+    formData.append('responceFileModel', this.responceFileModel);
+    this.activeModal.close(formData);
   }
 
   selectFile(files: FileList) {
@@ -51,6 +64,21 @@ export class ModifyResponceFileParamComponent implements OnInit {
         this.detailsParam = { template: myReader.result.toString(), img: this.detailsParam.img };
       };
       myReader.readAsText(this.templateFile);
+    }
+  }
+
+  selectFileModel(files: FileList) {
+    if (files.length > 0) {
+      this.labelImportModel.nativeElement.innerText = Array.from(files)
+        .map(f => f.name)
+        .join(', ');
+      this.responceFileModel = files.item(0);
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        this.detailsParam = { template: this.detailsParam.template, img: reader.result.toString() };
+      };
+      reader.readAsDataURL(this.responceFileModel);
     }
   }
 }

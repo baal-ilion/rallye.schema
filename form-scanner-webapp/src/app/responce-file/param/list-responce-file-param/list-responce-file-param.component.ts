@@ -35,11 +35,7 @@ export class ListResponceFileParamComponent implements OnInit {
     };
     modalRef.result.then((result) => {
       console.log(result);
-      this.responceFileParamService.updateResponceFileParam({
-        stage: result.stage,
-        page: result.page,
-        template: result.template
-      }).subscribe(data => {
+      this.responceFileParamService.createResponceFileParam(result).subscribe(data => {
         this.showResponceFileParams(true);
       }, err => {
         console.log(err);

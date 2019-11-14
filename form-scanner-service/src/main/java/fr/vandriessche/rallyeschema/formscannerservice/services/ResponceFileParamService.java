@@ -12,16 +12,22 @@ import java.util.Optional;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.apache.commons.io.FilenameUtils;
+import org.bson.BsonBinarySubType;
+import org.bson.types.Binary;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import org.xml.sax.SAXException;
 
 import fr.vandriessche.rallyeschema.formscannerservice.entities.QuestionPageParam;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.QuestionPageType;
+import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponceFileModel;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponceFileParam;
+import fr.vandriessche.rallyeschema.formscannerservice.repositories.ResponceFileModelRepository;
 import fr.vandriessche.rallyeschema.formscannerservice.repositories.ResponceFileParamRepository;
 import lombok.extern.java.Log;
 
@@ -39,6 +45,12 @@ public class ResponceFileParamService {
 
 	@Autowired
 	private ResponceFileParamRepository responceFileParamRepository;
+	@Autowired
+	private ResponceFileModelRepository responceFileModelRepository;
+
+	public ResponceFileModel getResponceFileModel(String id) {
+		return responceFileModelRepository.findById(id).orElseThrow();
+	}
 
 	public ResponceFileParam getResponceFileParam(String id) {
 		return responceFileParamRepository.findById(id).orElseThrow();
@@ -63,8 +75,10 @@ public class ResponceFileParamService {
 		return responceFileParamRepository.findAll(pageable);
 	}
 
-	public ResponceFileParam addResponceFileParam(ResponceFileParam responceFileParam)
+	public ResponceFileParam addResponceFileParam(ResponceFileParam responceFileParam, MultipartFile fileModel)
 			throws ParserConfigurationException, SAXException, IOException {
+		if (responceFileParam == null)
+			responceFileParam = new ResponceFileParam();
 		if (responceFileParam.getId() != null)
 			responceFileParamRepository.findById(responceFileParam.getId()).orElseThrow();
 		// else if (getResponceFileParamByStageAndPage(responceFileParam.getStage(),
@@ -72,10 +86,22 @@ public class ResponceFileParamService {
 
 		fillResponceFileParam(responceFileParam);
 		responceFileParam = responceFileParamRepository.save(responceFileParam);
+		createResponceFileModel(responceFileParam, fileModel);
 		return responceFileParam;
 	}
 
-	public ResponceFileParam updateResponceFileParam(ResponceFileParam responceFileParam)
+	private void createResponceFileModel(ResponceFileParam responceFileParam, MultipartFile fileModel)
+			throws IOException {
+		ResponceFileModel responceFileModel = new ResponceFileModel();
+		responceFileModel.setId(responceFileParam.getId());
+		responceFileModel.setParam(responceFileParam);
+		responceFileModel.setFile(new Binary(BsonBinarySubType.BINARY, fileModel.getBytes()));
+		responceFileModel.setFileExtension(FilenameUtils.getExtension(fileModel.getOriginalFilename()));
+		responceFileModel.setFileType(fileModel.getContentType());
+		responceFileModelRepository.save(responceFileModel);
+	}
+
+	public ResponceFileParam updateResponceFileParam(ResponceFileParam responceFileParam, MultipartFile fileModel)
 			throws ParserConfigurationException, SAXException, IOException {
 		responceFileParamRepository.findById(responceFileParam.getId()).orElseThrow();
 		// else if (getResponceFileParamByStageAndPage(responceFileParam.getStage(),
@@ -83,6 +109,9 @@ public class ResponceFileParamService {
 
 		fillResponceFileParam(responceFileParam);
 		responceFileParam = responceFileParamRepository.save(responceFileParam);
+		if (fileModel != null) {
+			createResponceFileModel(responceFileParam, fileModel);
+		}
 		return responceFileParam;
 	}
 
@@ -145,6 +174,8 @@ public class ResponceFileParamService {
 
 	private com.albertoborsetta.formscanner.api.FormTemplate makeFormTemplate(ResponceFileParam responceFileParam)
 			throws IOException, ParserConfigurationException, SAXException {
+		if (responceFileParam.getTemplate() == null)
+			return new com.albertoborsetta.formscanner.api.FormTemplate("");
 		File templateFile = File.createTempFile("rallyeschema-", "-model.xtmpl");
 		templateFile.deleteOnExit();
 		try (BufferedWriter bw = new BufferedWriter(new FileWriter(templateFile))) {
