@@ -3,6 +3,8 @@ import { CdkDragEnd } from '@angular/cdk/drag-drop';
 import { UploadFileService } from '../upload-file.service';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { ModifyUploadComponent } from '../modify-upload/modify-upload.component';
+import { FormTemplate } from 'src/app/responce-file/common/details-template/models/form-template';
+import { Corners } from 'src/app/responce-file/common/details-template/models/corners';
 
 @Component({
   selector: 'app-details-upload',
@@ -13,45 +15,23 @@ export class DetailsUploadComponent implements OnInit {
 
   @Input() fileUpload: any;
 
-  points = [];
-  questions = [];
-  topLeftCorner: any;
-  bottomLeftCorner: any;
-  bottomRightCorner: any;
-  topRightCorner: any;
+  template: FormTemplate;
 
   constructor(private uploadService: UploadFileService, private modalService: NgbModal) { }
 
   ngOnInit() {
-    const height = this.fileUpload.filledForm.height;
-    const width = this.fileUpload.filledForm.width;
-    const squareHeight = 30 * 100 / 2800;
-    const squareWidth = 30 * 100 / 1700;
+    this.loadTemplate(this.fileUpload);
+  }
 
-    this.topLeftCorner = {
-      top: this.fileUpload.filledForm.corners.TOP_LEFT.y * 100 / height,
-      left: this.fileUpload.filledForm.corners.TOP_LEFT.x * 100 / width,
-      width: squareWidth, height: squareHeight
-    };
-    this.bottomLeftCorner = {
-      top: this.fileUpload.filledForm.corners.BOTTOM_LEFT.y * 100 / height,
-      left: this.fileUpload.filledForm.corners.BOTTOM_LEFT.x * 100 / width,
-      width: squareWidth, height: squareHeight
-    };
-    this.bottomRightCorner = {
-      top: this.fileUpload.filledForm.corners.BOTTOM_RIGHT.y * 100 / height,
-      left: this.fileUpload.filledForm.corners.BOTTOM_RIGHT.x * 100 / width,
-      width: squareWidth, height: squareHeight
-    };
-    this.topRightCorner = {
-      top: this.fileUpload.filledForm.corners.TOP_RIGHT.y * 100 / height,
-      left: this.fileUpload.filledForm.corners.TOP_RIGHT.x * 100 / width,
-      width: squareWidth, height: squareHeight
-    };
+  loadTemplate(fileUpload) {
+    this.template = new FormTemplate();
+    this.template.fileUrl = 'http://localhost:8080/downloadResponceFile/' + fileUpload.id;
+    this.template.square = fileUpload.filledForm.size;
+    this.template.height = fileUpload.filledForm.height;
+    this.template.width = fileUpload.filledForm.width;
+    this.template.corners = fileUpload.filledForm.corners;
 
-    const fields = this.fileUpload.filledForm.groups.EMPTY.fields;
-    this.points = [];
-    this.questions = [];
+    const fields = fileUpload.filledForm.groups.EMPTY.fields;
     const fieldKeys = Object.keys(fields).sort();
     for (const field of fieldKeys) {
       const points = fields[field].points;
@@ -64,62 +44,24 @@ export class DetailsUploadComponent implements OnInit {
       } else if (pointKeys.includes('Y')) {
         resultValue = true;
       }
-      this.questions.push({
-        name: field,
-        result: resultValue
-      });
-      let pointClass = 'default-point';
-      if (resultValue === true) {
-        pointClass = 'valid-point';
-      } else if (resultValue === false) {
-        pointClass = 'invalid-point';
-      }
 
       for (const point of pointKeys) {
         if (points[point]) {
-          this.points.push({
-            top: points[point].y * 100 / height,
-            left: points[point].x * 100 / width,
-            width: squareWidth, height: squareHeight,
-            class: pointClass
+          this.template.points.push({
+            point: points[point],
+            valid: resultValue,
+            comment: field
           });
         }
       }
     }
   }
 
-  endDrag(event: CdkDragEnd, corner: any) {
-    const pos = event.source.getFreeDragPosition();
-    const top = pos.y * 100 / event.source.element.nativeElement.parentElement.offsetHeight;
-    const left = pos.x * 100 / event.source.element.nativeElement.parentElement.offsetWidth;
-    corner.top += top;
-    corner.left += left;
-    event.source.reset();
-
-
-    const height = this.fileUpload.filledForm.height;
-    const width = this.fileUpload.filledForm.width;
+  endDrag(event: Corners) {
     this.uploadService.updateResponceFileInfoCorners({
       id: this.fileUpload.id,
       filledForm: {
-        corners: {
-          TOP_LEFT: {
-            x: width * this.topLeftCorner.left / 100,
-            y: height * this.topLeftCorner.top / 100
-          },
-          BOTTOM_LEFT: {
-            x: width * this.bottomLeftCorner.left / 100,
-            y: height * this.bottomLeftCorner.top / 100
-          },
-          BOTTOM_RIGHT: {
-            x: width * this.bottomRightCorner.left / 100,
-            y: height * this.bottomRightCorner.top / 100
-          },
-          TOP_RIGHT: {
-            x: width * this.topRightCorner.left / 100,
-            y: height * this.topRightCorner.top / 100
-          }
-        }
+        corners: event
       }
     }).subscribe(data => {
       this.fileUpload = data;

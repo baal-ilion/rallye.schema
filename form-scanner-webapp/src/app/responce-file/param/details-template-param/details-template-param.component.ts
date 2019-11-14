@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { Corners } from '../../common/details-template/models/corners';
 import { FormTemplate } from '../../common/details-template/models/form-template';
 
@@ -7,7 +7,7 @@ import { FormTemplate } from '../../common/details-template/models/form-template
   templateUrl: './details-template-param.component.html',
   styleUrls: ['./details-template-param.component.scss']
 })
-export class DetailsTemplateParamComponent implements OnInit {
+export class DetailsTemplateParamComponent implements OnInit, OnChanges {
   @Input() param: any;
   @Output() endDragEvent = new EventEmitter<Corners>();
 
@@ -15,13 +15,27 @@ export class DetailsTemplateParamComponent implements OnInit {
   constructor() { }
 
   ngOnInit() {
+    this.loadTemplate(this.param);
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    for (const propName in changes) {
+      if (propName === 'param') {
+        const change = changes[propName];
+        this.loadTemplate(change.currentValue);
+        break;
+      }
+    }
+  }
+
+  loadTemplate(param) {
     this.template = new FormTemplate();
     this.template.height = 2800;
     this.template.width = 1700;
-    this.template.fileUrl = this.param.img;
+    this.template.fileUrl = param.img;
     //this.template.fileAlt = this.alt;
     const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(this.param.template, 'text/xml');
+    const xmlDoc = parser.parseFromString(param.template, 'text/xml');
     this.template.corners = new Corners();
     const corners = xmlDoc.getElementsByTagName('corner');
     // tslint:disable-next-line: prefer-for-of

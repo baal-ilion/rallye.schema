@@ -40,15 +40,17 @@ export class ModifyResponceFileParamComponent implements OnInit {
   }
 
   selectFile(files: FileList) {
-    this.labelImport.nativeElement.innerText = Array.from(files)
-      .map(f => f.name)
-      .join(', ');
-    this.templateFile = files.item(0);
-    const myReader = new FileReader();
-    myReader.onloadend = (e) => {
-      this.myForm.patchValue({ template: myReader.result });
-      this.detailsParam = { template: myReader.result.toString(), img: this.detailsParam.img };
-    };
-    myReader.readAsText(this.templateFile);
+    if (files.length > 0) {
+      this.labelImport.nativeElement.innerText = Array.from(files)
+        .map(f => f.name)
+        .join(', ');
+      this.templateFile = files.item(0);
+      const myReader = new FileReader();
+      myReader.onloadend = (e) => {
+        this.myForm.patchValue({ template: myReader.result });
+        this.detailsParam = { template: myReader.result.toString(), img: this.detailsParam.img };
+      };
+      myReader.readAsText(this.templateFile);
+    }
   }
 }

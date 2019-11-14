@@ -4,52 +4,7 @@
       {{fileUpload.page}}, Equipe : {{fileUpload.team}}</button>
   </div>
   <div class="row justify-content-center">
-    <div class="col-8">
-      <div style="position: relative;" class="responce-file">
-        <img src="http://localhost:8080/downloadResponceFile/{{fileUpload.id}}"
-          alt="Etape : {{fileUpload.stage}}, Page : {{fileUpload.page}}, Equipe : {{fileUpload.team}}"
-          style="width: 100%; height: auto;" />
-        <div *ngIf="points" style="position: absolute; top:0px; left:0px; height: 100%; width: 100%;">
-          <div *ngFor="let point of points" [className]="point.class" [style.top.%]="point.top"
-            [style.left.%]="point.left" [style.width.%]="point.width" [style.height.%]="point.height"
-            style="position: absolute; z-index: 2; transform: translate(-50%, -50%);"></div>
-        </div>
-        <!-- <div
-      style="position: absolute; top:0px; left:0px; height: 100%; width: 100%; z-index: 2;border:1px solid yellowgreen;">
-      <svg preserveAspectRatio="none" viewBox="0 0 100 100" style="position: absolute; top:0px; left:0px; height: 100%; width: 100%; z-index: 2;">
-        <line [attr.x2]="topRightCorner.left" [attr.x1]="topLeftCorner.left" [attr.y2]="topRightCorner.top"
-          [attr.y1]="topLeftCorner.top" style="stroke:rgb(255,0,0);stroke-width:1;fill:none;" />
-        <line [attr.x1]="bottomLeftCorner.left" [attr.x2]="topLeftCorner.left" [attr.y1]="bottomLeftCorner.top"
-          [attr.y2]="topLeftCorner.top" style="stroke:rgb(255,0,0);stroke-width:1" />
-        <line [attr.x1]="topRightCorner.left" [attr.x2]="bottomRightCorner.left" [attr.y1]="topRightCorner.top"
-          [attr.y2]="bottomRightCorner.top" style="stroke:rgb(255,0,0);stroke-width:1" />
-        <line [attr.x1]="bottomRightCorner.left" [attr.x2]="bottomLeftCorner.left" [attr.y1]="bottomRightCorner.top"
-          [attr.y2]="bottomLeftCorner.top" style="stroke:rgb(255,0,0);stroke-width:1" />
-      </svg>
-    </div> -->
-        <div *ngIf="topLeftCorner" class="default-point" [style.top.%]="topLeftCorner.top"
-          [style.left.%]="topLeftCorner.left" [style.width.%]="topLeftCorner.width"
-          [style.height.%]="topLeftCorner.height"
-          style="position: absolute; z-index: 2; transform: translate(-50%, -50%);" cdkDragBoundary=".responce-file"
-          (cdkDragEnded)="endDrag($event, topLeftCorner)" cdkDrag>
-        </div>
-        <div *ngIf="bottomLeftCorner" class="default-point" [style.top.%]="bottomLeftCorner.top"
-          [style.left.%]="bottomLeftCorner.left" [style.width.%]="bottomLeftCorner.width"
-          [style.height.%]="bottomLeftCorner.height"
-          style="position: absolute; z-index: 2; transform: translate(-50%, -50%);" cdkDragBoundary=".responce-file"
-          (cdkDragEnded)="endDrag($event, bottomLeftCorner)" cdkDrag></div>
-        <div *ngIf="bottomRightCorner" class="default-point" [style.top.%]="bottomRightCorner.top"
-          [style.left.%]="bottomRightCorner.left" [style.width.%]="bottomRightCorner.width"
-          [style.height.%]="bottomRightCorner.height"
-          style="position: absolute; z-index: 2; transform: translate(-50%, -50%);" cdkDragBoundary=".responce-file"
-          (cdkDragEnded)="endDrag($event, bottomRightCorner)" cdkDrag></div>
-        <div *ngIf="topRightCorner" class="default-point" [style.top.%]="topRightCorner.top"
-          [style.left.%]="topRightCorner.left" [style.width.%]="topRightCorner.width"
-          [style.height.%]="topRightCorner.height"
-          style="position: absolute; z-index: 2; transform: translate(-50%, -50%);" cdkDragBoundary=".responce-file"
-          (cdkDragEnded)="endDrag($event, topRightCorner)" cdkDrag></div>
-      </div>
-    </div>
+    <app-details-template [template]="template" (endDragEvent)="endDrag($event)" class="col-8"></app-details-template>
   </div>
   <div *ngIf="fileUpload.active" class="row justify-content-center">
     <button type="button" class="btn btn-success" (click)="check()">Vérifié</button>
