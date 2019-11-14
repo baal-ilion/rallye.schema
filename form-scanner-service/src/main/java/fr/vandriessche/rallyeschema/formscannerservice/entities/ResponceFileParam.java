@@ -20,5 +20,8 @@ public class ResponceFileParam {
 
 	private String template;
 
+	private Integer height;
+	private Integer width;
+
 	private LinkedHashMap<String, QuestionPageParam> questions = new LinkedHashMap<>();
 }

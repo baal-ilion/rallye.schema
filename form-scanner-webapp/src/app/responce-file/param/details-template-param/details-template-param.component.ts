@@ -30,8 +30,8 @@ export class DetailsTemplateParamComponent implements OnInit, OnChanges {
 
   loadTemplate(param) {
     this.template = new FormTemplate();
-    this.template.height = 2800;
-    this.template.width = 1700;
+    this.template.height = param.height;
+    this.template.width = param.width;
     this.template.fileUrl = param.img;
     //this.template.fileAlt = this.alt;
     const parser = new DOMParser();

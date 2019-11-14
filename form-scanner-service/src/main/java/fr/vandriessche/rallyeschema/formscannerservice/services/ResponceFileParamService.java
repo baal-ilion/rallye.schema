@@ -1,6 +1,8 @@
 package fr.vandriessche.rallyeschema.formscannerservice.services;
 
+import java.awt.image.BufferedImage;
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -10,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.imageio.ImageIO;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.io.FilenameUtils;
@@ -85,20 +88,13 @@ public class ResponceFileParamService {
 		// responceFileParam.getPage()).isPresent())
 
 		fillResponceFileParam(responceFileParam);
+		ResponceFileModel responceFileModel = fileModel != null ? makeResponceFileModel(fileModel, null)
+				: responceFileModelRepository.findById(responceFileParam.getId()).orElseThrow();
+		fillResponceFileParam(responceFileParam, responceFileModel);
 		responceFileParam = responceFileParamRepository.save(responceFileParam);
-		createResponceFileModel(responceFileParam, fileModel);
-		return responceFileParam;
-	}
-
-	private void createResponceFileModel(ResponceFileParam responceFileParam, MultipartFile fileModel)
-			throws IOException {
-		ResponceFileModel responceFileModel = new ResponceFileModel();
-		responceFileModel.setId(responceFileParam.getId());
-		responceFileModel.setParam(responceFileParam);
-		responceFileModel.setFile(new Binary(BsonBinarySubType.BINARY, fileModel.getBytes()));
-		responceFileModel.setFileExtension(FilenameUtils.getExtension(fileModel.getOriginalFilename()));
-		responceFileModel.setFileType(fileModel.getContentType());
+		fillResponceFileModel(responceFileParam, responceFileModel);
 		responceFileModelRepository.save(responceFileModel);
+		return responceFileParam;
 	}
 
 	public ResponceFileParam updateResponceFileParam(ResponceFileParam responceFileParam, MultipartFile fileModel)
@@ -107,12 +103,7 @@ public class ResponceFileParamService {
 		// else if (getResponceFileParamByStageAndPage(responceFileParam.getStage(),
 		// responceFileParam.getPage()).isPresent())
 
-		fillResponceFileParam(responceFileParam);
-		responceFileParam = responceFileParamRepository.save(responceFileParam);
-		if (fileModel != null) {
-			createResponceFileModel(responceFileParam, fileModel);
-		}
-		return responceFileParam;
+		return addResponceFileParam(responceFileParam, fileModel);
 	}
 
 	public com.albertoborsetta.formscanner.api.FormTemplate makeFormTemplate(Integer stage, Integer page)
@@ -121,6 +112,28 @@ public class ResponceFileParamService {
 		if (param.isEmpty())
 			return makeFormTemplate();
 		return makeFormTemplate(param.get());
+	}
+
+	private void fillResponceFileModel(ResponceFileParam responceFileParam, ResponceFileModel responceFileModel) {
+		responceFileModel.setId(responceFileParam.getId());
+		responceFileModel.setParam(responceFileParam);
+	}
+
+	private void fillResponceFileParam(ResponceFileParam responceFileParam, ResponceFileModel responceFileModel)
+			throws IOException {
+		BufferedImage image = ImageIO.read(new ByteArrayInputStream(responceFileModel.getFile().getData()));
+		responceFileParam.setHeight(image.getHeight());
+		responceFileParam.setWidth(image.getWidth());
+	}
+
+	private ResponceFileModel makeResponceFileModel(MultipartFile fileModel, ResponceFileModel responceFileModel)
+			throws IOException {
+		if (responceFileModel == null)
+			responceFileModel = new ResponceFileModel();
+		responceFileModel.setFile(new Binary(BsonBinarySubType.BINARY, fileModel.getBytes()));
+		responceFileModel.setFileExtension(FilenameUtils.getExtension(fileModel.getOriginalFilename()));
+		responceFileModel.setFileType(fileModel.getContentType());
+		return responceFileModel;
 	}
 
 	private void fillResponceFileParam(ResponceFileParam responceFileParam)
