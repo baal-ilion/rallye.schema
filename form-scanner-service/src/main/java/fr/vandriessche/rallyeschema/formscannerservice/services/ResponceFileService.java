@@ -235,7 +235,8 @@ public class ResponceFileService {
 		FormTemplate filledForm = makeFormTemplate(image, name,
 				responceFileInfo.getStage() != null ? responceFileInfo.getStage() : updatedResponceFileInfo.getStage(),
 				responceFileInfo.getPage() != null ? responceFileInfo.getPage() : updatedResponceFileInfo.getPage(),
-				responceFileInfo.getFilledForm() != null ? responceFileInfo.getFilledForm().getCorners() : null);
+				responceFileInfo.getFilledForm() != null ? responceFileInfo.getFilledForm().getCorners()
+						: updatedResponceFileInfo.getFilledForm().getCorners());
 
 		ResponceFileInfo info = new ResponceFileInfo();
 		fillResponceFileInfo(filledForm, info);
