@@ -18,13 +18,12 @@ export class ModifyResponceFileParamComponent implements OnInit {
   templateFile: File;
   responceFileModel: File;
   myForm: FormGroup;
-  detailsParam = { template: '', img: '' };
+  detailsParam: any;
 
-  constructor(public activeModal: NgbActiveModal,
-    private formBuilder: FormBuilder) { }
+  constructor(public activeModal: NgbActiveModal, private formBuilder: FormBuilder) { }
 
   ngOnInit() {
-    this.detailsParam.template = this.param.template;
+    this.detailsParam = JSON.parse(JSON.stringify(this.param));
     this.detailsParam.img = 'http://localhost:8080/responceFileModel/' + this.param.id;
     this.createForm();
   }
@@ -61,7 +60,8 @@ export class ModifyResponceFileParamComponent implements OnInit {
       const myReader = new FileReader();
       myReader.onloadend = (e) => {
         this.myForm.patchValue({ template: myReader.result });
-        this.detailsParam = { template: myReader.result.toString(), img: this.detailsParam.img };
+        this.detailsParam.template = myReader.result.toString();
+        this.detailsParam = Object.assign({}, this.detailsParam);
       };
       myReader.readAsText(this.templateFile);
     }
@@ -76,7 +76,18 @@ export class ModifyResponceFileParamComponent implements OnInit {
       const reader = new FileReader();
 
       reader.onload = (e) => {
-        this.detailsParam = { template: this.detailsParam.template, img: reader.result.toString() };
+        this.detailsParam.img = reader.result.toString();
+        const img = new Image();
+        img.onload = () => {
+          this.detailsParam.width = img.width;
+          this.detailsParam.height = img.height;
+          console.log(this.detailsParam.width);
+          console.log(this.detailsParam.height);
+          this.detailsParam = Object.assign({}, this.detailsParam);
+        };
+        img.src = this.detailsParam.img;
+        console.log(this.detailsParam.img);
+        this.detailsParam = Object.assign({}, this.detailsParam);
       };
       reader.readAsDataURL(this.responceFileModel);
     }

@@ -1,6 +1,7 @@
 package fr.vandriessche.rallyeschema.formscannerservice.entities;
 
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
+import java.util.List;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,5 +13,5 @@ import lombok.NoArgsConstructor;
 public class QuestionPageParam {
 	private String name;
 	private QuestionPageType type;
-	private LinkedHashMap<String, Boolean> responces = new LinkedHashMap<>();
+	private List<String> responces = new ArrayList<>();
 }

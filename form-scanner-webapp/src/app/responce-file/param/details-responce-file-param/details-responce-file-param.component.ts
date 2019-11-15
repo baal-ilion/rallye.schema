@@ -11,10 +11,21 @@ import { ResponceFileParamService } from '../responce-file-param.service';
 export class DetailsResponceFileParamComponent implements OnInit {
   @Input() param: any;
 
+  questions: { name: string, type: any }[];
   constructor(private responceFileParamService: ResponceFileParamService, private modalService: NgbModal) { }
 
   ngOnInit() {
+    console.log(this.param);
     this.param.img = 'http://localhost:8080/responceFileModel/' + this.param.id;
+    this.loadQuestions(this.param.questions);
+  }
+
+  loadQuestions(questions) {
+    this.questions = [];
+    const questionKeys = Object.keys(questions);
+    for (const question of questionKeys) {
+      this.questions.push({ name: question, type: questions[question].type });
+    }
   }
 
   openModifyResponceFileParam() {

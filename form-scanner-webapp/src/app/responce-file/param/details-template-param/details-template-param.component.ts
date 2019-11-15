@@ -21,9 +21,11 @@ export class DetailsTemplateParamComponent implements OnInit, OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     for (const propName in changes) {
       if (propName === 'param') {
+        console.log(propName);
         const change = changes[propName];
         this.loadTemplate(change.currentValue);
-        break;
+      } else {
+        console.log(propName);
       }
     }
   }

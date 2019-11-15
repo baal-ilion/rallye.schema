@@ -6,8 +6,8 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,6 +25,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.xml.sax.SAXException;
+
+import com.albertoborsetta.formscanner.api.FormQuestion;
+import com.albertoborsetta.formscanner.api.commons.Constants.FieldType;
 
 import fr.vandriessche.rallyeschema.formscannerservice.entities.QuestionPageParam;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.QuestionPageType;
@@ -145,44 +148,56 @@ public class ResponceFileParamService {
 		for (var group : groups.entrySet()) {
 			group.getValue().getFields().values().stream()
 					.sorted(Comparator.comparing(com.albertoborsetta.formscanner.api.FormQuestion::getName))
-					.filter(field -> !questions.containsKey(field.getName())).forEach(field -> {
-						if (field.getName().startsWith(PAGE)) {
-							questions.put(field.getName(), new QuestionPageParam(field.getName(), QuestionPageType.PAGE,
-									new LinkedHashMap<>()));
-						} else if (field.getName().startsWith(STAGE)) {
+					.forEach(field -> {
+						List<String> responces = makeResponceValues(field);
+						var question = questions.get(field.getName());
+						if (question == null) {
 							questions.put(field.getName(), new QuestionPageParam(field.getName(),
-									QuestionPageType.STAGE, new LinkedHashMap<>()));
-						} else if (field.getName().startsWith(TEAM)) {
-							questions.put(field.getName(), new QuestionPageParam(field.getName(), QuestionPageType.TEAM,
-									new LinkedHashMap<>()));
+									getTypeByName(field.getName(), QuestionPageType.QUESTION), responces));
 						} else {
-							LinkedHashMap<String, Boolean> responces = new LinkedHashMap<>();
-							field.getPoints().entrySet().stream()
-									.sorted(Map.Entry.comparingByValue(
-											Comparator.comparing(com.albertoborsetta.formscanner.api.FormPoint::getX)))
-									.forEach(entry -> responces.put(entry.getKey(), responces.size() % 2 == 0));
-							questions.put(field.getName(),
-									new QuestionPageParam(field.getName(), QuestionPageType.QUESTION, responces));
+							question.setResponces(responces);
 						}
+
 					});
 			group.getValue().getAreas().values().stream()
 					.sorted(Comparator.comparing(com.albertoborsetta.formscanner.api.FormArea::getName))
 					.filter(area -> !questions.containsKey(area.getName())).forEach(area -> {
-						if (area.getName().startsWith(PAGE)) {
-							questions.put(area.getName(), new QuestionPageParam(area.getName(), QuestionPageType.PAGE,
-									new LinkedHashMap<>()));
-						} else if (area.getName().startsWith(STAGE)) {
-							questions.put(area.getName(), new QuestionPageParam(area.getName(), QuestionPageType.STAGE,
-									new LinkedHashMap<>()));
-						} else if (area.getName().startsWith(TEAM)) {
-							questions.put(area.getName(), new QuestionPageParam(area.getName(), QuestionPageType.TEAM,
-									new LinkedHashMap<>()));
-						} else {
-							questions.put(area.getName(), new QuestionPageParam(area.getName(),
-									QuestionPageType.PERFORMANCE, new LinkedHashMap<>()));
-						}
+						questions.put(area.getName(), new QuestionPageParam(area.getName(),
+								getTypeByName(area.getName(), QuestionPageType.PERFORMANCE), new ArrayList<>()));
 					});
 		}
+	}
+
+	private List<String> makeResponceValues(FormQuestion field) {
+		List<String> responces = new ArrayList<>();
+		if (field.getType() == FieldType.QUESTIONS_BY_ROWS) {
+			field.getPoints().entrySet().stream()
+					.sorted(Map.Entry.comparingByValue(
+							Comparator.comparing(com.albertoborsetta.formscanner.api.FormPoint::getX)))
+					.forEach(entry -> responces.add(entry.getKey()));
+		} else if (field.getType() == FieldType.QUESTIONS_BY_COLS) {
+			field.getPoints().entrySet().stream()
+					.sorted(Map.Entry.comparingByValue(
+							Comparator.comparing(com.albertoborsetta.formscanner.api.FormPoint::getY)))
+					.forEach(entry -> responces.add(entry.getKey()));
+		} else if (field.getType() == FieldType.RESPONSES_BY_GRID) {
+			field.getPoints().entrySet().stream()
+					.sorted(Map.Entry.comparingByValue(
+							Comparator.comparing(com.albertoborsetta.formscanner.api.FormPoint::getY)))
+					.forEach(entry -> responces.add(entry.getKey()));
+		}
+		return responces;
+	}
+
+	private QuestionPageType getTypeByName(String name, QuestionPageType defaultType) {
+		if (name.startsWith(PAGE)) {
+			return QuestionPageType.PAGE;
+		} else if (name.startsWith(STAGE)) {
+			return QuestionPageType.STAGE;
+		} else if (name.startsWith(TEAM)) {
+			return QuestionPageType.TEAM;
+		}
+		return defaultType;
 	}
 
 	private com.albertoborsetta.formscanner.api.FormTemplate makeFormTemplate(ResponceFileParam responceFileParam)
@@ -194,7 +209,9 @@ public class ResponceFileParamService {
 		try (BufferedWriter bw = new BufferedWriter(new FileWriter(templateFile))) {
 			bw.write(responceFileParam.getTemplate());
 		}
-		return new com.albertoborsetta.formscanner.api.FormTemplate(templateFile);
+		var formTemplate = new com.albertoborsetta.formscanner.api.FormTemplate(templateFile);
+		templateFile.delete();
+		return formTemplate;
 	}
 
 	private com.albertoborsetta.formscanner.api.FormTemplate makeFormTemplate()
