@@ -1,0 +1,14 @@
+<button class="btn-info" ngbButtonLabel *ngIf='showPoint' (click)='showPoints(false)'>Hide Points</button>
+<button class="btn-info" ngbButtonLabel *ngIf='showPoint' (click)='recomputePoints()'>Recompute Points</button>
+<button class="btn-info" ngbButtonLabel *ngIf='!showPoint' (click)='showPoints(true)'>Show Points</button>
+
+<div [hidden]="!showPoint">
+  <div *ngIf='points' class="panel panel-primary">
+    <div class="panel-heading">List of Files</div>
+    <div *ngFor="let point of points | async">
+      <div class="panel-body">
+        <app-details-point [point]='point'></app-details-point>
+      </div>
+    </div>
+  </div>
+</div>

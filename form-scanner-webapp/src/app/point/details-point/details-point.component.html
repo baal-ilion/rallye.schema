@@ -1,0 +1,6 @@
+<h1>Equipe : {{point.team}}</h1>
+<span>Total : {{point.total}}</span>
+<div *ngFor="let stagePoint of point.stagePoint">
+  <h2>Etape : {{stagePoint.stage}}</h2>
+  <span>Total : {{stagePoint.total}}</span>
+</div>

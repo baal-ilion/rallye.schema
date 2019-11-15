@@ -20,6 +20,8 @@ import { DetailsResponceFileParamComponent } from './responce-file/param/details
 import { ModifyResponceFileParamComponent } from './responce-file/param/modify-responce-file-param/modify-responce-file-param.component';
 import { DetailsTemplateComponent } from './responce-file/common/details-template/details-template.component';
 import { DetailsTemplateParamComponent } from './responce-file/param/details-template-param/details-template-param.component';
+import { ListPointComponent } from './point/list-point/list-point.component';
+import { DetailsPointComponent } from './point/details-point/details-point.component';
 
 @NgModule({
   declarations: [
@@ -34,7 +36,9 @@ import { DetailsTemplateParamComponent } from './responce-file/param/details-tem
     DetailsResponceFileParamComponent,
     ModifyResponceFileParamComponent,
     DetailsTemplateComponent,
-    DetailsTemplateParamComponent
+    DetailsTemplateParamComponent,
+    ListPointComponent,
+    DetailsPointComponent
   ],
   entryComponents: [ModifyUploadComponent, ModifyResponceFileParamComponent],
   imports: [

@@ -15,6 +15,8 @@ import fr.vandriessche.rallyeschema.formscannerservice.repositories.StageResultR
 public class StageResultService {
 	@Autowired
 	private StageResultRepository stageResultRepository;
+	@Autowired
+	private TeamPointService teamPointService;
 
 	public StageResult getStageResult(String id) {
 		return stageResultRepository.findById(id).orElseThrow();
@@ -33,7 +35,8 @@ public class StageResultService {
 			stageResult.getResults().add(result);
 		}
 		stageResult.getResults().sort(Comparator.comparing(ResponceResult::getName));
-		stageResultRepository.save(stageResult);
+		stageResult = stageResultRepository.save(stageResult);
+		teamPointService.computeTeamPoint(stageResult);
 	}
 
 	public Optional<StageResult> getStageResultsByStageAndTeam(Integer stage, Integer team) {
@@ -41,5 +44,9 @@ public class StageResultService {
 		if (stages.size() == 1)
 			return Optional.of(stages.get(0));
 		return Optional.empty();
+	}
+
+	public List<StageResult> getStageResultsByTeam(Integer team) {
+		return stageResultRepository.findByTeam(team);
 	}
 }

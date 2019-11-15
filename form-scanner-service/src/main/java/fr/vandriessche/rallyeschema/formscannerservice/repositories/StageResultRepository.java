@@ -8,4 +8,6 @@ import fr.vandriessche.rallyeschema.formscannerservice.entities.StageResult;
 
 public interface StageResultRepository extends MongoRepository<StageResult, String> {
 	List<StageResult> findByStageAndTeam(Integer stage, Integer team);
+
+	List<StageResult> findByTeam(Integer team);
 }

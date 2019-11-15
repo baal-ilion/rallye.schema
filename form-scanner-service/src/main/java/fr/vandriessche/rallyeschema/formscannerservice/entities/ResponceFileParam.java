@@ -3,6 +3,7 @@ package fr.vandriessche.rallyeschema.formscannerservice.entities;
 import java.util.LinkedHashMap;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Data;
@@ -11,6 +12,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @Document
+@CompoundIndex(unique = true, def = "{'stage' : 1, 'page' : 1}")
 public class ResponceFileParam {
 	@Id
 	private String id;
