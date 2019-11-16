@@ -67,10 +67,7 @@ public class ResponceFileParamService {
 	}
 
 	public Optional<ResponceFileParam> getResponceFileParamByStageAndPage(Integer stage, Integer page) {
-		var params = responceFileParamRepository.findByStageAndPage(stage, page);
-		if (params.size() == 1)
-			return Optional.of(params.get(0));
-		return Optional.empty();
+		return responceFileParamRepository.findByStageAndPage(stage, page);
 	}
 
 	public List<ResponceFileParam> getResponceFileParamsByStage(Integer stage) {

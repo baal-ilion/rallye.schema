@@ -6,7 +6,6 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponceResult;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.StagePoint;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.StageResult;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.TeamPoint;
@@ -51,14 +50,14 @@ public class TeamPointService {
 	}
 
 	public StagePoint getTeamPointByStageAndTeam(Integer stage, Integer team) {
-		TeamPoint teamPoint = teamPointRepository.findByTeam(team);
+		TeamPoint teamPoint = teamPointRepository.findByTeam(team).orElse(null);
 		if (teamPoint != null)
 			return teamPoint.getStagePoints().get(stage);
 		return null;
 	}
 
 	public TeamPoint getTeamPointByTeam(Integer team) {
-		return teamPointRepository.findByTeam(team);
+		return teamPointRepository.findByTeam(team).orElse(null);
 	}
 
 	public List<TeamPoint> getTeamPoints() {
@@ -68,7 +67,8 @@ public class TeamPointService {
 	private StagePoint computeStagePoint(StageResult stageResult) {
 		StagePoint stagePoint = new StagePoint(stageResult.getStage(), 0l);
 		if (Boolean.TRUE.equals(stageResult.getChecked())) {
-			stagePoint.setTotal(stageResult.getResults().stream().filter(ResponceResult::getResultValue).count());
+			stagePoint.setTotal(stageResult.getResults().stream()
+					.filter(result -> Boolean.TRUE.equals(result.getResultValue())).count());
 		}
 		return stagePoint;
 	}
@@ -79,10 +79,7 @@ public class TeamPointService {
 	}
 
 	private TeamPoint makeTeamPoint(Integer team) {
-		TeamPoint teamPoint = teamPointRepository.findByTeam(team);
-		if (teamPoint == null)
-			teamPoint = new TeamPoint(team);
-		return teamPoint;
+		return teamPointRepository.findByTeam(team).orElse(new TeamPoint(team));
 	}
 
 }

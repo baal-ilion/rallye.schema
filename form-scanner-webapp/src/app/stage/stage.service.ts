@@ -15,4 +15,13 @@ export class StageService {
     return this.http.get(this.host + '/stageResults');
   }
 
+  updateStage(stage): any {
+    console.log(stage);
+    this.http.patch(this.host + '/stageResult', stage).subscribe(data => {
+      console.log(data);
+      return data;
+    }, error => {
+      console.log(error);
+    });
+  }
 }

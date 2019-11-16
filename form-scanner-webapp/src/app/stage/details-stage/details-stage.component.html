@@ -1,8 +1,8 @@
 <div>
   <h1>Etape : {{stage.stage}}, Equipe : {{stage.team}}</h1>
   <div class="container-fluid">
-    <div class="row align-items-start">
-      <div *ngIf="files">
+    <div >
+      <div *ngIf="files" class="row align-items-start container">
         <div *ngFor="let file of files | async" class="col-6">
           <div style="position: relative;" class="responce-file">
             <img src="http://localhost:8080/downloadResponceFile/{{file.id}}"
@@ -11,12 +11,27 @@
           </div>
         </div>
       </div>
-      <div *ngIf="results" class="container col-6">
-        <div *ngFor="let result of results" class="row align-items-center">
-          <label class="col">{{result.name}} </label>
-          <ui-switch [(ngModel)]="result.resultValue" size="small" class="col"></ui-switch>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="container">
+        <div class="row">
+          <div *ngFor="let result of results.controls" class="col-6 col-lg-3 col-sm-6 col-md-4">
+            <div [formGroup]="result" class="row">
+              <label class="col align-self-center">{{result.value.name}}</label>
+              <div class="col-auto align-self-center">
+                <ui-switch formControlName="resultValue" size="small" class="col-auto"></ui-switch>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+        <div class="row">
+            <label class="col-auto align-self-center">Vérifié</label>
+            <div class="col-auto align-self-center">
+              <ui-switch formControlName="checked" size="small" class="col-auto"></ui-switch>
+            </div>
+        </div>
+        <div class="row">
+            <button class="btn btn-primary mr-1">Modifier</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>

@@ -2,7 +2,6 @@ package fr.vandriessche.rallyeschema.formscannerservice.services;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -26,27 +25,41 @@ public class StageResultService {
 		return stageResultRepository.findAll();
 	}
 
-	public void updateResponceResults(Integer stage, Integer team, List<ResponceResult> results) {
-		if (team == null)
-			return;
-		StageResult stageResult = this.getStageResultsByStageAndTeam(stage, team).orElse(new StageResult(stage, team));
-		for (var result : results) {
-			stageResult.getResults().removeIf(r -> r.getName().equals(result.getName()));
-			stageResult.getResults().add(result);
-		}
-		stageResult.getResults().sort(Comparator.comparing(ResponceResult::getName));
-		stageResult = stageResultRepository.save(stageResult);
-		teamPointService.computeTeamPoint(stageResult);
-	}
-
-	public Optional<StageResult> getStageResultsByStageAndTeam(Integer stage, Integer team) {
-		var stages = stageResultRepository.findByStageAndTeam(stage, team);
-		if (stages.size() == 1)
-			return Optional.of(stages.get(0));
-		return Optional.empty();
+	public StageResult getStageResultsByStageAndTeam(Integer stage, Integer team) {
+		return stageResultRepository.findByStageAndTeam(stage, team).orElse(null);
 	}
 
 	public List<StageResult> getStageResultsByTeam(Integer team) {
 		return stageResultRepository.findByTeam(team);
+	}
+
+	public void updateResponceResults(Integer stage, Integer team, List<ResponceResult> results) {
+		if (team == null)
+			return;
+		StageResult stageResult = getStageResultsByStageAndTeam(stage, team);
+		if (stageResult == null)
+			stageResult = new StageResult(stage, team);
+		updateStageResult(stageResult, null, results);
+	}
+
+	public StageResult updateStageResult(StageResult stageResult) {
+		StageResult stageResultToUpdate = stageResult.getId() != null
+				? stageResultRepository.findById(stageResult.getId()).orElseThrow()
+				: stageResultRepository.findByStageAndTeam(stageResult.getStage(), stageResult.getTeam()).orElseThrow();
+		return updateStageResult(stageResultToUpdate, stageResult.getChecked(), stageResult.getResults());
+	}
+
+	private StageResult updateStageResult(StageResult stageResultToUpdate, Boolean checked,
+			List<ResponceResult> results) {
+		if (checked != null)
+			stageResultToUpdate.setChecked(checked);
+		for (var result : results) {
+			stageResultToUpdate.getResults().removeIf(r -> r.getName().equals(result.getName()));
+			stageResultToUpdate.getResults().add(result);
+		}
+		stageResultToUpdate.getResults().sort(Comparator.comparing(ResponceResult::getName));
+		stageResultToUpdate = stageResultRepository.save(stageResultToUpdate);
+		teamPointService.computeTeamPoint(stageResultToUpdate);
+		return stageResultToUpdate;
 	}
 }
