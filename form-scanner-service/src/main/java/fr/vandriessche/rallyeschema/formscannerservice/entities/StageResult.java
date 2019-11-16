@@ -26,6 +26,6 @@ public class StageResult {
 
 	private Boolean checked;
 
-	private List<ResponceResult> results = new ArrayList<>();
+	private List<ResponseResult> results = new ArrayList<>();
 
 }

@@ -1,0 +1,25 @@
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <h1>Etape : {{param.stage}}, Page : {{param.page}}</h1>
+  </div>
+  <div *ngIf="param" class="row justify-content-center">
+    <app-details-template-param [param]="param"></app-details-template-param>
+  </div>
+  <div *ngIf="questions" class="d-flex flex-row flex-wrap">
+    <div *ngFor="let question of questions" class="">
+      <div class="">
+        <div class="col-3">
+          <span>{{question.name}}</span>
+        </div>
+        <select class="form-group custom-select" [(ngModel)]="question.type" disabled>
+          <option value="STAGE">Etape</option>
+          <option value="PAGE">Page</option>
+          <option value="TEAM">Equipe</option>
+          <option value="QUESTION">Question</option>
+          <option value="PERFORMANCE">Performance</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <button class="btn-info" ngbButtonLabel (click)='openModifyResponseFileParam()'>Modify Param</button>
+</div>

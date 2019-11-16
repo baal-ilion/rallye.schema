@@ -14,22 +14,22 @@ export class UploadFileService {
     const formdata = new FormData();
     formdata.append('file', file);
     formdata.append('Accept', 'application/json');
-    return this.http.post(this.host + '/uploadResponceFile', formdata, {
+    return this.http.post(this.host + '/uploadResponseFile', formdata, {
       reportProgress: true,
       observe: 'events'
     });
   }
 
   getFiles(): Observable<any> {
-    return this.http.get(this.host + '/responceFileInfos');
+    return this.http.get(this.host + '/responseFileInfos');
   }
 
   findByStageAndTeam(stage: number, team: number): Observable<any> {
     const params = new HttpParams().set('stage', stage.toString()).set('team', team.toString());
-    return this.http.get(this.host + '/responceFileInfos/search/findByStageAndTeam', { params });
+    return this.http.get(this.host + '/responseFileInfos/search/findByStageAndTeam', { params });
   }
 
-  updateResponceFileInfoCorners(responceFileInfo): Observable<any> {
-    return this.http.patch(this.host + '/responceFileInfo', responceFileInfo);
+  updateResponseFileInfoCorners(responseFileInfo): Observable<any> {
+    return this.http.patch(this.host + '/responseFileInfo', responseFileInfo);
   }
 }

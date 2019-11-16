@@ -15,11 +15,11 @@ import { DetailsStageComponent } from './stage/details-stage/details-stage.compo
 import { ListStageComponent } from './stage/list-stage/list-stage.component';
 import { ModifyUploadComponent } from './upload/modify-upload/modify-upload.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { ListResponceFileParamComponent } from './responce-file/param/list-responce-file-param/list-responce-file-param.component';
-import { DetailsResponceFileParamComponent } from './responce-file/param/details-responce-file-param/details-responce-file-param.component';
-import { ModifyResponceFileParamComponent } from './responce-file/param/modify-responce-file-param/modify-responce-file-param.component';
-import { DetailsTemplateComponent } from './responce-file/common/details-template/details-template.component';
-import { DetailsTemplateParamComponent } from './responce-file/param/details-template-param/details-template-param.component';
+import { ListResponseFileParamComponent } from './response-file/param/list-response-file-param/list-response-file-param.component';
+import { DetailsResponseFileParamComponent } from './response-file/param/details-response-file-param/details-response-file-param.component';
+import { ModifyResponseFileParamComponent } from './response-file/param/modify-response-file-param/modify-response-file-param.component';
+import { DetailsTemplateComponent } from './response-file/common/details-template/details-template.component';
+import { DetailsTemplateParamComponent } from './response-file/param/details-template-param/details-template-param.component';
 import { ListPointComponent } from './point/list-point/list-point.component';
 import { DetailsPointComponent } from './point/details-point/details-point.component';
 
@@ -32,15 +32,15 @@ import { DetailsPointComponent } from './point/details-point/details-point.compo
     DetailsStageComponent,
     ListStageComponent,
     ModifyUploadComponent,
-    ListResponceFileParamComponent,
-    DetailsResponceFileParamComponent,
-    ModifyResponceFileParamComponent,
+    ListResponseFileParamComponent,
+    DetailsResponseFileParamComponent,
+    ModifyResponseFileParamComponent,
     DetailsTemplateComponent,
     DetailsTemplateParamComponent,
     ListPointComponent,
     DetailsPointComponent
   ],
-  entryComponents: [ModifyUploadComponent, ModifyResponceFileParamComponent],
+  entryComponents: [ModifyUploadComponent, ModifyResponseFileParamComponent],
   imports: [
     BrowserModule,
     AppRoutingModule,

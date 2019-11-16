@@ -4,8 +4,8 @@
     <div >
       <div *ngIf="files" class="row align-items-start container">
         <div *ngFor="let file of files | async" class="col-6">
-          <div style="position: relative;" class="responce-file">
-            <img src="http://localhost:8080/downloadResponceFile/{{file.id}}"
+          <div style="position: relative;" class="response-file">
+            <img src="http://localhost:8080/downloadResponseFile/{{file.id}}"
               alt="Etape : {{file.stage}}, Page : {{file.page}}, Equipe : {{file.team}}"
               style="width: 100%; height: auto;" />
           </div>

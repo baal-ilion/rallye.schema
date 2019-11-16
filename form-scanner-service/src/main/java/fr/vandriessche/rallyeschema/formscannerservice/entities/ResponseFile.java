@@ -1,10 +1,7 @@
 package fr.vandriessche.rallyeschema.formscannerservice.entities;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import org.bson.types.Binary;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -14,14 +11,13 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @Document
-public class StageParam {
+public class ResponseFile {
 	@Id
 	private String id;
 
-	@Indexed(unique = true)
-	private Integer stage;
-
+	private Binary file;
+	private String fileType;
+	private String fileExtension;
 	@DBRef
-	private List<ResponseFileParam> responseFileParams = new ArrayList<>();
-
+	private ResponseFileInfo info;
 }

@@ -1,0 +1,18 @@
+<button class="btn-info" ngbButtonLabel *ngIf='showResponseFileParam' (click)='showResponseFileParams(false)'>Hide
+  Params</button>
+<button class="btn-info" ngbButtonLabel *ngIf='showResponseFileParam' (click)='addResponseFileParam()'>Add
+  Param</button>
+
+<button class="btn-info" ngbButtonLabel *ngIf='!showResponseFileParam' (click)='showResponseFileParams(true)'>Show
+  Params</button>
+
+<div [hidden]="!showResponseFileParam">
+  <div *ngIf='responseFileParams' class="panel panel-primary">
+    <div class="panel-heading">List of Params</div>
+    <div *ngFor="let param of responseFileParams | async">
+      <div class="panel-body">
+        <app-details-response-file-param [param]='param'></app-details-response-file-param>
+      </div>
+    </div>
+  </div>
+</div>

@@ -6,7 +6,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponceResult;
+import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseResult;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.StageResult;
 import fr.vandriessche.rallyeschema.formscannerservice.repositories.StageResultRepository;
 
@@ -33,7 +33,7 @@ public class StageResultService {
 		return stageResultRepository.findByTeam(team);
 	}
 
-	public void updateResponceResults(Integer stage, Integer team, List<ResponceResult> results) {
+	public void updateResponseResults(Integer stage, Integer team, List<ResponseResult> results) {
 		if (team == null)
 			return;
 		StageResult stageResult = getStageResultsByStageAndTeam(stage, team);
@@ -50,14 +50,14 @@ public class StageResultService {
 	}
 
 	private StageResult updateStageResult(StageResult stageResultToUpdate, Boolean checked,
-			List<ResponceResult> results) {
+			List<ResponseResult> results) {
 		if (checked != null)
 			stageResultToUpdate.setChecked(checked);
 		for (var result : results) {
 			stageResultToUpdate.getResults().removeIf(r -> r.getName().equals(result.getName()));
 			stageResultToUpdate.getResults().add(result);
 		}
-		stageResultToUpdate.getResults().sort(Comparator.comparing(ResponceResult::getName));
+		stageResultToUpdate.getResults().sort(Comparator.comparing(ResponseResult::getName));
 		stageResultToUpdate = stageResultRepository.save(stageResultToUpdate);
 		teamPointService.computeTeamPoint(stageResultToUpdate);
 		return stageResultToUpdate;

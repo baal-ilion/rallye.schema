@@ -3,8 +3,8 @@ import { CdkDragEnd } from '@angular/cdk/drag-drop';
 import { UploadFileService } from '../upload-file.service';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { ModifyUploadComponent } from '../modify-upload/modify-upload.component';
-import { FormTemplate } from 'src/app/responce-file/common/details-template/models/form-template';
-import { Corners } from 'src/app/responce-file/common/details-template/models/corners';
+import { FormTemplate } from 'src/app/response-file/common/details-template/models/form-template';
+import { Corners } from 'src/app/response-file/common/details-template/models/corners';
 
 @Component({
   selector: 'app-details-upload',
@@ -25,7 +25,7 @@ export class DetailsUploadComponent implements OnInit {
 
   loadTemplate(fileUpload) {
     this.template = new FormTemplate();
-    this.template.fileUrl = 'http://localhost:8080/downloadResponceFile/' + fileUpload.id;
+    this.template.fileUrl = 'http://localhost:8080/downloadResponseFile/' + fileUpload.id;
     this.template.square = fileUpload.filledForm.size;
     this.template.height = fileUpload.filledForm.height;
     this.template.width = fileUpload.filledForm.width;
@@ -58,7 +58,7 @@ export class DetailsUploadComponent implements OnInit {
   }
 
   endDrag(event: Corners) {
-    this.uploadService.updateResponceFileInfoCorners({
+    this.uploadService.updateResponseFileInfoCorners({
       id: this.fileUpload.id,
       filledForm: {
         corners: event
@@ -77,7 +77,7 @@ export class DetailsUploadComponent implements OnInit {
     modalRef.componentInstance.fileUpload = this.fileUpload;
     modalRef.result.then((result) => {
       console.log(result);
-      this.uploadService.updateResponceFileInfoCorners({
+      this.uploadService.updateResponseFileInfoCorners({
         id: this.fileUpload.id,
         stage: result.stage,
         page: result.page,
@@ -95,7 +95,7 @@ export class DetailsUploadComponent implements OnInit {
   }
 
   activate() {
-    this.uploadService.updateResponceFileInfoCorners({
+    this.uploadService.updateResponseFileInfoCorners({
       id: this.fileUpload.id,
       active: true
     }).subscribe(data => {
@@ -108,7 +108,7 @@ export class DetailsUploadComponent implements OnInit {
   }
 
   check() {
-    this.uploadService.updateResponceFileInfoCorners({
+    this.uploadService.updateResponseFileInfoCorners({
       id: this.fileUpload.id,
       checked: true
     }).subscribe(data => {

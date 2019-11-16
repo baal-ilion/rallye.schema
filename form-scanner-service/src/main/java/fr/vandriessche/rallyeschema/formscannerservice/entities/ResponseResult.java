@@ -1,8 +1,5 @@
 package fr.vandriessche.rallyeschema.formscannerservice.entities;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -10,8 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class QuestionPageParam {
+public class ResponseResult {
 	private String name;
-	private QuestionPageType type;
-	private List<String> responses = new ArrayList<>();
+	private Boolean resultValue = null;
 }
