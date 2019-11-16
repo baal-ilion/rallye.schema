@@ -3,6 +3,7 @@ package fr.vandriessche.rallyeschema.formscannerservice.controllers;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
@@ -36,36 +37,20 @@ public class ResponseFileController {
 	private ResponseFileService responseFileService;
 
 	@PostMapping("/uploadResponseFile")
-	public String uploadResponseFile(@RequestParam("file") MultipartFile file) {
-		String id = null;
+	public ResponseFileInfo uploadResponseFile(@RequestParam("file") MultipartFile file) {
 		try {
-			id = responseFileService.addResponseFile(file);
-		} catch (IOException e) {
-			// TODO Bloc catch généré automatiquement
-			e.printStackTrace();
-		} catch (ParserConfigurationException e) {
-			// TODO Bloc catch généré automatiquement
-			e.printStackTrace();
-		} catch (SAXException e) {
-			// TODO Bloc catch généré automatiquement
-			e.printStackTrace();
-		} catch (FormScannerException e) {
+			return responseFileService.addResponseFile(file).getInfo();
+		} catch (IOException | ParserConfigurationException | SAXException | FormScannerException e) {
 			// TODO Bloc catch généré automatiquement
 			e.printStackTrace();
 		}
-
-		/*
-		 * String fileDownloadUri =
-		 * ServletUriComponentsBuilder.fromCurrentContextPath().path("/downloadFile/")
-		 * .path(fileName).toUriString();
-		 */
-
-		return id;
+		return null;
 	}
 
 	@PostMapping("/uploadMultipleResponseFiles")
-	public List<String> uploadMultipleResponseFiles(@RequestParam("files") MultipartFile[] files) {
-		return Arrays.asList(files).stream().map(file -> uploadResponseFile(file)).collect(Collectors.toList());
+	public List<ResponseFileInfo> uploadMultipleResponseFiles(@RequestParam("files") MultipartFile[] files) {
+		return Arrays.asList(files).stream().map(file -> uploadResponseFile(file)).filter(Objects::nonNull)
+				.collect(Collectors.toList());
 	}
 
 	@GetMapping("/downloadResponseFile/{id}")

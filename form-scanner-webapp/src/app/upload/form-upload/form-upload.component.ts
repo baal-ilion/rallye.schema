@@ -13,8 +13,7 @@ export class FormUploadComponent implements OnInit {
   labelImport: ElementRef;
 
   selectedFiles: FileList;
-  currentFileUpload: File;
-  progress: { percentage: number } = { percentage: 0 };
+  uploadedFiles: { file: File, progress: { percentage: number } }[] = [];
 
   constructor(private uploadService: UploadFileService) { }
 
@@ -29,17 +28,26 @@ export class FormUploadComponent implements OnInit {
   }
 
   upload() {
-    this.progress.percentage = 0;
+    this.uploadedFiles = [];
+    // tslint:disable-next-line: prefer-for-of
+    for (let index = 0; index < this.selectedFiles.length; index++) {
+      const file = this.selectedFiles[index];
+      this.uploadFile(file);
+    }
+    this.labelImport.nativeElement.innerText = '<i class="fas fa-search">Choose file</i>';
+    this.selectedFiles = undefined;
+  }
 
-    this.currentFileUpload = this.selectedFiles.item(0);
-    this.uploadService.pushFileToStorage(this.currentFileUpload).subscribe(event => {
+  uploadFile(fileToUpload) {
+    const uploadedFile = { file: fileToUpload, progress: { percentage: 0 } };
+    this.uploadedFiles.push(uploadedFile);
+
+    this.uploadService.pushFileToStorage(uploadedFile.file).subscribe(event => {
       if (event.type === HttpEventType.UploadProgress) {
-        this.progress.percentage = Math.round(100 * event.loaded / event.total);
+        uploadedFile.progress.percentage = Math.round(100 * event.loaded / event.total);
       } else if (event instanceof HttpResponse) {
         console.log('File is completely uploaded!');
       }
     });
-
-    this.selectedFiles = undefined;
   }
 }

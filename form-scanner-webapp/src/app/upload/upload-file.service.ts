@@ -13,7 +13,6 @@ export class UploadFileService {
   pushFileToStorage(file: File) {
     const formdata = new FormData();
     formdata.append('file', file);
-    formdata.append('Accept', 'application/json');
     return this.http.post(this.host + '/uploadResponseFile', formdata, {
       reportProgress: true,
       observe: 'events'

@@ -72,7 +72,7 @@ public class ResponseFileService {
 	@Autowired
 	private ResponseFileParamService responseFileParamService;
 
-	public String addResponseFile(MultipartFile file)
+	public ResponseFile addResponseFile(MultipartFile file)
 			throws IOException, ParserConfigurationException, SAXException, FormScannerException {
 		// TODO refuser si ce n'est pas une image
 
@@ -128,7 +128,7 @@ public class ResponseFileService {
 			responseFile.setFileType(file.getContentType());
 			responseFile = responseFileRepository.insert(responseFile);
 
-			return responseFile.getId();
+			return responseFile;
 		}
 	}
 
