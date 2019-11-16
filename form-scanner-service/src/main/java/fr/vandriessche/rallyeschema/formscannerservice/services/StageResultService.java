@@ -25,7 +25,7 @@ public class StageResultService {
 		return stageResultRepository.findAll();
 	}
 
-	public StageResult getStageResultsByStageAndTeam(Integer stage, Integer team) {
+	public StageResult getStageResultByStageAndTeam(Integer stage, Integer team) {
 		return stageResultRepository.findByStageAndTeam(stage, team).orElse(null);
 	}
 
@@ -36,7 +36,7 @@ public class StageResultService {
 	public void updateResponseResults(Integer stage, Integer team, List<ResponseResult> results) {
 		if (team == null)
 			return;
-		StageResult stageResult = getStageResultsByStageAndTeam(stage, team);
+		StageResult stageResult = getStageResultByStageAndTeam(stage, team);
 		if (stageResult == null)
 			stageResult = new StageResult(stage, team);
 		updateStageResult(stageResult, null, results);

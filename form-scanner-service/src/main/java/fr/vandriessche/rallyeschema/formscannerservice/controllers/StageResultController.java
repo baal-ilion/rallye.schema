@@ -30,8 +30,8 @@ public class StageResultController {
 	}
 
 	@GetMapping("/stageResult/search/findByStageAndTeam")
-	public StageResult getStageResultsByStageAndTeam(@RequestParam Integer stage, @RequestParam Integer team) {
-		return stageResultService.getStageResultsByStageAndTeam(stage, team);
+	public StageResult getStageResultByStageAndTeam(@RequestParam Integer stage, @RequestParam Integer team) {
+		return stageResultService.getStageResultByStageAndTeam(stage, team);
 	}
 
 	@PatchMapping("/stageResult")

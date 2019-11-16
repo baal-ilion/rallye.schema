@@ -1,6 +1,7 @@
 package fr.vandriessche.rallyeschema.formscannerservice.entities;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.springframework.data.annotation.Id;
@@ -15,6 +16,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Document
 public class StageParam {
+	public StageParam(Integer stage) {
+		this.stage = stage;
+	}
+
 	@Id
 	private String id;
 
@@ -23,5 +28,7 @@ public class StageParam {
 
 	@DBRef
 	private List<ResponseFileParam> responseFileParams = new ArrayList<>();
+
+	private LinkedHashMap<String, QuestionPointParam> questionPointParams = new LinkedHashMap<>();
 
 }

@@ -18,6 +18,8 @@ public class TeamPointService {
 	private TeamPointRepository teamPointRepository;
 	@Autowired
 	private StageResultService stageResultService;
+	@Autowired
+	private StageParamService stageParamService;
 
 	public TeamPoint computeTeamPoint(Integer team) {
 		TeamPoint teamPoint = makeTeamPoint(team);
@@ -66,9 +68,15 @@ public class TeamPointService {
 
 	private StagePoint computeStagePoint(StageResult stageResult) {
 		StagePoint stagePoint = new StagePoint(stageResult.getStage(), 0l);
+		var stageParam = stageParamService.getStageParamByStage(stageResult.getStage());
 		if (Boolean.TRUE.equals(stageResult.getChecked())) {
 			stagePoint.setTotal(stageResult.getResults().stream()
-					.filter(result -> Boolean.TRUE.equals(result.getResultValue())).count());
+					.filter(result -> Boolean.TRUE.equals(result.getResultValue())).map(result -> {
+						var questionPointParam = stageParam.getQuestionPointParams().get(result.getName());
+						if (questionPointParam != null && questionPointParam.getPoint() != null)
+							return questionPointParam.getPoint();
+						return 0l;
+					}).reduce(0l, Long::sum));
 		}
 		return stagePoint;
 	}

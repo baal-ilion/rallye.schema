@@ -53,6 +53,8 @@ public class ResponseFileParamService {
 	private ResponseFileParamRepository responseFileParamRepository;
 	@Autowired
 	private ResponseFileModelRepository responseFileModelRepository;
+	@Autowired
+	private StageParamService stageParamService;
 
 	public ResponseFileModel getResponseFileModel(String id) {
 		return responseFileModelRepository.findById(id).orElseThrow();
@@ -94,6 +96,7 @@ public class ResponseFileParamService {
 		responseFileParam = responseFileParamRepository.save(responseFileParam);
 		fillResponseFileModel(responseFileParam, responseFileModel);
 		responseFileModelRepository.save(responseFileModel);
+		stageParamService.updateResponseFileParams(responseFileParam);
 		return responseFileParam;
 	}
 
