@@ -10,20 +10,12 @@ import { ModifyResponseFileParamComponent } from '../modify-response-file-param/
   styleUrls: ['./list-response-file-param.component.scss']
 })
 export class ListResponseFileParamComponent implements OnInit {
-  showResponseFileParam = false;
   responseFileParams: Observable<any[]>;
 
   constructor(private responseFileParamService: ResponseFileParamService, private modalService: NgbModal) { }
 
   ngOnInit() {
-  }
-
-  showResponseFileParams(enable: boolean) {
-    this.showResponseFileParam = enable;
-
-    if (enable) {
-      this.responseFileParams = this.responseFileParamService.getResponseFileParams();
-    }
+    this.responseFileParams = this.responseFileParamService.getResponseFileParams();
   }
 
   addResponseFileParam() {
@@ -36,10 +28,10 @@ export class ListResponseFileParamComponent implements OnInit {
     modalRef.result.then((result) => {
       console.log(result);
       this.responseFileParamService.createResponseFileParam(result).subscribe(data => {
-        this.showResponseFileParams(true);
+        this.ngOnInit();
       }, err => {
         console.log(err);
-        this.showResponseFileParams(true);
+        this.ngOnInit();
       });
     }).catch((error) => {
       console.log(error);

@@ -9,18 +9,10 @@ import { Observable } from 'rxjs';
 })
 export class ListStageComponent implements OnInit {
   stages: Observable<any[]>;
-  showStage = false;
 
   constructor(private stageService: StageService) { }
 
   ngOnInit() {
-  }
-
-  showStages(enable: boolean) {
-    this.showStage = enable;
-
-    if (enable) {
-      this.stages = this.stageService.getStages();
-    }
+    this.stages = this.stageService.getStages();
   }
 }

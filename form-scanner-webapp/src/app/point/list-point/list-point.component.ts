@@ -9,19 +9,11 @@ import { PointService } from '../point.service';
 })
 export class ListPointComponent implements OnInit {
   points: Observable<any[]>;
-  showPoint = false;
 
   constructor(private pointService: PointService) { }
 
   ngOnInit() {
-  }
-
-  showPoints(enable: boolean) {
-    this.showPoint = enable;
-
-    if (enable) {
-      this.points = this.pointService.getPoints();
-    }
+    this.points = this.pointService.getPoints();
   }
 
   recomputePoints() {

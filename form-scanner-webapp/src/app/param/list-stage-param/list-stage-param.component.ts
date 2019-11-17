@@ -9,18 +9,10 @@ import { StageParamService } from '../stage-param.service';
 })
 export class ListStageParamComponent implements OnInit {
   stageParams: Observable<any[]>;
-  showStageParam = false;
 
   constructor(private stageParamService: StageParamService) { }
 
   ngOnInit() {
-  }
-
-  showStages(enable: boolean) {
-    this.showStageParam = enable;
-
-    if (enable) {
-      this.stageParams = this.stageParamService.getStageParams();
-    }
+    this.stageParams = this.stageParamService.getStageParams();
   }
 }

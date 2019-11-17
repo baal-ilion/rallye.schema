@@ -1,10 +1,6 @@
-<button class="btn-info" ngbButtonLabel *ngIf='showStageParam' (click)='showStages(false)'>Hide Stage Params</button>
-
-<button class="btn-info" ngbButtonLabel *ngIf='!showStageParam' (click)='showStages(true)'>Show Stage Params</button>
-
-<div [hidden]="!showStageParam">
-  <div *ngIf='stageParams' class="panel panel-primary">
-    <div class="panel-heading">List of Files</div>
+<div *ngIf='stageParams' class="panel panel-primary">
+  <div class="panel-heading">List of Files</div>
+  <div *ngIf='stageParams'>
     <div *ngFor="let stageParam of stageParams | async">
       <div class="panel-body">
         <app-details-stage-param [stageParam]='stageParam'></app-details-stage-param>
