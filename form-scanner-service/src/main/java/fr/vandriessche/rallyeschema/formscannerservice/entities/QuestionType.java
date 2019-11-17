@@ -1,5 +1,5 @@
 package fr.vandriessche.rallyeschema.formscannerservice.entities;
 
-public enum QuestionPageType {
+public enum QuestionType {
 	STAGE, PAGE, TEAM, QUESTION, PERFORMANCE
 }

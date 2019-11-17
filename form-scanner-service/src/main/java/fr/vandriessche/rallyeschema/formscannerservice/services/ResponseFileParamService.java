@@ -31,7 +31,7 @@ import com.albertoborsetta.formscanner.api.FormQuestion;
 import com.albertoborsetta.formscanner.api.commons.Constants.FieldType;
 
 import fr.vandriessche.rallyeschema.formscannerservice.entities.QuestionPageParam;
-import fr.vandriessche.rallyeschema.formscannerservice.entities.QuestionPageType;
+import fr.vandriessche.rallyeschema.formscannerservice.entities.QuestionType;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileModel;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileParam;
 import fr.vandriessche.rallyeschema.formscannerservice.repositories.ResponseFileModelRepository;
@@ -154,7 +154,7 @@ public class ResponseFileParamService {
 						var question = questions.get(field.getName());
 						if (Objects.isNull(question)) {
 							questions.put(field.getName(), new QuestionPageParam(field.getName(),
-									getTypeByName(field.getName(), QuestionPageType.QUESTION), responses));
+									getTypeByName(field.getName(), QuestionType.QUESTION), responses));
 						} else {
 							question.setResponses(responses);
 						}
@@ -164,7 +164,7 @@ public class ResponseFileParamService {
 					.sorted(Comparator.comparing(com.albertoborsetta.formscanner.api.FormArea::getName))
 					.filter(area -> !questions.containsKey(area.getName())).forEach(area -> {
 						questions.put(area.getName(), new QuestionPageParam(area.getName(),
-								getTypeByName(area.getName(), QuestionPageType.PERFORMANCE), new ArrayList<>()));
+								getTypeByName(area.getName(), QuestionType.PERFORMANCE), new ArrayList<>()));
 					});
 		}
 	}
@@ -190,13 +190,13 @@ public class ResponseFileParamService {
 		return responses;
 	}
 
-	private QuestionPageType getTypeByName(String name, QuestionPageType defaultType) {
+	private QuestionType getTypeByName(String name, QuestionType defaultType) {
 		if (name.startsWith(PAGE)) {
-			return QuestionPageType.PAGE;
+			return QuestionType.PAGE;
 		} else if (name.startsWith(STAGE)) {
-			return QuestionPageType.STAGE;
+			return QuestionType.STAGE;
 		} else if (name.startsWith(TEAM)) {
-			return QuestionPageType.TEAM;
+			return QuestionType.TEAM;
 		}
 		return defaultType;
 	}

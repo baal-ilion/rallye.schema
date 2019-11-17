@@ -12,6 +12,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class QuestionPageParam {
 	private String name;
-	private QuestionPageType type;
+	private QuestionType type;
 	private List<String> responses = new ArrayList<>();
 }

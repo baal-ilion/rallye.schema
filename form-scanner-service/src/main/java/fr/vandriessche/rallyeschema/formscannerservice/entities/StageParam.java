@@ -31,4 +31,6 @@ public class StageParam {
 
 	private LinkedHashMap<String, QuestionPointParam> questionPointParams = new LinkedHashMap<>();
 
+	private LinkedHashMap<String, QuestionParam> questionParams = new LinkedHashMap<>();
+
 }

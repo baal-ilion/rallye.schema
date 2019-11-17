@@ -15,13 +15,8 @@ export class StageParamService {
     return this.http.get(this.host + '/stageParams');
   }
 
-  updateStageParam(stageParam): any {
+  updateStageParam(stageParam): Observable<any> {
     console.log(stageParam);
-    this.http.patch(this.host + '/stageParam', stageParam).subscribe(data => {
-      console.log(data);
-      return data;
-    }, error => {
-      console.log(error);
-    });
+    return this.http.patch(this.host + '/stageParam', stageParam);
   }
 }

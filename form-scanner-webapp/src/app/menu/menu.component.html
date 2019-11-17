@@ -1,4 +1,4 @@
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
+<nav class="navbar fixed-top  navbar-expand-lg navbar-light bg-light">
   <!-- Brand -->
   <a class="navbar-brand" [routerLink]="'.'">{{title}}</a>
   <button class="navbar-toggler" type="button" [attr.aria-expanded]="!collapsed" (click)="collapsed = !collapsed"
@@ -33,7 +33,7 @@
             aria-haspopup="true" aria-expanded="false">Paramétrage</a>
         <div ngbDropdownMenu aria-labelledby="paramMenu">
           <a ngbDropdownItem routerLink="/listResponseFileParam">Paramétrage des feuilles de réponses</a>
-          <a ngbDropdownItem routerLink="/listStageParam">Paramétrage des points</a>
+          <a ngbDropdownItem routerLink="/listStageParam">Paramétrage des étapes</a>
         </div>
       </li>
     </ul>
