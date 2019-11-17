@@ -2,6 +2,7 @@ package fr.vandriessche.rallyeschema.formscannerservice.controllers;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.xml.parsers.ParserConfigurationException;
@@ -73,7 +74,7 @@ public class ResponseFileParamController {
 	public ResponseEntity<Resource> downloadResponseFileModel(@PathVariable String id, HttpServletRequest request) {
 		ResponseFileModel responseFileModel = responseFileParamService.getResponseFileModel(id);
 		String contentType = responseFileModel.getFileType();
-		if (contentType == null) {
+		if (Objects.isNull(contentType)) {
 			contentType = "application/octet-stream";
 		}
 		return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType))

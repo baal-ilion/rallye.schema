@@ -1,6 +1,7 @@
 package fr.vandriessche.rallyeschema.formscannerservice.services;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,7 +54,7 @@ public class TeamPointService {
 
 	public StagePoint getTeamPointByStageAndTeam(Integer stage, Integer team) {
 		TeamPoint teamPoint = teamPointRepository.findByTeam(team).orElse(null);
-		if (teamPoint != null)
+		if (Objects.nonNull(teamPoint))
 			return teamPoint.getStagePoints().get(stage);
 		return null;
 	}
@@ -73,7 +74,7 @@ public class TeamPointService {
 			stagePoint.setTotal(stageResult.getResults().stream()
 					.filter(result -> Boolean.TRUE.equals(result.getResultValue())).map(result -> {
 						var questionPointParam = stageParam.getQuestionPointParams().get(result.getName());
-						if (questionPointParam != null && questionPointParam.getPoint() != null)
+						if (Objects.nonNull(questionPointParam) && Objects.nonNull(questionPointParam.getPoint()))
 							return questionPointParam.getPoint();
 						return 0l;
 					}).reduce(0l, Long::sum));

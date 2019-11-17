@@ -57,7 +57,7 @@ public class ResponseFileController {
 	public ResponseEntity<Resource> downloadFile(@PathVariable String id, HttpServletRequest request) {
 		ResponseFile responseFile = responseFileService.getResponseFile(id);
 		String contentType = responseFile.getFileType();
-		if (contentType == null) {
+		if (Objects.isNull(contentType)) {
 			contentType = "application/octet-stream";
 		}
 		return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType))

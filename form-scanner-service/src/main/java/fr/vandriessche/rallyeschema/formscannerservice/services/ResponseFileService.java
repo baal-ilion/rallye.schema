@@ -7,6 +7,7 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -157,7 +158,7 @@ public class ResponseFileService {
 		ResponseFileInfo updatedResponseFileInfo = responseFileInfoRepository.findById(responseFileInfo.getId())
 				.orElseThrow();
 		// TODO : ajouter un test si l'etapa est reseigné la page doit aussi l'etre
-		if (responseFileInfo.getPage() != null && responseFileInfo.getStage() == null)
+		if (Objects.nonNull(responseFileInfo.getPage()) && Objects.isNull(responseFileInfo.getStage()))
 			// si on n'a que le n° de page on considere que l'etape ne change pas
 			responseFileInfo.setStage(updatedResponseFileInfo.getStage());
 
@@ -167,21 +168,22 @@ public class ResponseFileService {
 		}
 
 		boolean changeStage = isStageToChange(responseFileInfo, updatedResponseFileInfo);
-		if (Boolean.TRUE.equals(updatedResponseFileInfo.getActive()) && (changeStage
-				|| (responseFileInfo.getActive() != null && Boolean.FALSE.equals(responseFileInfo.getActive())))) {
+		if (Boolean.TRUE.equals(updatedResponseFileInfo.getActive())
+				&& (changeStage || (Objects.nonNull(responseFileInfo.getActive())
+						&& Boolean.FALSE.equals(responseFileInfo.getActive())))) {
 			removeResponseFileToStageResult(updatedResponseFileInfo);
 			updatedResponseFileInfo.setActive(false);
 		}
 
-		if (filledForm != null)
+		if (Objects.nonNull(filledForm))
 			updatedResponseFileInfo.setFilledForm(filledForm);
-		if (responseFileInfo.getStage() != null)
+		if (Objects.nonNull(responseFileInfo.getStage()))
 			updatedResponseFileInfo.setStage(responseFileInfo.getStage());
-		if (responseFileInfo.getPage() != null)
+		if (Objects.nonNull(responseFileInfo.getPage()))
 			updatedResponseFileInfo.setPage(responseFileInfo.getPage());
-		if (responseFileInfo.getTeam() != null)
+		if (Objects.nonNull(responseFileInfo.getTeam()))
 			updatedResponseFileInfo.setTeam(responseFileInfo.getTeam());
-		if (responseFileInfo.getActive() != null) {
+		if (Objects.nonNull(responseFileInfo.getActive())) {
 			updatedResponseFileInfo.setActive(responseFileInfo.getActive());
 			if (Boolean.TRUE.equals(responseFileInfo.getActive())) {
 				inactiveAllResponseFileInfo(updatedResponseFileInfo.getStage(), updatedResponseFileInfo.getPage(),
@@ -192,7 +194,7 @@ public class ResponseFileService {
 			activeResponseFile(updatedResponseFileInfo);
 		}
 
-		if (responseFileInfo.getChecked() != null)
+		if (Objects.nonNull(responseFileInfo.getChecked()))
 			updatedResponseFileInfo.setChecked(responseFileInfo.getChecked());
 
 		updatedResponseFileInfo = responseFileInfoRepository.save(updatedResponseFileInfo);
@@ -233,16 +235,18 @@ public class ResponseFileService {
 		BufferedImage image = ImageIO.read(new ByteArrayInputStream(responseFile.getFile().getData()));
 		String name = responseFile.getInfo().getFilledForm().getName();
 		FormTemplate filledForm = makeFormTemplate(image, name,
-				responseFileInfo.getStage() != null ? responseFileInfo.getStage() : updatedResponseFileInfo.getStage(),
-				responseFileInfo.getPage() != null ? responseFileInfo.getPage() : updatedResponseFileInfo.getPage(),
-				responseFileInfo.getFilledForm() != null ? responseFileInfo.getFilledForm().getCorners()
+				Objects.nonNull(responseFileInfo.getStage()) ? responseFileInfo.getStage()
+						: updatedResponseFileInfo.getStage(),
+				Objects.nonNull(responseFileInfo.getPage()) ? responseFileInfo.getPage()
+						: updatedResponseFileInfo.getPage(),
+				Objects.nonNull(responseFileInfo.getFilledForm()) ? responseFileInfo.getFilledForm().getCorners()
 						: updatedResponseFileInfo.getFilledForm().getCorners());
 
 		ResponseFileInfo info = new ResponseFileInfo();
 		fillResponseFileInfo(filledForm, info);
-		if (responseFileInfo.getTeam() == null)
+		if (Objects.isNull(responseFileInfo.getTeam()))
 			responseFileInfo.setTeam(info.getTeam());
-		if (responseFileInfo.getStage() != null) {
+		if (Objects.nonNull(responseFileInfo.getStage())) {
 			// l'etape et la page sont choisi on garde le template de cette page
 			logFormTemplate(filledForm);
 		} else {
@@ -258,20 +262,20 @@ public class ResponseFileService {
 	}
 
 	private boolean isTemplateToUpdate(ResponseFileInfo responseFileInfo, ResponseFileInfo updatedResponseFileInfo) {
-		return (responseFileInfo.getStage() != null
+		return (Objects.nonNull(responseFileInfo.getStage())
 				&& !responseFileInfo.getStage().equals(updatedResponseFileInfo.getStage()))
-				|| (responseFileInfo.getPage() != null
+				|| (Objects.nonNull(responseFileInfo.getPage())
 						&& !responseFileInfo.getPage().equals(updatedResponseFileInfo.getPage()))
-				|| (responseFileInfo.getFilledForm() != null
+				|| (Objects.nonNull(responseFileInfo.getFilledForm())
 						&& !responseFileInfo.getFilledForm().getCorners().isEmpty());
 	}
 
 	private boolean isStageToChange(ResponseFileInfo responseFileInfo, ResponseFileInfo updatedResponseFileInfo) {
-		return (responseFileInfo.getStage() != null
+		return (Objects.nonNull(responseFileInfo.getStage())
 				&& !responseFileInfo.getStage().equals(updatedResponseFileInfo.getStage()))
-				|| (responseFileInfo.getPage() != null
+				|| (Objects.nonNull(responseFileInfo.getPage())
 						&& !responseFileInfo.getPage().equals(updatedResponseFileInfo.getPage()))
-				|| (responseFileInfo.getTeam() != null
+				|| (Objects.nonNull(responseFileInfo.getTeam())
 						&& !responseFileInfo.getTeam().equals(updatedResponseFileInfo.getTeam()));
 	}
 
@@ -351,18 +355,18 @@ public class ResponseFileService {
 		for (var group : groups.values()) {
 			var equipe1 = group.getFields().get(EQUIPE1);
 			var equipe2 = group.getFields().get(EQUIPE2);
-			if (equipe1 != null && equipe2 != null)
+			if (Objects.nonNull(equipe1) && Objects.nonNull(equipe2))
 				responseFileInfo.setTeam(Integer.parseInt(equipe1.getValues() + equipe2.getValues()));
 			var etape = group.getFields().get(ETAPE);
-			if (etape != null)
+			if (Objects.nonNull(etape))
 				responseFileInfo.setStage(Integer.parseInt(etape.getValues()));
 			var page = group.getFields().get(PAGE);
-			if (page != null)
+			if (Objects.nonNull(page))
 				responseFileInfo.setPage(Integer.parseInt(page.getValues()));
 		}
-		if (responseFileInfo.getStage() == null)
+		if (Objects.isNull(responseFileInfo.getStage()))
 			responseFileInfo.setStage(1);
-		if (responseFileInfo.getPage() == null)
+		if (Objects.isNull(responseFileInfo.getPage()))
 			responseFileInfo.setPage(1);
 	}
 
@@ -392,13 +396,15 @@ public class ResponseFileService {
 		Integer threshold = formTemplate.getThreshold() < 0 ? 127 : formTemplate.getThreshold();
 		Integer density = formTemplate.getDensity() < 0 ? 40 : formTemplate.getDensity();
 		Integer shapeSize = formTemplate.getSize() < 0 ? 15 : formTemplate.getSize();
-		CornerType cornerType = formTemplate.getCornerType() == null ? CornerType.ROUND : formTemplate.getCornerType();
+		CornerType cornerType = Objects.isNull(formTemplate.getCornerType()) ? CornerType.ROUND
+				: formTemplate.getCornerType();
 
-		HashMap<String, Integer> crop = formTemplate.getCrop() == null ? new HashMap<>() : formTemplate.getCrop();
+		HashMap<String, Integer> crop = Objects.isNull(formTemplate.getCrop()) ? new HashMap<>()
+				: formTemplate.getCrop();
 		com.albertoborsetta.formscanner.api.FormTemplate filledForm = new com.albertoborsetta.formscanner.api.FormTemplate(
 				name, formTemplate);
 		filledForm.findCorners(image, threshold, density, cornerType, crop);
-		if (corners != null) {
+		if (Objects.nonNull(corners)) {
 			for (var entry : corners.entrySet()) {
 				com.albertoborsetta.formscanner.api.FormPoint corner = new com.albertoborsetta.formscanner.api.FormPoint();
 				BeanUtils.copyProperties(entry.getValue(), corner);
@@ -419,7 +425,7 @@ public class ResponseFileService {
 
 	private static FormTemplate copyProperties(com.albertoborsetta.formscanner.api.FormTemplate source,
 			FormTemplate destination) {
-		if (source == null)
+		if (Objects.isNull(source))
 			return null;
 		destination.getGroups().clear();
 		source.getGroups().entrySet().stream().forEach(entrie -> destination.getGroups().put(entrie.getKey(),
@@ -456,7 +462,7 @@ public class ResponseFileService {
 	}
 
 	private static FormArea copyProperties(com.albertoborsetta.formscanner.api.FormArea source, FormArea destination) {
-		if (source == null)
+		if (Objects.isNull(source))
 			return null;
 		copyProperties(source, (FormField) destination);
 
@@ -470,7 +476,7 @@ public class ResponseFileService {
 
 	private static FormField copyProperties(com.albertoborsetta.formscanner.api.FormField source,
 			FormField destination) {
-		if (source == null)
+		if (Objects.isNull(source))
 			return null;
 		destination.setName(source.getName());
 		destination.setType(source.getType());
@@ -479,7 +485,7 @@ public class ResponseFileService {
 
 	private static FormPoint copyProperties(com.albertoborsetta.formscanner.api.FormPoint source,
 			FormPoint destination) {
-		if (source == null)
+		if (Objects.isNull(source))
 			return null;
 		destination.setX(source.getX());
 		destination.setY(source.getY());
@@ -488,7 +494,7 @@ public class ResponseFileService {
 
 	private static FormGroup copyProperties(com.albertoborsetta.formscanner.api.FormGroup source,
 			FormGroup destination) {
-		if (source == null)
+		if (Objects.isNull(source))
 			return null;
 		destination.getFields().clear();
 		source.getFields().entrySet().stream().forEach(entrie -> destination.getFields().put(entrie.getKey(),
@@ -503,7 +509,7 @@ public class ResponseFileService {
 
 	private static FormQuestion copyProperties(com.albertoborsetta.formscanner.api.FormQuestion source,
 			FormQuestion destination) {
-		if (source == null)
+		if (Objects.isNull(source))
 			return null;
 		copyProperties(source, (FormField) destination);
 

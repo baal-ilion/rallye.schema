@@ -37,7 +37,7 @@ public class StageParamService {
 
 	public void updateResponseFileParams(ResponseFileParam responseFileParam) {
 		StageParam stageParam = getStageParamByStage(responseFileParam.getStage());
-		if (stageParam == null)
+		if (Objects.isNull(stageParam))
 			stageParam = new StageParam(responseFileParam.getStage());
 		stageParam.getResponseFileParams().removeIf(customer -> responseFileParam.getPage().equals(customer.getPage()));
 		stageParam.getResponseFileParams().add(responseFileParam);
@@ -49,7 +49,7 @@ public class StageParamService {
 	}
 
 	public StageParam updateStageParam(StageParam stageParam) {
-		StageParam stageParamToUpdate = stageParam.getId() != null
+		StageParam stageParamToUpdate = Objects.nonNull(stageParam.getId())
 				? stageParamRepository.findById(stageParam.getId()).orElseThrow()
 				: stageParamRepository.findByStage(stageParam.getStage()).orElseThrow();
 		return updateStageParam(stageParamToUpdate, stageParam.getQuestionPointParams().values());

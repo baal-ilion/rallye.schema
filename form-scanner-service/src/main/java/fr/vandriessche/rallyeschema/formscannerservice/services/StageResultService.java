@@ -2,6 +2,7 @@ package fr.vandriessche.rallyeschema.formscannerservice.services;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -34,16 +35,16 @@ public class StageResultService {
 	}
 
 	public void updateResponseResults(Integer stage, Integer team, List<ResponseResult> results) {
-		if (team == null)
+		if (Objects.isNull(team))
 			return;
 		StageResult stageResult = getStageResultByStageAndTeam(stage, team);
-		if (stageResult == null)
+		if (Objects.isNull(stageResult))
 			stageResult = new StageResult(stage, team);
 		updateStageResult(stageResult, null, results);
 	}
 
 	public StageResult updateStageResult(StageResult stageResult) {
-		StageResult stageResultToUpdate = stageResult.getId() != null
+		StageResult stageResultToUpdate = Objects.nonNull(stageResult.getId())
 				? stageResultRepository.findById(stageResult.getId()).orElseThrow()
 				: stageResultRepository.findByStageAndTeam(stageResult.getStage(), stageResult.getTeam()).orElseThrow();
 		return updateStageResult(stageResultToUpdate, stageResult.getChecked(), stageResult.getResults());
@@ -51,7 +52,7 @@ public class StageResultService {
 
 	private StageResult updateStageResult(StageResult stageResultToUpdate, Boolean checked,
 			List<ResponseResult> results) {
-		if (checked != null)
+		if (Objects.nonNull(checked))
 			stageResultToUpdate.setChecked(checked);
 		for (var result : results) {
 			stageResultToUpdate.getResults().removeIf(r -> r.getName().equals(result.getName()));

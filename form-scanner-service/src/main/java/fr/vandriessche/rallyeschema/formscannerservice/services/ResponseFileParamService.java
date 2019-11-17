@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import javax.imageio.ImageIO;
@@ -82,15 +83,15 @@ public class ResponseFileParamService {
 
 	public ResponseFileParam addResponseFileParam(ResponseFileParam responseFileParam, MultipartFile fileModel)
 			throws ParserConfigurationException, SAXException, IOException {
-		if (responseFileParam == null)
+		if (Objects.isNull(responseFileParam))
 			responseFileParam = new ResponseFileParam();
-		if (responseFileParam.getId() != null)
+		if (Objects.nonNull(responseFileParam.getId()))
 			responseFileParamRepository.findById(responseFileParam.getId()).orElseThrow();
 		// else if (getResponseFileParamByStageAndPage(responseFileParam.getStage(),
 		// responseFileParam.getPage()).isPresent())
 
 		fillResponseFileParam(responseFileParam);
-		ResponseFileModel responseFileModel = fileModel != null ? makeResponseFileModel(fileModel, null)
+		ResponseFileModel responseFileModel = Objects.nonNull(fileModel) ? makeResponseFileModel(fileModel, null)
 				: responseFileModelRepository.findById(responseFileParam.getId()).orElseThrow();
 		fillResponseFileParam(responseFileParam, responseFileModel);
 		responseFileParam = responseFileParamRepository.save(responseFileParam);
@@ -131,7 +132,7 @@ public class ResponseFileParamService {
 
 	private ResponseFileModel makeResponseFileModel(MultipartFile fileModel, ResponseFileModel responseFileModel)
 			throws IOException {
-		if (responseFileModel == null)
+		if (Objects.isNull(responseFileModel))
 			responseFileModel = new ResponseFileModel();
 		responseFileModel.setFile(new Binary(BsonBinarySubType.BINARY, fileModel.getBytes()));
 		responseFileModel.setFileExtension(FilenameUtils.getExtension(fileModel.getOriginalFilename()));
@@ -151,7 +152,7 @@ public class ResponseFileParamService {
 					.forEach(field -> {
 						List<String> responses = makeResponseValues(field);
 						var question = questions.get(field.getName());
-						if (question == null) {
+						if (Objects.isNull(question)) {
 							questions.put(field.getName(), new QuestionPageParam(field.getName(),
 									getTypeByName(field.getName(), QuestionPageType.QUESTION), responses));
 						} else {
@@ -202,7 +203,7 @@ public class ResponseFileParamService {
 
 	private com.albertoborsetta.formscanner.api.FormTemplate makeFormTemplate(ResponseFileParam responseFileParam)
 			throws IOException, ParserConfigurationException, SAXException {
-		if (responseFileParam.getTemplate() == null)
+		if (Objects.isNull(responseFileParam.getTemplate()))
 			return new com.albertoborsetta.formscanner.api.FormTemplate("");
 		File templateFile = File.createTempFile("rallyeschema-", "-model.xtmpl");
 		templateFile.deleteOnExit();
