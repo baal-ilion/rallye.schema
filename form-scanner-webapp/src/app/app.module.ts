@@ -22,6 +22,8 @@ import { DetailsTemplateComponent } from './response-file/common/details-templat
 import { DetailsTemplateParamComponent } from './response-file/param/details-template-param/details-template-param.component';
 import { ListPointComponent } from './point/list-point/list-point.component';
 import { DetailsPointComponent } from './point/details-point/details-point.component';
+import { DetailsStageParamComponent } from './param/details-stage-param/details-stage-param.component';
+import { ListStageParamComponent } from './param/list-stage-param/list-stage-param.component';
 
 @NgModule({
   declarations: [
@@ -38,7 +40,9 @@ import { DetailsPointComponent } from './point/details-point/details-point.compo
     DetailsTemplateComponent,
     DetailsTemplateParamComponent,
     ListPointComponent,
-    DetailsPointComponent
+    DetailsPointComponent,
+    DetailsStageParamComponent,
+    ListStageParamComponent
   ],
   entryComponents: [ModifyUploadComponent, ModifyResponseFileParamComponent],
   imports: [

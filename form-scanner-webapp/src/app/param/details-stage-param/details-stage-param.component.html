@@ -1,0 +1,22 @@
+<div>
+  <h1>Etape : {{stageParam.stage}}</h1>
+  <div class="container-fluid">
+    <div>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="container">
+        <div class="row">
+          <div *ngFor="let result of results.controls" class="col-6 col-lg-3 col-sm-6 col-md-4">
+            <div [formGroup]="result" class="row">
+              <label class="col align-self-center">{{result.value.name}}</label>
+              <div class="col-auto align-self-center">
+                <input type="number" formControlName="point" class="col-auto">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <button class="btn btn-primary mr-1">Modifier</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

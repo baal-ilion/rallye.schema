@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,7 +58,7 @@ public class StageParamService {
 	private StageParam updateStageParam(StageParam stageParamToUpdate,
 			Collection<QuestionPointParam> questionPointParams) {
 		for (var questionPointParam : questionPointParams) {
-			if (questionPointParam.getPoint() == null) {
+			if (Objects.isNull(questionPointParam.getPoint())) {
 				stageParamToUpdate.getQuestionPointParams().remove(questionPointParam.getName());
 			} else {
 				stageParamToUpdate.getQuestionPointParams().put(questionPointParam.getName(), questionPointParam);
