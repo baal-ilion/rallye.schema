@@ -1,5 +1,6 @@
 package fr.vandriessche.rallyeschema.formscannerservice.services;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -7,6 +8,7 @@ import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import fr.vandriessche.rallyeschema.formscannerservice.entities.PreformanceResult;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseResult;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.StageResult;
 import fr.vandriessche.rallyeschema.formscannerservice.repositories.StageResultRepository;
@@ -40,23 +42,28 @@ public class StageResultService {
 		StageResult stageResult = getStageResultByStageAndTeam(stage, team);
 		if (Objects.isNull(stageResult))
 			stageResult = new StageResult(stage, team);
-		updateStageResult(stageResult, null, results);
+		updateStageResult(stageResult, null, results, new ArrayList<>());
 	}
 
 	public StageResult updateStageResult(StageResult stageResult) {
 		StageResult stageResultToUpdate = Objects.nonNull(stageResult.getId())
 				? stageResultRepository.findById(stageResult.getId()).orElseThrow()
 				: stageResultRepository.findByStageAndTeam(stageResult.getStage(), stageResult.getTeam()).orElseThrow();
-		return updateStageResult(stageResultToUpdate, stageResult.getChecked(), stageResult.getResults());
+		return updateStageResult(stageResultToUpdate, stageResult.getChecked(), stageResult.getResults(),
+				stageResult.getPreformances());
 	}
 
 	private StageResult updateStageResult(StageResult stageResultToUpdate, Boolean checked,
-			List<ResponseResult> results) {
+			List<ResponseResult> results, List<PreformanceResult> performances) {
 		if (Objects.nonNull(checked))
 			stageResultToUpdate.setChecked(checked);
 		for (var result : results) {
 			stageResultToUpdate.getResults().removeIf(r -> r.getName().equals(result.getName()));
 			stageResultToUpdate.getResults().add(result);
+		}
+		for (var performance : performances) {
+			stageResultToUpdate.getPreformances().removeIf(r -> r.getName().equals(performance.getName()));
+			stageResultToUpdate.getPreformances().add(performance);
 		}
 		stageResultToUpdate.getResults().sort(Comparator.comparing(ResponseResult::getName));
 		stageResultToUpdate = stageResultRepository.save(stageResultToUpdate);

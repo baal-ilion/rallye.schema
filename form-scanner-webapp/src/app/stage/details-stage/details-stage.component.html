@@ -1,7 +1,7 @@
-<div>
+<div *ngIf="param">
   <h1>Etape : {{stage.stage}}, Equipe : {{stage.team}}</h1>
   <div class="container-fluid">
-    <div >
+    <div>
       <div *ngIf="files" class="row align-items-start container">
         <div *ngFor="let file of files | async" class="col-6">
           <div style="position: relative;" class="response-file">
@@ -23,13 +23,23 @@
           </div>
         </div>
         <div class="row">
-            <label class="col-auto align-self-center">Vérifié</label>
-            <div class="col-auto align-self-center">
-              <ui-switch formControlName="checked" size="small" class="col-auto"></ui-switch>
+          <div *ngFor="let preformance of preformances.controls" class="col-6 col-lg-3 col-sm-6 col-md-4">
+            <div [formGroup]="preformance" class="row">
+              <label class="col align-self-center">{{preformance.value.name}}</label>
+              <div class="col-auto align-self-center">
+                <input type=number step=any formControlName="preformanceValue" class="col-auto" />
+              </div>
             </div>
+          </div>
         </div>
         <div class="row">
-            <button class="btn btn-primary mr-1">Modifier</button>
+          <label class="col-auto align-self-center">Vérifié</label>
+          <div class="col-auto align-self-center">
+            <ui-switch formControlName="checked" size="small" class="col-auto"></ui-switch>
+          </div>
+        </div>
+        <div class="row">
+          <button class="btn btn-primary mr-1">Modifier</button>
         </div>
       </form>
     </div>

@@ -4,6 +4,7 @@ import { Observable, of } from 'rxjs';
 import { FormGroup, FormBuilder, FormArray } from '@angular/forms';
 import { stringify } from 'querystring';
 import { StageService } from '../stage.service';
+import { StageParamService } from 'src/app/param/stage-param.service';
 
 @Component({
   selector: 'app-details-stage',
@@ -16,35 +17,70 @@ export class DetailsStageComponent implements OnInit {
 
   form: FormGroup;
   files: Observable<any[]>;
+  param;
 
-  constructor(private uploadFileService: UploadFileService, private formBuilder: FormBuilder, private stageService: StageService) { }
+  constructor(
+    private uploadFileService: UploadFileService,
+    private formBuilder: FormBuilder,
+    private stageService: StageService,
+    private stageParamService: StageParamService) { }
+
   // convenience getters for easy access to form fields
   get f() { return this.form.controls; }
   get results() { return this.f.results as FormArray; }
+  get preformances() { return this.f.preformances as FormArray; }
 
   ngOnInit() {
+    this.param = null;
     this.files = this.uploadFileService.findByStageAndTeam(this.stage.stage, this.stage.team);
     this.form = this.formBuilder.group({
       results: this.formBuilder.array([]),
+      preformances: this.formBuilder.array([]),
       checked: this.stage.checked
     });
-    for (const result of this.stage.results) {
-      this.results.push(this.formBuilder.group({
-        name: result.name,
-        resultValue: result.resultValue
-      }));
-    }
+    this.stageParamService.findByStage(this.stage.stage).toPromise().then(data => {
+      this.param = data;
+      for (const questionParamKey of Object.keys(this.param.questionParams)) {
+        const questionParam = this.param.questionParams[questionParamKey];
+        if (questionParam.type === 'QUESTION') {
+          const result = this.stage.results.find(element => element.name === questionParam.name);
+          this.results.push(this.formBuilder.group({
+            name: questionParam.name,
+            resultValue: result ? result.resultValue : null
+          }));
+        } else if (questionParam.type === 'PERFORMANCE') {
+          const preformance = this.stage.preformances.find(element => element.name === questionParam.name);
+          this.preformances.push(this.formBuilder.group({
+            name: questionParam.name,
+            preformanceValue: preformance ? preformance.preformanceValue : null
+          }));
+        }
+      }
+    });
   }
 
   onSubmit() {
-    const modifiedRresults = [];
+    const modifiedResults = [];
     this.form.value.results.forEach((item, index) => {
-      if (item.resultValue !== this.stage.results[index].resultValue) {
-        modifiedRresults.push(item);
+      const result = this.stage.results.find(element => element.name === item.name);
+      if (!result || item.resultValue !== result.resultValue) {
+        modifiedResults.push(item);
+      }
+    });
+    const modifiedPreformances = [];
+    this.form.value.preformances.forEach((item, index) => {
+      const preformance = this.stage.preformances.find(element => element.name === item.name);
+      if (!preformance || item.preformanceValue !== preformance.preformanceValue) {
+        modifiedPreformances.push(item);
       }
     });
     this.stageService.updateStage({
-      id: this.stage.id, team: this.stage.team, stage: this.stage.stage, checked: this.form.value.checked, results: modifiedRresults
+      id: this.stage.id,
+      team: this.stage.team,
+      stage: this.stage.stage,
+      checked: this.form.value.checked,
+      results: modifiedResults,
+      preformances: modifiedPreformances
     });
   }
 }

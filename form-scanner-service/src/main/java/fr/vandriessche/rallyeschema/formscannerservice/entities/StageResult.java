@@ -13,19 +13,20 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Document
 public class StageResult {
-	public StageResult(Integer stage, Integer team) {
-		this.stage = stage;
-		this.team = team;
-	}
-
 	@Id
 	private String id;
 
 	private Integer stage;
-	private Integer team;
 
+	private Integer team;
 	private Boolean checked;
 
 	private List<ResponseResult> results = new ArrayList<>();
 
+	private List<PreformanceResult> preformances = new ArrayList<>();
+
+	public StageResult(Integer stage, Integer team) {
+		this.stage = stage;
+		this.team = team;
+	}
 }
