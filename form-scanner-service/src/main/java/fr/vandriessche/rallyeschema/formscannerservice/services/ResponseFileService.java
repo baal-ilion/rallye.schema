@@ -416,10 +416,13 @@ public class ResponseFileService {
 		filledForm.findAreas(image);
 
 		FormTemplate filledForm2 = new FormTemplate();
+		copyProperties(filledForm, filledForm2);
 		filledForm2.setHeight(image.getHeight());
 		filledForm2.setWidth(image.getWidth());
-		copyProperties(filledForm, filledForm2);
-
+		responseFileParamService.getResponseFileParamByStageAndPage(stage, page).ifPresent(responseFileParam -> {
+			filledForm2.getParentTemplate().setHeight(responseFileParam.getHeight());
+			filledForm2.getParentTemplate().setWidth(responseFileParam.getWidth());
+		});
 		return filledForm2;
 	}
 

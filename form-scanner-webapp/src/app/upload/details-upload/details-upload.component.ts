@@ -29,32 +29,47 @@ export class DetailsUploadComponent implements OnInit {
     this.template.square = fileUpload.filledForm.size;
     this.template.height = fileUpload.filledForm.height;
     this.template.width = fileUpload.filledForm.width;
+    if (fileUpload.filledForm.parentTemplate) {
+      this.template.initialHeight = fileUpload.filledForm.parentTemplate.height;
+      this.template.initialWidth = fileUpload.filledForm.parentTemplate.width;
+    }
     this.template.corners = fileUpload.filledForm.corners;
 
-    const fields = fileUpload.filledForm.groups.EMPTY.fields;
-    const fieldKeys = Object.keys(fields).sort();
-    for (const field of fieldKeys) {
-      const points = fields[field].points;
-      const pointKeys = Object.keys(points);
-      let resultValue = null;
-      if (pointKeys.includes('O')) {
-        resultValue = true;
-      } else if (pointKeys.includes('N')) {
-        resultValue = false;
-      } else if (pointKeys.includes('Y')) {
-        resultValue = true;
-      }
+    const groups = fileUpload.filledForm.groups;
+    const groupKeys = Object.keys(groups).sort();
+    for (const group of groupKeys) {
+      const fields = groups[group].fields;
+      const fieldKeys = Object.keys(fields).sort();
+      for (const field of fieldKeys) {
+        const points = fields[field].points;
+        const pointKeys = Object.keys(points);
+        let resultValue = null;
+        if (pointKeys.includes('O')) {
+          resultValue = true;
+        } else if (pointKeys.includes('N')) {
+          resultValue = false;
+        } else if (pointKeys.includes('Y')) {
+          resultValue = true;
+        }
+        let commentTxt = field;
+        if (resultValue === null) {
+          commentTxt += ' : ' + pointKeys.join(', ');
+        } else {
+          commentTxt += resultValue ? ' : Ok' : ' : Ko';
+        }
 
-      for (const point of pointKeys) {
-        if (points[point]) {
-          this.template.points.push({
-            point: points[point],
-            valid: resultValue,
-            comment: field
-          });
+        for (const point of pointKeys) {
+          if (points[point]) {
+            this.template.points.push({
+              point: points[point],
+              valid: resultValue,
+              comment: commentTxt
+            });
+          }
         }
       }
     }
+
   }
 
   endDrag(event: Corners) {

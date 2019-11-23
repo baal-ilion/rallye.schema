@@ -38,8 +38,11 @@ export class DetailsTemplateComponent implements OnInit, OnChanges {
   loadTemplate(template: FormTemplate) {
     const height = template.height;
     const width = template.width;
-    const squareHeight = template.square * 2 * 100 / 2800;
-    const squareWidth = template.square * 2 * 100 / 1700;
+    const initialHeight = template.initialHeight && template.initialHeight !== 0 ? template.initialHeight : template.height;
+    const initialWidth = template.initialWidth && template.initialWidth !== 0 ? template.initialWidth : template.width;
+    const transform = width / initialWidth;
+    const squareHeight = template.square * 2 * 100 * transform / height;
+    const squareWidth = template.square * 2 * 100 * transform / width;
 
     this.topLeftCorner = {
       top: template.corners.TOP_LEFT.y * 100 / height,

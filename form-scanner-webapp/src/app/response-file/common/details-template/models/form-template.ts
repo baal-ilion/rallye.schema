@@ -8,5 +8,7 @@ export class FormTemplate {
   corners: Corners;
   height: number;
   width: number;
+  initialHeight: number;
+  initialWidth: number;
   square: number;
 }
