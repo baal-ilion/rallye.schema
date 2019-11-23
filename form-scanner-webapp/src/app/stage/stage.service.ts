@@ -1,23 +1,21 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class StageService {
-
-  public host = 'http://192.168.3.50:8080';
-
   constructor(private http: HttpClient) { }
 
   getStages(): Observable<any> {
-    return this.http.get(this.host + '/stageResults');
+    return this.http.get(environment.apiUrl + '/stageResults');
   }
 
   updateStage(stage): any {
     console.log(stage);
-    this.http.patch(this.host + '/stageResult', stage).subscribe(data => {
+    this.http.patch(environment.apiUrl + '/stageResult', stage).subscribe(data => {
       console.log(data);
       return data;
     }, error => {
