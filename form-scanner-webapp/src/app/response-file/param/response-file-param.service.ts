@@ -14,10 +14,10 @@ export class ResponseFileParamService {
   }
 
   createResponseFileParam(param): Observable<any> {
-    return this.http.post(environment.apiUrl + '/responseFileParam', param);
+    return this.http.post(environment.apiUrl + '/responseFileParams', param);
   }
 
   updateResponseFileParam(param): Observable<any> {
-    return this.http.put(environment.apiUrl + '/responseFileParam', param);
+    return this.http.put(environment.apiUrl + '/responseFileParams', param);
   }
 }

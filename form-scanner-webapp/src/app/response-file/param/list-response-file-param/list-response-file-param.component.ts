@@ -10,7 +10,7 @@ import { ModifyResponseFileParamComponent } from '../modify-response-file-param/
   styleUrls: ['./list-response-file-param.component.scss']
 })
 export class ListResponseFileParamComponent implements OnInit {
-  responseFileParams: Observable<any[]>;
+  responseFileParams: Observable<any>;
 
   constructor(private responseFileParamService: ResponseFileParamService, private modalService: NgbModal) { }
 

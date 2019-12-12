@@ -1,15 +1,20 @@
 package fr.vandriessche.rallyeschema.formscannerservice.controllers;
 
+import java.io.File;
 import java.io.IOException;
-import java.util.List;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Objects;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +31,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileModel;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileParam;
+import fr.vandriessche.rallyeschema.formscannerservice.models.ResponseFileParamModelAssembler;
 import fr.vandriessche.rallyeschema.formscannerservice.services.ResponseFileParamService;
 
 @RestController
@@ -33,45 +39,50 @@ public class ResponseFileParamController {
 	@Autowired
 	private ResponseFileParamService responseFileParamService;
 
-	@GetMapping("/responseFileParams")
-	public List<ResponseFileParam> getResponseFileParams() {
-		return responseFileParamService.getResponseFileParams();
+	public static final String URL = "/responseFileParams";
+
+	@GetMapping(URL)
+	public PagedModel<EntityModel<ResponseFileParam>> getResponseFileParams(Pageable page,
+			PagedResourcesAssembler<ResponseFileParam> pageAssembler, ResponseFileParamModelAssembler assembler) {
+		return pageAssembler.toModel(responseFileParamService.getResponseFileParams(page), assembler);
 	}
 
-	@GetMapping("/responseFileParam/search/findByStageAndPage")
-	public ResponseFileParam getResponseFileParamByStageAndPage(@RequestParam Integer stage,
-			@RequestParam Integer page) {
-		return responseFileParamService.getResponseFileParamByStageAndPage(stage, page).orElseThrow();
+	@GetMapping(URL + "/search/findByStageAndPage")
+	public EntityModel<ResponseFileParam> getResponseFileParamByStageAndPage(@RequestParam Integer stage,
+			@RequestParam Integer page, ResponseFileParamModelAssembler assembler) {
+		return assembler
+				.toModel(responseFileParamService.getResponseFileParamByStageAndPage(stage, page).orElseThrow());
 	}
 
-	@GetMapping("/responseFileParam/{id}")
-	public ResponseEntity<ResponseFileParam> getResponseFileParam(@PathVariable String id) {
-		return ResponseEntity.ok(responseFileParamService.getResponseFileParam(id));
+	@GetMapping(URL + "/{id}")
+	public EntityModel<ResponseFileParam> getResponseFileParam(@PathVariable String id,
+			ResponseFileParamModelAssembler assembler) {
+		return assembler.toModel(responseFileParamService.getResponseFileParam(id));
 	}
 
-	@PostMapping("/responseFileParam")
-	public ResponseEntity<ResponseFileParam> addResponseFileParam(
+	@PostMapping(URL)
+	public EntityModel<ResponseFileParam> addResponseFileParam(
 			@RequestParam("responseFileParam") String responseFileParamJson,
-			@RequestParam("responseFileModel") MultipartFile responseFileModel)
-			throws ParserConfigurationException, SAXException, IOException {
+			@RequestParam("responseFileModel") MultipartFile responseFileModel,
+			ResponseFileParamModelAssembler assembler) throws ParserConfigurationException, SAXException, IOException {
 		ResponseFileParam responseFileParam = new ObjectMapper().readValue(responseFileParamJson,
 				ResponseFileParam.class);
-		return ResponseEntity.ok(responseFileParamService.addResponseFileParam(responseFileParam, responseFileModel));
+		return assembler.toModel(responseFileParamService.addResponseFileParam(responseFileParam, responseFileModel));
 	}
 
-	@PutMapping("/responseFileParam")
-	public ResponseEntity<ResponseFileParam> updateResponseFileParam(
+	@PutMapping(URL)
+	public EntityModel<ResponseFileParam> updateResponseFileParam(
 			@RequestParam("responseFileParam") String responseFileParamJson,
-			@RequestParam(name = "responseFileModel", required = false) MultipartFile responseFileModel)
-			throws ParserConfigurationException, SAXException, IOException {
+			@RequestParam(name = "responseFileModel", required = false) MultipartFile responseFileModel,
+			ResponseFileParamModelAssembler assembler) throws ParserConfigurationException, SAXException, IOException {
 		ResponseFileParam responseFileParam = new ObjectMapper().readValue(responseFileParamJson,
 				ResponseFileParam.class);
-		return ResponseEntity
-				.ok(responseFileParamService.updateResponseFileParam(responseFileParam, responseFileModel));
+		return assembler
+				.toModel(responseFileParamService.updateResponseFileParam(responseFileParam, responseFileModel));
 	}
 
-	@GetMapping("/responseFileModel/{id}")
-	public ResponseEntity<Resource> downloadResponseFileModel(@PathVariable String id, HttpServletRequest request) {
+	@GetMapping(URL + "/{id}/model")
+	public ResponseEntity<Resource> downloadResponseFileModel(@PathVariable String id) {
 		ResponseFileModel responseFileModel = responseFileParamService.getResponseFileModel(id);
 		String contentType = responseFileModel.getFileType();
 		if (Objects.isNull(contentType)) {
@@ -81,5 +92,24 @@ public class ResponseFileParamController {
 				.header(HttpHeaders.CONTENT_DISPOSITION,
 						"attachment; filename=\"" + id + "." + responseFileModel.getFileExtension() + "\"")
 				.body(new ByteArrayResource(responseFileModel.getFile().getData()));
+	}
+
+	@GetMapping(URL + "/{id}/template")
+	public ResponseEntity<Resource> downloadResponseFileTemplate(@PathVariable String id) {
+		ResponseFileParam responseFileParam = responseFileParamService.getResponseFileParam(id);
+		Path path = new File("toto.xml").toPath();
+		String contentType = null;
+		try {
+			contentType = Files.probeContentType(path);
+		} catch (IOException e) {
+			// TODO Bloc catch généré automatiquement
+			e.printStackTrace();
+		}
+		if (Objects.isNull(contentType)) {
+			contentType = "application/octet-stream";
+		}
+		return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType))
+				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + id + ".xtmpl\"")
+				.body(new ByteArrayResource(responseFileParam.getTemplate().getBytes()));
 	}
 }
