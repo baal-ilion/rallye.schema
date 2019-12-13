@@ -1,7 +1,7 @@
 <div class="panel panel-primary">
   <div class="panel-heading">Liste des feuilles de réponses</div>
-  <div *ngIf='fileUploads'>
-    <div *ngFor="let file of fileUploads | async">
+  <div *ngIf='(fileUploads | async)._embedded'>
+    <div *ngFor="let file of (fileUploads | async)._embedded.responseFileInfoes">
       <div class="panel-body">
         <app-details-upload [fileUpload]='file'></app-details-upload>
       </div>

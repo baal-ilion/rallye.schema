@@ -34,7 +34,7 @@ export class DetailsTemplateParamComponent implements OnInit, OnChanges {
     this.template = new FormTemplate();
     this.template.height = param.height;
     this.template.width = param.width;
-    this.template.fileUrl = param._links.responseFileModel.href;
+    this.template.fileUrl = param.img;
     //this.template.fileAlt = this.alt;
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(param.template, 'text/xml');

@@ -16,7 +16,7 @@ export class DetailsResponseFileParamComponent implements OnInit {
 
   ngOnInit() {
     console.log(this.param);
-    this.param.img = 'http://localhost:8080/responseFileModel/' + this.param.id;
+    this.param.img = this.param._links.responseFileModel.href;
     this.loadQuestions(this.param.questions);
   }
 
@@ -35,10 +35,10 @@ export class DetailsResponseFileParamComponent implements OnInit {
       console.log(result);
       this.responseFileParamService.updateResponseFileParam(result).subscribe(data => {
         this.param = data;
-        this.ngOnInit();
+        this.loadQuestions(this.param.questions);
       }, err => {
         console.log(err);
-        this.ngOnInit();
+        this.loadQuestions(this.param.questions);
       });
     }).catch((error) => {
       console.log(error);

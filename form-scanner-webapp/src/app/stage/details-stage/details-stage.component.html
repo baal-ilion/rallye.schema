@@ -2,12 +2,10 @@
   <h1>Etape : {{stage.stage}}, Equipe : {{stage.team}}</h1>
   <div class="container-fluid">
     <div>
-      <div *ngIf="files" class="row align-items-start container">
-        <div *ngFor="let file of files | async" class="col-6">
+      <div *ngIf="(files | async)._embedded" class="row align-items-start container">
+        <div *ngFor="let file of (files | async)._embedded.responseFileInfoes" class="col-6">
           <div style="position: relative;" class="response-file">
-            <img src="http://localhost:8080/downloadResponseFile/{{file.id}}"
-              alt="Etape : {{file.stage}}, Page : {{file.page}}, Equipe : {{file.team}}"
-              style="width: 100%; height: auto;" />
+            <app-details-response-file [fileUpload]="file" [dragable]="false" class="col-8"></app-details-response-file>
           </div>
         </div>
       </div>

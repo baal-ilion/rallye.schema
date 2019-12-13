@@ -2,7 +2,6 @@ package fr.vandriessche.rallyeschema.formscannerservice.controllers;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -12,6 +11,8 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +30,7 @@ import com.albertoborsetta.formscanner.api.exceptions.FormScannerException;
 
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFile;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileInfo;
+import fr.vandriessche.rallyeschema.formscannerservice.models.ResponseFileInfoModelAssembler;
 import fr.vandriessche.rallyeschema.formscannerservice.services.ResponseFileService;
 
 @RestController
@@ -36,10 +38,14 @@ public class ResponseFileController {
 	@Autowired
 	private ResponseFileService responseFileService;
 
-	@PostMapping("/uploadResponseFile")
-	public ResponseFileInfo uploadResponseFile(@RequestParam("file") MultipartFile file) {
+	public static final String URL = "/responseFiles";
+	public static final String INFO_URL = "/responseFileInfos";
+
+	@PostMapping(URL)
+	public EntityModel<ResponseFileInfo> uploadResponseFile(@RequestParam("file") MultipartFile file,
+			ResponseFileInfoModelAssembler assembler) {
 		try {
-			return responseFileService.addResponseFile(file).getInfo();
+			return assembler.toModel(responseFileService.addResponseFile(file).getInfo());
 		} catch (IOException | ParserConfigurationException | SAXException | FormScannerException e) {
 			// TODO Bloc catch généré automatiquement
 			e.printStackTrace();
@@ -47,13 +53,21 @@ public class ResponseFileController {
 		return null;
 	}
 
-	@PostMapping("/uploadMultipleResponseFiles")
-	public List<ResponseFileInfo> uploadMultipleResponseFiles(@RequestParam("files") MultipartFile[] files) {
-		return Arrays.asList(files).stream().map(file -> uploadResponseFile(file)).filter(Objects::nonNull)
-				.collect(Collectors.toList());
+	@PostMapping(URL + "/multiple")
+	public CollectionModel<EntityModel<ResponseFileInfo>> uploadMultipleResponseFiles(
+			@RequestParam("files") MultipartFile[] files, ResponseFileInfoModelAssembler assembler) {
+		return assembler.toCollectionModel(Arrays.asList(files).stream().map(file -> {
+			try {
+				return responseFileService.addResponseFile(file).getInfo();
+			} catch (IOException | ParserConfigurationException | SAXException | FormScannerException e) {
+				// TODO Bloc catch généré automatiquement
+				e.printStackTrace();
+			}
+			return null;
+		}).filter(Objects::nonNull).collect(Collectors.toList()));
 	}
 
-	@GetMapping("/downloadResponseFile/{id}")
+	@GetMapping(URL + "/{id}")
 	public ResponseEntity<Resource> downloadFile(@PathVariable String id, HttpServletRequest request) {
 		ResponseFile responseFile = responseFileService.getResponseFile(id);
 		String contentType = responseFile.getFileType();
@@ -66,25 +80,28 @@ public class ResponseFileController {
 				.body(new ByteArrayResource(responseFile.getFile().getData()));
 	}
 
-	@GetMapping("/responseFileInfos")
-	public List<ResponseFileInfo> getResponseFileInfos() {
-		return responseFileService.getResponseFileInfos();
+	@GetMapping(INFO_URL)
+	public CollectionModel<EntityModel<ResponseFileInfo>> getResponseFileInfos(
+			ResponseFileInfoModelAssembler assembler) {
+		return assembler.toCollectionModel(responseFileService.getResponseFileInfos());
 	}
 
-	@GetMapping("/responseFileInfos/search/findByStageAndTeam")
-	public List<ResponseFileInfo> getResponseFileInfosByStageAndTeam(@RequestParam Integer stage,
-			@RequestParam Integer team) {
-		return responseFileService.getResponseFileInfosByStageAndTeam(stage, team);
+	@GetMapping(INFO_URL + "/search/findByStageAndTeam")
+	public CollectionModel<EntityModel<ResponseFileInfo>> getResponseFileInfosByStageAndTeam(
+			@RequestParam Integer stage, @RequestParam Integer team, ResponseFileInfoModelAssembler assembler) {
+		return assembler.toCollectionModel(responseFileService.getResponseFileInfosByStageAndTeam(stage, team));
 	}
 
-	@GetMapping("/responseFileInfo/{id}")
-	public ResponseEntity<ResponseFileInfo> getResponseFileInfo(@PathVariable String id) {
-		return ResponseEntity.ok(responseFileService.getResponseFileInfo(id));
+	@GetMapping(INFO_URL + "/{id}")
+	public EntityModel<ResponseFileInfo> getResponseFileInfo(@PathVariable String id,
+			ResponseFileInfoModelAssembler assembler) {
+		return assembler.toModel(responseFileService.getResponseFileInfo(id));
 	}
 
-	@PatchMapping("/responseFileInfo")
-	public ResponseEntity<ResponseFileInfo> updateResponseFileInfo(@RequestBody ResponseFileInfo responseFileInfo)
+	@PatchMapping(INFO_URL)
+	public EntityModel<ResponseFileInfo> updateResponseFileInfo(@RequestBody ResponseFileInfo responseFileInfo,
+			ResponseFileInfoModelAssembler assembler)
 			throws ParserConfigurationException, SAXException, IOException, FormScannerException {
-		return ResponseEntity.ok(responseFileService.updateResponseFileInfo(responseFileInfo));
+		return assembler.toModel(responseFileService.updateResponseFileInfo(responseFileInfo));
 	}
 }

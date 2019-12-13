@@ -16,7 +16,7 @@ export class DetailsStageComponent implements OnInit {
   @Input() stage: any;
 
   form: FormGroup;
-  files: Observable<any[]>;
+  files: Observable<any>;
   param;
 
   constructor(

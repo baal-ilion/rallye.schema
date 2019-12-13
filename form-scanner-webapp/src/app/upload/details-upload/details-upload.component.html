@@ -4,7 +4,7 @@
       {{fileUpload.page}}, Equipe : {{fileUpload.team}}</button>
   </div>
   <div class="row justify-content-center">
-    <app-details-template [template]="template" (endDragEvent)="endDrag($event)" class="col-8"></app-details-template>
+    <app-details-response-file [fileUpload]="fileUpload" (endDragEvent)="endDrag($event)" class="col-8"></app-details-response-file>
   </div>
   <div *ngIf="fileUpload.active" class="row justify-content-center">
     <button type="button" class="btn btn-success" (click)="check()">Vérifié</button>

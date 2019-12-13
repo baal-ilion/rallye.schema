@@ -12,7 +12,7 @@ export class UploadFileService {
   pushFileToStorage(file: File) {
     const formdata = new FormData();
     formdata.append('file', file);
-    return this.http.post(environment.apiUrl + '/uploadResponseFile', formdata, {
+    return this.http.post(environment.apiUrl + '/responseFiles', formdata, {
       reportProgress: true,
       observe: 'events'
     });
@@ -28,6 +28,6 @@ export class UploadFileService {
   }
 
   updateResponseFileInfoCorners(responseFileInfo): Observable<any> {
-    return this.http.patch(environment.apiUrl + '/responseFileInfo', responseFileInfo);
+    return this.http.patch(environment.apiUrl + '/responseFileInfos', responseFileInfo);
   }
 }

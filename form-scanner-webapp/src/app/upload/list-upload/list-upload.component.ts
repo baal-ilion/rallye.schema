@@ -8,7 +8,7 @@ import { Observable } from 'rxjs';
   styleUrls: ['./list-upload.component.scss']
 })
 export class ListUploadComponent implements OnInit {
-  fileUploads: Observable<any[]>;
+  fileUploads: Observable<any>;
 
   constructor(private uploadService: UploadFileService) { }
 

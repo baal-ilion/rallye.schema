@@ -1,6 +1,7 @@
 <div>
   <div style="position: relative;" class="response-file">
-    <img [src]="template.fileUrl" [alt]="template.fileAlt" style="width: 100%; height: auto;" />
+    <img *ngIf="template.fileUrl" [src]="template.fileUrl" [alt]="template.fileAlt"
+      style="width: 100%; height: auto;" />
     <div *ngIf="points" style="position: absolute; top:0px; left:0px; height: 100%; width: 100%;">
       <div *ngFor="let point of points" [className]="point.class" [style.top.%]="point.top" [style.left.%]="point.left"
         [style.width.%]="point.width" [style.height.%]="point.height"

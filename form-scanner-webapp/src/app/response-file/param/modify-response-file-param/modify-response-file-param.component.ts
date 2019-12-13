@@ -24,7 +24,11 @@ export class ModifyResponseFileParamComponent implements OnInit {
 
   ngOnInit() {
     this.detailsParam = JSON.parse(JSON.stringify(this.param));
-    this.detailsParam.img = 'http://localhost:8080/responseFileModel/' + this.param.id;
+    if (this.param._links) {
+      this.detailsParam.img = this.param._links.responseFileModel.href;
+    } else {
+      this.detailsParam.img = null;
+    }
     this.createForm();
   }
 

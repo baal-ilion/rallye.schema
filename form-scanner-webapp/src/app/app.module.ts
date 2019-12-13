@@ -25,6 +25,7 @@ import { DetailsPointComponent } from './point/details-point/details-point.compo
 import { DetailsStageParamComponent } from './param/details-stage-param/details-stage-param.component';
 import { ListStageParamComponent } from './param/list-stage-param/list-stage-param.component';
 import { MenuComponent } from './menu/menu.component';
+import { DetailsResponseFileComponent } from './upload/details-response-file/details-response-file.component';
 
 @NgModule({
   declarations: [
@@ -44,7 +45,8 @@ import { MenuComponent } from './menu/menu.component';
     DetailsPointComponent,
     DetailsStageParamComponent,
     ListStageParamComponent,
-    MenuComponent
+    MenuComponent,
+    DetailsResponseFileComponent
   ],
   entryComponents: [ModifyUploadComponent, ModifyResponseFileParamComponent],
   imports: [
