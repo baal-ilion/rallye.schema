@@ -11,8 +11,11 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -104,4 +107,11 @@ public class ResponseFileController {
 			throws ParserConfigurationException, SAXException, IOException, FormScannerException {
 		return assembler.toModel(responseFileService.updateResponseFileInfo(responseFileInfo));
 	}
+
+	@GetMapping(INFO_URL + "/search/findByCheckedIsFalse")
+	public PagedModel<EntityModel<ResponseFileInfo>> getResponseFileParams(Pageable page,
+			PagedResourcesAssembler<ResponseFileInfo> pageAssembler, ResponseFileInfoModelAssembler assembler) {
+		return pageAssembler.toModel(responseFileService.getNotCheckedResponseFileInfos(page), assembler);
+	}
+
 }

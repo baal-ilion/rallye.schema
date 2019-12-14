@@ -145,6 +145,10 @@ public class ResponseFileService {
 		return responseFileInfoRepository.findAll();
 	}
 
+	public Page<ResponseFileInfo> getNotCheckedResponseFileInfos(Pageable pageable) {
+		return responseFileInfoRepository.findByCheckedFalseOrCheckedNull(pageable);
+	}
+
 	public List<ResponseFileInfo> getResponseFileInfosByStageAndTeam(Integer stage, Integer team) {
 		return responseFileInfoRepository.findByStageAndTeamAndActiveIsTrue(stage, team);
 	}
@@ -356,18 +360,28 @@ public class ResponseFileService {
 			var equipe1 = group.getFields().get(EQUIPE1);
 			var equipe2 = group.getFields().get(EQUIPE2);
 			if (Objects.nonNull(equipe1) && Objects.nonNull(equipe2))
-				responseFileInfo.setTeam(Integer.parseInt(equipe1.getValues() + equipe2.getValues()));
+				responseFileInfo.setTeam(parseInt(equipe1.getValues() + equipe2.getValues()));
 			var etape = group.getFields().get(ETAPE);
 			if (Objects.nonNull(etape))
-				responseFileInfo.setStage(Integer.parseInt(etape.getValues()));
+				responseFileInfo.setStage(parseInt(etape.getValues()));
 			var page = group.getFields().get(PAGE);
 			if (Objects.nonNull(page))
-				responseFileInfo.setPage(Integer.parseInt(page.getValues()));
+				responseFileInfo.setPage(parseInt(page.getValues()));
 		}
 		if (Objects.isNull(responseFileInfo.getStage()))
 			responseFileInfo.setStage(1);
 		if (Objects.isNull(responseFileInfo.getPage()))
 			responseFileInfo.setPage(1);
+	}
+
+	private static Integer parseInt(String s) {
+		try {
+			return Integer.parseInt(s);
+		} catch (NumberFormatException e) {
+			// TODO Bloc catch généré automatiquement
+			e.printStackTrace();
+		}
+		return null;
 	}
 
 	private void logFormTemplate(FormTemplate filledForm) {

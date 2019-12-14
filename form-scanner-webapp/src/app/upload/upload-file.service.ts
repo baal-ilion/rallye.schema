@@ -7,7 +7,7 @@ import { environment } from 'src/environments/environment';
   providedIn: 'root'
 })
 export class UploadFileService {
-   constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient) { }
 
   pushFileToStorage(file: File) {
     const formdata = new FormData();
@@ -19,7 +19,7 @@ export class UploadFileService {
   }
 
   getFiles(): Observable<any> {
-    return this.http.get(environment.apiUrl + '/responseFileInfos');
+    return this.http.get(environment.apiUrl + '/responseFileInfos/search/findByCheckedIsFalse');
   }
 
   findByStageAndTeam(stage: number, team: number): Observable<any> {

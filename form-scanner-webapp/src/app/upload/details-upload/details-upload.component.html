@@ -1,10 +1,11 @@
-<div class="container-fluid">
+<div class="container-fluid" *ngIf="!fileUpload.checked">
   <div class="row justify-content-center">
     <button type="button" class="btn btn-link" (click)="openModifyUpload()">Etape : {{fileUpload.stage}}, Page :
       {{fileUpload.page}}, Equipe : {{fileUpload.team}}</button>
   </div>
   <div class="row justify-content-center">
-    <app-details-response-file [fileUpload]="fileUpload" (endDragEvent)="endDrag($event)" class="col-8"></app-details-response-file>
+    <app-details-response-file [fileUpload]="fileUpload" (endDragEvent)="endDrag($event)" class="col-8">
+    </app-details-response-file>
   </div>
   <div *ngIf="fileUpload.active" class="row justify-content-center">
     <button type="button" class="btn btn-success" (click)="check()">Vérifié</button>
