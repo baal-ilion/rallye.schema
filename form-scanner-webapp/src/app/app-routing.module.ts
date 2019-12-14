@@ -6,6 +6,7 @@ import { ListStageComponent } from './stage/list-stage/list-stage.component';
 import { ListPointComponent } from './point/list-point/list-point.component';
 import { ListResponseFileParamComponent } from './response-file/param/list-response-file-param/list-response-file-param.component';
 import { ListStageParamComponent } from './param/list-stage-param/list-stage-param.component';
+import { ListTeamInfoComponent } from './param/list-team-info/list-team-info.component';
 
 
 const routes: Routes = [
@@ -16,6 +17,7 @@ const routes: Routes = [
   { path: 'listPoint', component: ListPointComponent },
   { path: 'listResponseFileParam', component: ListResponseFileParamComponent },
   { path: 'listStageParam', component: ListStageParamComponent },
+  { path: 'listTeamInfo', component: ListTeamInfoComponent },
 ];
 
 @NgModule({

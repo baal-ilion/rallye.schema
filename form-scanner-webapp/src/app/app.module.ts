@@ -26,6 +26,8 @@ import { DetailsStageParamComponent } from './param/details-stage-param/details-
 import { ListStageParamComponent } from './param/list-stage-param/list-stage-param.component';
 import { MenuComponent } from './menu/menu.component';
 import { DetailsResponseFileComponent } from './upload/details-response-file/details-response-file.component';
+import { ListTeamInfoComponent } from './param/list-team-info/list-team-info.component';
+import { ModifyTeamInfoComponent } from './param/modify-team-info/modify-team-info.component';
 
 @NgModule({
   declarations: [
@@ -46,9 +48,15 @@ import { DetailsResponseFileComponent } from './upload/details-response-file/det
     DetailsStageParamComponent,
     ListStageParamComponent,
     MenuComponent,
-    DetailsResponseFileComponent
+    DetailsResponseFileComponent,
+    ListTeamInfoComponent,
+    ModifyTeamInfoComponent
   ],
-  entryComponents: [ModifyUploadComponent, ModifyResponseFileParamComponent],
+  entryComponents: [
+    ModifyUploadComponent,
+    ModifyResponseFileParamComponent,
+    ModifyTeamInfoComponent
+  ],
   imports: [
     BrowserModule,
     AppRoutingModule,
