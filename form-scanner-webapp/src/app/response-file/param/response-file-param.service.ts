@@ -13,6 +13,10 @@ export class ResponseFileParamService {
     return this.http.get(environment.apiUrl + '/responseFileParams');
   }
 
+  getResponseFileParamByResource(url): Observable<any> {
+    return this.http.get(url);
+  }
+
   createResponseFileParam(param): Observable<any> {
     return this.http.post(environment.apiUrl + '/responseFileParams', param);
   }

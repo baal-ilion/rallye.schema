@@ -15,7 +15,6 @@ import { DetailsStageComponent } from './stage/details-stage/details-stage.compo
 import { ListStageComponent } from './stage/list-stage/list-stage.component';
 import { ModifyUploadComponent } from './upload/modify-upload/modify-upload.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { ListResponseFileParamComponent } from './response-file/param/list-response-file-param/list-response-file-param.component';
 import { DetailsResponseFileParamComponent } from './response-file/param/details-response-file-param/details-response-file-param.component';
 import { ModifyResponseFileParamComponent } from './response-file/param/modify-response-file-param/modify-response-file-param.component';
 import { DetailsTemplateComponent } from './response-file/common/details-template/details-template.component';
@@ -28,6 +27,9 @@ import { MenuComponent } from './menu/menu.component';
 import { DetailsResponseFileComponent } from './upload/details-response-file/details-response-file.component';
 import { ListTeamInfoComponent } from './param/list-team-info/list-team-info.component';
 import { ModifyTeamInfoComponent } from './param/modify-team-info/modify-team-info.component';
+import { ModifyStageParamComponent } from './param/modify-stage-param/modify-stage-param.component';
+import { NewStageParamComponent } from './param/new-stage-param/new-stage-param.component';
+import { ConfirmationDialogComponent } from './confirmation-dialog/confirmation-dialog.component';
 
 @NgModule({
   declarations: [
@@ -38,7 +40,6 @@ import { ModifyTeamInfoComponent } from './param/modify-team-info/modify-team-in
     DetailsStageComponent,
     ListStageComponent,
     ModifyUploadComponent,
-    ListResponseFileParamComponent,
     DetailsResponseFileParamComponent,
     ModifyResponseFileParamComponent,
     DetailsTemplateComponent,
@@ -50,12 +51,17 @@ import { ModifyTeamInfoComponent } from './param/modify-team-info/modify-team-in
     MenuComponent,
     DetailsResponseFileComponent,
     ListTeamInfoComponent,
-    ModifyTeamInfoComponent
+    ModifyTeamInfoComponent,
+    ModifyStageParamComponent,
+    NewStageParamComponent,
+    ConfirmationDialogComponent
   ],
   entryComponents: [
     ModifyUploadComponent,
     ModifyResponseFileParamComponent,
-    ModifyTeamInfoComponent
+    ModifyTeamInfoComponent,
+    NewStageParamComponent,
+    ConfirmationDialogComponent,
   ],
   imports: [
     BrowserModule,

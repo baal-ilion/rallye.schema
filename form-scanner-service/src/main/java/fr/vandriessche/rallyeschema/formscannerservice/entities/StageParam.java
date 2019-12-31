@@ -26,6 +26,9 @@ public class StageParam {
 	@Indexed(unique = true)
 	private Integer stage;
 
+	private String name;
+	private Boolean inactive;
+
 	@DBRef
 	private List<ResponseFileParam> responseFileParams = new ArrayList<>();
 

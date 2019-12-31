@@ -57,30 +57,6 @@ public class ResponseFileParamService {
 	@Autowired
 	private StageParamService stageParamService;
 
-	public ResponseFileModel getResponseFileModel(String id) {
-		return responseFileModelRepository.findById(id).orElseThrow();
-	}
-
-	public ResponseFileParam getResponseFileParam(String id) {
-		return responseFileParamRepository.findById(id).orElseThrow();
-	}
-
-	public List<ResponseFileParam> getResponseFileParams() {
-		return responseFileParamRepository.findAll();
-	}
-
-	public Optional<ResponseFileParam> getResponseFileParamByStageAndPage(Integer stage, Integer page) {
-		return responseFileParamRepository.findByStageAndPage(stage, page);
-	}
-
-	public List<ResponseFileParam> getResponseFileParamsByStage(Integer stage) {
-		return responseFileParamRepository.findByStage(stage);
-	}
-
-	public Page<ResponseFileParam> getResponseFileParams(Pageable pageable) {
-		return responseFileParamRepository.findAll(pageable);
-	}
-
 	public ResponseFileParam addResponseFileParam(ResponseFileParam responseFileParam, MultipartFile fileModel)
 			throws ParserConfigurationException, SAXException, IOException {
 		if (Objects.isNull(responseFileParam))
@@ -101,6 +77,49 @@ public class ResponseFileParamService {
 		return responseFileParam;
 	}
 
+	public void deleteCascadeResponseFileParam(String id) {
+		var responseFileParam = responseFileParamRepository.findById(id).orElseThrow();
+		stageParamService.removeResponseFileParam(responseFileParam);
+		deleteResponseFileParam(id);
+	}
+
+	public void deleteResponseFileParam(String id) {
+		responseFileModelRepository.deleteById(id);
+		responseFileParamRepository.deleteById(id);
+	}
+
+	public ResponseFileModel getResponseFileModel(String id) {
+		return responseFileModelRepository.findById(id).orElseThrow();
+	}
+
+	public ResponseFileParam getResponseFileParam(String id) {
+		return responseFileParamRepository.findById(id).orElseThrow();
+	}
+
+	public Optional<ResponseFileParam> getResponseFileParamByStageAndPage(Integer stage, Integer page) {
+		return responseFileParamRepository.findByStageAndPage(stage, page);
+	}
+
+	public List<ResponseFileParam> getResponseFileParams() {
+		return responseFileParamRepository.findAll();
+	}
+
+	public Page<ResponseFileParam> getResponseFileParams(Pageable pageable) {
+		return responseFileParamRepository.findAll(pageable);
+	}
+
+	public List<ResponseFileParam> getResponseFileParamsByStage(Integer stage) {
+		return responseFileParamRepository.findByStage(stage);
+	}
+
+	public com.albertoborsetta.formscanner.api.FormTemplate makeFormTemplate(Integer stage, Integer page)
+			throws ParserConfigurationException, SAXException, IOException {
+		var param = getResponseFileParamByStageAndPage(stage, page);
+		if (param.isEmpty())
+			return makeFormTemplate(1, 1);
+		return makeFormTemplate(param.get());
+	}
+
 	public ResponseFileParam updateResponseFileParam(ResponseFileParam responseFileParam, MultipartFile fileModel)
 			throws ParserConfigurationException, SAXException, IOException {
 		responseFileParamRepository.findById(responseFileParam.getId()).orElseThrow();
@@ -110,34 +129,9 @@ public class ResponseFileParamService {
 		return addResponseFileParam(responseFileParam, fileModel);
 	}
 
-	public com.albertoborsetta.formscanner.api.FormTemplate makeFormTemplate(Integer stage, Integer page)
-			throws ParserConfigurationException, SAXException, IOException {
-		var param = getResponseFileParamByStageAndPage(stage, page);
-		if (param.isEmpty())
-			return makeFormTemplate();
-		return makeFormTemplate(param.get());
-	}
-
 	private void fillResponseFileModel(ResponseFileParam responseFileParam, ResponseFileModel responseFileModel) {
 		responseFileModel.setId(responseFileParam.getId());
 		responseFileModel.setParam(responseFileParam);
-	}
-
-	private void fillResponseFileParam(ResponseFileParam responseFileParam, ResponseFileModel responseFileModel)
-			throws IOException {
-		BufferedImage image = ImageIO.read(new ByteArrayInputStream(responseFileModel.getFile().getData()));
-		responseFileParam.setHeight(image.getHeight());
-		responseFileParam.setWidth(image.getWidth());
-	}
-
-	private ResponseFileModel makeResponseFileModel(MultipartFile fileModel, ResponseFileModel responseFileModel)
-			throws IOException {
-		if (Objects.isNull(responseFileModel))
-			responseFileModel = new ResponseFileModel();
-		responseFileModel.setFile(new Binary(BsonBinarySubType.BINARY, fileModel.getBytes()));
-		responseFileModel.setFileExtension(FilenameUtils.getExtension(fileModel.getOriginalFilename()));
-		responseFileModel.setFileType(fileModel.getContentType());
-		return responseFileModel;
 	}
 
 	private void fillResponseFileParam(ResponseFileParam responseFileParam)
@@ -169,6 +163,54 @@ public class ResponseFileParamService {
 		}
 	}
 
+	private void fillResponseFileParam(ResponseFileParam responseFileParam, ResponseFileModel responseFileModel)
+			throws IOException {
+		BufferedImage image = ImageIO.read(new ByteArrayInputStream(responseFileModel.getFile().getData()));
+		responseFileParam.setHeight(image.getHeight());
+		responseFileParam.setWidth(image.getWidth());
+	}
+
+	private QuestionType getTypeByName(String name, QuestionType defaultType) {
+		if (name.startsWith(PAGE)) {
+			return QuestionType.PAGE;
+		} else if (name.startsWith(STAGE)) {
+			return QuestionType.STAGE;
+		} else if (name.startsWith(TEAM)) {
+			return QuestionType.TEAM;
+		}
+		return defaultType;
+	}
+
+	private com.albertoborsetta.formscanner.api.FormTemplate makeFormTemplate()
+			throws ParserConfigurationException, SAXException, IOException {
+		File templateFile = new File(templateFileName);
+		return new com.albertoborsetta.formscanner.api.FormTemplate(templateFile);
+	}
+
+	private com.albertoborsetta.formscanner.api.FormTemplate makeFormTemplate(ResponseFileParam responseFileParam)
+			throws IOException, ParserConfigurationException, SAXException {
+		if (Objects.isNull(responseFileParam.getTemplate()))
+			return new com.albertoborsetta.formscanner.api.FormTemplate("");
+		File templateFile = File.createTempFile("rallyeschema-", "-model.xtmpl");
+		templateFile.deleteOnExit();
+		try (BufferedWriter bw = new BufferedWriter(new FileWriter(templateFile))) {
+			bw.write(responseFileParam.getTemplate());
+		}
+		var formTemplate = new com.albertoborsetta.formscanner.api.FormTemplate(templateFile);
+		templateFile.delete();
+		return formTemplate;
+	}
+
+	private ResponseFileModel makeResponseFileModel(MultipartFile fileModel, ResponseFileModel responseFileModel)
+			throws IOException {
+		if (Objects.isNull(responseFileModel))
+			responseFileModel = new ResponseFileModel();
+		responseFileModel.setFile(new Binary(BsonBinarySubType.BINARY, fileModel.getBytes()));
+		responseFileModel.setFileExtension(FilenameUtils.getExtension(fileModel.getOriginalFilename()));
+		responseFileModel.setFileType(fileModel.getContentType());
+		return responseFileModel;
+	}
+
 	private List<String> makeResponseValues(FormQuestion field) {
 		List<String> responses = new ArrayList<>();
 		if (field.getType() == FieldType.QUESTIONS_BY_ROWS) {
@@ -188,36 +230,5 @@ public class ResponseFileParamService {
 					.forEach(entry -> responses.add(entry.getKey()));
 		}
 		return responses;
-	}
-
-	private QuestionType getTypeByName(String name, QuestionType defaultType) {
-		if (name.startsWith(PAGE)) {
-			return QuestionType.PAGE;
-		} else if (name.startsWith(STAGE)) {
-			return QuestionType.STAGE;
-		} else if (name.startsWith(TEAM)) {
-			return QuestionType.TEAM;
-		}
-		return defaultType;
-	}
-
-	private com.albertoborsetta.formscanner.api.FormTemplate makeFormTemplate(ResponseFileParam responseFileParam)
-			throws IOException, ParserConfigurationException, SAXException {
-		if (Objects.isNull(responseFileParam.getTemplate()))
-			return new com.albertoborsetta.formscanner.api.FormTemplate("");
-		File templateFile = File.createTempFile("rallyeschema-", "-model.xtmpl");
-		templateFile.deleteOnExit();
-		try (BufferedWriter bw = new BufferedWriter(new FileWriter(templateFile))) {
-			bw.write(responseFileParam.getTemplate());
-		}
-		var formTemplate = new com.albertoborsetta.formscanner.api.FormTemplate(templateFile);
-		templateFile.delete();
-		return formTemplate;
-	}
-
-	private com.albertoborsetta.formscanner.api.FormTemplate makeFormTemplate()
-			throws ParserConfigurationException, SAXException, IOException {
-		File templateFile = new File(templateFileName);
-		return new com.albertoborsetta.formscanner.api.FormTemplate(templateFile);
 	}
 }

@@ -1,0 +1,93 @@
+<div>
+  <h1 *ngIf="stageParam">Etape : {{stageParam.stage}} - {{stageParam.name}}</h1>
+  <form [formGroup]="stageParamForm" (ngSubmit)="onSubmit()" class="container">
+    <div class="col-auto">
+      <label>Nom : </label>
+      <input type="text" formControlName="name">
+    </div>
+    <div class="col-auto">
+      <label>Inactive : </label>
+      <ui-switch formControlName="inactive" size="small" class="align-self-center"></ui-switch>
+    </div>
+    <ngb-accordion #acc="ngbAccordion">
+      <ngb-panel>
+        <ng-template ngbPanelHeader>
+          <div class="d-flex align-items-center justify-content-between">
+            <button ngbPanelToggle class="btn btn-link container-fluid text-left pl-0">Paramétrage des feuilles de
+              réponses</button>
+            <div class="col-auto">
+              <button type="button" class="btn btn-sm btn-outline-primary ml-2" (click)='addResponseFileParam()'>Ajouter
+                une feuille de réponses</button>
+            </div>
+          </div>
+        </ng-template>
+        <ng-template ngbPanelContent>
+          <div class="row" *ngIf='responseFileParamUrls'>
+            <div *ngFor="let responseFileParamUrl of responseFileParamUrls">
+              <div class="panel-body">
+                <app-details-response-file-param [paramUrl]='responseFileParamUrl'></app-details-response-file-param>
+              </div>
+            </div>
+          </div>
+        </ng-template>
+      </ngb-panel>
+      <ngb-panel>
+        <ng-template ngbPanelHeader>
+          <div class="d-flex align-items-center justify-content-between">
+            <button ngbPanelToggle class="btn btn-link container-fluid text-left pl-0">Paramétrage des
+              questions</button>
+            <div class="col-auto">
+              <input type="text" [(ngModel)]="questionParamName" [ngModelOptions]="{standalone: true}">
+              <button type="button" class="btn btn-sm btn-outline-primary ml-2"
+                (click)="addQuestionParam(questionParamName)">Ajouter</button>
+            </div>
+          </div>
+        </ng-template>
+        <ng-template ngbPanelContent>
+          <div class="row">
+            <div *ngFor="let questionParam of questionParams.controls; let i = index;"
+              class="col-6 col-lg-3 col-sm-6 col-md-4">
+              <div [formGroup]="questionParam" class="row">
+                <label class="col align-self-center">{{questionParam.value.name}}</label>
+                <div class="col-auto align-self-center">
+                  <label>Staff </label>
+                  <ui-switch formControlName="staff" size="small" class="align-self-center"></ui-switch>
+                </div>
+                <select class="form-group custom-select" formControlName="type">
+                  <option value="QUESTION">Question</option>
+                  <option value="PERFORMANCE">Performance</option>
+                </select>
+                <button type="button" class="btn btn-sm btn-outline-danger ml-2"
+                  (click)="removeQuestionParam(i)">Supprimer</button>
+              </div>
+            </div>
+          </div>
+        </ng-template>
+      </ngb-panel>
+      <ngb-panel>
+        <ng-template ngbPanelHeader>
+          <div class="d-flex align-items-center justify-content-between">
+            <button ngbPanelToggle class="btn btn-link container-fluid text-left pl-1">Paramétrage des points</button>
+          </div>
+        </ng-template>
+        <ng-template ngbPanelContent>
+          <div class="row">
+            <div *ngFor="let questionPointParam of questionPointParams.controls"
+              class="col-6 col-lg-3 col-sm-6 col-md-4">
+              <div [formGroup]="questionPointParam" class="row">
+                <label class="col align-self-center">{{questionPointParam.value.name}}</label>
+                <div class="col-auto align-self-center">
+                  <input type="number" formControlName="point" class="col-auto">
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-template>
+      </ngb-panel>
+    </ngb-accordion>
+    <div class="row">
+      <button class="btn btn-primary mr-1">Modifier</button>
+      <button class="btn btn-danger" (click)='deleteStageParam()'>Suppimer</button>
+    </div>
+  </form>
+</div>

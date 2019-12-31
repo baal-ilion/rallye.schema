@@ -18,6 +18,7 @@ import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,33 +33,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileModel;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileParam;
 import fr.vandriessche.rallyeschema.formscannerservice.models.ResponseFileParamModelAssembler;
+import fr.vandriessche.rallyeschema.formscannerservice.models.StageParamModelAssemblerSupport;
 import fr.vandriessche.rallyeschema.formscannerservice.services.ResponseFileParamService;
 
 @RestController
 public class ResponseFileParamController {
-	@Autowired
-	private ResponseFileParamService responseFileParamService;
-
 	public static final String URL = "/responseFileParams";
 
-	@GetMapping(URL)
-	public PagedModel<EntityModel<ResponseFileParam>> getResponseFileParams(Pageable page,
-			PagedResourcesAssembler<ResponseFileParam> pageAssembler, ResponseFileParamModelAssembler assembler) {
-		return pageAssembler.toModel(responseFileParamService.getResponseFileParams(page), assembler);
-	}
-
-	@GetMapping(URL + "/search/findByStageAndPage")
-	public EntityModel<ResponseFileParam> getResponseFileParamByStageAndPage(@RequestParam Integer stage,
-			@RequestParam Integer page, ResponseFileParamModelAssembler assembler) {
-		return assembler
-				.toModel(responseFileParamService.getResponseFileParamByStageAndPage(stage, page).orElseThrow());
-	}
-
-	@GetMapping(URL + "/{id}")
-	public EntityModel<ResponseFileParam> getResponseFileParam(@PathVariable String id,
-			ResponseFileParamModelAssembler assembler) {
-		return assembler.toModel(responseFileParamService.getResponseFileParam(id));
-	}
+	@Autowired
+	private ResponseFileParamService responseFileParamService;
 
 	@PostMapping(URL)
 	public EntityModel<ResponseFileParam> addResponseFileParam(
@@ -70,15 +53,9 @@ public class ResponseFileParamController {
 		return assembler.toModel(responseFileParamService.addResponseFileParam(responseFileParam, responseFileModel));
 	}
 
-	@PutMapping(URL)
-	public EntityModel<ResponseFileParam> updateResponseFileParam(
-			@RequestParam("responseFileParam") String responseFileParamJson,
-			@RequestParam(name = "responseFileModel", required = false) MultipartFile responseFileModel,
-			ResponseFileParamModelAssembler assembler) throws ParserConfigurationException, SAXException, IOException {
-		ResponseFileParam responseFileParam = new ObjectMapper().readValue(responseFileParamJson,
-				ResponseFileParam.class);
-		return assembler
-				.toModel(responseFileParamService.updateResponseFileParam(responseFileParam, responseFileModel));
+	@DeleteMapping(URL + "/{id}")
+	public void deleteResponseFileParam(@PathVariable String id, StageParamModelAssemblerSupport assembler) {
+		responseFileParamService.deleteCascadeResponseFileParam(id);
 	}
 
 	@GetMapping(URL + "/{id}/model")
@@ -111,5 +88,35 @@ public class ResponseFileParamController {
 		return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType))
 				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + id + ".xtmpl\"")
 				.body(new ByteArrayResource(responseFileParam.getTemplate().getBytes()));
+	}
+
+	@GetMapping(URL + "/{id}")
+	public EntityModel<ResponseFileParam> getResponseFileParam(@PathVariable String id,
+			ResponseFileParamModelAssembler assembler) {
+		return assembler.toModel(responseFileParamService.getResponseFileParam(id));
+	}
+
+	@GetMapping(URL + "/search/findByStageAndPage")
+	public EntityModel<ResponseFileParam> getResponseFileParamByStageAndPage(@RequestParam Integer stage,
+			@RequestParam Integer page, ResponseFileParamModelAssembler assembler) {
+		return assembler
+				.toModel(responseFileParamService.getResponseFileParamByStageAndPage(stage, page).orElseThrow());
+	}
+
+	@GetMapping(URL)
+	public PagedModel<EntityModel<ResponseFileParam>> getResponseFileParams(Pageable page,
+			PagedResourcesAssembler<ResponseFileParam> pageAssembler, ResponseFileParamModelAssembler assembler) {
+		return pageAssembler.toModel(responseFileParamService.getResponseFileParams(page), assembler);
+	}
+
+	@PutMapping(URL)
+	public EntityModel<ResponseFileParam> updateResponseFileParam(
+			@RequestParam("responseFileParam") String responseFileParamJson,
+			@RequestParam(name = "responseFileModel", required = false) MultipartFile responseFileModel,
+			ResponseFileParamModelAssembler assembler) throws ParserConfigurationException, SAXException, IOException {
+		ResponseFileParam responseFileParam = new ObjectMapper().readValue(responseFileParamJson,
+				ResponseFileParam.class);
+		return assembler
+				.toModel(responseFileParamService.updateResponseFileParam(responseFileParam, responseFileModel));
 	}
 }

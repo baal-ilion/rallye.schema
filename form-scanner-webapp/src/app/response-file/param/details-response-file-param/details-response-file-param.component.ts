@@ -9,22 +9,34 @@ import { ResponseFileParamService } from '../response-file-param.service';
   styleUrls: ['./details-response-file-param.component.scss']
 })
 export class DetailsResponseFileParamComponent implements OnInit {
-  @Input() param: any;
+  @Input() paramUrl: string;
+
+  param: any;
 
   questions: { name: string, type: any }[];
-  constructor(private responseFileParamService: ResponseFileParamService, private modalService: NgbModal) { }
+  constructor(
+    private responseFileParamService: ResponseFileParamService,
+    private modalService: NgbModal) { }
 
   ngOnInit() {
-    console.log(this.param);
-    this.param.img = this.param._links.responseFileModel.href;
-    this.loadQuestions(this.param.questions);
+    this.param = null;
+    this.questions = [];
+    console.log(this.paramUrl);
+    this.responseFileParamService.getResponseFileParamByResource(this.paramUrl).subscribe((param) => {
+      console.log(param);
+      param.img = param._links.responseFileModel.href;
+      this.param = param;
+      this.loadQuestions(param.questions);
+    });
   }
 
   loadQuestions(questions) {
     this.questions = [];
     const questionKeys = Object.keys(questions);
     for (const question of questionKeys) {
-      this.questions.push({ name: question, type: questions[question].type });
+      if (questions[question].type !== 'QUESTION' && questions[question].type !== 'PERFORMANCE') {
+        this.questions.push({ name: question, type: questions[question].type });
+      }
     }
   }
 
