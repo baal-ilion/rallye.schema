@@ -42,7 +42,7 @@ export class ModifyResponseFileParamComponent implements OnInit {
     });
   }
 
-  private submitForm() {
+  submitForm() {
     const formData = new FormData();
     const data = {
       id: this.param.id,

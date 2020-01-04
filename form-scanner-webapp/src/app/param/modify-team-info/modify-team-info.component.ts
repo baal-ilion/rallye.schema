@@ -58,7 +58,7 @@ export class ModifyTeamInfoComponent implements OnInit {
     return null;
   }
 
-  private submitForm() {
+  submitForm() {
     this.activeModal.close(this.teamInfoForm.getRawValue());
   }
 }
