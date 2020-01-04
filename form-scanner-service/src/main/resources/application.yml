@@ -21,3 +21,12 @@ spring:
       host: localhost
       port: 27017 
 
+---
+spring:
+  profiles: docker
+  data:
+    mongodb:
+      database: rallye-schema-form-scanner
+      host: mongodb
+      port: 27017 
+

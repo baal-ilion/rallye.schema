@@ -27,7 +27,7 @@ export class ModifyUploadComponent implements OnInit {
     });
   }
 
-  private submitForm() {
+  submitForm() {
     this.activeModal.close(this.myForm.value);
   }
 }

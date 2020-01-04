@@ -1,0 +1,13 @@
+version: '3.7'
+services:
+  webapp:
+    container_name: "form-scanner-webapp"
+    image: form-scanner-webapp:dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - '.:/app'
+      - '/app/node_modules'
+    ports:
+      - '4201:4200'

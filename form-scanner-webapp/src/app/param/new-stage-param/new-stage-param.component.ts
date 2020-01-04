@@ -49,7 +49,7 @@ export class NewStageParamComponent implements OnInit {
     return JSON.stringify(this.stageParamForm.controls.stage.errors);
   }
 
-  private submitForm() {
+  submitForm() {
     this.activeModal.close(this.stageParamForm.value);
   }
 }
