@@ -1,5 +1,6 @@
 <div *ngIf="param">
   <h1>Etape : {{stage.stage}}, Equipe : {{stage.team}}</h1>
+  <p>Début : {{stage.begin | date:'medium'}}, Fin : {{stage.end | date:'medium'}}</p>
   <div class="container-fluid">
     <div>
       <div *ngIf="(files | async)._embedded" class="row align-items-start container">

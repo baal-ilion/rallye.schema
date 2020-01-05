@@ -1,5 +1,6 @@
 package fr.vandriessche.rallyeschema.formscannerservice.entities;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,8 +18,11 @@ public class StageResult {
 	private String id;
 
 	private Integer stage;
-
 	private Integer team;
+
+	private LocalDateTime begin;
+	private LocalDateTime end;
+
 	private Boolean checked;
 
 	private List<ResponseResult> results = new ArrayList<>();

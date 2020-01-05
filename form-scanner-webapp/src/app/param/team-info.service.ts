@@ -22,4 +22,8 @@ export class TeamInfoService {
     console.log(teamInfo);
     return this.http.put(environment.apiUrl + '/teamInfos', teamInfo);
   }
+
+  findById(id: any): Observable<any> {
+    return this.http.get(environment.apiUrl + '/teamInfos/' + id);
+  }
 }

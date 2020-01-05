@@ -8,11 +8,19 @@ import { Observable } from 'rxjs';
   styleUrls: ['./list-stage.component.scss']
 })
 export class ListStageComponent implements OnInit {
-  stages: Observable<any[]>;
+  stages = [];
 
   constructor(private stageService: StageService) { }
 
   ngOnInit() {
-    this.stages = this.stageService.getStages();
+    this.stageService.getStages().subscribe((data) => {
+      if (data._embedded) {
+        this.stages = data._embedded.stageResults;
+      } else {
+        this.stages = [];
+      }
+    }, (error) => {
+      this.stages = [];
+    });
   }
 }
