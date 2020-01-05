@@ -1,5 +1,5 @@
 import { BrowserModule } from '@angular/platform-browser';
-import { NgModule } from '@angular/core';
+import { NgModule, LOCALE_ID } from '@angular/core';
 import { HttpClientModule } from '@angular/common/http';
 
 import { AppRoutingModule } from './app-routing.module';
@@ -30,6 +30,13 @@ import { ModifyTeamInfoComponent } from './param/modify-team-info/modify-team-in
 import { ModifyStageParamComponent } from './param/modify-stage-param/modify-stage-param.component';
 import { NewStageParamComponent } from './param/new-stage-param/new-stage-param.component';
 import { ConfirmationDialogComponent } from './confirmation-dialog/confirmation-dialog.component';
+import { DetailsTeamComponent } from './stage/details-team/details-team.component';
+import { registerLocaleData } from '@angular/common';
+import localeFr from '@angular/common/locales/fr';
+import localeFrExtra from '@angular/common/locales/extra/fr';
+import { LocaleService } from './locale.service';
+
+registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
 
 @NgModule({
   declarations: [
@@ -54,7 +61,8 @@ import { ConfirmationDialogComponent } from './confirmation-dialog/confirmation-
     ModifyTeamInfoComponent,
     ModifyStageParamComponent,
     NewStageParamComponent,
-    ConfirmationDialogComponent
+    ConfirmationDialogComponent,
+    DetailsTeamComponent
   ],
   entryComponents: [
     ModifyUploadComponent,
@@ -74,7 +82,16 @@ import { ConfirmationDialogComponent } from './confirmation-dialog/confirmation-
     FormsModule,
     ReactiveFormsModule
   ],
-  providers: [],
+  providers: [
+    {
+      provide: LOCALE_ID,
+      useFactory: (localeService: LocaleService) => {
+        console.log('locale ID', localeService.getLanguage());
+        return localeService.getLanguage();
+      },
+      deps: [LocaleService]
+    },
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

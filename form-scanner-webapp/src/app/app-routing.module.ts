@@ -7,6 +7,7 @@ import { ListPointComponent } from './point/list-point/list-point.component';
 import { ListStageParamComponent } from './param/list-stage-param/list-stage-param.component';
 import { ListTeamInfoComponent } from './param/list-team-info/list-team-info.component';
 import { ModifyStageParamComponent } from './param/modify-stage-param/modify-stage-param.component';
+import { DetailsTeamComponent } from './stage/details-team/details-team.component';
 
 
 const routes: Routes = [
@@ -18,6 +19,7 @@ const routes: Routes = [
   { path: 'listStageParam', component: ListStageParamComponent },
   { path: 'listTeamInfo', component: ListTeamInfoComponent },
   { path: 'stageParam/:id', component: ModifyStageParamComponent },
+  { path: 'team/:id', component: DetailsTeamComponent },
 ];
 
 @NgModule({
