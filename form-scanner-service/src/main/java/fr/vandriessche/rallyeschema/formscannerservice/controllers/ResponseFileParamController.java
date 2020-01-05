@@ -33,7 +33,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileModel;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileParam;
 import fr.vandriessche.rallyeschema.formscannerservice.models.ResponseFileParamModelAssembler;
-import fr.vandriessche.rallyeschema.formscannerservice.models.StageParamModelAssemblerSupport;
 import fr.vandriessche.rallyeschema.formscannerservice.services.ResponseFileParamService;
 
 @RestController
@@ -54,7 +53,7 @@ public class ResponseFileParamController {
 	}
 
 	@DeleteMapping(URL + "/{id}")
-	public void deleteResponseFileParam(@PathVariable String id, StageParamModelAssemblerSupport assembler) {
+	public void deleteResponseFileParam(@PathVariable String id) {
 		responseFileParamService.deleteCascadeResponseFileParam(id);
 	}
 
