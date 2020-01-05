@@ -1,7 +1,8 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, Input, EventEmitter, Output } from '@angular/core';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { ModifyResponseFileParamComponent } from '../modify-response-file-param/modify-response-file-param.component';
 import { ResponseFileParamService } from '../response-file-param.service';
+import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
 
 @Component({
   selector: 'app-details-response-file-param',
@@ -10,13 +11,16 @@ import { ResponseFileParamService } from '../response-file-param.service';
 })
 export class DetailsResponseFileParamComponent implements OnInit {
   @Input() paramUrl: string;
+  @Output() deleteEvent = new EventEmitter();
 
   param: any;
 
   questions: { name: string, type: any }[];
   constructor(
     private responseFileParamService: ResponseFileParamService,
-    private modalService: NgbModal) { }
+    private modalService: NgbModal,
+    private confirmationDialogService: ConfirmationDialogService
+  ) { }
 
   ngOnInit() {
     this.param = null;
@@ -55,5 +59,24 @@ export class DetailsResponseFileParamComponent implements OnInit {
     }).catch((error) => {
       console.log(error);
     });
+  }
+
+  deleteResponseFileParam() {
+    this.confirmationDialogService.confirm(
+      'Suppresion de la page',
+      'Supprimer la page n°' + this.param.page + ' de l\'étape ' + this.param.stage + ' ?',
+      'Oui', 'Non')
+      .then((confirmed) => {
+        console.log('User confirmed:', confirmed);
+        if (confirmed) {
+          this.responseFileParamService.deleteResponseFileParam(this.param.id).subscribe(() => {
+            console.log('Deleted:', this.param.id);
+            this.deleteEvent.emit({ id: this.param.id });
+          });
+        }
+      })
+      .catch(() => {
+        console.log('User dismissed the dialog (e.g., by using ESC, clicking the cross icon, or clicking outside the dialog)');
+      });
   }
 }

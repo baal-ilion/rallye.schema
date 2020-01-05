@@ -25,7 +25,7 @@ export class ModifyStageParamComponent implements OnInit {
     private stageParamService: StageParamService,
     private route: ActivatedRoute,
     private confirmationDialogService: ConfirmationDialogService,
-    private rooter: Router,
+    private router: Router,
     private modalService: NgbModal,
     private responseFileParamService: ResponseFileParamService
   ) { }
@@ -73,12 +73,13 @@ export class ModifyStageParamComponent implements OnInit {
       this.questionParamName = '';
       this.removedQuestionParams = [];
       this.questionParamNames = [];
+      this.responseFileParamUrls = [];
       this.stageParamForm.controls.name.setValue('');
       this.stageParamForm.controls.inactive.setValue(false);
       this.questionPointParams.clear();
       this.questionParams.clear();
       console.log(error);
-      this.rooter.navigateByUrl('/listStageParam');
+      this.router.navigateByUrl('/listStageParam');
     });
   }
 
@@ -160,13 +161,19 @@ export class ModifyStageParamComponent implements OnInit {
         console.log('User confirmed:', confirmed);
         if (confirmed) {
           this.stageParamService.deleteStageParam(this.stageParam.id).subscribe(() => {
-            this.rooter.navigateByUrl('/listStageParam');
+            this.router.navigateByUrl('/listStageParam');
           });
         }
       })
       .catch(() => {
         console.log('User dismissed the dialog (e.g., by using ESC, clicking the cross icon, or clicking outside the dialog)');
       });
+  }
+
+  onDeleteResponseFileParam(event) {
+    console.log('onDeleteResponseFileParam');
+    console.log(event);
+    this.ngOnInit();
   }
 
   onSubmit() {

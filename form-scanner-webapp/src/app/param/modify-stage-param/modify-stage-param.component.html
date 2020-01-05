@@ -25,7 +25,9 @@
           <div class="row" *ngIf='responseFileParamUrls'>
             <div *ngFor="let responseFileParamUrl of responseFileParamUrls">
               <div class="panel-body">
-                <app-details-response-file-param [paramUrl]='responseFileParamUrl'></app-details-response-file-param>
+                <app-details-response-file-param [paramUrl]='responseFileParamUrl'
+                  (deleteEvent)="onDeleteResponseFileParam($event)">
+                </app-details-response-file-param>
               </div>
             </div>
           </div>
