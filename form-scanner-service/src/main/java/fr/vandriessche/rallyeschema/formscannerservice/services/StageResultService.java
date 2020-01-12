@@ -14,22 +14,28 @@ import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileInfo
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileSource;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseResult;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.StageResult;
+import fr.vandriessche.rallyeschema.formscannerservice.message.StageResultMessage;
 import fr.vandriessche.rallyeschema.formscannerservice.repositories.StageResultRepository;
 import lombok.extern.java.Log;
 
 @Service
 @Log
 public class StageResultService {
+	public static final String STAGE_RESULT_CREATE_EVENT = "stageResult.create";
+	public static final String STAGE_RESULT_UPDATE_EVENT = "stageResult.update";
+	public static final String STAGE_RESULT_DELETE_EVENT = "stageResult.delete";
+
 	@Autowired
 	private StageResultRepository stageResultRepository;
-	@Autowired
-	private TeamPointService teamPointService;
+
 	@Autowired
 	private TeamInfoService teamInfoService;
 	@Autowired
 	private StageParamService stageParamService;
 	@Autowired
 	private ResponseFileService responseFileService;
+	@Autowired
+	private MessageProducerService messageProducerService;
 
 	public StageResult beginStageResult(Integer stage, Integer team) {
 		StageResult stageResult = findOrMakeStageResultByStageAndTeam(stage, team);
@@ -163,7 +169,7 @@ public class StageResultService {
 
 	private StageResult save(StageResult stageResult) {
 		stageResult = stageResultRepository.save(stageResult);
-		teamPointService.computeTeamPoint(stageResult);
+		messageProducerService.sendMessage(STAGE_RESULT_UPDATE_EVENT, new StageResultMessage(stageResult.getId()));
 		return stageResult;
 	}
 

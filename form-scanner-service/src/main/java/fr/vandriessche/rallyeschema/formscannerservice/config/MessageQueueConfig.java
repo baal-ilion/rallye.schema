@@ -18,6 +18,8 @@ public class MessageQueueConfig {
 
 	public static final String SELECT_RESPONSE_FILE_QUEUE_NAME_CONFIG = "${rallyeschema.message.selectResponseFile.queue.name:rallyeschema-selectResponseFile}";
 	public static final String SELECT_RESPONSE_FILE_ROUTING_KEY_CONFIG = "${rallyeschema.message.selectResponseFile.routing.key:responseFile.*}";
+	public static final String COMPUTE_TEAM_POINT_QUEUE_NAME_CONFIG = "${rallyeschema.message.computeTeamPoint.queue.name:rallyeschema-computeTeamPoint}";
+	public static final String COMPUTE_TEAM_POINT_ROUTING_KEY_CONFIG = "${rallyeschema.message.computeTeamPoint.routing.key:stageResult.*}";
 
 	@Value(EXCHANGE_NAME_CONFIG)
 	private String exchangeName;
@@ -26,6 +28,10 @@ public class MessageQueueConfig {
 	private String selectResponseFileQueueName;
 	@Value(SELECT_RESPONSE_FILE_ROUTING_KEY_CONFIG)
 	private String selectResponseFileRoutingKey;
+	@Value(COMPUTE_TEAM_POINT_QUEUE_NAME_CONFIG)
+	private String computeTeamPointQueueName;
+	@Value(COMPUTE_TEAM_POINT_ROUTING_KEY_CONFIG)
+	private String computeTeamPointRoutingKey;
 
 	@Bean
 	public TopicExchange getExchange() {
@@ -40,6 +46,16 @@ public class MessageQueueConfig {
 	@Bean
 	public Binding declareBindingSelectResponseFile() {
 		return BindingBuilder.bind(getSelectResponseFileQueue()).to(getExchange()).with(selectResponseFileRoutingKey);
+	}
+
+	@Bean
+	public Queue getComputeTeamPointQueue() {
+		return new Queue(computeTeamPointQueueName);
+	}
+
+	@Bean
+	public Binding declareBindingComputeTeamPoint() {
+		return BindingBuilder.bind(getComputeTeamPointQueue()).to(getExchange()).with(computeTeamPointRoutingKey);
 	}
 
 	@Bean
