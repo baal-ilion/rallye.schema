@@ -34,7 +34,8 @@ public class TeamPointService {
 		return teamPoint;
 	}
 
-	public TeamPoint computeTeamPoint(@NonNull StageResult stageResult) {
+	public TeamPoint computeTeamPoint(@NonNull String stageResultId) {
+		var stageResult = stageResultService.getStageResult(stageResultId);
 		TeamPoint teamPoint = makeTeamPoint(stageResult.getTeam());
 		teamPoint.getStagePoints().put(stageResult.getStage(), computeStagePoint(stageResult));
 		computeTeamPointTotal(teamPoint);
