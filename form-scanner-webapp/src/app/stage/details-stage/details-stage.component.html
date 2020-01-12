@@ -3,10 +3,11 @@
   <p>Début : {{stage.begin | date:'medium'}}, Fin : {{stage.end | date:'medium'}}</p>
   <div class="container-fluid">
     <div>
-      <div *ngIf="(files | async)._embedded" class="row align-items-start container">
-        <div *ngFor="let file of (files | async)._embedded.responseFileInfoes" class="col-6">
+      <div *ngIf="files.length > 0" class="row align-items-start container">
+        <div *ngFor="let file of files" class="col-6">
           <div style="position: relative;" class="response-file">
-            <app-details-response-file [fileUpload]="file" [dragable]="false" class="col-8"></app-details-response-file>
+            <app-details-upload [fileUpload]="file" [dragable]="false" class="col-8" (checkedEvent)="reload()"
+              (deleteEvent)="reload()"></app-details-upload>
           </div>
         </div>
       </div>

@@ -19,6 +19,7 @@ import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,22 +39,73 @@ import fr.vandriessche.rallyeschema.formscannerservice.services.ResponseFileServ
 
 @RestController
 public class ResponseFileController {
-	@Autowired
-	private ResponseFileService responseFileService;
-
 	public static final String URL = "/responseFiles";
 	public static final String INFO_URL = "/responseFileInfos";
 
-	@PostMapping(URL)
-	public EntityModel<ResponseFileInfo> uploadResponseFile(@RequestParam("file") MultipartFile file,
-			ResponseFileInfoModelAssembler assembler) {
-		try {
-			return assembler.toModel(responseFileService.addResponseFile(file).getInfo());
-		} catch (IOException | ParserConfigurationException | SAXException | FormScannerException e) {
-			// TODO Bloc catch généré automatiquement
-			e.printStackTrace();
+	@Autowired
+	private ResponseFileService responseFileService;
+
+	@DeleteMapping(URL + "/{id}")
+	public void deleteResponseFile(@PathVariable String id) {
+		responseFileService.deleteResponseFile(id);
+	}
+
+	@GetMapping(URL + "/{id}")
+	public ResponseEntity<Resource> downloadFile(@PathVariable String id, HttpServletRequest request) {
+		ResponseFile responseFile = responseFileService.getResponseFile(id);
+		String contentType = responseFile.getFileType();
+		if (Objects.isNull(contentType)) {
+			contentType = "application/octet-stream";
 		}
-		return null;
+		return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType))
+				.header(HttpHeaders.CONTENT_DISPOSITION,
+						"attachment; filename=\"" + id + "." + responseFile.getFileExtension() + "\"")
+				.body(new ByteArrayResource(responseFile.getFile().getData()));
+	}
+
+	@GetMapping(INFO_URL + "/{id}")
+	public EntityModel<ResponseFileInfo> getResponseFileInfo(@PathVariable String id,
+			ResponseFileInfoModelAssembler assembler) {
+		return assembler.toModel(responseFileService.getResponseFileInfo(id));
+	}
+
+	@GetMapping(INFO_URL)
+	public CollectionModel<EntityModel<ResponseFileInfo>> getResponseFileInfos(
+			ResponseFileInfoModelAssembler assembler) {
+		return assembler.toCollectionModel(responseFileService.getResponseFileInfos());
+	}
+
+	@GetMapping(INFO_URL + "/search/findByStageAndPageAndTeam")
+	public CollectionModel<EntityModel<ResponseFileInfo>> getResponseFileInfosByStageAndPageAndTeam(
+			@RequestParam Integer stage, @RequestParam Integer page, @RequestParam Integer team,
+			ResponseFileInfoModelAssembler assembler) {
+		return assembler
+				.toCollectionModel(responseFileService.getResponseFileInfosByStageAndPageAndTeam(stage, page, team));
+	}
+
+	@GetMapping(INFO_URL + "/search/findByStageAndTeam")
+	public CollectionModel<EntityModel<ResponseFileInfo>> getResponseFileInfosByStageAndTeam(
+			@RequestParam Integer stage, @RequestParam Integer team, ResponseFileInfoModelAssembler assembler) {
+		return assembler.toCollectionModel(responseFileService.getResponseFileInfosByStageAndTeam(stage, team));
+	}
+
+	@GetMapping(INFO_URL + "/search/findByCheckedIsFalse")
+	public PagedModel<EntityModel<ResponseFileInfo>> getResponseFileParams(Pageable page,
+			PagedResourcesAssembler<ResponseFileInfo> pageAssembler, ResponseFileInfoModelAssembler assembler) {
+		return pageAssembler.toModel(responseFileService.getNotCheckedResponseFileInfos(page), assembler);
+	}
+
+	@GetMapping(INFO_URL + "/{id}/same")
+	public CollectionModel<EntityModel<ResponseFileInfo>> getSameResponseFileInfos(@PathVariable String id,
+			ResponseFileInfoModelAssembler assembler) {
+		return assembler.toCollectionModel(responseFileService.getSameResponseFileInfos(id));
+	}
+
+	@PatchMapping(INFO_URL)
+	public EntityModel<ResponseFileInfo> updateResponseFileInfo(@RequestBody ResponseFileInfo responseFileInfo,
+			ResponseFileInfoModelAssembler assembler)
+			throws ParserConfigurationException, SAXException, IOException, FormScannerException {
+		return assembler.toModel(responseFileService.updateResponseFileInfo(responseFileInfo));
 	}
 
 	@PostMapping(URL + "/multiple")
@@ -70,48 +122,16 @@ public class ResponseFileController {
 		}).filter(Objects::nonNull).collect(Collectors.toList()));
 	}
 
-	@GetMapping(URL + "/{id}")
-	public ResponseEntity<Resource> downloadFile(@PathVariable String id, HttpServletRequest request) {
-		ResponseFile responseFile = responseFileService.getResponseFile(id);
-		String contentType = responseFile.getFileType();
-		if (Objects.isNull(contentType)) {
-			contentType = "application/octet-stream";
+	@PostMapping(URL)
+	public EntityModel<ResponseFileInfo> uploadResponseFile(@RequestParam("file") MultipartFile file,
+			ResponseFileInfoModelAssembler assembler) {
+		try {
+			return assembler.toModel(responseFileService.addResponseFile(file).getInfo());
+		} catch (IOException | ParserConfigurationException | SAXException | FormScannerException e) {
+			// TODO Bloc catch généré automatiquement
+			e.printStackTrace();
 		}
-		return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType))
-				.header(HttpHeaders.CONTENT_DISPOSITION,
-						"attachment; filename=\"" + id + "." + responseFile.getFileExtension() + "\"")
-				.body(new ByteArrayResource(responseFile.getFile().getData()));
-	}
-
-	@GetMapping(INFO_URL)
-	public CollectionModel<EntityModel<ResponseFileInfo>> getResponseFileInfos(
-			ResponseFileInfoModelAssembler assembler) {
-		return assembler.toCollectionModel(responseFileService.getResponseFileInfos());
-	}
-
-	@GetMapping(INFO_URL + "/search/findByStageAndTeam")
-	public CollectionModel<EntityModel<ResponseFileInfo>> getResponseFileInfosByStageAndTeam(
-			@RequestParam Integer stage, @RequestParam Integer team, ResponseFileInfoModelAssembler assembler) {
-		return assembler.toCollectionModel(responseFileService.getResponseFileInfosByStageAndTeam(stage, team));
-	}
-
-	@GetMapping(INFO_URL + "/{id}")
-	public EntityModel<ResponseFileInfo> getResponseFileInfo(@PathVariable String id,
-			ResponseFileInfoModelAssembler assembler) {
-		return assembler.toModel(responseFileService.getResponseFileInfo(id));
-	}
-
-	@PatchMapping(INFO_URL)
-	public EntityModel<ResponseFileInfo> updateResponseFileInfo(@RequestBody ResponseFileInfo responseFileInfo,
-			ResponseFileInfoModelAssembler assembler)
-			throws ParserConfigurationException, SAXException, IOException, FormScannerException {
-		return assembler.toModel(responseFileService.updateResponseFileInfo(responseFileInfo));
-	}
-
-	@GetMapping(INFO_URL + "/search/findByCheckedIsFalse")
-	public PagedModel<EntityModel<ResponseFileInfo>> getResponseFileParams(Pageable page,
-			PagedResourcesAssembler<ResponseFileInfo> pageAssembler, ResponseFileInfoModelAssembler assembler) {
-		return pageAssembler.toModel(responseFileService.getNotCheckedResponseFileInfos(page), assembler);
+		return null;
 	}
 
 }

@@ -48,4 +48,8 @@ export class StageService {
     const params = new HttpParams().set('stage', stage.toString()).set('team', team.toString());
     return this.http.delete(environment.apiUrl + '/stageResults/end', { params });
   }
+
+  getResource(url): Observable<any> {
+    return this.http.get(url);
+  }
 }

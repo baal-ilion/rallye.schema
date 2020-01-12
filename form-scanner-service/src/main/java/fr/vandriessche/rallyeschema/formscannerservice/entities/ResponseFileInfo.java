@@ -19,8 +19,6 @@ public class ResponseFileInfo {
 
 	private Boolean checked;
 
-	private Boolean active;
-
 	// private Date date;
 
 	// private List<ResponseResult> results;

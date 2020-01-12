@@ -29,6 +29,8 @@ public class StageResult {
 
 	private List<PreformanceResult> preformances = new ArrayList<>();
 
+	private List<ResponseSource> responseSources = new ArrayList<>();
+
 	public StageResult(Integer stage, Integer team) {
 		this.stage = stage;
 		this.team = team;

@@ -10,4 +10,5 @@ import lombok.NoArgsConstructor;
 public class ResponseResult {
 	private String name;
 	private Boolean resultValue = null;
+	private ResponseSource source;
 }

@@ -35,6 +35,7 @@ import { registerLocaleData } from '@angular/common';
 import localeFr from '@angular/common/locales/fr';
 import localeFrExtra from '@angular/common/locales/extra/fr';
 import { LocaleService } from './locale.service';
+import { CarouselResponseFileComponent } from './upload/carousel-response-file/carousel-response-file.component';
 
 registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
 
@@ -62,7 +63,8 @@ registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
     ModifyStageParamComponent,
     NewStageParamComponent,
     ConfirmationDialogComponent,
-    DetailsTeamComponent
+    DetailsTeamComponent,
+    CarouselResponseFileComponent
   ],
   entryComponents: [
     ModifyUploadComponent,
@@ -70,6 +72,7 @@ registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
     ModifyTeamInfoComponent,
     NewStageParamComponent,
     ConfirmationDialogComponent,
+    CarouselResponseFileComponent,
   ],
   imports: [
     BrowserModule,
