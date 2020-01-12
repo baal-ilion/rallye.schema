@@ -10,10 +10,10 @@ import org.springframework.data.mongodb.repository.Query;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileInfo;
 
 public interface ResponseFileInfoRepository extends MongoRepository<ResponseFileInfo, String> {
-	List<ResponseFileInfo> findByStageAndPageAndTeamAndActiveIsTrue(Integer stage, Integer page, Integer team);
+	List<ResponseFileInfo> findByStageAndPageAndTeam(Integer stage, Integer page, Integer team);
 
 	@Query(sort = "{ team : 1, stage : 1, page : 1 }")
-	List<ResponseFileInfo> findByStageAndTeamAndActiveIsTrue(Integer stage, Integer team);
+	List<ResponseFileInfo> findByStageAndTeam(Integer stage, Integer team);
 
 	Page<ResponseFileInfo> findByCheckedFalseOrCheckedNull(Pageable pageable);
 }

@@ -16,7 +16,7 @@ export class DetailsStageComponent implements OnInit {
   @Input() stage: any;
 
   form: FormGroup;
-  files: Observable<any>;
+  files = [];
   param;
 
   constructor(
@@ -32,7 +32,17 @@ export class DetailsStageComponent implements OnInit {
 
   ngOnInit() {
     this.param = null;
-    this.files = this.uploadFileService.findByStageAndTeam(this.stage.stage, this.stage.team);
+    this.files = [];
+    if (this.stage._links && this.stage._links.responseFiles) {
+      for (const responseFile of this.stage._links.responseFiles) {
+        this.uploadFileService.getResource(responseFile.href).subscribe(data => {
+          this.files.push(data);
+          this.files.sort((a, b) => (a.page > b.page) ? 1 : -1);
+        }, err => {
+          console.log(err);
+        });
+      }
+    }
     this.form = this.formBuilder.group({
       results: this.formBuilder.array([]),
       preformances: this.formBuilder.array([]),
@@ -40,6 +50,7 @@ export class DetailsStageComponent implements OnInit {
     });
     this.stageParamService.findByStage(this.stage.stage).toPromise().then(data => {
       this.param = data;
+
       for (const questionParamKey of Object.keys(this.param.questionParams)) {
         const questionParam = this.param.questionParams[questionParamKey];
         if (questionParam.type === 'QUESTION') {
@@ -81,6 +92,14 @@ export class DetailsStageComponent implements OnInit {
       checked: this.form.value.checked,
       results: modifiedResults,
       preformances: modifiedPreformances
+    });
+    this.reload();
+  }
+
+  reload() {
+    this.stageService.getResource(this.stage._links.self.href).subscribe(data => {
+      this.stage = data;
+      this.ngOnInit();
     });
   }
 }

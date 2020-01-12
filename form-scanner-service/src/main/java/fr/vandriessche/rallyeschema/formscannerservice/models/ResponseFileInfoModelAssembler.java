@@ -10,13 +10,19 @@ import org.springframework.stereotype.Component;
 
 import fr.vandriessche.rallyeschema.formscannerservice.controllers.ResponseFileController;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileInfo;
+import fr.vandriessche.rallyeschema.formscannerservice.services.ResponseFileService;
 
 @Component
 public class ResponseFileInfoModelAssembler implements SimpleRepresentationModelAssembler<ResponseFileInfo> {
+	private final ResponseFileService responseFileService;
+
+	public ResponseFileInfoModelAssembler(final ResponseFileService responseFileService) {
+		super();
+		this.responseFileService = responseFileService;
+	}
 
 	@Override
 	public void addLinks(EntityModel<ResponseFileInfo> resource) {
-		// TODO Stub de la méthode généré automatiquement
 		resource.add(
 				linkTo(methodOn(ResponseFileController.class).getResponseFileInfo(resource.getContent().getId(), null))
 						.withSelfRel());
@@ -25,11 +31,13 @@ public class ResponseFileInfoModelAssembler implements SimpleRepresentationModel
 						.withRel("responseFileInfo"));
 		resource.add(linkTo(methodOn(ResponseFileController.class).downloadFile(resource.getContent().getId(), null))
 				.withRel("responseFile"));
+		resource.add(linkTo(
+				methodOn(ResponseFileController.class).getSameResponseFileInfos(resource.getContent().getId(), null))
+						.withRel("same"));
 	}
 
 	@Override
 	public void addLinks(CollectionModel<EntityModel<ResponseFileInfo>> resources) {
-		// TODO Stub de la méthode généré automatiquement
-
+		// Pas de lien supplémentaire pour la collection
 	}
 }

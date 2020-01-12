@@ -1,17 +1,22 @@
-<div class="container-fluid" *ngIf="!fileUpload.checked">
+<div class="container-fluid" *ngIf="fileUpload">
   <div class="row justify-content-center">
     <button type="button" class="btn btn-link" (click)="openModifyUpload()">Etape : {{fileUpload.stage}}, Page :
       {{fileUpload.page}}, Equipe : {{fileUpload.team}}</button>
   </div>
-  <div class="row justify-content-center">
-    <app-details-response-file [fileUpload]="fileUpload" (endDragEvent)="endDrag($event)" class="col-8">
+  <div class="row justify-content-center" *ngIf="dragable">
+    <app-details-response-file [fileUpload]="fileUpload" [dragable]="dragable" (endDragEvent)="endDrag($event)"
+      class="col-8">
     </app-details-response-file>
   </div>
-  <div *ngIf="fileUpload.active" class="row justify-content-center">
-    <button type="button" class="btn btn-success" (click)="check()">Vérifié</button>
+  <div class="row justify-content-center" *ngIf="!dragable">
+    <app-details-response-file [fileUpload]="fileUpload" [dragable]="dragable" (endDragEvent)="endDrag($event)">
+    </app-details-response-file>
   </div>
-  <div *ngIf="!fileUpload.active" class="row justify-content-center">
-    <button type="button" class="btn btn-warning" (click)="check()">Ignorer</button>
-    <button type="button" class="btn btn-primary" (click)="activate()">Sélectioner</button>
+  <div class="row justify-content-center">
+    <button type="button" *ngIf="!fileUpload.checked" class="btn btn-success" (click)="check()">Vérifié</button>
+    <button type="button" class="btn btn-danger" (click)="delete()">Supprimer</button>
+    <button type="button" *ngIf="sames.length > 0" class="btn btn-primary" (click)="showSameResponseFile()">Mêmes
+      feuilles
+      de réponses</button>
   </div>
 </div>

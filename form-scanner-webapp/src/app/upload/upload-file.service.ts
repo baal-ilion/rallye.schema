@@ -22,12 +22,16 @@ export class UploadFileService {
     return this.http.get(environment.apiUrl + '/responseFileInfos/search/findByCheckedIsFalse');
   }
 
-  findByStageAndTeam(stage: number, team: number): Observable<any> {
-    const params = new HttpParams().set('stage', stage.toString()).set('team', team.toString());
-    return this.http.get(environment.apiUrl + '/responseFileInfos/search/findByStageAndTeam', { params });
-  }
-
   updateResponseFileInfoCorners(responseFileInfo): Observable<any> {
     return this.http.patch(environment.apiUrl + '/responseFileInfos', responseFileInfo);
   }
+
+  deleteResponseFile(id): Observable<any> {
+    return this.http.delete(environment.apiUrl + '/responseFiles/' + id);
+  }
+
+  getResource(url): Observable<any> {
+    return this.http.get(url);
+  }
+
 }

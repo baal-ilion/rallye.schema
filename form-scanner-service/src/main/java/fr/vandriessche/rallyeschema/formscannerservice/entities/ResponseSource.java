@@ -5,10 +5,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
-public class PreformanceResult {
-	private String name;
-	private Double preformanceValue = null;
-	private ResponseSource source;
+@NoArgsConstructor
+public abstract class ResponseSource {
+	private String id;
 }

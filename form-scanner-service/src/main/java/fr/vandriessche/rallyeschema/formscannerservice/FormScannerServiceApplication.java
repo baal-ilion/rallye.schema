@@ -16,8 +16,9 @@ public class FormScannerServiceApplication {
 
 	@Bean
 	public HalConfiguration linkRelationBasedPolicy() {
-		return new HalConfiguration() //
-				.withRenderSingleLinksFor( //
-						LinkRelation.of("responseFileParams"), RenderSingleLinks.AS_ARRAY);
+		return new HalConfiguration()
+				.withRenderSingleLinksFor(LinkRelation.of("responseFileParams"), RenderSingleLinks.AS_ARRAY)
+				.withRenderSingleLinksFor(LinkRelation.of("sameResponseFiles"), RenderSingleLinks.AS_ARRAY)
+				.withRenderSingleLinksFor(LinkRelation.of("responseFiles"), RenderSingleLinks.AS_ARRAY);
 	}
 }
