@@ -1,15 +1,19 @@
 package fr.vandriessche.rallyeschema.formscannerservice.services;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import fr.vandriessche.rallyeschema.formscannerservice.entities.StagePoint;
+import fr.vandriessche.rallyeschema.formscannerservice.entities.StageRanking;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.StageResult;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.TeamPoint;
+import fr.vandriessche.rallyeschema.formscannerservice.entities.TeamRank;
 import fr.vandriessche.rallyeschema.formscannerservice.repositories.TeamPointRepository;
 import lombok.NonNull;
 
@@ -21,6 +25,8 @@ public class TeamPointService {
 	private StageResultService stageResultService;
 	@Autowired
 	private StageParamService stageParamService;
+	@Autowired
+	private StageRankingService stageRankingService;
 
 	public TeamPoint computeTeamPoint(Integer team) {
 		TeamPoint teamPoint = makeTeamPoint(team);
@@ -34,13 +40,23 @@ public class TeamPointService {
 		return teamPoint;
 	}
 
-	public TeamPoint computeTeamPoint(@NonNull String stageResultId) {
+	public List<TeamPoint> computeTeamPointFromStageRanking(@NonNull Integer stage) {
+		var stageRanking = stageRankingService.getStageRankingByStage(stage);
+		return Stream.concat(
+				Stream.concat(stageRanking.getBegins().stream().map(TeamRank<LocalDateTime>::getTeam),
+						stageRanking.getEnds().stream().map(TeamRank<LocalDateTime>::getTeam)),
+				stageRanking.getPerformances().values().stream().flatMap(m -> m.stream())
+						.map(TeamRank<Double>::getTeam))
+				.distinct().sorted().map(team -> {
+					var stageResult = stageResultService.getStageResultByStageAndTeam(stage, team);
+					return computeTeamPointFromStageResult(stageResult, stageRanking);
+				}).collect(Collectors.toList());
+	}
+
+	public TeamPoint computeTeamPointFromStageResult(@NonNull String stageResultId) {
 		var stageResult = stageResultService.getStageResult(stageResultId);
-		TeamPoint teamPoint = makeTeamPoint(stageResult.getTeam());
-		teamPoint.getStagePoints().put(stageResult.getStage(), computeStagePoint(stageResult));
-		computeTeamPointTotal(teamPoint);
-		teamPoint = teamPointRepository.save(teamPoint);
-		return teamPoint;
+		var stageRanking = stageRankingService.getStageRankingByStage(stageResult.getStage());
+		return computeTeamPointFromStageResult(stageResult, stageRanking);
 	}
 
 	public List<TeamPoint> computeTeamPoints() {
@@ -81,6 +97,14 @@ public class TeamPointService {
 					}).reduce(0l, Long::sum));
 		}
 		return stagePoint;
+	}
+
+	private TeamPoint computeTeamPointFromStageResult(StageResult stageResult, StageRanking stageRanking) {
+		TeamPoint teamPoint = makeTeamPoint(stageResult.getTeam());
+		teamPoint.getStagePoints().put(stageResult.getStage(), computeStagePoint(stageResult));
+		computeTeamPointTotal(teamPoint);
+		teamPoint = teamPointRepository.save(teamPoint);
+		return teamPoint;
 	}
 
 	private void computeTeamPointTotal(TeamPoint teamPoint) {

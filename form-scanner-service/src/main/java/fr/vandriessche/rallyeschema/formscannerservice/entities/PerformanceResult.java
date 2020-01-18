@@ -7,8 +7,8 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PreformanceResult {
+public class PerformanceResult {
 	private String name;
-	private Double preformanceValue = null;
+	private Double performanceValue = null;
 	private ResponseSource source;
 }
