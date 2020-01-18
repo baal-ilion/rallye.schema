@@ -3,15 +3,18 @@ package fr.vandriessche.rallyeschema.formscannerservice.entities;
 import java.util.ArrayList;
 import java.util.List;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
-public class QuestionPageParam {
-	private String name;
-	private QuestionType type;
+@EqualsAndHashCode(callSuper = true)
+public class QuestionPageParam extends QuestionParam {
 	private List<String> responses = new ArrayList<>();
+
+	public QuestionPageParam(String name, QuestionType type, List<String> responses2) {
+		super(name, type, null);
+		this.responses = responses2;
+	}
 }

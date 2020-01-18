@@ -8,10 +8,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import fr.vandriessche.rallyeschema.formscannerservice.entities.PerformancePointParam;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.QuestionParam;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.QuestionPointParam;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.QuestionType;
@@ -66,10 +68,7 @@ public class StageParamService {
 		stageParam.getResponseFileParams().removeIf(customer -> responseFileParam.getPage().equals(customer.getPage()));
 		stageParam.getResponseFileParams().add(responseFileParam);
 		stageParam.getResponseFileParams().sort(Comparator.comparing(ResponseFileParam::getPage));
-		var questionPointParams = stageParam.getQuestionPointParams();
-		responseFileParam.getQuestions().values().stream().filter(q -> q.getType() == QuestionType.QUESTION)
-				.forEach(q -> questionPointParams.putIfAbsent(q.getName(), new QuestionPointParam(q.getName(), 1l)));
-		sortQuestionPointParams(stageParam);
+		initalisePointParam(stageParam, responseFileParam.getQuestions().values().stream().map(q -> (QuestionParam) q));
 		var questionParams = stageParam.getQuestionParams();
 		responseFileParam.getQuestions().values().stream()
 				.filter(q -> q.getType() == QuestionType.QUESTION || q.getType() == QuestionType.PERFORMANCE)
@@ -94,6 +93,20 @@ public class StageParamService {
 		return updateStageParam(stageParamToUpdate, stageParam);
 	}
 
+	private void removePerformancePointParam(StageParam stageParamToUpdate, String performanceName) {
+		stageParamToUpdate.getPerformancePointParams().remove(performanceName);
+	}
+
+	private void removeQuestionPointParam(StageParam stageParamToUpdate, String questionName) {
+		stageParamToUpdate.getQuestionPointParams().remove(questionName);
+	}
+
+	private void sortPerformancePointParams(StageParam stageParam) {
+		stageParam.setPerformancePointParams(
+				stageParam.getPerformancePointParams().entrySet().stream().sorted(Map.Entry.comparingByKey())
+						.collect(Collectors.toMap(Entry::getKey, Entry::getValue, (x, y) -> y, LinkedHashMap::new)));
+	}
+
 	private void sortQuestionParams(StageParam stageParam) {
 		stageParam
 				.setQuestionParams(stageParam.getQuestionParams().entrySet().stream().sorted(Map.Entry.comparingByKey())
@@ -106,16 +119,61 @@ public class StageParamService {
 						.collect(Collectors.toMap(Entry::getKey, Entry::getValue, (x, y) -> y, LinkedHashMap::new)));
 	}
 
+	private void updatePerformancePointParams(StageParam stageParamToUpdate,
+			Collection<PerformancePointParam> performancePointParams) {
+		for (var performancePointParam : performancePointParams) {
+			if (performancePointParam.getRanges().isEmpty()) {
+				removePerformancePointParam(stageParamToUpdate, performancePointParam.getName());
+			} else {
+				stageParamToUpdate.getPerformancePointParams().put(performancePointParam.getName(),
+						performancePointParam);
+			}
+		}
+		sortPerformancePointParams(stageParamToUpdate);
+	}
+
 	private void updateQuestionParam(StageParam stageParamToUpdate, QuestionParam questionParam) {
 		var questionParamToUpdate = stageParamToUpdate.getQuestionParams().get(questionParam.getName());
 		if (Objects.isNull(questionParamToUpdate)) {
 			stageParamToUpdate.getQuestionParams().put(questionParam.getName(), questionParam);
+			initalisePointParam(stageParamToUpdate, Stream.of(questionParam));
 		} else {
-			if (Objects.nonNull(questionParam.getType()))
+			if (Objects.nonNull(questionParam.getType())
+					&& !questionParam.getType().equals(questionParamToUpdate.getType())) {
+				if (questionParamToUpdate.getType() == QuestionType.PERFORMANCE)
+					removeQuestionPointParam(stageParamToUpdate, questionParam.getName());
+				else
+					removePerformancePointParam(stageParamToUpdate, questionParam.getName());
 				questionParamToUpdate.setType(questionParam.getType());
+				initalisePointParam(stageParamToUpdate, Stream.of(questionParamToUpdate));
+			}
 			if (Objects.nonNull(questionParam.getStaff()))
 				questionParamToUpdate.setStaff(questionParam.getStaff());
 		}
+	}
+
+	class ToSort {
+		public boolean sortQuestionPointParams = false;
+		public boolean sortPerformancePointParams = false;
+	}
+
+	private void initalisePointParam(StageParam stageParamToUpdate, Stream<QuestionParam> questionParams) {
+		final ToSort toSort = new ToSort();
+		questionParams.forEach(questionParam -> {
+			if (questionParam.getType() == QuestionType.QUESTION) {
+				stageParamToUpdate.getQuestionPointParams().putIfAbsent(questionParam.getName(),
+						new QuestionPointParam(questionParam.getName(), 1l));
+				toSort.sortQuestionPointParams = true;
+			} else if (questionParam.getType() == QuestionType.PERFORMANCE) {
+				stageParamToUpdate.getPerformancePointParams().putIfAbsent(questionParam.getName(),
+						new PerformancePointParam(questionParam.getName(), 1l));
+				toSort.sortPerformancePointParams = true;
+			}
+		});
+		if (toSort.sortQuestionPointParams)
+			sortQuestionPointParams(stageParamToUpdate);
+		if (toSort.sortPerformancePointParams)
+			sortPerformancePointParams(stageParamToUpdate);
 	}
 
 	private void updateQuestionParams(StageParam stageParamToUpdate, Collection<QuestionParam> questionParams) {
@@ -124,6 +182,8 @@ public class StageParamService {
 				if (Objects.isNull(questionParam.getType()) && Objects.isNull(questionParam.getStaff())) {
 					// on n'a ni de type ni de staff ca siginfie que l'on veut supprimer la question
 					stageParamToUpdate.getQuestionParams().remove(questionParam.getName());
+					removeQuestionPointParam(stageParamToUpdate, questionParam.getName());
+					removePerformancePointParam(stageParamToUpdate, questionParam.getName());
 				} else {
 					updateQuestionParam(stageParamToUpdate, questionParam);
 				}
@@ -136,7 +196,7 @@ public class StageParamService {
 			Collection<QuestionPointParam> questionPointParams) {
 		for (var questionPointParam : questionPointParams) {
 			if (Objects.isNull(questionPointParam.getPoint())) {
-				stageParamToUpdate.getQuestionPointParams().remove(questionPointParam.getName());
+				removeQuestionPointParam(stageParamToUpdate, questionPointParam.getName());
 			} else {
 				stageParamToUpdate.getQuestionPointParams().put(questionPointParam.getName(), questionPointParam);
 			}
@@ -148,6 +208,7 @@ public class StageParamService {
 		updateStageParamData(stageParamToUpdate, stageParam);
 		updateQuestionParams(stageParamToUpdate, stageParam.getQuestionParams().values());
 		updateQuestionPointParams(stageParamToUpdate, stageParam.getQuestionPointParams().values());
+		updatePerformancePointParams(stageParamToUpdate, stageParam.getPerformancePointParams().values());
 		stageParamToUpdate = stageParamRepository.save(stageParamToUpdate);
 		return stageParamToUpdate;
 	}

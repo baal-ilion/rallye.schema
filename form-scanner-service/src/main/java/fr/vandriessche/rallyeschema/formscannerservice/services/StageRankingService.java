@@ -43,6 +43,10 @@ public class StageRankingService {
 	@Autowired
 	private MessageProducerService messageProducerService;
 
+	public void computeAllStageRanking() {
+		stageParamService.getStageParams().forEach(stageParam -> computeStageRanking(stageParam.getStage()));
+	}
+
 	public StageRanking computeStageRanking(Integer stage) {
 		StageRanking stageRanking = findOrMakeStageRankingByStage(stage);
 		if (stageRanking == null)
