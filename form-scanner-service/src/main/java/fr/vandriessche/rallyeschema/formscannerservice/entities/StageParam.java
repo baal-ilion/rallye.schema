@@ -33,6 +33,7 @@ public class StageParam {
 	private List<ResponseFileParam> responseFileParams = new ArrayList<>();
 
 	private LinkedHashMap<String, QuestionPointParam> questionPointParams = new LinkedHashMap<>();
+	private LinkedHashMap<String, PerformancePointParam> performancePointParams = new LinkedHashMap<>();
 
 	private LinkedHashMap<String, QuestionParam> questionParams = new LinkedHashMap<>();
 

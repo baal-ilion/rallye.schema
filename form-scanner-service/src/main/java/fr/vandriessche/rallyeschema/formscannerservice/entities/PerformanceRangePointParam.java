@@ -7,8 +7,9 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class QuestionParam {
-	private String name;
-	private QuestionType type;
-	private Boolean staff;
+public class PerformanceRangePointParam {
+	private PerformanceRangeType type;
+	private Double begin;
+	private Double end;
+	private Long point;
 }

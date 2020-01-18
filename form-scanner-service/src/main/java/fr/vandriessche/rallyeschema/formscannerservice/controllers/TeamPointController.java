@@ -11,15 +11,19 @@ import org.springframework.web.bind.annotation.RestController;
 
 import fr.vandriessche.rallyeschema.formscannerservice.entities.StagePoint;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.TeamPoint;
+import fr.vandriessche.rallyeschema.formscannerservice.services.StageRankingService;
 import fr.vandriessche.rallyeschema.formscannerservice.services.TeamPointService;
 
 @RestController
 public class TeamPointController {
 	@Autowired
-	TeamPointService teamPointService;
+	private TeamPointService teamPointService;
+	@Autowired
+	private StageRankingService stageRankingService;
 
 	@GetMapping("/teamPoints/recompute")
 	public List<TeamPoint> computeTeamPoints() {
+		stageRankingService.computeAllStageRanking();
 		return teamPointService.computeTeamPoints();
 	}
 
