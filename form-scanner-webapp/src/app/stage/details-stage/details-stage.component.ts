@@ -28,7 +28,7 @@ export class DetailsStageComponent implements OnInit {
   // convenience getters for easy access to form fields
   get f() { return this.form.controls; }
   get results() { return this.f.results as FormArray; }
-  get preformances() { return this.f.preformances as FormArray; }
+  get performances() { return this.f.performances as FormArray; }
 
   ngOnInit() {
     this.param = null;
@@ -45,7 +45,7 @@ export class DetailsStageComponent implements OnInit {
     }
     this.form = this.formBuilder.group({
       results: this.formBuilder.array([]),
-      preformances: this.formBuilder.array([]),
+      performances: this.formBuilder.array([]),
       checked: this.stage.checked
     });
     this.stageParamService.findByStage(this.stage.stage).toPromise().then(data => {
@@ -60,10 +60,10 @@ export class DetailsStageComponent implements OnInit {
             resultValue: result ? result.resultValue : null
           }));
         } else if (questionParam.type === 'PERFORMANCE') {
-          const preformance = this.stage.preformances.find(element => element.name === questionParam.name);
-          this.preformances.push(this.formBuilder.group({
+          const performance = this.stage.performances.find(element => element.name === questionParam.name);
+          this.performances.push(this.formBuilder.group({
             name: questionParam.name,
-            preformanceValue: preformance ? preformance.preformanceValue : null
+            performanceValue: performance ? performance.performanceValue : null
           }));
         }
       }
@@ -78,11 +78,11 @@ export class DetailsStageComponent implements OnInit {
         modifiedResults.push(item);
       }
     });
-    const modifiedPreformances = [];
-    this.form.value.preformances.forEach((item, index) => {
-      const preformance = this.stage.preformances.find(element => element.name === item.name);
-      if (!preformance || item.preformanceValue !== preformance.preformanceValue) {
-        modifiedPreformances.push(item);
+    const modifiedperformances = [];
+    this.form.value.performances.forEach((item, index) => {
+      const performance = this.stage.performances.find(element => element.name === item.name);
+      if (!performance || item.performanceValue !== performance.performanceValue) {
+        modifiedperformances.push(item);
       }
     });
     this.stageService.updateStage({
@@ -91,7 +91,7 @@ export class DetailsStageComponent implements OnInit {
       stage: this.stage.stage,
       checked: this.form.value.checked,
       results: modifiedResults,
-      preformances: modifiedPreformances
+      performances: modifiedperformances
     });
     this.reload();
   }

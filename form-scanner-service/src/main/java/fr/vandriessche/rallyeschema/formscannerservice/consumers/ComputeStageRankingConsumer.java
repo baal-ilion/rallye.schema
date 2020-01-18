@@ -12,55 +12,33 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Service;
 
 import fr.vandriessche.rallyeschema.formscannerservice.config.MessageQueueConfig;
-import fr.vandriessche.rallyeschema.formscannerservice.message.StageRankingMessage;
 import fr.vandriessche.rallyeschema.formscannerservice.message.StageResultMessage;
+import fr.vandriessche.rallyeschema.formscannerservice.services.StageRankingService;
 import fr.vandriessche.rallyeschema.formscannerservice.services.StageResultService;
-import fr.vandriessche.rallyeschema.formscannerservice.services.TeamPointService;
 import lombok.extern.java.Log;
 
 @Service
 @Log
-@RabbitListener(queues = MessageQueueConfig.COMPUTE_TEAM_POINT_QUEUE_NAME_CONFIG)
-public class ComputeTeamPointConsumer {
+@RabbitListener(queues = MessageQueueConfig.COMPUTE_STAGE_RANKING_QUEUE_NAME_CONFIG)
+public class ComputeStageRankingConsumer {
 	@Autowired
-	private TeamPointService teamPointService;
+	private StageRankingService stageRankingService;
 
-	@Value(MessageQueueConfig.COMPUTE_TEAM_POINT_QUEUE_NAME_CONFIG)
-	private String computeTeamPointQueueName;
+	@Value(MessageQueueConfig.COMPUTE_STAGE_RANKING_QUEUE_NAME_CONFIG)
+	private String computeStageRankingQueueName;
 
 	@RabbitHandler
 	public void receiveMessage(@Header(AmqpHeaders.RECEIVED_ROUTING_KEY) String routingKey,
 			final StageResultMessage stageResult) {
 		try {
 			log.info(MessageFormat.format("Received message {0} from {1} queue : {2}", routingKey,
-					computeTeamPointQueueName, stageResult));
+					computeStageRankingQueueName, stageResult));
 			switch (routingKey) {
 			case StageResultService.STAGE_RESULT_DELETE_EVENT:
 			case StageResultService.STAGE_RESULT_CREATE_EVENT:
 			case StageResultService.STAGE_RESULT_UPDATE_EVENT:
 			default:
-				teamPointService.computeTeamPointFromStageResult(stageResult.getId());
-				break;
-			}
-		} catch (Exception e) {
-			log.severe(MessageFormat.format("Internal server error occurred in API call. Bypassing message requeue {0}",
-					e));
-			throw new AmqpRejectAndDontRequeueException(e);
-		}
-	}
-
-	@RabbitHandler
-	public void receiveMessage(@Header(AmqpHeaders.RECEIVED_ROUTING_KEY) String routingKey,
-			final StageRankingMessage stageRanking) {
-		try {
-			log.info(MessageFormat.format("Received message {0} from {1} queue : {2}", routingKey,
-					computeTeamPointQueueName, stageRanking));
-			switch (routingKey) {
-			case StageResultService.STAGE_RESULT_DELETE_EVENT:
-			case StageResultService.STAGE_RESULT_CREATE_EVENT:
-			case StageResultService.STAGE_RESULT_UPDATE_EVENT:
-			default:
-				teamPointService.computeTeamPointFromStageRanking(stageRanking.getStage());
+				stageRankingService.computeStageRanking(stageResult.getStage());
 				break;
 			}
 		} catch (Exception e) {

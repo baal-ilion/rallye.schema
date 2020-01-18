@@ -23,11 +23,11 @@
           </div>
         </div>
         <div class="row">
-          <div *ngFor="let preformance of preformances.controls" class="col-6 col-lg-3 col-sm-6 col-md-4">
-            <div [formGroup]="preformance" class="row">
-              <label class="col align-self-center">{{preformance.value.name}}</label>
+          <div *ngFor="let performance of performances.controls" class="col-6 col-lg-3 col-sm-6 col-md-4">
+            <div [formGroup]="performance" class="row">
+              <label class="col align-self-center">{{performance.value.name}}</label>
               <div class="col-auto align-self-center">
-                <input type=number step=any formControlName="preformanceValue" class="col-auto" />
+                <input type=number step=any formControlName="performanceValue" class="col-auto" />
               </div>
             </div>
           </div>

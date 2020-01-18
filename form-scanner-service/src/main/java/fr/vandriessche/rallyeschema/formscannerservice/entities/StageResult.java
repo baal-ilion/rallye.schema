@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Data;
@@ -13,6 +14,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @Document
+@CompoundIndex(unique = true, def = "{'stage' : 1, 'team' : 1}")
 public class StageResult {
 	@Id
 	private String id;
@@ -27,7 +29,7 @@ public class StageResult {
 
 	private List<ResponseResult> results = new ArrayList<>();
 
-	private List<PreformanceResult> preformances = new ArrayList<>();
+	private List<PerformanceResult> performances = new ArrayList<>();
 
 	private List<ResponseSource> responseSources = new ArrayList<>();
 

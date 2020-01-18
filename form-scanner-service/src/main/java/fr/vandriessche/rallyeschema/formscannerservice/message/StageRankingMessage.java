@@ -2,7 +2,7 @@ package fr.vandriessche.rallyeschema.formscannerservice.message;
 
 import org.springframework.data.annotation.Id;
 
-import fr.vandriessche.rallyeschema.formscannerservice.entities.StageResult;
+import fr.vandriessche.rallyeschema.formscannerservice.entities.StageRanking;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -10,18 +10,15 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class StageResultMessage {
+public class StageRankingMessage {
 	@Id
 	private String id;
 
 	private Integer stage;
-	private Integer team;
 
-	public StageResultMessage(StageResult stageResult) {
+	public StageRankingMessage(StageRanking stageRanking) {
 		super();
-		id = stageResult.getId();
-		stage = stageResult.getStage();
-		team = stageResult.getTeam();
+		id = stageRanking.getId();
+		stage = stageRanking.getStage();
 	}
-
 }

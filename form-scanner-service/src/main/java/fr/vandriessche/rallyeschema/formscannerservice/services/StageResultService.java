@@ -9,7 +9,7 @@ import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import fr.vandriessche.rallyeschema.formscannerservice.entities.PreformanceResult;
+import fr.vandriessche.rallyeschema.formscannerservice.entities.PerformanceResult;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileInfo;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileSource;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseResult;
@@ -125,7 +125,7 @@ public class StageResultService {
 				? stageResultRepository.findById(stageResult.getId()).orElseThrow()
 				: stageResultRepository.findByStageAndTeam(stageResult.getStage(), stageResult.getTeam()).orElseThrow();
 		return updateStageResultAndSave(stageResultToUpdate, stageResult.getChecked(), stageResult.getResults(),
-				stageResult.getPreformances(), stageResult.getBegin(), stageResult.getEnd());
+				stageResult.getPerformances(), stageResult.getBegin(), stageResult.getEnd());
 	}
 
 	private boolean checkResponseFileSources(StageResult stageResult, ResponseFileInfo responseFileInfo) {
@@ -159,7 +159,7 @@ public class StageResultService {
 		ResponseFileSource sourceToRemove = new ResponseFileSource(id);
 		stageResult.getResponseSources().removeIf(source -> sourceToRemove.equals(source));
 		stageResult.getResults().removeIf(result -> sourceToRemove.equals(result.getSource()));
-		stageResult.getPreformances().removeIf(perf -> sourceToRemove.equals(perf.getSource()));
+		stageResult.getPerformances().removeIf(perf -> sourceToRemove.equals(perf.getSource()));
 	}
 
 	private void removeResponseFileAndSearch(StageResult stageResult, String id) {
@@ -169,7 +169,7 @@ public class StageResultService {
 
 	private StageResult save(StageResult stageResult) {
 		stageResult = stageResultRepository.save(stageResult);
-		messageProducerService.sendMessage(STAGE_RESULT_UPDATE_EVENT, new StageResultMessage(stageResult.getId()));
+		messageProducerService.sendMessage(STAGE_RESULT_UPDATE_EVENT, new StageResultMessage(stageResult));
 		return stageResult;
 	}
 
@@ -207,7 +207,7 @@ public class StageResultService {
 	}
 
 	private boolean updateStageResult(StageResult stageResultToUpdate, Boolean checked, List<ResponseResult> results,
-			List<PreformanceResult> performances, LocalDateTime begin, LocalDateTime end) {
+			List<PerformanceResult> performances, LocalDateTime begin, LocalDateTime end) {
 		boolean isUpdated = false;
 
 		if (Objects.nonNull(begin)) {
@@ -224,8 +224,8 @@ public class StageResultService {
 			isUpdated = true;
 		}
 		for (var performance : performances) {
-			stageResultToUpdate.getPreformances().removeIf(r -> r.getName().equals(performance.getName()));
-			stageResultToUpdate.getPreformances().add(performance);
+			stageResultToUpdate.getPerformances().removeIf(r -> r.getName().equals(performance.getName()));
+			stageResultToUpdate.getPerformances().add(performance);
 			isUpdated = true;
 		}
 		stageResultToUpdate.getResults().sort(Comparator.comparing(ResponseResult::getName));
@@ -239,7 +239,7 @@ public class StageResultService {
 	}
 
 	private StageResult updateStageResultAndSave(StageResult stageResultToUpdate, Boolean checked,
-			List<ResponseResult> results, List<PreformanceResult> performances, LocalDateTime begin,
+			List<ResponseResult> results, List<PerformanceResult> performances, LocalDateTime begin,
 			LocalDateTime end) {
 		if (updateStageResult(stageResultToUpdate, checked, results, performances, begin, end))
 			return save(stageResultToUpdate);
