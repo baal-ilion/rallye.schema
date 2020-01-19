@@ -1,17 +1,41 @@
 version: "3"
 services:
   mongodb:
-    image: mongo:latest
+    image: mongo
     container_name: "mongodb"
     ports:
-    - 27017:27017
+      - 27017:27017
+    volumes:
+      - mongodb_db:/data/db
+      - mongodb_configdb:/data/configdb
+    restart: always
+  rabbitmq:
+    image: bitnami/rabbitmq
+    container_name: "rabbitmq"
+    ports:
+      - 4369:4369
+      - 5672:5672
+      - 25672:25672
+      - 15672:15672
+    environment:
+      - RABBITMQ_USERNAME=rallyeschema
+      - RABBITMQ_PASSWORD=rallyeschema
+    volumes:
+      - rabbitmq:/bitnami
     restart: always
   app:
     image: form-scanner-service:0.0.1-SNAPSHOT
+    container_name: "form-scanner-service"
     ports:
-    - 8080:8080
+      - 8080:8080
     links:
-    - mongodb
+      - mongodb
+      - rabbitmq
     restart: always
     environment:
        - "SPRING_PROFILES_ACTIVE=docker"
+volumes:
+  mongodb_db:
+  mongodb_configdb:
+  rabbitmq:
+  

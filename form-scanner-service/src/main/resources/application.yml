@@ -48,6 +48,6 @@ spring:
   rabbitmq:
     host: rabbitmq
     port: 5672
-    username: guest
-    password: guest
+    username: rallyeschema
+    password: rallyeschema
 
