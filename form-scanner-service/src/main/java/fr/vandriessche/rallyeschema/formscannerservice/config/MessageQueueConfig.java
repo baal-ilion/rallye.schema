@@ -19,8 +19,8 @@ public class MessageQueueConfig {
 
 	public static final String EXCHANGE_NAME_CONFIG = "${rallyeschema.message.exchange.name:rallyeschema-exchange}";
 
-	public static final String SELECT_RESPONSE_FILE_QUEUE_NAME_CONFIG = "${rallyeschema.message.selectResponseFile.queue.name:rallyeschema-selectResponseFile}";
-	public static final String SELECT_RESPONSE_FILE_ROUTING_KEYS_CONFIG = "${rallyeschema.message.selectResponseFile.routing.key:responseFile.*}";
+	public static final String SELECT_RESPONSE_QUEUE_NAME_CONFIG = "${rallyeschema.message.selectResponse.queue.name:rallyeschema-selectResponse}";
+	public static final String SELECT_RESPONSE_ROUTING_KEYS_CONFIG = "${rallyeschema.message.selectResponse.routing.key:responseFile.*,stageResponse.*}";
 	public static final String COMPUTE_TEAM_POINT_QUEUE_NAME_CONFIG = "${rallyeschema.message.computeTeamPoint.queue.name:rallyeschema-computeTeamPoint}";
 	public static final String COMPUTE_TEAM_POINT_ROUTING_KEYS_CONFIG = "${rallyeschema.message.computeTeamPoint.routing.key:stageResult.*,stageRanking.*}";
 	public static final String COMPUTE_STAGE_RANKING_QUEUE_NAME_CONFIG = "${rallyeschema.message.computeStageRanking.queue.name:rallyeschema-computeStageRanking}";
@@ -29,10 +29,10 @@ public class MessageQueueConfig {
 	@Value(EXCHANGE_NAME_CONFIG)
 	private String exchangeName;
 
-	@Value(SELECT_RESPONSE_FILE_QUEUE_NAME_CONFIG)
-	private String selectResponseFileQueueName;
-	@Value(SELECT_RESPONSE_FILE_ROUTING_KEYS_CONFIG)
-	private String[] selectResponseFileRoutingKeys;
+	@Value(SELECT_RESPONSE_QUEUE_NAME_CONFIG)
+	private String selectResponseQueueName;
+	@Value(SELECT_RESPONSE_ROUTING_KEYS_CONFIG)
+	private String[] selectResponseRoutingKeys;
 	@Value(COMPUTE_TEAM_POINT_QUEUE_NAME_CONFIG)
 	private String computeTeamPointQueueName;
 	@Value(COMPUTE_TEAM_POINT_ROUTING_KEYS_CONFIG)
@@ -48,14 +48,14 @@ public class MessageQueueConfig {
 	}
 
 	@Bean
-	public Queue getSelectResponseFileQueue() {
-		return new Queue(selectResponseFileQueueName);
+	public Queue getSelectResponseQueue() {
+		return new Queue(selectResponseQueueName);
 	}
 
 	@Bean
-	public Declarables declareBindingSelectResponseFile() {
-		return new Declarables(Arrays.asList(selectResponseFileRoutingKeys).stream()
-				.map(routingKey -> BindingBuilder.bind(getSelectResponseFileQueue()).to(getExchange()).with(routingKey))
+	public Declarables declareBindingSelectResponse() {
+		return new Declarables(Arrays.asList(selectResponseRoutingKeys).stream()
+				.map(routingKey -> BindingBuilder.bind(getSelectResponseQueue()).to(getExchange()).with(routingKey))
 				.collect(Collectors.toList()));
 	}
 

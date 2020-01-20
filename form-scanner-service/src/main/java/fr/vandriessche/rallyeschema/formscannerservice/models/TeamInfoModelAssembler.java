@@ -16,7 +16,6 @@ public class TeamInfoModelAssembler implements SimpleRepresentationModelAssemble
 
 	@Override
 	public void addLinks(EntityModel<TeamInfo> resource) {
-		// TODO Stub de la méthode généré automatiquement
 		resource.add(linkTo(methodOn(TeamInfoController.class).getTeamInfo(resource.getContent().getId(), null))
 				.withSelfRel());
 		resource.add(linkTo(methodOn(TeamInfoController.class).getTeamInfo(resource.getContent().getId(), null))
@@ -25,7 +24,6 @@ public class TeamInfoModelAssembler implements SimpleRepresentationModelAssemble
 
 	@Override
 	public void addLinks(CollectionModel<EntityModel<TeamInfo>> resources) {
-		// TODO Stub de la méthode généré automatiquement
-
+		// Pas de lien supplémentaire pour la collection
 	}
 }

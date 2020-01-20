@@ -2,6 +2,7 @@ package fr.vandriessche.rallyeschema.formscannerservice.services;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -11,9 +12,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import fr.vandriessche.rallyeschema.formscannerservice.entities.PerformanceRangeType;
+import fr.vandriessche.rallyeschema.formscannerservice.entities.QuestionPoint;
+import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseSource;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.StageParam;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.StagePoint;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.StageRanking;
+import fr.vandriessche.rallyeschema.formscannerservice.entities.StageResponseSource;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.StageResult;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.TeamPoint;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.TeamRank;
@@ -30,6 +34,8 @@ public class TeamPointService {
 	private StageParamService stageParamService;
 	@Autowired
 	private StageRankingService stageRankingService;
+	@Autowired
+	private StageResponseService stageResponseService;
 
 	public TeamPoint computeTeamPoint(Integer team) {
 		TeamPoint teamPoint = makeTeamPoint(team);
@@ -87,76 +93,104 @@ public class TeamPointService {
 		return teamPointRepository.findAll();
 	}
 
-	private StagePoint computeStagePoint(StageResult stageResult, StageRanking stageRanking) {
-		StagePoint stagePoint = new StagePoint(stageResult.getStage(), 0l);
-		var stageParam = stageParamService.getStageParamByStage(stageResult.getStage());
-		if (Boolean.TRUE.equals(stageResult.getChecked())) {
-			stagePoint.setTotal(computeResultPoint(stageResult, stageParam)
-					+ computePerformancePoint(stageResult, stageRanking, stageParam));
-		}
-		return stagePoint;
-	}
-
-	private Long computePerformancePoint(StageResult stageResult, StageRanking stageRanking, StageParam stageParam) {
+	private Stream<QuestionPoint> computePerformancePoint(StageResult stageResult, StageRanking stageRanking,
+			StageParam stageParam) {
 		return stageResult.getPerformances().stream()
 				.filter(performance -> Objects.nonNull(performance.getPerformanceValue())).map(performance -> {
 					var performancePointParam = stageParam.getPerformancePointParams().get(performance.getName());
 					if (Objects.nonNull(performancePointParam)) {
-						return performancePointParam.getRanges().stream().map(range -> {
-							Double value = null;
-							switch (range.getType()) {
-							case VALUE:
-								value = performance.getPerformanceValue();
-								break;
-							case BEGIN_DOWN_RANK:
-							case BEGIN_UP_RANK:
-								value = stageRanking.getBegins().stream()
-										.filter(b -> b.getTeam().equals(stageResult.getTeam())).map(rank -> {
-											return range.getType() == PerformanceRangeType.BEGIN_UP_RANK
-													? rank.getUpRank().doubleValue()
-													: rank.getDownRank().doubleValue();
-										}).findFirst().orElse(0d);
-								break;
-							case END_DOWN_RANK:
-							case END_UP_RANK:
-								value = stageRanking.getEnds().stream()
-										.filter(b -> b.getTeam().equals(stageResult.getTeam())).map(rank -> {
-											return range.getType() == PerformanceRangeType.END_UP_RANK
-													? rank.getUpRank().doubleValue()
-													: rank.getDownRank().doubleValue();
-										}).findFirst().orElse(0d);
-								break;
-							case PERF_DOWN_RANK:
-							case PERF_UP_RANK:
-								value = stageRanking.getPerformances()
-										.getOrDefault(performance.getName(), new ArrayList<>()).stream()
-										.filter(b -> b.getTeam().equals(stageResult.getTeam())).map(rank -> {
-											return range.getType() == PerformanceRangeType.PERF_UP_RANK
-													? rank.getUpRank().doubleValue()
-													: rank.getDownRank().doubleValue();
-										}).findFirst().orElse(0d);
-								break;
-							default:
-								return 0l;
-							}
-							if ((Objects.isNull(range.getBegin()) || range.getBegin() <= value)
-									&& (Objects.isNull(range.getEnd()) || value < range.getEnd()))
-								return range.getPoint();
-							return 0l;
-						}).reduce(0l, Long::sum);
+						return new QuestionPoint(performance.getName(),
+								performancePointParam.getRanges().stream().map(range -> {
+									Double value = null;
+									switch (range.getType()) {
+									case VALUE:
+										value = performance.getPerformanceValue();
+										break;
+									case BEGIN_DOWN_RANK:
+									case BEGIN_UP_RANK:
+										value = stageRanking.getBegins().stream()
+												.filter(b -> b.getTeam().equals(stageResult.getTeam())).map(rank -> {
+													return range.getType() == PerformanceRangeType.BEGIN_UP_RANK
+															? rank.getUpRank().doubleValue()
+															: rank.getDownRank().doubleValue();
+												}).findFirst().orElse(0d);
+										break;
+									case END_DOWN_RANK:
+									case END_UP_RANK:
+										value = stageRanking.getEnds().stream()
+												.filter(b -> b.getTeam().equals(stageResult.getTeam())).map(rank -> {
+													return range.getType() == PerformanceRangeType.END_UP_RANK
+															? rank.getUpRank().doubleValue()
+															: rank.getDownRank().doubleValue();
+												}).findFirst().orElse(0d);
+										break;
+									case PERF_DOWN_RANK:
+									case PERF_UP_RANK:
+										value = stageRanking.getPerformances()
+												.getOrDefault(performance.getName(), new ArrayList<>()).stream()
+												.filter(b -> b.getTeam().equals(stageResult.getTeam())).map(rank -> {
+													return range.getType() == PerformanceRangeType.PERF_UP_RANK
+															? rank.getUpRank().doubleValue()
+															: rank.getDownRank().doubleValue();
+												}).findFirst().orElse(0d);
+										break;
+									default:
+										return 0l;
+									}
+									if ((Objects.isNull(range.getBegin()) || range.getBegin() <= value)
+											&& (Objects.isNull(range.getEnd()) || value < range.getEnd()))
+										return range.getPoint();
+									return 0l;
+								}).reduce(0l, Long::sum));
 					}
-					return 0l;
-				}).reduce(0l, Long::sum);
+					return null;
+				}).filter(Objects::nonNull);
 	}
 
-	private Long computeResultPoint(StageResult stageResult, StageParam stageParam) {
+	private Stream<QuestionPoint> computeResultPoint(StageResult stageResult, StageParam stageParam) {
 		return stageResult.getResults().stream().filter(result -> Boolean.TRUE.equals(result.getResultValue()))
 				.map(result -> {
 					var questionPointParam = stageParam.getQuestionPointParams().get(result.getName());
 					if (Objects.nonNull(questionPointParam) && Objects.nonNull(questionPointParam.getPoint()))
-						return questionPointParam.getPoint();
-					return 0l;
-				}).reduce(0l, Long::sum);
+						return new QuestionPoint(result.getName(), questionPointParam.getPoint());
+					return null;
+				}).filter(Objects::nonNull);
+	}
+
+	private boolean computeStagePoint(StagePoint stagePoint, ResponseSource source) {
+		var stageResponse = stageResponseService.getStageResponse(source.getId());
+		if (Boolean.TRUE.equals(((StageResponseSource) source).getPointUsed())
+				&& (Objects.nonNull(stageResponse.getQuestions()) || Objects.nonNull(stageResponse.getTotal()))) {
+			stagePoint.setQuestions(
+					Objects.nonNull(stageResponse.getQuestions()) ? stageResponse.getQuestions() : new ArrayList<>());
+			stagePoint.setTotal(Objects.nonNull(stageResponse.getTotal()) ? stageResponse.getTotal()
+					: sumQuestionPoint(stagePoint));
+			return true;
+		}
+		return false;
+	}
+
+	private void computeStagePoint(StagePoint stagePoint, StageResult stageResult, StageRanking stageRanking,
+			StageParam stageParam) {
+		stagePoint.setQuestions(Stream
+				.concat(computeResultPoint(stageResult, stageParam),
+						computePerformancePoint(stageResult, stageRanking, stageParam))
+				.sorted(Comparator.comparing(QuestionPoint::getName)).collect(Collectors.toList()));
+		stagePoint.setTotal(sumQuestionPoint(stagePoint));
+	}
+
+	private StagePoint computeStagePoint(StageResult stageResult, StageRanking stageRanking) {
+		StagePoint stagePoint = new StagePoint(stageResult.getStage(), 0l);
+		var stageParam = stageParamService.getStageParamByStage(stageResult.getStage());
+		if (Boolean.TRUE.equals(stageResult.getChecked())) {
+			stageResult.getResponseSources().stream().filter(source -> source instanceof StageResponseSource)
+					.findFirst().ifPresentOrElse(source -> {
+						if (!computeStagePoint(stagePoint, source)) {
+							computeStagePoint(stagePoint, stageResult, stageRanking, stageParam);
+						}
+					}, () -> computeStagePoint(stagePoint, stageResult, stageRanking, stageParam));
+		}
+		return stagePoint;
 	}
 
 	private TeamPoint computeTeamPointFromStageResult(StageResult stageResult, StageRanking stageRanking) {
@@ -166,10 +200,6 @@ public class TeamPointService {
 		return save(teamPoint);
 	}
 
-	private TeamPoint save(TeamPoint teamPoint) {
-		return teamPointRepository.save(teamPoint);
-	}
-
 	private void computeTeamPointTotal(TeamPoint teamPoint) {
 		teamPoint
 				.setTotal(teamPoint.getStagePoints().values().stream().map(StagePoint::getTotal).reduce(0l, Long::sum));
@@ -177,6 +207,14 @@ public class TeamPointService {
 
 	private TeamPoint makeTeamPoint(Integer team) {
 		return teamPointRepository.findByTeam(team).orElse(new TeamPoint(team));
+	}
+
+	private TeamPoint save(TeamPoint teamPoint) {
+		return teamPointRepository.save(teamPoint);
+	}
+
+	private Long sumQuestionPoint(StagePoint stagePoint) {
+		return stagePoint.getQuestions().stream().map(QuestionPoint::getTotal).reduce(0l, Long::sum);
 	}
 
 }

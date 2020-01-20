@@ -156,10 +156,9 @@ public class ResponseFileParamService {
 					});
 			group.getValue().getAreas().values().stream()
 					.sorted(Comparator.comparing(com.albertoborsetta.formscanner.api.FormArea::getName))
-					.filter(area -> !questions.containsKey(area.getName())).forEach(area -> {
-						questions.put(area.getName(), new QuestionPageParam(area.getName(),
-								getTypeByName(area.getName(), QuestionType.PERFORMANCE), new ArrayList<>()));
-					});
+					.filter(area -> !questions.containsKey(area.getName()))
+					.forEach(area -> questions.put(area.getName(), new QuestionPageParam(area.getName(),
+							getTypeByName(area.getName(), QuestionType.PERFORMANCE), new ArrayList<>())));
 		}
 	}
 

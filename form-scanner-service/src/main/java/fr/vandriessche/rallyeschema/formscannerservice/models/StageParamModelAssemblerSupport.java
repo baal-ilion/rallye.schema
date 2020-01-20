@@ -37,6 +37,7 @@ public class StageParamModelAssemblerSupport extends RepresentationModelAssemble
 	}
 
 	private void addLinks(CollectionModel<StageParamModel> resources) {
+		// Pas de lien supplémentaire pour la collection
 	}
 
 	private void addLinks(StageParamModel resource, StageParam entity) {

@@ -32,5 +32,6 @@ public class StageResultModelAssembler implements SimpleRepresentationModelAssem
 
 	@Override
 	public void addLinks(CollectionModel<EntityModel<StageResult>> resources) {
+		// Pas de lien supplémentaire pour la collection
 	}
 }

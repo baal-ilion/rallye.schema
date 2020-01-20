@@ -3,6 +3,7 @@ package fr.vandriessche.rallyeschema.formscannerservice.controllers;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
@@ -36,8 +37,10 @@ import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFile;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileInfo;
 import fr.vandriessche.rallyeschema.formscannerservice.models.ResponseFileInfoModelAssembler;
 import fr.vandriessche.rallyeschema.formscannerservice.services.ResponseFileService;
+import lombok.extern.java.Log;
 
 @RestController
+@Log
 public class ResponseFileController {
 	public static final String URL = "/responseFiles";
 	public static final String INFO_URL = "/responseFileInfos";
@@ -115,8 +118,7 @@ public class ResponseFileController {
 			try {
 				return responseFileService.addResponseFile(file).getInfo();
 			} catch (IOException | ParserConfigurationException | SAXException | FormScannerException e) {
-				// TODO Bloc catch généré automatiquement
-				e.printStackTrace();
+				log.log(Level.WARNING, "uploadMultipleResponseFiles", e);
 			}
 			return null;
 		}).filter(Objects::nonNull).collect(Collectors.toList()));
@@ -128,8 +130,7 @@ public class ResponseFileController {
 		try {
 			return assembler.toModel(responseFileService.addResponseFile(file).getInfo());
 		} catch (IOException | ParserConfigurationException | SAXException | FormScannerException e) {
-			// TODO Bloc catch généré automatiquement
-			e.printStackTrace();
+			log.log(Level.WARNING, "uploadResponseFile", e);
 		}
 		return null;
 	}
