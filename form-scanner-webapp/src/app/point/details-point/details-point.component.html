@@ -1,10 +1,13 @@
-<h1>Equipe : {{point.team}}</h1>
+<h2>Equipe : {{point.team}}</h2>
 <span>Total : {{point.total}}</span>
 <div *ngIf="point.stagePoints">
   <div *ngFor="let stagePoint of point.stagePoints | keyvalue">
     <div *ngIf="stagePoint.value.total > 0">
-      <h2>Etape : {{stagePoint.value.stage}}</h2>
+      <h4>Etape : {{stagePoint.value.stage}}</h4>
       <span>Total : {{stagePoint.value.total}}</span>
+      <div *ngFor="let question of stagePoint.value.questions" class="raw">
+        <span *ngIf="question.total > 0" class="col-1">{{question.name}} : {{question.total}} pts. </span>
+      </div>
     </div>
   </div>
 </div>

@@ -16,7 +16,6 @@ public class ResponseFileParamModelAssembler implements SimpleRepresentationMode
 
 	@Override
 	public void addLinks(EntityModel<ResponseFileParam> resource) {
-		// TODO Stub de la méthode généré automatiquement
 		resource.add(linkTo(
 				methodOn(ResponseFileParamController.class).getResponseFileParam(resource.getContent().getId(), null))
 						.withSelfRel());
@@ -33,7 +32,6 @@ public class ResponseFileParamModelAssembler implements SimpleRepresentationMode
 
 	@Override
 	public void addLinks(CollectionModel<EntityModel<ResponseFileParam>> resources) {
-		// TODO Stub de la méthode généré automatiquement
-
+		// Pas de lien supplémentaire pour la collection
 	}
 }

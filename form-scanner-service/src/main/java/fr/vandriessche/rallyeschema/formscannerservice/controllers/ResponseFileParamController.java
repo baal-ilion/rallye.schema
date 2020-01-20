@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.logging.Level;
 
 import javax.xml.parsers.ParserConfigurationException;
 
@@ -34,8 +35,10 @@ import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileMode
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileParam;
 import fr.vandriessche.rallyeschema.formscannerservice.models.ResponseFileParamModelAssembler;
 import fr.vandriessche.rallyeschema.formscannerservice.services.ResponseFileParamService;
+import lombok.extern.java.Log;
 
 @RestController
+@Log
 public class ResponseFileParamController {
 	public static final String URL = "/responseFileParams";
 
@@ -78,8 +81,7 @@ public class ResponseFileParamController {
 		try {
 			contentType = Files.probeContentType(path);
 		} catch (IOException e) {
-			// TODO Bloc catch généré automatiquement
-			e.printStackTrace();
+			log.log(Level.WARNING, "downloadResponseFileTemplate", e);
 		}
 		if (Objects.isNull(contentType)) {
 			contentType = "application/octet-stream";

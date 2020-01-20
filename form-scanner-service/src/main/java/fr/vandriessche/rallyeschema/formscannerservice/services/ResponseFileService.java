@@ -38,7 +38,10 @@ import com.albertoborsetta.formscanner.api.exceptions.FormScannerException;
 
 import fr.vandriessche.rallyeschema.formscannerservice.entities.FormGroup;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.FormPoint;
+import fr.vandriessche.rallyeschema.formscannerservice.entities.FormQuestion;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.FormTemplate;
+import fr.vandriessche.rallyeschema.formscannerservice.entities.PerformanceResult;
+import fr.vandriessche.rallyeschema.formscannerservice.entities.QuestionType;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFile;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileInfo;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileSource;
@@ -60,6 +63,15 @@ public class ResponseFileService {
 	private static final String EQUIPE2 = "Equipe2";
 	private static final String EQUIPE1 = "Equipe1";
 
+	private static Double parseDouble(String v) {
+		try {
+			return Double.parseDouble(v);
+		} catch (NumberFormatException | NullPointerException e) {
+			log.log(Level.WARNING, "parseDouble", e);
+		}
+		return null;
+	}
+
 	private static Integer parseInt(String s) {
 		try {
 			return Integer.parseInt(s);
@@ -71,11 +83,14 @@ public class ResponseFileService {
 
 	@Autowired
 	private ResponseFileRepository responseFileRepository;
-	@Autowired
-	private ResponseFileInfoRepository responseFileInfoRepository;
 
 	@Autowired
+	private ResponseFileInfoRepository responseFileInfoRepository;
+	@Autowired
 	private ResponseFileParamService responseFileParamService;
+	@Autowired
+	private StageParamService stageParamService;
+
 	@Autowired
 	private MessageProducerService messageProducerService;
 
@@ -149,6 +164,27 @@ public class ResponseFileService {
 		return responseFileInfoRepository.findByCheckedFalseOrCheckedNull(pageable);
 	}
 
+	public List<PerformanceResult> getPerformanceResultFromResponseFile(ResponseFileInfo responseFileInfo) {
+		ResponseFileSource source = new ResponseFileSource(responseFileInfo.getId());
+		var param = stageParamService.getStageParamByStage(responseFileInfo.getStage());
+		List<PerformanceResult> performances = new ArrayList<>();
+		var groups = responseFileInfo.getFilledForm().getGroups();
+		for (var group : groups.entrySet()) {
+			for (var field : group.getValue().getFields().values()) {
+				if (!field.getPoints().isEmpty()
+						&& Stream.of(EQUIPE1, EQUIPE2, ETAPE, PAGE).noneMatch(f -> f.equals(field.getName()))) {
+					var questionParam = param.getQuestionParams().getOrDefault(field.getName(), null);
+					if (Objects.nonNull(questionParam) && questionParam.getType().equals(QuestionType.PERFORMANCE)) {
+						Double resultValue = field.getPoints().keySet().stream().map(ResponseFileService::parseDouble)
+								.filter(Objects::nonNull).reduce(0d, Double::sum);
+						performances.add(new PerformanceResult(field.getName(), resultValue, source));
+					}
+				}
+			}
+		}
+		return performances;
+	}
+
 	public ResponseFile getResponseFile(String id) {
 		return responseFileRepository.findById(id).orElseThrow();
 	}
@@ -175,30 +211,20 @@ public class ResponseFileService {
 
 	public List<ResponseResult> getResponseResultFromResponseFile(ResponseFileInfo responseFileInfo) {
 		ResponseFileSource source = new ResponseFileSource(responseFileInfo.getId());
+		var param = stageParamService.getStageParamByStage(responseFileInfo.getStage());
 		List<ResponseResult> results = new ArrayList<>();
 		var groups = responseFileInfo.getFilledForm().getGroups();
 		for (var group : groups.entrySet()) {
 			for (var field : group.getValue().getFields().values()) {
 				if (Stream.of(EQUIPE1, EQUIPE2, ETAPE, PAGE).noneMatch(f -> f.equals(field.getName()))) {
-					Boolean resultValue = null;
-					var pointKeys = field.getPoints().keySet();
-					if (pointKeys.contains("O")) {
-						resultValue = true;
-					} else if (pointKeys.contains("N")) {
-						resultValue = false;
-					} else if (pointKeys.contains("Y")) {
-						resultValue = true;
+					var questionParam = param.getQuestionParams().getOrDefault(field.getName(), null);
+					if (Objects.nonNull(questionParam) && questionParam.getType().equals(QuestionType.QUESTION)) {
+						results.add(new ResponseResult(field.getName(), getResultValue(field), source));
 					}
-					results.add(new ResponseResult(field.getName(), resultValue, source));
 				}
 			}
 		}
 		return results;
-	}
-
-	public List<ResponseFileInfo> getSameResponseFileInfos(String id) {
-		ResponseFileInfo responseFileInfo = responseFileInfoRepository.findById(id).orElseThrow();
-		return getSameResponseFileInfos(responseFileInfo);
 	}
 
 	public List<ResponseFileInfo> getSameResponseFileInfos(ResponseFileInfo responseFileInfo) {
@@ -206,6 +232,11 @@ public class ResponseFileService {
 				.findByStageAndPageAndTeam(responseFileInfo.getStage(), responseFileInfo.getPage(),
 						responseFileInfo.getTeam())
 				.stream().filter(item -> !item.getId().equals(responseFileInfo.getId())).collect(Collectors.toList());
+	}
+
+	public List<ResponseFileInfo> getSameResponseFileInfos(String id) {
+		ResponseFileInfo responseFileInfo = responseFileInfoRepository.findById(id).orElseThrow();
+		return getSameResponseFileInfos(responseFileInfo);
 	}
 
 	public ResponseFileInfo updateResponseFileInfo(ResponseFileInfo responseFileInfo)
@@ -256,6 +287,19 @@ public class ResponseFileService {
 			responseFileInfo.setStage(1);
 		if (Objects.isNull(responseFileInfo.getPage()))
 			responseFileInfo.setPage(1);
+	}
+
+	private Boolean getResultValue(FormQuestion field) {
+		Boolean resultValue = null;
+		var pointKeys = field.getPoints().keySet();
+		if (pointKeys.contains("O")) {
+			resultValue = true;
+		} else if (pointKeys.contains("N")) {
+			resultValue = false;
+		} else if (pointKeys.contains("Y")) {
+			resultValue = true;
+		}
+		return resultValue;
 	}
 
 	private boolean isTemplateToUpdate(ResponseFileInfo responseFileInfo, ResponseFileInfo updatedResponseFileInfo) {

@@ -10,17 +10,9 @@ import org.springframework.stereotype.Component;
 
 import fr.vandriessche.rallyeschema.formscannerservice.controllers.ResponseFileController;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileInfo;
-import fr.vandriessche.rallyeschema.formscannerservice.services.ResponseFileService;
 
 @Component
 public class ResponseFileInfoModelAssembler implements SimpleRepresentationModelAssembler<ResponseFileInfo> {
-	private final ResponseFileService responseFileService;
-
-	public ResponseFileInfoModelAssembler(final ResponseFileService responseFileService) {
-		super();
-		this.responseFileService = responseFileService;
-	}
-
 	@Override
 	public void addLinks(EntityModel<ResponseFileInfo> resource) {
 		resource.add(

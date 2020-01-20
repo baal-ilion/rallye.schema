@@ -35,7 +35,6 @@ public class TeamInfoService {
 
 	public TeamInfo updateTeamInfo(TeamInfo teamInfo) {
 		teamInfoRepository.findById(teamInfo.getId()).orElseThrow();
-		// TODO Stub de la méthode généré automatiquement
 		return teamInfoRepository.save(teamInfo);
 	}
 }

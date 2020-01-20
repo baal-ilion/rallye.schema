@@ -13,6 +13,8 @@ import fr.vandriessche.rallyeschema.formscannerservice.entities.PerformanceResul
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileInfo;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseFileSource;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.ResponseResult;
+import fr.vandriessche.rallyeschema.formscannerservice.entities.StageResponse;
+import fr.vandriessche.rallyeschema.formscannerservice.entities.StageResponseSource;
 import fr.vandriessche.rallyeschema.formscannerservice.entities.StageResult;
 import fr.vandriessche.rallyeschema.formscannerservice.message.StageResultMessage;
 import fr.vandriessche.rallyeschema.formscannerservice.repositories.StageResultRepository;
@@ -34,6 +36,8 @@ public class StageResultService {
 	private StageParamService stageParamService;
 	@Autowired
 	private ResponseFileService responseFileService;
+	@Autowired
+	private StageResponseService stageResponseService;
 	@Autowired
 	private MessageProducerService messageProducerService;
 
@@ -87,6 +91,14 @@ public class StageResultService {
 		}
 	}
 
+	public void removeStageResponseEvent(String id) {
+		var stageResults = stageResultRepository.findByResponseSourceId(id, StageResponseSource.class.getName());
+		for (var stageResult : stageResults) {
+			removeStageResponseAndSearch(stageResult, id);
+			save(stageResult);
+		}
+	}
+
 	public StageResult undoStageResult(int stage, int team) {
 		StageResult stageResult = getStageResultByStageAndTeam(stage, team);
 		if (Objects.nonNull(stageResult)) {
@@ -120,6 +132,30 @@ public class StageResultService {
 		}
 	}
 
+	public void updateStageResponseEvent(String id) {
+		var stageResponse = stageResponseService.getStageResponse(id);
+		var stageResults = stageResultRepository.findByResponseSourceId(id, StageResponseSource.class.getName());
+		boolean found = false;
+		for (var stageResult : stageResults) {
+			log.info("updateResponseFileEvent: " + stageResult.getId());
+			if (Objects.nonNull(stageResponse) && stageResult.getStage().equals(stageResponse.getStage())
+					&& stageResult.getTeam().equals(stageResponse.getTeam())) {
+				found = true;
+				updateStageResponse(stageResult, stageResponse);
+				save(stageResult);
+			} else {
+				removeStageResponseAndSearch(stageResult, id);
+				save(stageResult);
+			}
+		}
+		if (!found && Objects.nonNull(stageResponse)) {
+			StageResult stageResult = findOrMakeStageResultByStageAndTeam(stageResponse.getStage(),
+					stageResponse.getTeam());
+			updateStageResponse(stageResult, stageResponse);
+			save(stageResult);
+		}
+	}
+
 	public StageResult updateStageResult(StageResult stageResult) {
 		StageResult stageResultToUpdate = Objects.nonNull(stageResult.getId())
 				? stageResultRepository.findById(stageResult.getId()).orElseThrow()
@@ -134,10 +170,20 @@ public class StageResultService {
 			return true;
 		if (!Boolean.TRUE.equals(responseFileInfo.getChecked()))
 			return false;
+		// Il ne doit pas y avoir de réponce
+		if (stageResult.getResponseSources().stream().anyMatch(s -> s.getClass().equals(StageResponseSource.class)))
+			return false;
 		// Il ne doit pas y avoir la même feuille de réponse
 		return responseFileService.getSameResponseFileInfos(responseFileInfo).stream()
 				.map(r -> new ResponseFileSource(r.getId()))
 				.noneMatch(s -> stageResult.getResponseSources().contains(s));
+	}
+
+	private boolean checkStageResponseSources(StageResult stageResult, StageResponse stageResponse) {
+		StageResponseSource source = new StageResponseSource(stageResponse.getId(), null);
+		if (stageResult.getResponseSources().contains(source))
+			return true;
+		return stageResponse.isFinalised() && stageResponse.isActive();
 	}
 
 	private StageResult findOrMakeStageResultByStageAndTeam(Integer stage, Integer team) {
@@ -164,7 +210,21 @@ public class StageResultService {
 
 	private void removeResponseFileAndSearch(StageResult stageResult, String id) {
 		removeResponseFile(stageResult, id);
-		searchResponseFile(stageResult, null, id);
+		if (!searchStageResponse(stageResult, null))
+			searchResponseFile(stageResult, null, id);
+	}
+
+	private void removeStageResponse(StageResult stageResult, String id) {
+		StageResponseSource sourceToRemove = new StageResponseSource(id, null);
+		stageResult.getResponseSources().removeIf(source -> sourceToRemove.equals(source));
+		stageResult.getResults().removeIf(result -> sourceToRemove.equals(result.getSource()));
+		stageResult.getPerformances().removeIf(perf -> sourceToRemove.equals(perf.getSource()));
+	}
+
+	private void removeStageResponseAndSearch(StageResult stageResult, String id) {
+		removeStageResponse(stageResult, id);
+		if (!searchStageResponse(stageResult, id))
+			searchResponseFile(stageResult, null, null);
 	}
 
 	private StageResult save(StageResult stageResult) {
@@ -188,14 +248,41 @@ public class StageResultService {
 		});
 	}
 
+	private boolean searchStageResponse(StageResult stageResult, String excludedStageResponseId) {
+		StageResponse stageResponse = stageResponseService.getStageResponseByStageAndTeam(stageResult.getStage(),
+				stageResult.getTeam());
+		if (Objects.nonNull(stageResponse) && !stageResponse.getId().equals(excludedStageResponseId)
+				&& checkStageResponseSources(stageResult, stageResponse)) {
+			setStageResponse(stageResult, stageResponse);
+			return true;
+		}
+		return false;
+	}
+
 	private void setResponseFile(StageResult stageResult, ResponseFileInfo responseFileInfo) {
 		responseFileService.getSameResponseFileInfos(responseFileInfo)
 				.forEach(r -> removeResponseFile(stageResult, r.getId()));
+		StageResponse stageResponse = stageResponseService.getStageResponseByStageAndTeam(responseFileInfo.getStage(),
+				responseFileInfo.getTeam());
+		if (Objects.nonNull(stageResponse))
+			removeStageResponse(stageResult, stageResponse.getId());
 		ResponseFileSource source = new ResponseFileSource(responseFileInfo.getId());
 		if (!stageResult.getResponseSources().contains(source))
 			stageResult.getResponseSources().add(source);
 		updateStageResult(stageResult, null, responseFileService.getResponseResultFromResponseFile(responseFileInfo),
-				new ArrayList<>(), null, null);
+				responseFileService.getPerformanceResultFromResponseFile(responseFileInfo), null, null);
+	}
+
+	private void setStageResponse(StageResult stageResult, StageResponse stageResponse) {
+		responseFileService.getResponseFileInfosByStageAndTeam(stageResponse.getStage(), stageResponse.getTeam())
+				.forEach(r -> removeStageResponse(stageResult, r.getId()));
+		StageResponseSource source = new StageResponseSource(stageResponse.getId(),
+				Objects.nonNull(stageResponse.getQuestions()) || Objects.nonNull(stageResponse.getTotal()));
+		if (!stageResult.getResponseSources().contains(source))
+			stageResult.getResponseSources().add(source);
+		updateStageResult(stageResult, null, stageResponseService.getResponseResultFromStageResponse(stageResponse),
+				stageResponseService.getPerformanceResultFromStageResponse(stageResponse), stageResponse.getBegin(),
+				stageResponse.getEnd());
 	}
 
 	private void updateResponseFile(StageResult stageResult, ResponseFileInfo responseFileInfo) {
@@ -203,6 +290,14 @@ public class StageResultService {
 			setResponseFile(stageResult, responseFileInfo);
 		} else {
 			removeResponseFileAndSearch(stageResult, responseFileInfo.getId());
+		}
+	}
+
+	private void updateStageResponse(StageResult stageResult, StageResponse stageResponse) {
+		if (checkStageResponseSources(stageResult, stageResponse)) {
+			setStageResponse(stageResult, stageResponse);
+		} else {
+			removeStageResponseAndSearch(stageResult, stageResponse.getId());
 		}
 	}
 

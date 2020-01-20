@@ -132,13 +132,11 @@ public class StageRankingService {
 
 		var results = mongoTemplate.aggregate(agg, StageResult.class, StageRanking.class);
 		results.getMappedResults().stream().filter(o -> o.getStage().equals(stageRanking.getStage())).findFirst()
-				.ifPresent(result -> {
-					stageRanking.setPerformances(result.getPerformances());
-				});
-		stageRanking.getPerformances().values().forEach(ranks -> computeRanking(ranks));
+				.ifPresent(result -> stageRanking.setPerformances(result.getPerformances()));
+		stageRanking.getPerformances().values().forEach(StageRankingService::computeRanking);
 	}
 
-	private <T> void computeRanking(List<TeamRank<T>> ranks) {
+	private static <T> void computeRanking(List<TeamRank<T>> ranks) {
 		int rank = 1;
 		T value = null;
 		int idx = 1;
