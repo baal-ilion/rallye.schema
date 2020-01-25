@@ -38,3 +38,8 @@ docker-compose up -d --build
 
 ## docker-compose build image prod and run
 docker-compose -f docker-compose-prod.yml up -d --build
+
+## Pour mettre l'image sur dockerhub :
+docker tag form-scanner-webapp:prod baalilion/form-scanner-webapp:0.0.1-SNAPSHOT
+docker push baalilion/form-scanner-webapp:0.0.1-SNAPSHOT
+
