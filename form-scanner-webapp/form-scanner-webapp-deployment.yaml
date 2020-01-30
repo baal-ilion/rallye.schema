@@ -1,0 +1,32 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: C:\Program Files\Docker\Docker\resources\bin\kompose.exe convert
+      -f .\docker-compose-prod.yml
+    kompose.version: 1.20.0 (f3d54d784)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: form-scanner-webapp
+  name: form-scanner-webapp
+spec:
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: C:\Program Files\Docker\Docker\resources\bin\kompose.exe convert
+          -f .\docker-compose-prod.yml
+        kompose.version: 1.20.0 (f3d54d784)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: form-scanner-webapp
+    spec:
+      containers:
+      - image: baalilion/form-scanner-webapp
+        name: form-scanner-webapp
+        ports:
+        - containerPort: 80
+        resources: {}
+      restartPolicy: Always
+status: {}

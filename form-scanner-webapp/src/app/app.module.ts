@@ -1,5 +1,5 @@
 import { BrowserModule } from '@angular/platform-browser';
-import { NgModule, LOCALE_ID } from '@angular/core';
+import { NgModule, LOCALE_ID, APP_INITIALIZER } from '@angular/core';
 import { HttpClientModule } from '@angular/common/http';
 
 import { AppRoutingModule } from './app-routing.module';
@@ -36,6 +36,7 @@ import localeFr from '@angular/common/locales/fr';
 import localeFrExtra from '@angular/common/locales/extra/fr';
 import { LocaleService } from './locale.service';
 import { CarouselResponseFileComponent } from './upload/carousel-response-file/carousel-response-file.component';
+import { AppConfigService } from './app-config.service';
 
 registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
 
@@ -94,7 +95,15 @@ registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
       },
       deps: [LocaleService]
     },
+    AppConfigService,
+    { provide: APP_INITIALIZER, useFactory: initializeApp, deps: [AppConfigService], multi: true }
   ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }
+
+export function initializeApp(appConfigService: AppConfigService) {
+  return (): Promise<any> => {
+    return appConfigService.load();
+  };
+}

@@ -23,8 +23,8 @@ services:
     volumes:
       - rabbitmq:/bitnami
     restart: always
-  app:
-    image: form-scanner-service:0.0.1-SNAPSHOT
+  form-scanner-service:
+    image: baalilion/form-scanner-service
     container_name: "form-scanner-service"
     ports:
       - 8080:8080

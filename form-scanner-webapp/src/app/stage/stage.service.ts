@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from 'src/environments/environment';
+import { AppConfigService } from '../app-config.service';
 
 @Injectable({
   providedIn: 'root'
@@ -11,17 +11,17 @@ export class StageService {
   constructor(private http: HttpClient) { }
 
   getStages(): Observable<any> {
-    return this.http.get(environment.apiUrl + '/stageResults');
+    return this.http.get(AppConfigService.settings.apiUrl.rallyeSchema + '/stageResults');
   }
 
   getStagesByTeam(team): Observable<any> {
     const params = new HttpParams().set('team', team.toString());
-    return this.http.get(environment.apiUrl + '/stageResults/search/findByTeam', { params });
+    return this.http.get(AppConfigService.settings.apiUrl.rallyeSchema + '/stageResults/search/findByTeam', { params });
   }
 
   updateStage(stage): any {
     console.log(stage);
-    this.http.patch(environment.apiUrl + '/stageResults', stage).subscribe(data => {
+    this.http.patch(AppConfigService.settings.apiUrl.rallyeSchema + '/stageResults', stage).subscribe(data => {
       console.log(data);
       return data;
     }, error => {
@@ -31,22 +31,22 @@ export class StageService {
 
   beginStage(stage, team): Observable<any> {
     const params = new HttpParams().set('stage', stage.toString()).set('team', team.toString());
-    return this.http.post(environment.apiUrl + '/stageResults/begin', null, { params });
+    return this.http.post(AppConfigService.settings.apiUrl.rallyeSchema + '/stageResults/begin', null, { params });
   }
 
   endStage(stage, team): Observable<any> {
     const params = new HttpParams().set('stage', stage.toString()).set('team', team.toString());
-    return this.http.post(environment.apiUrl + '/stageResults/end', null, { params });
+    return this.http.post(AppConfigService.settings.apiUrl.rallyeSchema + '/stageResults/end', null, { params });
   }
 
   cancelStage(stage, team): Observable<any> {
     const params = new HttpParams().set('stage', stage.toString()).set('team', team.toString());
-    return this.http.delete(environment.apiUrl + '/stageResults/begin', { params });
+    return this.http.delete(AppConfigService.settings.apiUrl.rallyeSchema + '/stageResults/begin', { params });
   }
 
   undoStage(stage, team): Observable<any> {
     const params = new HttpParams().set('stage', stage.toString()).set('team', team.toString());
-    return this.http.delete(environment.apiUrl + '/stageResults/end', { params });
+    return this.http.delete(AppConfigService.settings.apiUrl.rallyeSchema + '/stageResults/end', { params });
   }
 
   getResource(url): Observable<any> {
