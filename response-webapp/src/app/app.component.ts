@@ -6,5 +6,5 @@ import { Component } from '@angular/core';
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent {
-  title = 'form-scanner-webapp';
+  title = 'rallye-schema-response-webapp';
 }
