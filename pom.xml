@@ -13,6 +13,6 @@
 	<modules>
 		<module>security-service</module>
 		<module>FormScannerHelloWorld</module>
-		<module>form-scanner-service</module>
+		<module>response-service</module>
 	</modules>
 </project>
