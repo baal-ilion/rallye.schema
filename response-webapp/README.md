@@ -28,10 +28,10 @@ To get more help on the Angular CLI use `ng help` or go check out the [Angular C
 
 
 ## Build docker image dev
-docker build -t form-scanner-webapp:dev .
+docker build -t rallye-schema-response-webapp:dev .
 
 ## run docker image dev
-docker run -it -v ${PWD}:/app -v /app/node_modules -p 4201:4200 --rm form-scanner-webapp:dev
+docker run -it -v ${PWD}:/app -v /app/node_modules -p 4201:4200 --rm rallye-schema-response-webapp:dev
 
 ## docker-compose build image dev and run
 docker-compose up -d --build
@@ -40,6 +40,5 @@ docker-compose up -d --build
 docker-compose -f docker-compose-prod.yml up -d --build
 
 ## Pour mettre l'image sur dockerhub :
-docker tag form-scanner-webapp:prod baalilion/form-scanner-webapp:0.0.1-SNAPSHOT
-docker push baalilion/form-scanner-webapp:0.0.1-SNAPSHOT
+docker push baalilion/rallye-schema-response-webapp
 

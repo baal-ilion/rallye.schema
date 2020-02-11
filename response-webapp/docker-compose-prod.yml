@@ -1,8 +1,8 @@
 version: '3.7'
 services:
-  form-scanner-webapp:
-    container_name: "form-scanner-webapp"
-    image: baalilion/form-scanner-webapp
+  rallye-schema-response-webapp:
+    container_name: "rallye-schema-response-webapp"
+    image: baalilion/rallye-schema-response-webapp
     build:
       context: .
       dockerfile: Dockerfile-prod

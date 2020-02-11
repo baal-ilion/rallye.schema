@@ -7,8 +7,8 @@ metadata:
     kompose.version: 1.20.0 (f3d54d784)
   creationTimestamp: null
   labels:
-    io.kompose.service: form-scanner-webapp
-  name: form-scanner-webapp
+    io.kompose.service: rallye-schema-response-webapp
+  name: rallye-schema-response-webapp
 spec:
   replicas: 1
   strategy: {}
@@ -20,11 +20,11 @@ spec:
         kompose.version: 1.20.0 (f3d54d784)
       creationTimestamp: null
       labels:
-        io.kompose.service: form-scanner-webapp
+        io.kompose.service: rallye-schema-response-webapp
     spec:
       containers:
-      - image: baalilion/form-scanner-webapp
-        name: form-scanner-webapp
+      - image: baalilion/rallye-schema-response-webapp
+        name: rallye-schema-response-webapp
         ports:
         - containerPort: 80
         resources: {}

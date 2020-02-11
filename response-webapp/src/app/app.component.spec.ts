@@ -20,16 +20,16 @@ describe('AppComponent', () => {
     expect(app).toBeTruthy();
   });
 
-  it(`should have as title 'form-scanner-webapp'`, () => {
+  it(`should have as title 'rallye-schema-response-webapp'`, () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.debugElement.componentInstance;
-    expect(app.title).toEqual('form-scanner-webapp');
+    expect(app.title).toEqual('rallye-schema-response-webapp');
   });
 
   it('should render title', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
     const compiled = fixture.debugElement.nativeElement;
-    expect(compiled.querySelector('.content span').textContent).toContain('form-scanner-webapp app is running!');
+    expect(compiled.querySelector('.content span').textContent).toContain('rallye-schema-response-webapp app is running!');
   });
 });
