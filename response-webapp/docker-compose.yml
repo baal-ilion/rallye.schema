@@ -2,12 +2,13 @@ version: '3.7'
 services:
   rallye-schema-response-webapp:
     container_name: "rallye-schema-response-webapp"
-    image: rallye-schema-response-webapp:dev
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: baalilion/rallye-schema-response-webapp
     volumes:
-      - '.:/app'
+      - 'rallye-schema-response-webapp-app:/app'
+      - 'rallye-schema-response-webapp-config:/usr/share/nginx/html/config'
       - '/app/node_modules'
     ports:
-      - '4201:4200'
+      - '80:80'
+volumes:
+  rallye-schema-response-webapp-app:
+  rallye-schema-response-webapp-config:

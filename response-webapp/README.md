@@ -33,8 +33,8 @@ docker build -t rallye-schema-response-webapp:dev .
 ## run docker image dev
 docker run -it -v ${PWD}:/app -v /app/node_modules -p 4201:4200 --rm rallye-schema-response-webapp:dev
 
-## docker-compose build image dev and run
-docker-compose up -d --build
+## docker-compose install image prod and run
+docker-compose up -d
 
 ## docker-compose build image prod and run
 docker-compose -f docker-compose-prod.yml up -d --build
