@@ -10,9 +10,9 @@ import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 export class ModifyResponseFileParamComponent implements OnInit {
 
   @Input() param: any;
-  @ViewChild('labelImport', { static: false })
+  @ViewChild('labelImport')
   labelImport: ElementRef;
-  @ViewChild('labelImportModel', { static: false })
+  @ViewChild('labelImportModel')
   labelImportModel: ElementRef;
 
   templateFile: File;

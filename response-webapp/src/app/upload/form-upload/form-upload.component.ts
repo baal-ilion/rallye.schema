@@ -9,7 +9,7 @@ import { HttpEventType, HttpResponse } from '@angular/common/http';
 })
 export class FormUploadComponent implements OnInit {
 
-  @ViewChild('labelImport', { static: false })
+  @ViewChild('labelImport')
   labelImport: ElementRef;
 
   selectedFiles: FileList;
