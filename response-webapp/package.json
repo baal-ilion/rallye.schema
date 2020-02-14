@@ -21,7 +21,7 @@
     "@angular/platform-browser": "~9.0.1",
     "@angular/platform-browser-dynamic": "~9.0.1",
     "@angular/router": "~9.0.1",
-    "@ng-bootstrap/ng-bootstrap": "^5.1.4",
+    "@ng-bootstrap/ng-bootstrap": "^6.0.0-rc.0",
     "bootstrap": "^4.3.1",
     "ngx-ui-switch": "^8.2.0",
     "rxjs": "~6.5.4",
