@@ -7,8 +7,11 @@ services:
       context: .
       dockerfile: Dockerfile-prod
     volumes:
-      - './app:/app'
-      - './config:/usr/share/nginx/html/config'
+      - 'rallye-schema-response-webapp-app:/app'
+      - 'rallye-schema-response-webapp-config:/usr/share/nginx/html/config'
       - '/app/node_modules'
     ports:
       - '80:80'
+volumes:
+  rallye-schema-response-webapp-app:
+  rallye-schema-response-webapp-config:
