@@ -1,0 +1,8 @@
+<ngb-carousel *ngIf="responseFiles">
+  <ng-template ngbSlide *ngFor="let responseFile of responseFiles">
+    <div style="position: relative;" class="response-file">
+      <app-details-upload [fileUpload]="responseFile" [dragable]="false" (deleteEvent)="delete(responseFile)">
+      </app-details-upload>
+    </div>
+  </ng-template>
+</ngb-carousel>

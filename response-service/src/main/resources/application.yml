@@ -1,0 +1,53 @@
+# Fichier template par défaut
+TemplateFileName: C:\Users\baali\Documents\Rallye Schema\model.xtmpl
+# Parametrage de spring
+spring:
+  data:
+# Parametrage de mongodb  
+    mongodb:
+      database: rallye-schema-response
+      host: localhost
+      port: 27017
+  servlet:
+    multipart:
+      enabled: true
+      file-size-threshold: 2KB
+      max-file-size: 200MB
+      max-request-size: 215MB
+#AMQP RabbitMQ configuration 
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+# Additional RabbitMQ properties
+    listener:
+      simple:
+        concurrency: 4
+        max-concurrency: 8
+        retry:
+          initial-interval: 5000
+          
+---
+spring:
+  profiles: test
+  data:
+    mongodb:
+      database: rallye-schema-response-test
+      host: localhost
+      port: 27017 
+
+---
+spring:
+  profiles: docker
+  data:
+    mongodb:
+      database: rallye-schema-response
+      host: mongodb
+      port: 27017 
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    username: rallyeschema
+    password: rallyeschema
+

@@ -1,0 +1,50 @@
+<nav class="navbar fixed-top  navbar-expand-lg navbar-light bg-light">
+  <!-- Brand -->
+  <a class="navbar-brand" [routerLink]="'.'">{{title}}</a>
+  <button class="navbar-toggler" type="button" [attr.aria-expanded]="!collapsed" (click)="collapsed = !collapsed"
+    aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  <div class="collapse navbar-collapse" [class.collapse]="collapsed" id="navbarSupportedContent">
+
+    <!-- Links -->
+    <ul class="navbar-nav mr-auto">
+      <li class="nav-item">
+        <a class="nav-link" [routerLink]="'.'" (click)="collapsed = true">Home <span
+            class="sr-only">(current)</span></a>
+      </li>
+      <li *ngIf="teamInfos" ngbDropdown class="nav-item" display="dynamic">
+        <a class="nav-link" id="teamsMenu" ngbDropdownToggle role="button" data-toggle="dropdown" aria-haspopup="true"
+          aria-expanded="false">Equipes</a>
+        <div ngbDropdownMenu aria-labelledby="teamsMenu">
+          <a *ngFor="let teamInfo of teamInfos" ngbDropdownItem routerLink="/team/{{teamInfo.id}}"
+            (click)="collapsed = true">{{teamInfo.team}} - {{teamInfo.name}}</a>
+        </div>
+      </li>
+      <li ngbDropdown class="nav-item" display="dynamic">
+        <a class="nav-link" id="responseFilesMenu" ngbDropdownToggle role="button" data-toggle="dropdown"
+          aria-haspopup="true" aria-expanded="false">Feuilles de réponses</a>
+        <div ngbDropdownMenu aria-labelledby="responseFilesMenu">
+          <a ngbDropdownItem routerLink="/formUpload" (click)="collapsed = true">Enregistrer des feuilles de
+            réponses</a>
+          <a ngbDropdownItem routerLink="/listUpload" (click)="collapsed = true">Vérifier les feuilles de réponses</a>
+        </div>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" routerLink="/listStage" (click)="collapsed = true">Correction des étapes</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" routerLink="/listPoint" (click)="collapsed = true">Classement</a>
+      </li>
+      <li ngbDropdown class="nav-item" display="dynamic">
+        <a class="nav-link" id="paramMenu" ngbDropdownToggle role="button" data-toggle="dropdown" aria-haspopup="true"
+          aria-expanded="false">Paramétrage</a>
+        <div ngbDropdownMenu aria-labelledby="paramMenu">
+          <a ngbDropdownItem routerLink="/listStageParam" (click)="collapsed = true">Paramétrage des étapes</a>
+          <a ngbDropdownItem routerLink="/listTeamInfo" (click)="collapsed = true">Paramétrage des équipes</a>
+        </div>
+      </li>
+    </ul>
+  </div>
+</nav>

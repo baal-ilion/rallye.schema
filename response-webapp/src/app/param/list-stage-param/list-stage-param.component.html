@@ -1,0 +1,11 @@
+<div *ngIf='stageParams' class="panel panel-primary">
+  <div class="panel-heading">Liste des étapes</div>
+  <button class="btn-info" ngbButtonLabel (click)='addStageParam()'>Ajouter une étape</button>
+  <div *ngIf='stageParams'>
+    <div *ngFor="let stageParam of stageParams">
+      <div class="panel-body">
+        <app-details-stage-param [stageParam]='stageParam'></app-details-stage-param>
+      </div>
+    </div>
+  </div>
+</div>
