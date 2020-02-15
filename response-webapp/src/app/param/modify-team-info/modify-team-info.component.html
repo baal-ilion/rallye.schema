@@ -1,0 +1,34 @@
+<div class="modal-header">
+  <h4 class="modal-title">Equipe</h4>
+  <button type="button" class="close" aria-label="Close" (click)="activeModal.dismiss('Cross click')">
+  </button>
+</div>
+<form [formGroup]="teamInfoForm" (ngSubmit)="submitForm()">
+  <div class="modal-boy">
+    <div class="container">
+      <div class="form-group">
+        <label for="team">Equipe</label>
+        <input type="number" class="form-control" formControlName="team"
+          [ngClass]="{ 'is-invalid': teamInfoForm.controls.team.errors }">
+        <div *ngIf="teamInfoForm.controls.team.errors" class="invalid-feedback">
+          <div *ngIf="teamInfoForm.controls.team.errors.required">Le numéro d'équipe est requis</div>
+          <div *ngIf="teamInfoForm.controls.team.errors.uniqueTeam">Ce numéro d'équipe existe déjà</div>
+        </div>
+      </div>
+      <div class=" form-group">
+        <label for="name">Nom</label>
+        <input type="text" class="form-control" formControlName="name"
+          [ngClass]="{ 'is-invalid': teamInfoForm.controls.name.errors }">
+        <div *ngIf="teamInfoForm.controls.name.errors" class="invalid-feedback">
+          <div *ngIf="teamInfoForm.controls.name.errors.required">Le nom d'équipe est requis</div>
+          <div *ngIf="teamInfoForm.controls.name.errors.uniqueName">Ce nom d'équipe existe déjà</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-success" [disabled]="!teamInfoForm.valid">
+      Submit Form
+    </button>
+  </div>
+</form>

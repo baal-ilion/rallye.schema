@@ -1,0 +1,12 @@
+<div class="panel panel-primary">
+  <div class="panel-heading">Liste des feuilles de réponses</div>
+  <div
+    *ngIf='(fileUploads | async) && (fileUploads | async)._embedded && (fileUploads | async)._embedded.responseFileInfoes'>
+    <div *ngFor="let file of (fileUploads | async)._embedded.responseFileInfoes">
+      <div class="panel-body" *ngIf="!file.checked">
+        <app-details-upload [fileUpload]='file' (checkedEvent)="file.checked = true"
+          (deleteEvent)="file.checked = true"></app-details-upload>
+      </div>
+    </div>
+  </div>
+</div>

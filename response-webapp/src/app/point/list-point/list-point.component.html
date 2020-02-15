@@ -1,0 +1,19 @@
+<div class="panel panel-primary">
+  <h1 class="panel-heading">Classement</h1>
+  <div *ngIf='points'>
+    <div *ngFor="let point of points | async">
+      <div class="panel-body">
+        <h2>Equipe {{point.team}} : {{point.total}} pts</h2>
+      </div>
+    </div>
+  </div>
+  <h1 class="panel-heading">Classement (Detail)</h1>
+  <button class="btn-info" ngbButtonLabel (click)='recomputePoints()'>Recalculer les Points</button>
+  <div *ngIf='points'>
+    <div *ngFor="let point of points | async">
+      <div class="panel-body">
+        <app-details-point [point]='point'></app-details-point>
+      </div>
+    </div>
+  </div>
+</div>
