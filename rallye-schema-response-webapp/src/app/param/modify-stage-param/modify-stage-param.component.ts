@@ -1,5 +1,5 @@
 import { Component, OnInit, Input } from '@angular/core';
-import { FormGroup, FormBuilder, FormArray } from '@angular/forms';
+import { FormGroup, FormBuilder, FormArray, AbstractControl } from '@angular/forms';
 import { StageParamService } from '../stage-param.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
@@ -32,7 +32,12 @@ export class ModifyStageParamComponent implements OnInit {
   // convenience getters for easy access to form fields
   get f() { return this.stageParamForm.controls; }
   get questionPointParams() { return this.f.questionPointParams as FormArray; }
+  get performancePointParams() { return this.f.performancePointParams as FormArray; }
   get questionParams() { return this.f.questionParams as FormArray; }
+  getRanges(performancePointParam: AbstractControl) {
+    const f = (performancePointParam as FormGroup).controls;
+    return f.ranges as FormArray;
+  }
 
   ngOnInit() {
     this.stageParam = null;
@@ -44,6 +49,7 @@ export class ModifyStageParamComponent implements OnInit {
       name: '',
       inactive: false,
       questionPointParams: this.formBuilder.array([]),
+      performancePointParams: this.formBuilder.array([]),
       questionParams: this.formBuilder.array([])
     });
     const id = this.route.snapshot.paramMap.get('id');
@@ -55,6 +61,7 @@ export class ModifyStageParamComponent implements OnInit {
       this.stageParamForm.controls.name.setValue(this.stageParam.name);
       this.stageParamForm.controls.inactive.setValue(this.stageParam.inactive);
       this.questionPointParams.clear();
+      this.performancePointParams.clear();
       this.questionParams.clear();
 
       const questionKeys = Object.keys(this.stageParam.questionParams);
@@ -77,6 +84,7 @@ export class ModifyStageParamComponent implements OnInit {
       this.stageParamForm.controls.name.setValue('');
       this.stageParamForm.controls.inactive.setValue(false);
       this.questionPointParams.clear();
+      this.performancePointParams.clear();
       this.questionParams.clear();
       console.log(error);
       this.router.navigateByUrl('/listStageParam');
@@ -93,6 +101,31 @@ export class ModifyStageParamComponent implements OnInit {
       this.questionPointParams.push(this.formBuilder.group({
         name: questionParam.name,
         point: pointValue
+      }));
+    } else if (questionParam.type === 'PERFORMANCE') {
+      const performancePoint = this.stageParam.performancePointParams[questionParam.name];
+      const ranges = this.formBuilder.array([]);
+      performancePoint?.ranges?.forEach(range => {
+        const type: string = range.type;
+        const begin: number = range.begin;
+        const end: number = range.end;
+        const point: number = range.point;
+        ranges.push(this.formBuilder.group({
+          type,
+          begin,
+          end,
+          point
+        }));
+      });
+      ranges.push(this.formBuilder.group({
+        type: null,
+        begin: null,
+        end: null,
+        point: null
+      }));
+      this.performancePointParams.push(this.formBuilder.group({
+        name: questionParam.name,
+        ranges
       }));
     }
   }
@@ -178,6 +211,7 @@ export class ModifyStageParamComponent implements OnInit {
 
   onSubmit() {
     const modifiedQuestionPointParams = this.getModifiedQuestionPointParams();
+    const modifiedPerformancePointParams = this.getModifiedPerformancePointParams();
     const modifiedQuestionParams = this.getModifiedQuestionParams();
     this.stageParamService.updateStageParam({
       id: this.stageParam.id,
@@ -185,6 +219,7 @@ export class ModifyStageParamComponent implements OnInit {
       name: this.stageParamForm.value.name,
       inactive: this.stageParamForm.value.inactive,
       questionPointParams: modifiedQuestionPointParams,
+      performancePointParams: modifiedPerformancePointParams,
       questionParams: modifiedQuestionParams
     }).subscribe(data => {
       console.log(data);
@@ -207,6 +242,30 @@ export class ModifyStageParamComponent implements OnInit {
       }
     });
     return modifiedQuestionPointParams;
+  }
+
+  private getModifiedPerformancePointParams() {
+    const modifiedPerformancePointParams = {};
+    this.stageParamForm.value.performancePointParams.forEach((item, index) => {
+      const performancePoint = this.stageParam.performancePointParams[item.name];
+      item.ranges.forEach((range, rangeIndex) => {
+        if (performancePoint.ranges.length > rangeIndex) {
+          const rangePoint = performancePoint.ranges[rangeIndex];
+          if (rangePoint.type !== range.type ||
+            rangePoint.begin !== range.begin ||
+            rangePoint.end !== range.end ||
+            rangePoint.point !== range.point) {
+            modifiedPerformancePointParams[item.name] = item;
+          }
+        } else {
+          if (range.point && range.point !== 0 && range.type) {
+            modifiedPerformancePointParams[item.name] = item;
+          }
+        }
+      });
+      item.ranges = item.ranges.filter(range => range.point && range.type);
+    });
+    return modifiedPerformancePointParams;
   }
 
   private getModifiedQuestionParams() {

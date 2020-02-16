@@ -84,6 +84,45 @@
               </div>
             </div>
           </div>
+          <div class="row">
+            <div *ngFor="let performancePointParam of performancePointParams.controls"
+              class="col-6 col-lg-3 col-sm-6 col-md-4">
+              <div [formGroup]="performancePointParam" class="row">
+                <label class="col align-self-center">{{performancePointParam.value.name}}</label>
+                <div class="col-auto align-self-center">
+                  <div *ngFor="let range of getRanges(performancePointParam).controls">
+                    <div [formGroup]="range" class="row">
+                      <div class="col-auto align-self-center">
+                        <label class="col align-self-center">type</label>
+                        <select class="form-group custom-select" formControlName="type">
+                          <option value="VALUE">Valeur</option>
+                          <option value="BEGIN_DOWN_RANK">Début de l'epreuve (desc)</option>
+                          <option value="BEGIN_UP_RANK">Début de l'epreuve (asc)</option>
+                          <option value="END_DOWN_RANK">Fin de l'epreuve (desc)</option>
+                          <option value="END_UP_RANK">Fin de l'epreuve (asc)</option>
+                          <option value="PERF_DOWN_RANK">Ordre de la performance (desc)</option>
+                          <option value="PERF_UP_RANK">Ordre de la performance (asc)</option>
+                          <option value=""></option>
+                        </select>
+                      </div>
+                      <div class="col-auto align-self-center">
+                        <label class="col align-self-center">begin</label>
+                        <input type="number" formControlName="begin" class="col-auto">
+                      </div>
+                      <div class="col-auto align-self-center">
+                        <label class="col align-self-center">end</label>
+                        <input type="number" formControlName="end" class="col-auto">
+                      </div>
+                      <div class="col-auto align-self-center">
+                        <label class="col align-self-center">point</label>
+                        <input type="number" formControlName="point" class="col-auto">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </ng-template>
       </ngb-panel>
     </ngb-accordion>

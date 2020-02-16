@@ -32,6 +32,7 @@ public class StageParamModelAssemblerSupport extends RepresentationModelAssemble
 		model.setStage(entity.getStage());
 		model.setQuestionParams(entity.getQuestionParams());
 		model.setQuestionPointParams(entity.getQuestionPointParams());
+		model.setPerformancePointParams(entity.getPerformancePointParams());
 		addLinks(model, entity);
 		return model;
 	}
