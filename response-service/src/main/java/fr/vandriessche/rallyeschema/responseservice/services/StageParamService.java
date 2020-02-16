@@ -122,6 +122,7 @@ public class StageParamService {
 	private void updatePerformancePointParams(StageParam stageParamToUpdate,
 			Collection<PerformancePointParam> performancePointParams) {
 		for (var performancePointParam : performancePointParams) {
+			performancePointParam.getRanges().removeIf(range -> Objects.isNull(range.getPoint()));
 			if (performancePointParam.getRanges().isEmpty()) {
 				removePerformancePointParam(stageParamToUpdate, performancePointParam.getName());
 			} else {
@@ -140,7 +141,7 @@ public class StageParamService {
 		} else {
 			if (Objects.nonNull(questionParam.getType())
 					&& !questionParam.getType().equals(questionParamToUpdate.getType())) {
-				if (questionParamToUpdate.getType() == QuestionType.PERFORMANCE)
+				if (questionParam.getType() == QuestionType.PERFORMANCE)
 					removeQuestionPointParam(stageParamToUpdate, questionParam.getName());
 				else
 					removePerformancePointParam(stageParamToUpdate, questionParam.getName());
