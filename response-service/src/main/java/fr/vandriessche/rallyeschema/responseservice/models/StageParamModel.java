@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.core.Relation;
 
+import fr.vandriessche.rallyeschema.responseservice.entities.PerformancePointParam;
 import fr.vandriessche.rallyeschema.responseservice.entities.QuestionParam;
 import fr.vandriessche.rallyeschema.responseservice.entities.QuestionPointParam;
 import lombok.Data;
@@ -22,6 +23,7 @@ public class StageParamModel extends RepresentationModel<StageParamModel> {
 	private Boolean inactive;
 
 	private LinkedHashMap<String, QuestionPointParam> questionPointParams;
+	private LinkedHashMap<String, PerformancePointParam> performancePointParams;
 	private LinkedHashMap<String, QuestionParam> questionParams;
 
 }
