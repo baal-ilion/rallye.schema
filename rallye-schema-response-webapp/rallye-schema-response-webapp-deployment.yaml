@@ -1,9 +1,8 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    kompose.cmd: C:\Program Files\Docker\Docker\resources\bin\kompose.exe convert
-      -f .\docker-compose-prod.yml
+    kompose.cmd: C:\Program Files\Kompose\kompose.exe convert
     kompose.version: 1.20.0 (f3d54d784)
   creationTimestamp: null
   labels:
@@ -11,12 +10,15 @@ metadata:
   name: rallye-schema-response-webapp
 spec:
   replicas: 1
-  strategy: {}
+  selector:
+    matchLabels:
+      io.kompose.service: rallye-schema-response-webapp
+  strategy:
+    type: Recreate
   template:
     metadata:
       annotations:
-        kompose.cmd: C:\Program Files\Docker\Docker\resources\bin\kompose.exe convert
-          -f .\docker-compose-prod.yml
+        kompose.cmd: C:\Program Files\Kompose\kompose.exe convert
         kompose.version: 1.20.0 (f3d54d784)
       creationTimestamp: null
       labels:
@@ -28,5 +30,22 @@ spec:
         ports:
         - containerPort: 80
         resources: {}
+        volumeMounts:
+        - mountPath: /app
+          name: rallye-schema-response-webapp-app
+        - mountPath: /usr/share/nginx/html/config
+          name: rallye-schema-response-webapp-config
+        - mountPath: /app/node_modules
+          name: rallye-schema-response-webapp-claim2
       restartPolicy: Always
+      volumes:
+      - name: rallye-schema-response-webapp-app
+        persistentVolumeClaim:
+          claimName: rallye-schema-response-webapp-app
+      - name: rallye-schema-response-webapp-config
+        persistentVolumeClaim:
+          claimName: rallye-schema-response-webapp-config
+      - name: rallye-schema-response-webapp-claim2
+        persistentVolumeClaim:
+          claimName: rallye-schema-response-webapp-claim2
 status: {}

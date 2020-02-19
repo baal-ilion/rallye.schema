@@ -42,3 +42,5 @@ docker-compose -f docker-compose-prod.yml up -d --build
 ## Pour mettre l'image sur dockerhub :
 docker push baalilion/rallye-schema-response-webapp
 
+## Install kubernetes :
+kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml apply -f .\rallye-schema-response-webapp-app-persistentvolumeclaim.yaml -f .\rallye-schema-response-webapp-claim2-persistentvolumeclaim.yaml -f .\rallye-schema-response-webapp-config-persistentvolumeclaim.yaml -f .\rallye-schema-response-webapp-service.yaml -f .\rallye-schema-response-webapp-deployment.yaml 
