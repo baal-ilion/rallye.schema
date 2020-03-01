@@ -60,6 +60,8 @@ public class ResponseFileService {
 
 	private static final String PAGE = "Page";
 	private static final String ETAPE = "Etape";
+	private static final String ETAPE1 = "Etape1";
+	private static final String ETAPE2 = "Etape2";
 	private static final String EQUIPE2 = "Equipe2";
 	private static final String EQUIPE1 = "Equipe1";
 
@@ -171,8 +173,8 @@ public class ResponseFileService {
 		var groups = responseFileInfo.getFilledForm().getGroups();
 		for (var group : groups.entrySet()) {
 			for (var field : group.getValue().getFields().values()) {
-				if (!field.getPoints().isEmpty()
-						&& Stream.of(EQUIPE1, EQUIPE2, ETAPE, PAGE).noneMatch(f -> f.equals(field.getName()))) {
+				if (!field.getPoints().isEmpty() && Stream.of(EQUIPE1, EQUIPE2, ETAPE, ETAPE1, ETAPE2, PAGE)
+						.noneMatch(f -> f.equals(field.getName()))) {
 					var questionParam = param.getQuestionParams().getOrDefault(field.getName(), null);
 					if (Objects.nonNull(questionParam) && questionParam.getType().equals(QuestionType.PERFORMANCE)) {
 						Double resultValue = field.getPoints().keySet().stream().map(ResponseFileService::parseDouble)
@@ -216,7 +218,8 @@ public class ResponseFileService {
 		var groups = responseFileInfo.getFilledForm().getGroups();
 		for (var group : groups.entrySet()) {
 			for (var field : group.getValue().getFields().values()) {
-				if (Stream.of(EQUIPE1, EQUIPE2, ETAPE, PAGE).noneMatch(f -> f.equals(field.getName()))) {
+				if (Stream.of(EQUIPE1, EQUIPE2, ETAPE, ETAPE1, ETAPE2, PAGE)
+						.noneMatch(f -> f.equals(field.getName()))) {
 					var questionParam = param.getQuestionParams().getOrDefault(field.getName(), null);
 					if (Objects.nonNull(questionParam) && questionParam.getType().equals(QuestionType.QUESTION)) {
 						results.add(new ResponseResult(field.getName(), getResultValue(field), source));
@@ -277,8 +280,12 @@ public class ResponseFileService {
 			if (Objects.nonNull(equipe1) && Objects.nonNull(equipe2))
 				responseFileInfo.setTeam(parseInt(equipe1.getValues() + equipe2.getValues()));
 			var etape = group.getFields().get(ETAPE);
+			var etape1 = group.getFields().get(ETAPE1);
+			var etape2 = group.getFields().get(ETAPE2);
 			if (Objects.nonNull(etape))
 				responseFileInfo.setStage(parseInt(etape.getValues()));
+			else if (Objects.nonNull(etape1) && Objects.nonNull(etape2))
+				responseFileInfo.setStage(parseInt(etape1.getValues() + etape2.getValues()));
 			var page = group.getFields().get(PAGE);
 			if (Objects.nonNull(page))
 				responseFileInfo.setPage(parseInt(page.getValues()));
