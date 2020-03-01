@@ -10,7 +10,7 @@ services:
       - mongodb_configdb:/data/configdb
     restart: always
   rabbitmq:
-    image: bitnami/rabbitmq
+    image: rabbitmq:management
     container_name: "rabbitmq"
     ports:
       - 4369:4369
@@ -18,10 +18,10 @@ services:
       - 25672:25672
       - 15672:15672
     environment:
-      - RABBITMQ_USERNAME=rallyeschema
-      - RABBITMQ_PASSWORD=rallyeschema
+      - RABBITMQ_DEFAULT_USER=rallyeschema
+      - RABBITMQ_DEFAULT_PASS=rallyeschema
     volumes:
-      - rabbitmq:/bitnami
+      - rabbitmq:/var/lib/rabbitmq
     restart: always
   rallye-schema-response-service:
     image: baalilion/rallye-schema-response-service
