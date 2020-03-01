@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    kompose.cmd: C:\Program Files\Docker\Docker\resources\bin\kompose.exe convert
+    kompose.cmd: C:\Program Files\Kompose\kompose.exe convert
     kompose.version: 1.20.0 (f3d54d784)
   creationTimestamp: null
   labels:
@@ -18,7 +18,7 @@ spec:
   template:
     metadata:
       annotations:
-        kompose.cmd: C:\Program Files\Docker\Docker\resources\bin\kompose.exe convert
+        kompose.cmd: C:\Program Files\Kompose\kompose.exe convert
         kompose.version: 1.20.0 (f3d54d784)
       creationTimestamp: null
       labels:
@@ -26,11 +26,11 @@ spec:
     spec:
       containers:
       - env:
-        - name: RABBITMQ_PASSWORD
+        - name: RABBITMQ_DEFAULT_PASS
           value: rallyeschema
-        - name: RABBITMQ_USERNAME
+        - name: RABBITMQ_DEFAULT_USER
           value: rallyeschema
-        image: bitnami/rabbitmq
+        image: rabbitmq:management
         name: rabbitmq
         ports:
         - containerPort: 4369
@@ -39,7 +39,7 @@ spec:
         - containerPort: 15672
         resources: {}
         volumeMounts:
-        - mountPath: /bitnami
+        - mountPath: /var/lib/rabbitmq
           name: rabbitmq
       restartPolicy: Always
       volumes:
