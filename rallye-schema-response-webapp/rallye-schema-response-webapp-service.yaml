@@ -9,6 +9,7 @@ metadata:
     io.kompose.service: rallye-schema-response-webapp
   name: rallye-schema-response-webapp
 spec:
+  type: LoadBalancer
   ports:
   - name: "80"
     port: 80
