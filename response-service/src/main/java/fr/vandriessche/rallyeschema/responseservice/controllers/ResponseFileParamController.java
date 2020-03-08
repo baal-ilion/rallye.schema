@@ -52,7 +52,8 @@ public class ResponseFileParamController {
 			ResponseFileParamModelAssembler assembler) throws ParserConfigurationException, SAXException, IOException {
 		ResponseFileParam responseFileParam = new ObjectMapper().readValue(responseFileParamJson,
 				ResponseFileParam.class);
-		return assembler.toModel(responseFileParamService.addResponseFileParam(responseFileParam, responseFileModel));
+		return assembler
+				.toModel(responseFileParamService.addResponseFileParam(responseFileParam, responseFileModel, null));
 	}
 
 	@DeleteMapping(URL + "/{id}")
