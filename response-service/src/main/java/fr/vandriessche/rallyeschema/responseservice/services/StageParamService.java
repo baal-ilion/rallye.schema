@@ -93,6 +93,16 @@ public class StageParamService {
 		return updateStageParam(stageParamToUpdate, stageParam);
 	}
 
+	public StageParam updateOrCreateStageParam(StageParam stageParam) {
+		StageParam stageParamToUpdate = Objects.nonNull(stageParam.getId())
+				? stageParamRepository.findById(stageParam.getId()).orElseThrow()
+				: stageParamRepository.findByStage(stageParam.getStage()).orElse(null);
+		if (Objects.nonNull(stageParamToUpdate))
+			return updateStageParam(stageParamToUpdate, stageParam);
+		else
+			return updateStageParam(stageParam, new StageParam());
+	}
+
 	private void removePerformancePointParam(StageParam stageParamToUpdate, String performanceName) {
 		stageParamToUpdate.getPerformancePointParams().remove(performanceName);
 	}

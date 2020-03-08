@@ -57,8 +57,8 @@ public class ResponseFileParamService {
 	@Autowired
 	private StageParamService stageParamService;
 
-	public ResponseFileParam addResponseFileParam(ResponseFileParam responseFileParam, MultipartFile fileModel)
-			throws ParserConfigurationException, SAXException, IOException {
+	public ResponseFileParam addResponseFileParam(ResponseFileParam responseFileParam, MultipartFile fileModel,
+			ResponseFileModel model) throws ParserConfigurationException, SAXException, IOException {
 		if (Objects.isNull(responseFileParam))
 			responseFileParam = new ResponseFileParam();
 		if (Objects.nonNull(responseFileParam.getId()))
@@ -68,7 +68,9 @@ public class ResponseFileParamService {
 
 		fillResponseFileParam(responseFileParam);
 		ResponseFileModel responseFileModel = Objects.nonNull(fileModel) ? makeResponseFileModel(fileModel, null)
-				: responseFileModelRepository.findById(responseFileParam.getId()).orElseThrow();
+				: model;
+		if (Objects.isNull(responseFileModel))
+			responseFileModel = responseFileModelRepository.findById(responseFileParam.getId()).orElseThrow();
 		fillResponseFileParam(responseFileParam, responseFileModel);
 		responseFileParam = responseFileParamRepository.save(responseFileParam);
 		fillResponseFileModel(responseFileParam, responseFileModel);
@@ -126,7 +128,7 @@ public class ResponseFileParamService {
 		// else if (getResponseFileParamByStageAndPage(responseFileParam.getStage(),
 		// responseFileParam.getPage()).isPresent())
 
-		return addResponseFileParam(responseFileParam, fileModel);
+		return addResponseFileParam(responseFileParam, fileModel, null);
 	}
 
 	private void fillResponseFileModel(ResponseFileParam responseFileParam, ResponseFileModel responseFileModel) {
