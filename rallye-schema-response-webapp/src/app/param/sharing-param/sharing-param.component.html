@@ -1,0 +1,19 @@
+<div class="panel panel-default">
+  <div>Export du paramétrage</div>
+  <a [href]="exportlink" class="btn btn-outline-secondary">Exporter</a>
+  <div>Import du paramétrage</div>
+  <div class="input-group">
+    <div class="custom-file">
+      <input #importFile type="file" class="custom-file-input" id="importFile" accept="application/zip"
+        (change)="upload($event.target.files)">
+      <label class="custom-file-label" for="importFile">Selectionner une archive du paramétrage</label>
+    </div>
+  </div>
+  <div *ngFor="let uploadFile of uploadedFiles">
+    <p>
+      <ngb-progressbar type="info" [value]="uploadFile.progress.percentage" max="100" [striped]="true"
+        [animated]="uploadFile.progress.percentage != 100">
+        {{uploadFile.file.name}} - {{uploadFile.progress.percentage}}%</ngb-progressbar>
+    </p>
+  </div>
+</div>

@@ -37,6 +37,7 @@ import localeFrExtra from '@angular/common/locales/extra/fr';
 import { LocaleService } from './locale.service';
 import { CarouselResponseFileComponent } from './upload/carousel-response-file/carousel-response-file.component';
 import { AppConfigService } from './app-config.service';
+import { SharingParamComponent } from './param/sharing-param/sharing-param.component';
 
 registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
 
@@ -65,7 +66,8 @@ registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
     NewStageParamComponent,
     ConfirmationDialogComponent,
     DetailsTeamComponent,
-    CarouselResponseFileComponent
+    CarouselResponseFileComponent,
+    SharingParamComponent
   ],
   entryComponents: [
     ModifyUploadComponent,
