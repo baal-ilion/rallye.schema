@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.FileNameMap;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.zip.ZipEntry;
@@ -90,7 +91,7 @@ public class SharingService {
 						responseFileParamDir + "template-" + responseFileParam.getStage().toString() + "-"
 								+ responseFileParam.getPage().toString() + ".xtmpl");
 				zipOut.putNextEntry(template);
-				byte[] buff = responseFileParam.getTemplate().getBytes();
+				byte[] buff = responseFileParam.getTemplate().getBytes(StandardCharsets.UTF_8);
 				zipOut.write(buff);
 
 				ResponseFileModel responseFileModel = responseFileParamService
@@ -173,7 +174,7 @@ public class SharingService {
 			responseFileTemplates.remove(dir);
 			responseFileModels.remove(dir);
 
-			responseFileParam.setTemplate(template.toString());
+			responseFileParam.setTemplate(template.toString(StandardCharsets.UTF_8));
 			responseFileParamService.addResponseFileParam(responseFileParam, null, model);
 		}
 	}
@@ -200,7 +201,7 @@ public class SharingService {
 	}
 
 	private <T> T readFile(ZipInputStream zis, Class<T> valueType) throws IOException {
-		var json = readFile(zis).toString();
+		var json = readFile(zis).toString(StandardCharsets.UTF_8);
 		return objectMapper.readValue(json, valueType);
 	}
 }
