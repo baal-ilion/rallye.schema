@@ -1,0 +1,23 @@
+@import "~bootstrap/scss/bootstrap-grid.scss";
+
+@include media-breakpoint-up(sm) {
+  .details-point {
+    -webkit-columns: 2 200px;
+    -moz-columns: 2 200px;
+    columns: 2 200px;
+    -webkit-column-gap: 1em;
+    -moz-column-gap: 1em;
+    column-gap: 1em;
+  }
+}
+
+@include media-breakpoint-up(md) {
+  .details-point {
+    -webkit-columns: 8 200px;
+    -moz-columns: 8 200px;
+    columns: 8 200px;
+    -webkit-column-gap: 1em;
+    -moz-column-gap: 1em;
+    column-gap: 1em;
+  }
+}

@@ -24,9 +24,11 @@
     "@angular/router": "~9.0.1",
     "@ng-bootstrap/ng-bootstrap": "^6.0.0-rc.0",
     "bootstrap": "^4.4.1",
+    "file-saver": "^2.0.2",
     "ngx-ui-switch": "^8.3.0",
     "rxjs": "~6.5.4",
     "tslib": "^1.10.0",
+    "xlsx": "^0.15.6",
     "zone.js": "~0.10.2"
   },
   "devDependencies": {
