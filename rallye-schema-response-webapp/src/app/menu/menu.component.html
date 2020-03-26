@@ -34,8 +34,13 @@
       <li class="nav-item">
         <a class="nav-link" routerLink="/listStage" (click)="collapsed = true">Correction des étapes</a>
       </li>
-      <li class="nav-item">
-        <a class="nav-link" routerLink="/listPoint" (click)="collapsed = true">Classement</a>
+      <li ngbDropdown class="nav-item" display="dynamic">
+        <a class="nav-link" id="pointMenu" ngbDropdownToggle role="button" data-toggle="dropdown" aria-haspopup="true"
+          aria-expanded="false">Points</a>
+        <div ngbDropdownMenu aria-labelledby="pointMenu">
+          <a ngbDropdownItem routerLink="/listRanking" (click)="collapsed = true">Classement</a>
+          <a ngbDropdownItem routerLink="/listPoint" (click)="collapsed = true">Detail des points</a>
+        </div>
       </li>
       <li ngbDropdown class="nav-item" display="dynamic">
         <a class="nav-link" id="paramMenu" ngbDropdownToggle role="button" data-toggle="dropdown" aria-haspopup="true"

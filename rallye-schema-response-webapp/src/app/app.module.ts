@@ -38,6 +38,8 @@ import { LocaleService } from './locale.service';
 import { CarouselResponseFileComponent } from './upload/carousel-response-file/carousel-response-file.component';
 import { AppConfigService } from './app-config.service';
 import { SharingParamComponent } from './param/sharing-param/sharing-param.component';
+import { RankingComponent } from './point/ranking/ranking.component';
+import { ListRankingComponent } from './point/list-ranking/list-ranking.component';
 
 registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
 
@@ -67,7 +69,9 @@ registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
     ConfirmationDialogComponent,
     DetailsTeamComponent,
     CarouselResponseFileComponent,
-    SharingParamComponent
+    SharingParamComponent,
+    RankingComponent,
+    ListRankingComponent
   ],
   entryComponents: [
     ModifyUploadComponent,
