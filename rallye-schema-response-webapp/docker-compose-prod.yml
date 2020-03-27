@@ -12,6 +12,7 @@ services:
       - '/app/node_modules'
     ports:
       - '80:80'
+    restart: always
 volumes:
   rallye-schema-response-webapp-app:
   rallye-schema-response-webapp-config:
