@@ -1,10 +1,10 @@
-import { Component, OnInit, Input } from '@angular/core';
-import { UploadFileService } from 'src/app/upload/upload-file.service';
-import { Observable, of } from 'rxjs';
-import { FormGroup, FormBuilder, FormArray } from '@angular/forms';
-import { stringify } from 'querystring';
-import { StageService } from '../stage.service';
+import { Component, Input, OnInit } from '@angular/core';
+import { FormArray, FormBuilder, FormGroup } from '@angular/forms';
 import { StageParamService } from 'src/app/param/stage-param.service';
+import { UploadFileService } from 'src/app/upload/upload-file.service';
+import { StageResult } from '../models/stage-result';
+import { StageService } from '../stage.service';
+import { HalLink } from 'src/app/models/hal-link';
 
 @Component({
   selector: 'app-details-stage',
@@ -13,7 +13,7 @@ import { StageParamService } from 'src/app/param/stage-param.service';
 })
 export class DetailsStageComponent implements OnInit {
 
-  @Input() stage: any;
+  @Input() stage: StageResult;
 
   form: FormGroup;
   files = [];
@@ -34,7 +34,7 @@ export class DetailsStageComponent implements OnInit {
     this.param = null;
     this.files = [];
     if (this.stage._links && this.stage._links.responseFiles) {
-      for (const responseFile of this.stage._links.responseFiles) {
+      for (const responseFile of this.stage._links.responseFiles as HalLink[]) {
         this.uploadFileService.getResource(responseFile.href).subscribe(data => {
           this.files.push(data);
           this.files.sort((a, b) => (a.page > b.page) ? 1 : -1);
@@ -72,14 +72,14 @@ export class DetailsStageComponent implements OnInit {
 
   onSubmit() {
     const modifiedResults = [];
-    this.form.value.results.forEach((item, index) => {
+    this.form.value.results.forEach((item: any) => {
       const result = this.stage.results.find(element => element.name === item.name);
       if (!result || item.resultValue !== result.resultValue) {
         modifiedResults.push(item);
       }
     });
     const modifiedperformances = [];
-    this.form.value.performances.forEach((item, index) => {
+    this.form.value.performances.forEach((item: any) => {
       const performance = this.stage.performances.find(element => element.name === item.name);
       if (!performance || item.performanceValue !== performance.performanceValue) {
         modifiedperformances.push(item);
@@ -97,7 +97,7 @@ export class DetailsStageComponent implements OnInit {
   }
 
   reload() {
-    this.stageService.getResource(this.stage._links.self.href).subscribe(data => {
+    this.stageService.getResource<StageResult>(this.stage._links.self.href).subscribe(data => {
       this.stage = data;
       this.ngOnInit();
     });

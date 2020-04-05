@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
+import { StageResult } from '../models/stage-result';
 import { StageService } from '../stage.service';
-import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-list-stage',
@@ -8,7 +8,7 @@ import { Observable } from 'rxjs';
   styleUrls: ['./list-stage.component.scss']
 })
 export class ListStageComponent implements OnInit {
-  stages = [];
+  stages: StageResult[] = [];
 
   constructor(private stageService: StageService) { }
 
