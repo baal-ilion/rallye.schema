@@ -1,12 +1,12 @@
 import { Component, OnInit } from '@angular/core';
-import { Router, ActivatedRoute } from '@angular/router';
-import { StageParamService } from 'src/app/param/stage-param.service';
-import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { TeamInfoService } from 'src/app/param/team-info.service';
-import { StageService } from '../stage.service';
+import { ActivatedRoute, Router } from '@angular/router';
 import { interval } from 'rxjs/internal/observable/interval';
 import { startWith, switchMap } from 'rxjs/operators';
+import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
+import { StageParamService } from 'src/app/param/stage-param.service';
+import { TeamInfoService } from 'src/app/param/team-info.service';
+import { StageResult } from '../models/stage-result';
+import { StageService } from '../stage.service';
 
 @Component({
   selector: 'app-details-team',
@@ -16,7 +16,7 @@ import { startWith, switchMap } from 'rxjs/operators';
 export class DetailsTeamComponent implements OnInit {
   teamInfo: any;
   stageParams = [];
-  stages = {};
+  stages: { [stage: number]: StageResult } = {};
 
   constructor(
     private teamInfoService: TeamInfoService,
@@ -25,7 +25,6 @@ export class DetailsTeamComponent implements OnInit {
     private route: ActivatedRoute,
     private confirmationDialogService: ConfirmationDialogService,
     private router: Router,
-    private modalService: NgbModal,
   ) { }
 
   ngOnInit() {
@@ -38,7 +37,7 @@ export class DetailsTeamComponent implements OnInit {
           startWith(0),
           switchMap(() => this.stageService.getStagesByTeam(this.teamInfo.team))
         ).subscribe(stages => {
-          const stageResults: any[] = stages._embedded.stageResults;
+          const stageResults = stages._embedded.stageResults;
           if (stageResults) {
             for (const stage of stageResults) {
               this.stages[stage.stage] = stage;
@@ -64,7 +63,7 @@ export class DetailsTeamComponent implements OnInit {
     });
   }
 
-  onStartStage(stage) {
+  onStartStage(stage: number) {
     this.confirmationDialogService.confirm(
       'Démarrer l\'étape',
       'Démarrer l\'étape ' + stage + ' ?',
@@ -82,7 +81,7 @@ export class DetailsTeamComponent implements OnInit {
       });
   }
 
-  onStopStage(stage) {
+  onStopStage(stage: number) {
     this.confirmationDialogService.confirm(
       'Finir l\'étape',
       'Finir l\'étape ' + stage + ' ?',
@@ -100,7 +99,7 @@ export class DetailsTeamComponent implements OnInit {
       });
   }
 
-  onCancelStage(stage) {
+  onCancelStage(stage: number) {
     this.confirmationDialogService.confirm(
       'Annuler l\'étape',
       'Annuler la participation à l\'étape ' + stage + ' ?',
@@ -118,7 +117,7 @@ export class DetailsTeamComponent implements OnInit {
       });
   }
 
-  onUndoStage(stage) {
+  onUndoStage(stage: number) {
     this.confirmationDialogService.confirm(
       'Annuler la fin de l\'étape',
       'Annuler la fin de l\'étape ' + stage + ' ?',
