@@ -1,47 +1,71 @@
 <div *ngIf="param">
-  <h1>Etape : {{stage.stage}}, Equipe : {{stage.team}}</h1>
-  <p>Début : {{stage.begin | date:'medium'}}, Fin : {{stage.end | date:'medium'}}</p>
-  <div class="container-fluid">
-    <div>
-      <div *ngIf="files.length > 0" class="row align-items-start container">
-        <div *ngFor="let file of files" class="col-6">
-          <div style="position: relative;" class="response-file">
-            <app-details-upload [fileUpload]="file" [dragable]="false" class="col-8" (checkedEvent)="reload()"
-              (deleteEvent)="reload()"></app-details-upload>
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <h1>Etape : {{stage.stage}}, Equipe : {{stage.team}}</h1>
+    <div class="form-group">
+      <div class="input-group">
+        <label class="col-2 align-self-center">Debut :</label>
+        <input class="form-control col-2 align-self-center rounded-left" placeholder="yyyy-mm-dd" name="dp"
+          formControlName="begindate" ngbDatepicker #d="ngbDatepicker">
+        <div class="input-group-append">
+          <button class="btn btn-outline-secondary calendar rounded-right" (click)="d.toggle()" type="button"></button>
+        </div>
+        <ngb-timepicker formControlName="begintime" seconds="true" [spinners]="false" class="align-self-center ml-1">
+        </ngb-timepicker>
+        <button class="btn btn-outline-secondary ml-1" type="button" *ngIf="stage && stage.begin && !stage.end"
+          (click)="onCancelStage()">Annuler</button>
+      </div>
+      <div class="form-group mt-1">
+        <div class="input-group">
+          <label class="col-2 align-self-center">Fin :</label>
+          <input class="form-control col-2 align-self-center rounded-left" placeholder="yyyy-mm-dd" name="dp"
+            formControlName="enddate" ngbDatepicker #e="ngbDatepicker">
+          <div class="input-group-append">
+            <button class="btn btn-outline-secondary calendar rounded-right" (click)="e.toggle()"
+              type="button"></button>
+          </div>
+          <ngb-timepicker formControlName="endtime" seconds="true" [spinners]="false" class="align-self-center ml-1">
+          </ngb-timepicker>
+          <button class="btn btn-outline-secondary ml-1" type="button" *ngIf="stage && stage.begin && stage.end"
+            (click)="onUndoStage()">Annuler</button>
+        </div>
+      </div>
+    </div>
+    <div *ngIf="files.length > 0" class="row align-items-start container">
+      <div *ngFor="let file of files" class="col-6">
+        <div style="position: relative;" class="response-file">
+          <app-details-upload [fileUpload]="file" [dragable]="false" class="col-8" (checkedEvent)="reload()"
+            (deleteEvent)="reload()"></app-details-upload>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div *ngFor="let result of results.controls" class="col-6 col-lg-3 col-sm-6 col-md-4">
+        <div [formGroup]="result" class="row">
+          <label class="col align-self-center">{{result.value.name}}</label>
+          <div class="col-auto align-self-center">
+            <ui-switch formControlName="resultValue" size="small" class="col-auto"></ui-switch>
           </div>
         </div>
       </div>
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="container">
-        <div class="row">
-          <div *ngFor="let result of results.controls" class="col-6 col-lg-3 col-sm-6 col-md-4">
-            <div [formGroup]="result" class="row">
-              <label class="col align-self-center">{{result.value.name}}</label>
-              <div class="col-auto align-self-center">
-                <ui-switch formControlName="resultValue" size="small" class="col-auto"></ui-switch>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="row">
-          <div *ngFor="let performance of performances.controls" class="col-6 col-lg-3 col-sm-6 col-md-4">
-            <div [formGroup]="performance" class="row">
-              <label class="col align-self-center">{{performance.value.name}}</label>
-              <div class="col-auto align-self-center">
-                <input type=number step=any formControlName="performanceValue" class="col-auto" />
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="row">
-          <label class="col-auto align-self-center">Vérifié</label>
-          <div class="col-auto align-self-center">
-            <ui-switch formControlName="checked" size="small" class="col-auto"></ui-switch>
-          </div>
-        </div>
-        <div class="row">
-          <button class="btn btn-primary mr-1">Modifier</button>
-        </div>
-      </form>
     </div>
-  </div>
+    <div class="row">
+      <div *ngFor="let performance of performances.controls" class="col-6 col-lg-3 col-sm-6 col-md-4">
+        <div [formGroup]="performance" class="row">
+          <label class="col align-self-center">{{performance.value.name}}</label>
+          <div class="col-auto align-self-center">
+            <input type=number step=any formControlName="performanceValue" class="col-auto" />
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <label class="col-auto align-self-center">Vérifié</label>
+      <div class="col-auto align-self-center">
+        <ui-switch formControlName="checked" size="small" class="col-auto"></ui-switch>
+      </div>
+    </div>
+    <div class="row">
+      <button class="btn btn-primary mr-1">Modifier</button>
+    </div>
+  </form>
 </div>

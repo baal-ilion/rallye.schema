@@ -1,6 +1,7 @@
 package fr.vandriessche.rallyeschema.responseservice.services;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -45,7 +46,7 @@ public class StageResultService {
 		StageResult stageResult = findOrMakeStageResultByStageAndTeam(stage, team);
 		if (Objects.nonNull(stageResult))
 			return updateStageResultAndSave(stageResult, null, new ArrayList<>(), new ArrayList<>(),
-					LocalDateTime.now(), null);
+					Instant.now().truncatedTo(ChronoUnit.SECONDS), null);
 		return null;
 	}
 
@@ -63,7 +64,7 @@ public class StageResultService {
 		StageResult stageResult = getStageResultByStageAndTeam(stage, team);
 		if (Objects.nonNull(stageResult))
 			return updateStageResultAndSave(stageResult, null, new ArrayList<>(), new ArrayList<>(), null,
-					LocalDateTime.now());
+					Instant.now().truncatedTo(ChronoUnit.SECONDS));
 		return null;
 	}
 
@@ -302,7 +303,7 @@ public class StageResultService {
 	}
 
 	private boolean updateStageResult(StageResult stageResultToUpdate, Boolean checked, List<ResponseResult> results,
-			List<PerformanceResult> performances, LocalDateTime begin, LocalDateTime end) {
+			List<PerformanceResult> performances, Instant begin, Instant end) {
 		boolean isUpdated = false;
 
 		if (Objects.nonNull(begin)) {
@@ -334,8 +335,7 @@ public class StageResultService {
 	}
 
 	private StageResult updateStageResultAndSave(StageResult stageResultToUpdate, Boolean checked,
-			List<ResponseResult> results, List<PerformanceResult> performances, LocalDateTime begin,
-			LocalDateTime end) {
+			List<ResponseResult> results, List<PerformanceResult> performances, Instant begin, Instant end) {
 		if (updateStageResult(stageResultToUpdate, checked, results, performances, begin, end))
 			return save(stageResultToUpdate);
 		return stageResultToUpdate;

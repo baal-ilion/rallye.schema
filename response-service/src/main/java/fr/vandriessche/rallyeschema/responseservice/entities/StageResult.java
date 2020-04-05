@@ -1,6 +1,6 @@
 package fr.vandriessche.rallyeschema.responseservice.entities;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,8 +22,8 @@ public class StageResult {
 	private Integer stage;
 	private Integer team;
 
-	private LocalDateTime begin;
-	private LocalDateTime end;
+	private Instant begin;
+	private Instant end;
 
 	private Boolean checked;
 
