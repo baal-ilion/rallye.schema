@@ -1,6 +1,6 @@
 package fr.vandriessche.rallyeschema.responseservice.entities;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,8 +23,8 @@ public class StageRanking {
 	@Indexed(unique = true)
 	private Integer stage;
 
-	private List<TeamRank<LocalDateTime>> begins = new ArrayList<>();
-	private List<TeamRank<LocalDateTime>> ends = new ArrayList<>();
+	private List<TeamRank<Instant>> begins = new ArrayList<>();
+	private List<TeamRank<Instant>> ends = new ArrayList<>();
 	private Map<String, List<TeamRank<Double>>> performances = new LinkedHashMap<>();
 
 	public StageRanking(Integer stage) {

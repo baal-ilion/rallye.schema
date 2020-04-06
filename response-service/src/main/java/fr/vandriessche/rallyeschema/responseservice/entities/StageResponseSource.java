@@ -1,5 +1,7 @@
 package fr.vandriessche.rallyeschema.responseservice.entities;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
+
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -9,7 +11,10 @@ import lombok.ToString;
 @Setter
 @RequiredArgsConstructor
 @ToString
+@JsonTypeName(StageResponseSource.JSON_TYPE_NAME)
 public class StageResponseSource extends ResponseSource {
+	public static final String JSON_TYPE_NAME = "StageResponse";
+
 	private Boolean pointUsed;
 
 	public StageResponseSource(String id, Boolean pointUsed) {
