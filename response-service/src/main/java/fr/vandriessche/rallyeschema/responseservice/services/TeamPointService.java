@@ -1,6 +1,6 @@
 package fr.vandriessche.rallyeschema.responseservice.services;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -52,8 +52,8 @@ public class TeamPointService {
 	public List<TeamPoint> computeTeamPointFromStageRanking(@NonNull Integer stage) {
 		var stageRanking = stageRankingService.getStageRankingByStage(stage);
 		return Stream.concat(
-				Stream.concat(stageRanking.getBegins().stream().map(TeamRank<LocalDateTime>::getTeam),
-						stageRanking.getEnds().stream().map(TeamRank<LocalDateTime>::getTeam)),
+				Stream.concat(stageRanking.getBegins().stream().map(TeamRank<Instant>::getTeam),
+						stageRanking.getEnds().stream().map(TeamRank<Instant>::getTeam)),
 				stageRanking.getPerformances().values().stream().flatMap(m -> m.stream())
 						.map(TeamRank<Double>::getTeam))
 				.distinct().sorted().map(team -> {
