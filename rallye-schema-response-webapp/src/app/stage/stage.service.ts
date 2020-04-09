@@ -52,6 +52,12 @@ export class StageService {
     return this.http.delete<StageResult>(AppConfigService.settings.apiUrl.rallyeSchema + '/stageResults/end', { params });
   }
 
+  findStage(stage: number, team: number): Observable<StageResult> {
+    const params = new HttpParams().set('stage', stage.toString()).set('team', team.toString());
+    return this.http.get<StageResult>(AppConfigService.settings.apiUrl.rallyeSchema +
+      '/stageResults/search/findByStageAndTeam', { params });
+  }
+
   getResource<T = any>(url: string): Observable<T> {
     return this.http.get<T>(url);
   }

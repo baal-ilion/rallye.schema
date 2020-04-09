@@ -1,45 +1,46 @@
-import { BrowserModule } from '@angular/platform-browser';
-import { NgModule, LOCALE_ID, APP_INITIALIZER } from '@angular/core';
-import { HttpClientModule } from '@angular/common/http';
-
-import { AppRoutingModule } from './app-routing.module';
-import { AppComponent } from './app.component';
-import { FormUploadComponent } from './upload/form-upload/form-upload.component';
-import { ListUploadComponent } from './upload/list-upload/list-upload.component';
-import { DetailsUploadComponent } from './upload/details-upload/details-upload.component';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { DragDropModule } from '@angular/cdk/drag-drop';
+import { registerLocaleData } from '@angular/common';
+import { HttpClientModule } from '@angular/common/http';
+import localeFrExtra from '@angular/common/locales/extra/fr';
+import localeFr from '@angular/common/locales/fr';
+import { APP_INITIALIZER, LOCALE_ID, NgModule } from '@angular/core';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { BrowserModule } from '@angular/platform-browser';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 import { UiSwitchModule } from 'ngx-ui-switch';
-import { DetailsStageComponent } from './stage/details-stage/details-stage.component';
-import { ListStageComponent } from './stage/list-stage/list-stage.component';
-import { ModifyUploadComponent } from './upload/modify-upload/modify-upload.component';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { DetailsResponseFileParamComponent } from './response-file/param/details-response-file-param/details-response-file-param.component';
-import { ModifyResponseFileParamComponent } from './response-file/param/modify-response-file-param/modify-response-file-param.component';
-import { DetailsTemplateComponent } from './response-file/common/details-template/details-template.component';
-import { DetailsTemplateParamComponent } from './response-file/param/details-template-param/details-template-param.component';
-import { ListPointComponent } from './point/list-point/list-point.component';
-import { DetailsPointComponent } from './point/details-point/details-point.component';
+import { AppConfigService } from './app-config.service';
+import { AppRoutingModule } from './app-routing.module';
+import { AppComponent } from './app.component';
+import { ConfirmationDialogComponent } from './confirmation-dialog/confirmation-dialog.component';
+import { LocaleService } from './locale.service';
+import { MenuComponent } from './menu/menu.component';
 import { DetailsStageParamComponent } from './param/details-stage-param/details-stage-param.component';
 import { ListStageParamComponent } from './param/list-stage-param/list-stage-param.component';
-import { MenuComponent } from './menu/menu.component';
-import { DetailsResponseFileComponent } from './upload/details-response-file/details-response-file.component';
 import { ListTeamInfoComponent } from './param/list-team-info/list-team-info.component';
-import { ModifyTeamInfoComponent } from './param/modify-team-info/modify-team-info.component';
 import { ModifyStageParamComponent } from './param/modify-stage-param/modify-stage-param.component';
+import { ModifyTeamInfoComponent } from './param/modify-team-info/modify-team-info.component';
 import { NewStageParamComponent } from './param/new-stage-param/new-stage-param.component';
-import { ConfirmationDialogComponent } from './confirmation-dialog/confirmation-dialog.component';
-import { DetailsTeamComponent } from './stage/details-team/details-team.component';
-import { registerLocaleData } from '@angular/common';
-import localeFr from '@angular/common/locales/fr';
-import localeFrExtra from '@angular/common/locales/extra/fr';
-import { LocaleService } from './locale.service';
-import { CarouselResponseFileComponent } from './upload/carousel-response-file/carousel-response-file.component';
-import { AppConfigService } from './app-config.service';
 import { SharingParamComponent } from './param/sharing-param/sharing-param.component';
-import { RankingComponent } from './point/ranking/ranking.component';
+import { DetailsPointComponent } from './point/details-point/details-point.component';
+import { ListPointComponent } from './point/list-point/list-point.component';
 import { ListRankingComponent } from './point/list-ranking/list-ranking.component';
+import { RankingComponent } from './point/ranking/ranking.component';
+import { DetailsTemplateComponent } from './response-file/common/details-template/details-template.component';
+import { DetailsResponseFileParamComponent } from './response-file/param/details-response-file-param/details-response-file-param.component';
+import { DetailsTemplateParamComponent } from './response-file/param/details-template-param/details-template-param.component';
+import { ModifyResponseFileParamComponent } from './response-file/param/modify-response-file-param/modify-response-file-param.component';
+import { DetailsStageComponent } from './stage/details-stage/details-stage.component';
+import { DetailsTeamStageComponent } from './stage/details-team-stage/details-team-stage.component';
+import { DetailsTeamComponent } from './stage/details-team/details-team.component';
+import { ListStageComponent } from './stage/list-stage/list-stage.component';
+import { CarouselResponseFileComponent } from './upload/carousel-response-file/carousel-response-file.component';
+import { DetailsResponseFileComponent } from './upload/details-response-file/details-response-file.component';
+import { DetailsUploadComponent } from './upload/details-upload/details-upload.component';
+import { FormUploadComponent } from './upload/form-upload/form-upload.component';
+import { ListUploadComponent } from './upload/list-upload/list-upload.component';
+import { ModifyUploadComponent } from './upload/modify-upload/modify-upload.component';
+
 
 registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
 
@@ -71,7 +72,8 @@ registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
     CarouselResponseFileComponent,
     SharingParamComponent,
     RankingComponent,
-    ListRankingComponent
+    ListRankingComponent,
+    DetailsTeamStageComponent
   ],
   entryComponents: [
     ModifyUploadComponent,

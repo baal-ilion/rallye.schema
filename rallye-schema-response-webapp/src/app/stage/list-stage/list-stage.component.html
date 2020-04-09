@@ -3,7 +3,7 @@
   <div *ngIf='stages'>
     <div *ngFor="let stage of stages">
       <div class="panel-body">
-        <app-details-stage [stage]='stage'></app-details-stage>
+        <app-details-stage [stage]='stage.stage' [team]='stage.team'></app-details-stage>
       </div>
     </div>
   </div>

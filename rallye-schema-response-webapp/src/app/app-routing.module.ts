@@ -1,15 +1,16 @@
 import { NgModule } from '@angular/core';
-import { Routes, RouterModule } from '@angular/router';
-import { FormUploadComponent } from './upload/form-upload/form-upload.component';
-import { ListUploadComponent } from './upload/list-upload/list-upload.component';
-import { ListStageComponent } from './stage/list-stage/list-stage.component';
-import { ListPointComponent } from './point/list-point/list-point.component';
+import { RouterModule, Routes } from '@angular/router';
 import { ListStageParamComponent } from './param/list-stage-param/list-stage-param.component';
 import { ListTeamInfoComponent } from './param/list-team-info/list-team-info.component';
 import { ModifyStageParamComponent } from './param/modify-stage-param/modify-stage-param.component';
-import { DetailsTeamComponent } from './stage/details-team/details-team.component';
 import { SharingParamComponent } from './param/sharing-param/sharing-param.component';
+import { ListPointComponent } from './point/list-point/list-point.component';
 import { ListRankingComponent } from './point/list-ranking/list-ranking.component';
+import { DetailsTeamStageComponent } from './stage/details-team-stage/details-team-stage.component';
+import { DetailsTeamComponent } from './stage/details-team/details-team.component';
+import { ListStageComponent } from './stage/list-stage/list-stage.component';
+import { FormUploadComponent } from './upload/form-upload/form-upload.component';
+import { ListUploadComponent } from './upload/list-upload/list-upload.component';
 
 
 const routes: Routes = [
@@ -24,6 +25,7 @@ const routes: Routes = [
   { path: 'stageParam/:id', component: ModifyStageParamComponent },
   { path: 'team/:id', component: DetailsTeamComponent },
   { path: 'sharingParam', component: SharingParamComponent },
+  { path: 'stage/:team/:stage', component: DetailsTeamStageComponent },
 ];
 
 @NgModule({
