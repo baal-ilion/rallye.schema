@@ -11,10 +11,13 @@
       (click)="onStopStage(stageParam.stage)">Finir</button>
     <button type="button" *ngIf="!stages[stageParam.stage] || !stages[stageParam.stage].begin"
       (click)="onStartStage(stageParam.stage)">Démarrer</button>
-      <button type="button"
+    <button type="button"
       *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && !stages[stageParam.stage].end"
       (click)="onCancelStage(stageParam.stage)">Annuler</button>
-    <button type="button" *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && stages[stageParam.stage].end"
+    <button type="button"
+      *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && stages[stageParam.stage].end"
       (click)="onUndoStage(stageParam.stage)">Annuler</button>
+    <button type="button" *ngIf="stages[stageParam.stage]"
+      routerLink="/stage/{{teamInfo.team}}/{{stageParam.stage}}">Detail</button>
   </div>
 </div>
