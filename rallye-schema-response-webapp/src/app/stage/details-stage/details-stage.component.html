@@ -11,8 +11,8 @@
         </div>
         <ngb-timepicker formControlName="begintime" seconds="true" [spinners]="false" class="align-self-center ml-1">
         </ngb-timepicker>
-        <button class="btn btn-outline-secondary ml-1" type="button" *ngIf="stageResult && stageResult.begin && !stageResult.end"
-          (click)="onCancelStage()">Annuler</button>
+        <button class="btn btn-outline-secondary ml-1" type="button"
+          *ngIf="stageResult && stageResult.begin && !stageResult.end" (click)="onCancelStage()">Annuler</button>
       </div>
       <div class="form-group mt-1">
         <div class="input-group">
@@ -25,8 +25,8 @@
           </div>
           <ngb-timepicker formControlName="endtime" seconds="true" [spinners]="false" class="align-self-center ml-1">
           </ngb-timepicker>
-          <button class="btn btn-outline-secondary ml-1" type="button" *ngIf="stageResult && stageResult.begin && stageResult.end"
-            (click)="onUndoStage()">Annuler</button>
+          <button class="btn btn-outline-secondary ml-1" type="button"
+            *ngIf="stageResult && stageResult.begin && stageResult.end" (click)="onUndoStage()">Annuler</button>
         </div>
       </div>
     </div>
@@ -59,13 +59,10 @@
       </div>
     </div>
     <div class="row">
-      <label class="col-auto align-self-center">Vérifié</label>
-      <div class="col-auto align-self-center">
-        <ui-switch formControlName="checked" size="small" class="col-auto"></ui-switch>
-      </div>
-    </div>
-    <div class="row">
-      <button class="btn btn-primary mr-1">Modifier</button>
-    </div>
+      <button *ngIf="stageResult?.checked" class="btn btn-danger my-1 mx-1" type="submit" [disabled]="form.invalid"
+        (click)="form.patchValue({checked: false})">Dévalider</button>
+      <button *ngIf="stageResult && !stageResult.checked" class="btn btn-success my-1 mx-1" type="submit"
+        [disabled]="form.invalid" (click)="form.patchValue({checked: true})">Valider</button>
+      <button class="btn btn-primary my-1 mx-1" type="submit" [disabled]="form.invalid">Modifier</button> </div>
   </form>
 </div>
