@@ -1,4 +1,5 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
+import { TeamInfo } from '../param/models/team-info';
 import { TeamInfoService } from '../param/team-info.service';
 
 @Component({
@@ -9,7 +10,7 @@ import { TeamInfoService } from '../param/team-info.service';
 export class MenuComponent implements OnInit {
   @Input() title: string;
   public collapsed = true;
-  teamInfos = [];
+  teamInfos: TeamInfo[] = [];
 
   constructor(private teamInfoService: TeamInfoService) { }
 

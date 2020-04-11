@@ -3,6 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { interval } from 'rxjs/internal/observable/interval';
 import { startWith, switchMap } from 'rxjs/operators';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
+import { TeamInfo } from 'src/app/param/models/team-info';
 import { StageParamService } from 'src/app/param/stage-param.service';
 import { TeamInfoService } from 'src/app/param/team-info.service';
 import { StageResult } from '../models/stage-result';
@@ -14,7 +15,7 @@ import { StageService } from '../stage.service';
   styleUrls: ['./details-team.component.scss']
 })
 export class DetailsTeamComponent implements OnInit {
-  teamInfo: any;
+  teamInfo: TeamInfo;
   stageParams = [];
   stages: { [stage: number]: StageResult } = {};
 
