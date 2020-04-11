@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
-import { Observable } from 'rxjs';
-import { TeamInfoService } from '../team-info.service';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { TeamInfo } from '../models/team-info';
 import { ModifyTeamInfoComponent } from '../modify-team-info/modify-team-info.component';
+import { TeamInfoService } from '../team-info.service';
 
 @Component({
   selector: 'app-list-team-info',
@@ -11,7 +11,7 @@ import { ModifyTeamInfoComponent } from '../modify-team-info/modify-team-info.co
 })
 export class ListTeamInfoComponent implements OnInit {
 
-  teamInfos: any[] = [];
+  teamInfos: TeamInfo[] = [];
 
   constructor(private teamInfoService: TeamInfoService, private modalService: NgbModal) { }
 
@@ -43,7 +43,7 @@ export class ListTeamInfoComponent implements OnInit {
     });
   }
 
-  modifyTeamInfo(teamInfo) {
+  modifyTeamInfo(teamInfo: TeamInfo) {
     const modalRef = this.modalService.open(ModifyTeamInfoComponent);
     modalRef.componentInstance.teamInfo = {
       id: teamInfo.id,

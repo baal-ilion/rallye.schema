@@ -1,14 +1,15 @@
-import { Component, OnInit, ViewChildren, QueryList } from '@angular/core';
-import { Ranking } from '../models/ranking';
-import { RankingComponent } from '../ranking/ranking.component';
-import { PointService } from '../point.service';
-import { TeamInfoService } from 'src/app/param/team-info.service';
-import { StageParamService } from 'src/app/param/stage-param.service';
-import { TeamPoint } from '../models/team-point';
 import { DatePipe } from '@angular/common';
-
-import * as XLSX from 'xlsx';
+import { Component, OnInit, QueryList, ViewChildren } from '@angular/core';
 import * as FileSaver from 'file-saver';
+import { TeamInfo } from 'src/app/param/models/team-info';
+import { StageParamService } from 'src/app/param/stage-param.service';
+import { TeamInfoService } from 'src/app/param/team-info.service';
+import * as XLSX from 'xlsx';
+import { Ranking } from '../models/ranking';
+import { TeamPoint } from '../models/team-point';
+import { PointService } from '../point.service';
+import { RankingComponent } from '../ranking/ranking.component';
+
 
 const EXCEL_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
 const EXCEL_EXTENSION = '.xlsx';
@@ -21,7 +22,7 @@ const EXCEL_EXTENSION = '.xlsx';
 export class ListRankingComponent implements OnInit {
   generalRanking: Ranking[] = [];
   stageRanking: { [stage: number]: Ranking[] } = {};
-  teamInfos: { [team: number]: any } = {};
+  teamInfos: { [team: number]: TeamInfo } = {};
   stageParams: { [stage: number]: any } = {};
   @ViewChildren(RankingComponent) rankingTables!: QueryList<RankingComponent>;
 

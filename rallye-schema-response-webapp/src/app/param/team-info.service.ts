@@ -1,7 +1,9 @@
-import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { AppConfigService } from '../app-config.service';
+import { HalCollection } from '../models/hal-collection';
+import { TeamInfo } from './models/team-info';
 
 @Injectable({
   providedIn: 'root'
@@ -9,21 +11,21 @@ import { AppConfigService } from '../app-config.service';
 export class TeamInfoService {
   constructor(private http: HttpClient) { }
 
-  getTeamInfos(): Observable<any> {
+  getTeamInfos(): Observable<HalCollection<TeamInfo>> {
     return this.http.get(AppConfigService.settings.apiUrl.rallyeSchema + '/teamInfos');
   }
 
-  addTeamInfo(teamInfo): Observable<any> {
+  addTeamInfo(teamInfo: TeamInfo): Observable<TeamInfo> {
     console.log(teamInfo);
-    return this.http.post(AppConfigService.settings.apiUrl.rallyeSchema + '/teamInfos', teamInfo);
+    return this.http.post<TeamInfo>(AppConfigService.settings.apiUrl.rallyeSchema + '/teamInfos', teamInfo);
   }
 
-  updateTeamInfo(teamInfo): Observable<any> {
+  updateTeamInfo(teamInfo: TeamInfo): Observable<TeamInfo> {
     console.log(teamInfo);
-    return this.http.put(AppConfigService.settings.apiUrl.rallyeSchema + '/teamInfos', teamInfo);
+    return this.http.put<TeamInfo>(AppConfigService.settings.apiUrl.rallyeSchema + '/teamInfos', teamInfo);
   }
 
-  findById(id: any): Observable<any> {
-    return this.http.get(AppConfigService.settings.apiUrl.rallyeSchema + '/teamInfos/' + id);
+  findById(id: string): Observable<TeamInfo> {
+    return this.http.get<TeamInfo>(AppConfigService.settings.apiUrl.rallyeSchema + '/teamInfos/' + id);
   }
 }

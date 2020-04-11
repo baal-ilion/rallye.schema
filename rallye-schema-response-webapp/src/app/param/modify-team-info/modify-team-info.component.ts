@@ -1,6 +1,7 @@
-import { Component, OnInit, Input } from '@angular/core';
-import { FormGroup, FormBuilder, Validators, AbstractControl } from '@angular/forms';
+import { Component, Input, OnInit } from '@angular/core';
+import { AbstractControl, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
+import { TeamInfo } from '../models/team-info';
 import { TeamInfoService } from '../team-info.service';
 
 @Component({
@@ -9,9 +10,9 @@ import { TeamInfoService } from '../team-info.service';
   styleUrls: ['./modify-team-info.component.scss']
 })
 export class ModifyTeamInfoComponent implements OnInit {
-  @Input() teamInfo: any;
+  @Input() teamInfo: TeamInfo;
   teamInfoForm: FormGroup;
-  teamInfos: any[] = [];
+  teamInfos: TeamInfo[] = [];
 
   constructor(
     public activeModal: NgbActiveModal,
