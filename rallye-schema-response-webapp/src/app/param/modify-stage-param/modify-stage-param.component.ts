@@ -1,11 +1,11 @@
-import { Component, OnInit, Input } from '@angular/core';
-import { FormGroup, FormBuilder, FormArray, AbstractControl } from '@angular/forms';
-import { StageParamService } from '../stage-param.service';
+import { Component, OnInit } from '@angular/core';
+import { AbstractControl, FormArray, FormBuilder, FormGroup } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
 import { ModifyResponseFileParamComponent } from 'src/app/response-file/param/modify-response-file-param/modify-response-file-param.component';
 import { ResponseFileParamService } from 'src/app/response-file/param/response-file-param.service';
+import { StageParamService } from '../stage-param.service';
 
 @Component({
   selector: 'app-modify-stage-param',
@@ -161,8 +161,8 @@ export class ModifyStageParamComponent implements OnInit {
     });
   }
 
-  addQuestionParam(paramName) {
-    if (!this.questionParamNames.includes(paramName)) {
+  addQuestionParam(paramName: string) {
+    if (!this.questionParamNames.includes(paramName) || this.removedQuestionParams.includes(paramName)) {
       this.questionParams.push(this.formBuilder.group({
         name: paramName,
         type: 'QUESTION',
@@ -176,11 +176,14 @@ export class ModifyStageParamComponent implements OnInit {
     this.questionParamName = '';
   }
 
-  removeQuestionParam(index) {
-    this.removedQuestionParams.push(this.questionParams.at(index).value.name);
-    const i = this.removedQuestionParams.indexOf(this.questionParams.at(index).value.name, 0);
-    if (i > -1) {
-      this.removedQuestionParams.splice(i, 1);
+  removeQuestionParam(index: number) {
+    const questionName = this.questionParams.at(index).value.name;
+    if (this.questionParamNames.includes(questionName)) {
+      const i = this.removedQuestionParams.indexOf(this.questionParams.at(index).value.name);
+      if (i > -1) {
+        this.removedQuestionParams.splice(i, 1);
+      }
+      this.removedQuestionParams.push(questionName);
     }
     this.questionParams.removeAt(index);
   }
