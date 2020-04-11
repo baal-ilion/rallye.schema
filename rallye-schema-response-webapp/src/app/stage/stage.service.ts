@@ -21,15 +21,9 @@ export class StageService {
     return this.http.get(AppConfigService.settings.apiUrl.rallyeSchema + '/stageResults/search/findByTeam', { params });
   }
 
-  updateStage(stage: StageResult): StageResult {
+  updateStage(stage: StageResult): Observable<StageResult> {
     console.log(stage);
-    this.http.patch(AppConfigService.settings.apiUrl.rallyeSchema + '/stageResults', stage).toPromise().then(data => {
-      console.log(data);
-      return data;
-    }, error => {
-      console.log(error);
-    });
-    return null;
+    return this.http.patch<StageResult>(AppConfigService.settings.apiUrl.rallyeSchema + '/stageResults', stage);
   }
 
   beginStage(stage: number, team: number): Observable<StageResult> {

@@ -182,9 +182,14 @@ export class DetailsStageComponent implements OnInit {
         end: sameEnd ? undefined : end,
         results: modifiedResults.length !== 0 ? modifiedResults : undefined,
         performances: modifiedperformances.length !== 0 ? modifiedperformances : undefined
+      }).toPromise().then(stageResult => {
+        console.log(stageResult);
+        this.reload();
+      }, error => {
+        console.log(error);
+        this.reload();
       });
     }
-    this.reload();
   }
 
   reload() {
