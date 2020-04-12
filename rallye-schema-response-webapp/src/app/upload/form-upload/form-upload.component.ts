@@ -34,7 +34,7 @@ export class FormUploadComponent implements OnInit {
       const file = this.selectedFiles[index];
       this.uploadFile(file);
     }
-    this.labelImport.nativeElement.innerText = '<i class="fas fa-search">Choose file</i>';
+    this.labelImport.nativeElement.innerText = 'Sélectionnez une feuille de réponses corrigée.';
     this.selectedFiles = undefined;
   }
 

@@ -1,6 +1,6 @@
 <nav class="navbar fixed-top  navbar-expand-lg navbar-light bg-light">
   <!-- Brand -->
-  <a class="navbar-brand" [routerLink]="'.'">{{title}}</a>
+  <a class="navbar-brand" [routerLink]="'.'">Rallye Schéma</a>
   <button class="navbar-toggler" type="button" [attr.aria-expanded]="!collapsed" (click)="collapsed = !collapsed"
     aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
     <span class="navbar-toggler-icon"></span>
@@ -10,10 +10,6 @@
 
     <!-- Links -->
     <ul class="navbar-nav mr-auto">
-      <li class="nav-item">
-        <a class="nav-link" [routerLink]="'.'" (click)="collapsed = true">Home <span
-            class="sr-only">(current)</span></a>
-      </li>
       <li *ngIf="teamInfos" ngbDropdown class="nav-item" display="dynamic">
         <a class="nav-link" id="teamsMenu" ngbDropdownToggle role="button" data-toggle="dropdown" aria-haspopup="true"
           aria-expanded="false">Equipes</a>
@@ -24,31 +20,30 @@
       </li>
       <li ngbDropdown class="nav-item" display="dynamic">
         <a class="nav-link" id="responseFilesMenu" ngbDropdownToggle role="button" data-toggle="dropdown"
-          aria-haspopup="true" aria-expanded="false">Feuilles de réponses</a>
+          aria-haspopup="true" aria-expanded="false">Formulaires de réponses</a>
         <div ngbDropdownMenu aria-labelledby="responseFilesMenu">
-          <a ngbDropdownItem routerLink="/formUpload" (click)="collapsed = true">Enregistrer des feuilles de
-            réponses</a>
-          <a ngbDropdownItem routerLink="/listUpload" (click)="collapsed = true">Vérifier les feuilles de réponses</a>
+          <a ngbDropdownItem routerLink="/formUpload" (click)="collapsed = true">Import</a>
+          <a ngbDropdownItem routerLink="/listUpload" (click)="collapsed = true">Vérication</a>
         </div>
       </li>
       <li class="nav-item">
-        <a class="nav-link" routerLink="/listStage" (click)="collapsed = true">Correction des étapes</a>
+        <a class="nav-link" routerLink="/listStage" (click)="collapsed = true">Correction des épreuves</a>
       </li>
       <li ngbDropdown class="nav-item" display="dynamic">
         <a class="nav-link" id="pointMenu" ngbDropdownToggle role="button" data-toggle="dropdown" aria-haspopup="true"
           aria-expanded="false">Points</a>
         <div ngbDropdownMenu aria-labelledby="pointMenu">
-          <a ngbDropdownItem routerLink="/listRanking" (click)="collapsed = true">Classement</a>
-          <a ngbDropdownItem routerLink="/listPoint" (click)="collapsed = true">Detail des points</a>
+          <a ngbDropdownItem routerLink="/listRanking" (click)="collapsed = true">Classements</a>
+          <a ngbDropdownItem routerLink="/listPoint" (click)="collapsed = true">Détails</a>
         </div>
       </li>
       <li ngbDropdown class="nav-item" display="dynamic">
         <a class="nav-link" id="paramMenu" ngbDropdownToggle role="button" data-toggle="dropdown" aria-haspopup="true"
           aria-expanded="false">Paramétrage</a>
         <div ngbDropdownMenu aria-labelledby="paramMenu">
-          <a ngbDropdownItem routerLink="/listStageParam" (click)="collapsed = true">Paramétrage des étapes</a>
-          <a ngbDropdownItem routerLink="/listTeamInfo" (click)="collapsed = true">Paramétrage des équipes</a>
-          <a ngbDropdownItem routerLink="/sharingParam" (click)="collapsed = true">Import / Export du paramétrage</a>
+          <a ngbDropdownItem routerLink="/listStageParam" (click)="collapsed = true">Epreuves</a>
+          <a ngbDropdownItem routerLink="/listTeamInfo" (click)="collapsed = true">Equipes</a>
+          <a ngbDropdownItem routerLink="/sharingParam" (click)="collapsed = true">Import / Export</a>
         </div>
       </li>
     </ul>
