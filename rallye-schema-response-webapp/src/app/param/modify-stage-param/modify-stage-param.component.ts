@@ -3,8 +3,11 @@ import { AbstractControl, FormArray, FormBuilder, FormGroup } from '@angular/for
 import { ActivatedRoute, Router } from '@angular/router';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
+import { HalLink } from 'src/app/models/hal-link';
 import { ModifyResponseFileParamComponent } from 'src/app/response-file/param/modify-response-file-param/modify-response-file-param.component';
 import { ResponseFileParamService } from 'src/app/response-file/param/response-file-param.service';
+import { QuestionParam } from '../models/question-param';
+import { StageParam } from '../models/stage-param';
 import { StageParamService } from '../stage-param.service';
 
 @Component({
@@ -13,12 +16,12 @@ import { StageParamService } from '../stage-param.service';
   styleUrls: ['./modify-stage-param.component.scss']
 })
 export class ModifyStageParamComponent implements OnInit {
-  stageParam: any;
+  stageParam: StageParam;
 
   stageParamForm: FormGroup;
-  responseFileParamUrls = [];
-  removedQuestionParams = [];
-  questionParamNames = [];
+  responseFileParamUrls: string[] = [];
+  removedQuestionParams: string[] = [];
+  questionParamNames: string[] = [];
   questionParamName = '';
   constructor(
     private formBuilder: FormBuilder,
@@ -71,7 +74,7 @@ export class ModifyStageParamComponent implements OnInit {
         this.initQuestionParam(questionParam);
       }
       if (this.stageParam._links && this.stageParam._links.responseFileParams) {
-        for (const responseFileParamUrl of this.stageParam._links.responseFileParams) {
+        for (const responseFileParamUrl of this.stageParam._links.responseFileParams as HalLink[]) {
           this.responseFileParamUrls.push(responseFileParamUrl.href);
         }
       }
@@ -91,7 +94,7 @@ export class ModifyStageParamComponent implements OnInit {
     });
   }
 
-  private initQuestionPointParam(questionParam: any) {
+  private initQuestionPointParam(questionParam: QuestionParam) {
     if (questionParam.type === 'QUESTION') {
       let pointValue = 0;
       const questionPoint = this.stageParam.questionPointParams[questionParam.name];
@@ -130,7 +133,7 @@ export class ModifyStageParamComponent implements OnInit {
     }
   }
 
-  private initQuestionParam(questionParam: any) {
+  private initQuestionParam(questionParam: QuestionParam) {
     if (questionParam.type === 'QUESTION' || questionParam.type === 'PERFORMANCE') {
       this.questionParams.push(this.formBuilder.group({
         name: questionParam.name,
