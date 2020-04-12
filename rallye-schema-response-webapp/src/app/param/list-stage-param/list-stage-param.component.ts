@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
-import { Observable } from 'rxjs';
-import { StageParamService } from '../stage-param.service';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { StageParam } from '../models/stage-param';
 import { NewStageParamComponent } from '../new-stage-param/new-stage-param.component';
+import { StageParamService } from '../stage-param.service';
 
 @Component({
   selector: 'app-list-stage-param',
@@ -10,7 +10,7 @@ import { NewStageParamComponent } from '../new-stage-param/new-stage-param.compo
   styleUrls: ['./list-stage-param.component.scss']
 })
 export class ListStageParamComponent implements OnInit {
-  stageParams: any[] = [];
+  stageParams: StageParam[] = [];
 
   constructor(
     private stageParamService: StageParamService,
@@ -26,7 +26,7 @@ export class ListStageParamComponent implements OnInit {
 
   addStageParam() {
     const modalRef = this.modalService.open(NewStageParamComponent);
-    modalRef.result.then((result) => {
+    modalRef.result.then((result: StageParam) => {
       console.log(result);
       this.stageParamService.addStageParam(result).subscribe(data => {
         this.ngOnInit();

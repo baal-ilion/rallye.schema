@@ -4,6 +4,7 @@ import { FormArray, FormBuilder, FormGroup } from '@angular/forms';
 import { NgbDateStruct, NgbTimeStruct } from '@ng-bootstrap/ng-bootstrap';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
 import { HalLink } from 'src/app/models/hal-link';
+import { StageParam } from 'src/app/param/models/stage-param';
 import { StageParamService } from 'src/app/param/stage-param.service';
 import { UploadFileService } from 'src/app/upload/upload-file.service';
 import { StageResult } from '../models/stage-result';
@@ -24,7 +25,7 @@ export class DetailsStageComponent implements OnInit {
   stageResult: StageResult;
   form: FormGroup;
   files = [];
-  param;
+  param: StageParam;
 
   constructor(
     private uploadFileService: UploadFileService,

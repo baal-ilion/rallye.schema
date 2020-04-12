@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, QueryList, ViewChildren } from '@angular/core';
 import * as FileSaver from 'file-saver';
+import { StageParam } from 'src/app/param/models/stage-param';
 import { TeamInfo } from 'src/app/param/models/team-info';
 import { StageParamService } from 'src/app/param/stage-param.service';
 import { TeamInfoService } from 'src/app/param/team-info.service';
@@ -23,7 +24,7 @@ export class ListRankingComponent implements OnInit {
   generalRanking: Ranking[] = [];
   stageRanking: { [stage: number]: Ranking[] } = {};
   teamInfos: { [team: number]: TeamInfo } = {};
-  stageParams: { [stage: number]: any } = {};
+  stageParams: { [stage: number]: StageParam } = {};
   @ViewChildren(RankingComponent) rankingTables!: QueryList<RankingComponent>;
 
   constructor(
