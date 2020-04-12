@@ -6,19 +6,24 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>2.2.4.RELEASE</version>
+		<version>2.2.6.RELEASE</version>
 		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>fr.vandriessche.rallyeschema</groupId>
 	<artifactId>response-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>rallye-schema-response-service</name>
+	<description>Gestion des reponses pour le rallye schema</description>
 
 	<properties>
 		<java.version>11</java.version>
 	</properties>
 
 	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-amqp</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-mongodb</artifactId>
@@ -62,11 +67,7 @@
 		<dependency>
 			<groupId>org.apache.pdfbox</groupId>
 			<artifactId>pdfbox</artifactId>
-			<version>2.0.17</version>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-amqp</artifactId>
+			<version>2.0.19</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.amqp</groupId>
@@ -84,7 +85,7 @@
 			<plugin>
 				<groupId>com.google.cloud.tools</groupId>
 				<artifactId>jib-maven-plugin</artifactId>
-				<version>2.0.0</version>
+				<version>2.1.0</version>
 				<configuration>
 					<to>
 						<image>${image.path}</image>
@@ -95,5 +96,4 @@
 		</plugins>
 	</build>
 
-	<description>Gestion des reponses pour le rallye schema</description>
 </project>
