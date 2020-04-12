@@ -1,7 +1,22 @@
-<h1>Detail des points</h1>
-<button class="btn-info" ngbButtonLabel (click)='recomputePoints()'>Recalculer les Points</button>
-<div *ngIf='points'>
-  <div *ngFor="let point of points | async">
-    <app-details-point [point]='point'></app-details-point>
+<div class="container">
+
+  <div class="row mt-4 text-center">
+    <div class="col-9">
+      <h1 id="ranking_title">Détail des points</h1>
+    </div>
+    <div class="col-3 m-auto p-0">
+      <button class="btn-info" ngbButtonLabel (click)='recomputePoints()'>Recalculer les Points</button>
+    </div>
+  </div>
+
+  <div *ngIf='points' class="row mt-4 mb-5 text-center">
+    <div class="col-12">
+
+      <div *ngFor="let point of points | async">
+        <app-details-point [point]='point'></app-details-point>
+      </div>
+    </div>
+
   </div>
 </div>
+
