@@ -1,54 +1,50 @@
-<div class="container" *ngIf="teamInfo">
+<div class="container mb-5" *ngIf="teamInfo">
 
-  <header class="row mt-4 text-center">
+  <div class="row mt-4">
     <div class="col-12">
-      <h1>Avancement de l'équipe {{teamInfo.team}} ({{teamInfo.name}})</h1>
+      <h1 class="text-center">Avancement de l'équipe {{teamInfo.team}} ({{teamInfo.name}})</h1>
     </div>
-  </header>
+  </div>
 
   <div class="row mt-4 mb-5">
-    <main class="col-12">
-      <table class="table table-bordered align-items-center">
+    <table class="col-12 table table-bordered align-items-center">
+      <thead class="bg-info text-white">
+        <tr>
+          <th class="align-middle">#</th>
+          <th class="align-middle">Epreuve</th>
+          <th class="align-middle">Statut</th>
+          <th class="align-middle">Actions</th>
+        </tr>
+      </thead>
 
-        <thead class="bg-info text-white">
-          <tr>
-            <th class="align-middle">#</th>
-            <th class="align-middle">Epreuve</th>
-            <th class="align-middle">Statut</th>
-            <th class="align-middle">Actions</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          <tr *ngFor="let stageParam of stageParams">
-            <th class="align-middle">{{stageParam.stage}}</th>
-            <td class="align-middle">{{stageParam.name}}</td>
-            <td class="align-middle">
-              <div *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && !stages[stageParam.stage].end">Epreuve en cours</div>
-              <div *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && stages[stageParam.stage].end">Epreuve achevée</div>
-              <div *ngIf="!stages[stageParam.stage] || !stages[stageParam.stage].begin">Epreuve non réalisée</div>
-            </td>
-            <td class="align-middle">
-              <section>
-                <div *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && !stages[stageParam.stage].end">
-                  <button type="button" (click)="onStopStage(stageParam.stage)">Terminer</button>
-                </div>
-                <div *ngIf="!stages[stageParam.stage] || !stages[stageParam.stage].begin">
-                    <button type="button" (click)="onStartStage(stageParam.stage)">Commencer</button>
-                </div>
-                <div *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && !stages[stageParam.stage].end">
-                  <button type="button" (click)="onCancelStage(stageParam.stage)">Annuler</button>
-                </div>
-                <div *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && stages[stageParam.stage].end">
-                  <button type="button" (click)="onUndoStage(stageParam.stage)">Reprendre</button>
-                </div>
-                <button type="button" *ngIf="stages[stageParam.stage]" routerLink="/stage/{{teamInfo.team}}/{{stageParam.stage}}">Détails</button>
-              </section>
-            </td>
-          </tr>
-        </tbody>
-
-      </table>
-    </main>
+      <tbody>
+        <tr *ngFor="let stageParam of stageParams">
+          <th class="align-middle">{{stageParam.stage}}</th>
+          <td class="align-middle">{{stageParam.name}}</td>
+          <td class="align-middle">
+            <div *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && !stages[stageParam.stage].end">Epreuve en cours</div>
+            <div *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && stages[stageParam.stage].end">Epreuve achevée</div>
+            <div *ngIf="!stages[stageParam.stage] || !stages[stageParam.stage].begin">Epreuve non réalisée</div>
+          </td>
+          <td class="align-middle">
+            <section>
+              <div *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && !stages[stageParam.stage].end">
+                <button type="button" (click)="onStopStage(stageParam.stage)">Terminer</button>
+              </div>
+              <div *ngIf="!stages[stageParam.stage] || !stages[stageParam.stage].begin">
+                  <button type="button" (click)="onStartStage(stageParam.stage)">Commencer</button>
+              </div>
+              <div *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && !stages[stageParam.stage].end">
+                <button type="button" (click)="onCancelStage(stageParam.stage)">Annuler</button>
+              </div>
+              <div *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && stages[stageParam.stage].end">
+                <button type="button" (click)="onUndoStage(stageParam.stage)">Reprendre</button>
+              </div>
+              <button type="button" *ngIf="stages[stageParam.stage]" routerLink="/stage/{{teamInfo.team}}/{{stageParam.stage}}">Détails</button>
+            </section>
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </div>
