@@ -1,10 +1,12 @@
-<div class="w-100" *ngIf="param">
-
-  <header class="row mt-3">
-    <h2 class="col-12 py-2 bg-info text-center text-white">Equipe {{stageResult.team}} / Epreuve {{stageResult.stage}}</h2>
-  </header>
+<div class="container mb-3 w-100" *ngIf="param">
 
   <div class="row">
+    <div class="col-12 py-1 bg-info">
+      <h2 class="text-center text-white">Equipe {{stageResult.team}} / Epreuve {{stageResult.stage}}</h2>
+    </div>
+  </div>
+
+  <div class="row mt-1">
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="container col-12">
 
       <!----------------------->
