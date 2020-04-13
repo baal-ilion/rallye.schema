@@ -21,9 +21,12 @@ export class FormUploadComponent implements OnInit {
   }
 
   selectFile(files: FileList) {
-    this.labelImport.nativeElement.innerText = Array.from(files)
-      .map(f => f.name)
-      .join(', ');
+    if (files.length > 0)
+      this.labelImport.nativeElement.innerText = Array.from(files)
+        .map(f => f.name)
+        .join(', ');
+    else
+      this.labelImport.nativeElement.innerHTML = '<i class="fas fa-search">Sélectionnez une feuille de réponses corrigée.</i>';
     this.selectedFiles = files;
   }
 
@@ -34,7 +37,7 @@ export class FormUploadComponent implements OnInit {
       const file = this.selectedFiles[index];
       this.uploadFile(file);
     }
-    this.labelImport.nativeElement.innerText = '<i class="fas fa-search">Choose file</i>';
+    this.labelImport.nativeElement.innerHTML = '<i class="fas fa-search">Sélectionnez une feuille de réponses corrigée.</i>';
     this.selectedFiles = undefined;
   }
 
