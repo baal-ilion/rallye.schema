@@ -1,23 +1,48 @@
-<div *ngIf="teamInfo">
-  <h1>{{teamInfo.team}} - {{teamInfo.name}}</h1>
-  <div *ngFor="let stageParam of stageParams">{{stageParam.stage}} - {{stageParam.name}}
-    <span *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && !stages[stageParam.stage].end"> (En
-      cours)</span>
-    <span *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && stages[stageParam.stage].end">
-      (Fini)</span>
-    <span *ngIf="!stages[stageParam.stage] || !stages[stageParam.stage].begin"> (Pas fait)</span>
-    <button type="button"
-      *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && !stages[stageParam.stage].end"
-      (click)="onStopStage(stageParam.stage)">Finir</button>
-    <button type="button" *ngIf="!stages[stageParam.stage] || !stages[stageParam.stage].begin"
-      (click)="onStartStage(stageParam.stage)">Démarrer</button>
-    <button type="button"
-      *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && !stages[stageParam.stage].end"
-      (click)="onCancelStage(stageParam.stage)">Annuler</button>
-    <button type="button"
-      *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && stages[stageParam.stage].end"
-      (click)="onUndoStage(stageParam.stage)">Annuler</button>
-    <button type="button" *ngIf="stages[stageParam.stage]"
-      routerLink="/stage/{{teamInfo.team}}/{{stageParam.stage}}">Detail</button>
+<div class="container" *ngIf="teamInfo">
+  <div class="row mt-4 text-center">
+    <h1 class="col-12">Avancement de l'équipe {{teamInfo.team}} ({{teamInfo.name}})</h1>
+  </div>
+  <div class="row mt-4 mb-5">
+    <table class="col-12 table table-bordered align-items-center">
+      <thead class="bg-info text-white">
+        <tr>
+          <th scope="col" class="align-middle">#</th>
+          <th scope="col" class="align-middle">Epreuve</th>
+          <th scope="col" class="align-middle">Statut</th>
+          <th scope="col" class="align-middle">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let stageParam of stageParams">
+          <th scope="row" class="align-middle">{{stageParam.stage}}</th>
+          <td class="align-middle">{{stageParam.name}}</td>
+          <td class="align-middle">
+            <div *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && !stages[stageParam.stage].end">
+              Epreuve en cours</div>
+            <div *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && stages[stageParam.stage].end">
+              Epreuve achevée</div>
+            <div *ngIf="!stages[stageParam.stage] || !stages[stageParam.stage].begin">Epreuve non réalisée</div>
+          </td>
+          <td class="align-middle">
+            <div class="">
+              <button class="btn btn-outline-success ml-1" type="button"
+                *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && !stages[stageParam.stage].end"
+                (click)="onStopStage(stageParam.stage)">Terminer</button>
+              <button class="btn btn-outline-primary ml-1" type="button"
+                *ngIf="!stages[stageParam.stage] || !stages[stageParam.stage].begin"
+                (click)="onStartStage(stageParam.stage)">Commencer</button>
+              <button class="btn btn-outline-danger ml-1" type="button"
+                *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && !stages[stageParam.stage].end"
+                (click)="onCancelStage(stageParam.stage)">Annuler</button>
+              <button class="btn btn-outline-danger ml-1" type="button"
+                *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && stages[stageParam.stage].end"
+                (click)="onUndoStage(stageParam.stage)">Reprendre</button>
+              <button class="btn btn-outline-info ml-1" type="button" *ngIf="stages[stageParam.stage]"
+                routerLink="/stage/{{teamInfo.team}}/{{stageParam.stage}}">Détails</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </div>
