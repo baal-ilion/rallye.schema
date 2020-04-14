@@ -1,22 +1,22 @@
 <div class="row mt-4">
-  <div class="col-12 px-0">
-    <h2 id="ranking_title">{{rankingTitle}}</h2>
+  <div class="col-12 px-0 py-1 bg-secondary">
+    <h4 id="ranking_title" class="my-auto text-center text-white">{{rankingTitle}}</h4>
   </div>
 </div>
 
-<div class="row">
-  <table class="col-12 table table-bordered" aria-describedby="ranking_title" *ngIf="teamRanking" #ranking_table>
-    <thead class="bg-info text-white">
+<div class="row mt-0">
+  <table class="col-12 table table-sm align-items-center text-center" aria-describedby="ranking_title" *ngIf="teamRanking" #ranking_table>
+    <thead class="bg-light">
       <tr>
-        <th scope="col" class="align-middle" style="width: 8.33%">Classement</th>
-        <th scope="col" class="align-middle" style="width: 16.66%">N° d’équipe</th>
-        <th scope="col" class="align-middle">Nom d’équipe</th>
-        <th scope="col" class="align-middle" style="width: 8.33%">Points</th>
+        <th class="align-middle">Classement</th>
+        <th class="align-middle">N° d’équipe</th>
+        <th class="align-middle">Nom d’équipe</th>
+        <th class="align-middle">Points</th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let ranking of teamRanking">
-        <th scope="row" class="align-middle">{{ranking.order}}</th>
+        <th class="align-middle">{{ranking.order}}</th>
         <td class="align-middle">{{ranking.team}}</td>
         <td class="align-middle">{{teamInfos[ranking.team]?.name}}</td>
         <td class="align-middle">{{ranking.total}}</td>
