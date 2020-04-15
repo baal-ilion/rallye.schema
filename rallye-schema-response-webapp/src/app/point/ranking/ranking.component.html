@@ -1,19 +1,25 @@
-<h1 id="ranking_title">Classement - {{rankingTitle}}</h1>
-<table class="table" aria-describedby="ranking_title" *ngIf="teamRanking" #ranking_table>
-  <thead class="thead-light">
-    <tr>
-      <th scope="col" style="width: 8.33%">Classement</th>
-      <th scope="col" style="width: 16.66%">N° d’équipe</th>
-      <th scope="col">Nom d’équipe</th>
-      <th scope="col" style="width: 8.33%">Points</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let ranking of teamRanking">
-      <th scope="row">{{ranking.order}}</th>
-      <td>{{ranking.team}}</td>
-      <td>{{teamInfos[ranking.team]?.name}}</td>
-      <td>{{ranking.total}}</td>
-    </tr>
-  </tbody>
-</table>
+<div class="row mt-4">
+  <h2 id="ranking_title" class="col-12">{{rankingTitle}}</h2>
+</div>
+<div class="row mt-4">
+  <div class="col-12">
+    <table class="table table-bordered" aria-describedby="ranking_title" *ngIf="teamRanking" #ranking_table>
+      <thead class="bg-info text-white">
+        <tr>
+          <th scope="col" class="align-middle" style="width: 8.33%">Classement</th>
+          <th scope="col" class="align-middle" style="width: 16.66%">N° d’équipe</th>
+          <th scope="col" class="align-middle">Nom d’équipe</th>
+          <th scope="col" class="align-middle" style="width: 8.33%">Points</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let ranking of teamRanking">
+          <th scope="row" class="align-middle">{{ranking.order}}</th>
+          <td class="align-middle">{{ranking.team}}</td>
+          <td class="align-middle">{{teamInfos[ranking.team]?.name}}</td>
+          <td class="align-middle">{{ranking.total}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
