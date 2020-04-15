@@ -2,7 +2,7 @@
 
   <div class="row mt-4">
     <div class="col-12">
-      <h1 class="text-center">Avancement</h1>
+      <h1 class="text-center">Avancement des équipes</h1>
     </div>
   </div>
 
@@ -35,18 +35,18 @@
           <td class="align-middle">
             <section>
               <div *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && !stages[stageParam.stage].end">
-                <button type="button" (click)="onStopStage(stageParam.stage)">Terminer</button>
+                <button type="button" class="btn-success mx-auto my-1" style="width: 110px" (click)="onStopStage(stageParam.stage)">Terminer</button>
               </div>
               <div *ngIf="!stages[stageParam.stage] || !stages[stageParam.stage].begin">
-                  <button type="button" (click)="onStartStage(stageParam.stage)">Commencer</button>
+                  <button type="button" class="btn-success mx-auto my-1" style="width: 110px" (click)="onStartStage(stageParam.stage)">Commencer</button>
               </div>
               <div *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && !stages[stageParam.stage].end">
-                <button type="button" (click)="onCancelStage(stageParam.stage)">Annuler</button>
+                <button type="button" class="btn-danger mx-auto my-1" style="width: 110px" (click)="onCancelStage(stageParam.stage)">Annuler</button>
               </div>
               <div *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && stages[stageParam.stage].end">
-                <button type="button" (click)="onUndoStage(stageParam.stage)">Reprendre</button>
+                <button type="button" class="btn-danger mx-auto my-1" style="width: 110px" (click)="onUndoStage(stageParam.stage)">Reprendre</button>
               </div>
-              <button type="button" *ngIf="stages[stageParam.stage]" routerLink="/stage/{{teamInfo.team}}/{{stageParam.stage}}">Détails</button>
+              <button type="button" class="btn-primary mx-auto my-1" style="width: 110px" *ngIf="stages[stageParam.stage]" routerLink="/stage/{{teamInfo.team}}/{{stageParam.stage}}">Détails</button>
             </section>
           </td>
         </tr>
