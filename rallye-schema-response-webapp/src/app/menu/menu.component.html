@@ -1,6 +1,6 @@
 <nav class="navbar fixed-top  navbar-expand-lg navbar-light bg-light">
   <!-- Brand -->
-  <a class="navbar-brand" [routerLink]="'.'">{{title}}</a>
+  <a class="navbar-brand" [routerLink]="'.'" (click)="collapsed = true">{{title}}</a>
   <button class="navbar-toggler" type="button" [attr.aria-expanded]="!collapsed" (click)="collapsed = !collapsed"
     aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
     <span class="navbar-toggler-icon"></span>
