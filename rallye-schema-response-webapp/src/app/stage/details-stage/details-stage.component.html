@@ -1,68 +1,143 @@
-<div *ngIf="param">
-  <form [formGroup]="form" (ngSubmit)="onSubmit()">
-    <h1>Etape : {{stageResult.stage}}, Equipe : {{stageResult.team}}</h1>
-    <div class="form-group">
-      <div class="input-group">
-        <label class="col-2 align-self-center">Debut :</label>
-        <input class="form-control col-2 align-self-center rounded-left" placeholder="yyyy-mm-dd" name="dp"
-          formControlName="begindate" ngbDatepicker #d="ngbDatepicker">
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="container mb-3 w-100" *ngIf="param">
+  <div class="row mt-4">
+    <div class="col-12 py-1 bg-secondary">
+      <h4 class="m-auto text-center text-white">Equipe {{stageResult.team}} / Epreuve {{stageResult.stage}}</h4>
+    </div>
+  </div>
+  <!-- Begin / end dates -->
+  <div class="row mt-2 justify-content-center">
+    <!-- Begin date -->
+    <div class="col-8 col-sm-6 col-md-5 col-lg-4 col-xl-3 col-xxl-2 m-2 p-0 border">
+      <label class="raw col-12 m-0 p-1 text-center">Début :</label>
+      <div class="raw col-12 m-0 p-1 justify-content-center input-group">
+        <input class="form-control rounded-left" placeholder="yyyy-mm-dd" name="dp" formControlName="begindate"
+          ngbDatepicker #d="ngbDatepicker">
         <div class="input-group-append">
           <button class="btn btn-outline-secondary calendar rounded-right" (click)="d.toggle()" type="button"></button>
         </div>
-        <ngb-timepicker formControlName="begintime" seconds="true" [spinners]="false" class="align-self-center ml-1">
-        </ngb-timepicker>
-        <button class="btn btn-outline-secondary ml-1" type="button"
-          *ngIf="stageResult && stageResult.begin && !stageResult.end" (click)="onCancelStage()">Annuler</button>
       </div>
-      <div class="form-group mt-1">
-        <div class="input-group">
-          <label class="col-2 align-self-center">Fin :</label>
-          <input class="form-control col-2 align-self-center rounded-left" placeholder="yyyy-mm-dd" name="dp"
-            formControlName="enddate" ngbDatepicker #e="ngbDatepicker">
-          <div class="input-group-append">
-            <button class="btn btn-outline-secondary calendar rounded-right" (click)="e.toggle()"
-              type="button"></button>
+      <div class="row col-12 m-0 p-1 justify-content-center">
+        <ngb-timepicker formControlName="begintime" seconds="true" [spinners]="false"></ngb-timepicker>
+      </div>
+      <div class="row col-12 m-0 p-1 justify-content-center">
+        <button class="btn btn-danger" type="button" *ngIf="stageResult && stageResult.begin && !stageResult.end"
+          (click)="onCancelStage()">Annuler</button>
+      </div>
+    </div>
+    <!-- End date -->
+    <div class="col-8 col-sm-6 col-md-5 col-lg-4 col-xl-3 col-xxl-2 m-2 p-0 border">
+      <label class="raw col-12 m-0 p-1 text-center">Fin :</label>
+      <div class="raw col-12 m-0 p-1 justify-content-center input-group">
+        <input class="form-control rounded-left" placeholder="yyyy-mm-dd" name="dp" formControlName="enddate"
+          ngbDatepicker #e="ngbDatepicker">
+        <div class="input-group-append">
+          <button class="btn btn-outline-secondary calendar rounded-right" (click)="e.toggle()" type="button"></button>
+        </div>
+      </div>
+      <div class="row col-12 m-0 p-1 justify-content-center">
+        <ngb-timepicker formControlName="endtime" seconds="true" [spinners]="false"></ngb-timepicker>
+      </div>
+      <div class="row col-12 m-0 p-1 justify-content-center">
+        <button class="btn btn-danger" type="button" *ngIf="stageResult && stageResult.begin && stageResult.end"
+          (click)="onUndoStage()">Annuler</button>
+      </div>
+    </div>
+  </div>
+  <!-- Questions on response sheets -->
+  <!-- TODO formatage si la page n'est pas encore importée -->
+  <!-- TODO Ne pas afficher "Equipe x / Epreuve x / Page x" -->
+  <!-- TODO Placer les boutons sous les questions en mode petit écran -->
+  <div *ngIf="files.length > 0" class="row">
+    <div *ngFor="let file of files" class="col-12">
+      <div class="row mt-4">
+        <div class="col-12 py-1 bg-light">
+          <h5 class="m-auto text-center">Questions sur la page {{file.page}} du formulaire de réponses</h5>
+        </div>
+      </div>
+      <div class="row mt-2">
+        <!-- The response sheets are displayed only on medium or bigger screens -->
+        <div class="col-12 col-xxl-10 d-none d-md-block">
+          <div class="row justify-content-center border">
+            <app-details-upload [fileUpload]="file" [dragable]="false" (checkedEvent)="reload()"
+              (deleteEvent)="reload()"></app-details-upload>
           </div>
-          <ngb-timepicker formControlName="endtime" seconds="true" [spinners]="false" class="align-self-center ml-1">
-          </ngb-timepicker>
-          <button class="btn btn-outline-secondary ml-1" type="button"
-            *ngIf="stageResult && stageResult.begin && stageResult.end" (click)="onUndoStage()">Annuler</button>
+        </div>
+        <!-- If the screen is extra-large, the switches are displayed on the right of the sheet only -->
+        <!-- else the switches are displayed below the sheet                                         -->
+        <div class="col-12 col-xxl-2">
+          <div class="row h-100">
+            <div class="col-12 d-none d-xxl-block" style="height:25.59%"></div>
+            <div class="col-12 d-flex align-content-between flex-wrap p-0" style="height:61.11%">
+              <div *ngFor="let item of [].constructor(38); let i = index" class="col-3 col-md-2 col-xxl-12 p-0">
+                <div class="row">
+                  <label class="col-4 my-auto p-0 small text-right">Qxxx</label>
+                  <div class="col-8 my-auto px-1 py-0 justify-content-start">
+                    <ui-switch size="small"></ui-switch>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 d-none d-xxl-block" style="height:13.30%"></div>
+          </div>
         </div>
       </div>
     </div>
-    <div *ngIf="files.length > 0" class="row align-items-start container">
-      <div *ngFor="let file of files" class="col-6">
-        <div style="position: relative;" class="response-file">
-          <app-details-upload [fileUpload]="file" [dragable]="false" class="col-8" (checkedEvent)="reload()"
-            (deleteEvent)="reload()"></app-details-upload>
-        </div>
+  </div>
+  <!-- Questions without response sheets -->
+  <!-- TODO n'afficher que les questions qui ne sont pas dans une feuille de réponce -->
+  <div *ngIf="results.controls.length > 0">
+    <div class="row mt-4">
+      <div class="col-12 py-1 bg-light">
+        <h5 class="m-auto text-center">Questions hors formulaire de réponses</h5>
       </div>
     </div>
-    <div class="row">
-      <div *ngFor="let result of results.controls" class="col-6 col-lg-3 col-sm-6 col-md-4">
+    <div class="row mt-2">
+      <div *ngFor="let result of results.controls" class="col-3 col-md-2 col-xxl-1">
+
         <div [formGroup]="result" class="row">
-          <label class="col align-self-center">{{result.value.name}}</label>
-          <div class="col-auto align-self-center">
-            <ui-switch formControlName="resultValue" size="small" class="col-auto"></ui-switch>
+          <label class="col-4 my-auto p-0 small text-right">{{result.value.name}}</label>
+          <div class="col-8 my-auto px-1 py-0 justify-content-start ">
+            <ui-switch formControlName="resultValue" size="small"></ui-switch>
           </div>
         </div>
       </div>
     </div>
-    <div class="row">
-      <div *ngFor="let performance of performances.controls" class="col-6 col-lg-3 col-sm-6 col-md-4">
+  </div>
+  <!-- Performances -->
+  <div *ngIf="performances.controls.length > 0">
+    <div class="row mt-4">
+      <div class="col-12 py-1 bg-light">
+        <h5 class="m-auto text-center">Performances</h5>
+      </div>
+    </div>
+    <div class="row mt-2">
+      <div *ngFor="let performance of performances.controls" class="col-6 col-md-4 col-lg-3 col-xl-2">
         <div [formGroup]="performance" class="row">
-          <label class="col align-self-center">{{performance.value.name}}</label>
-          <div class="col-auto align-self-center">
-            <input type=number step=any formControlName="performanceValue" class="col-auto" />
+          <label class="col-4 m-0 px-0 py-0 small text-right">{{performance.value.name}}</label>
+          <div class="col-8 m-0 px-1 py-0 justify-content-start ">
+            <input type=number step=any formControlName="performanceValue" class="col-auto small" />
           </div>
         </div>
       </div>
     </div>
-    <div class="row">
-      <button *ngIf="stageResult?.checked" class="btn btn-danger my-1 mx-1" type="submit" [disabled]="form.invalid"
-        (click)="form.patchValue({checked: false})">Dévalider</button>
-      <button *ngIf="stageResult && !stageResult.checked" class="btn btn-success my-1 mx-1" type="submit"
-        [disabled]="form.invalid" (click)="form.patchValue({checked: true})">Valider</button>
-      <button class="btn btn-primary my-1 mx-1" type="submit" [disabled]="form.invalid">Modifier</button> </div>
-  </form>
-</div>
+  </div>
+  <!-- Validation -->
+  <div class="row mt-4">
+    <div class="col-12 py-1 bg-light">
+      <h5 class="m-auto text-center">Validation de la correction</h5>
+    </div>
+  </div>
+  <div class="row justify-content-center mt-2">
+    <div *ngIf="stageResult?.checked" class="text-center align-middle mx-2 px-1 py-0">
+      <button class="btn btn-danger" type="submit" [disabled]="form.invalid"
+        (click)="form.patchValue({checked: false})">Invalider</button>
+    </div>
+    <div *ngIf="stageResult && !stageResult.checked" class="text-center align-middle mx-2 px-1 py-0">
+      <button class="btn btn-success" type="submit" [disabled]="form.invalid"
+        (click)="form.patchValue({checked: true})">Valider</button>
+    </div>
+    <div class="text-center align-middle mx-2 px-1 py-0">
+      <button class="btn btn-primary" type="submit" [disabled]="form.invalid">Enregister</button>
+    </div>
+  </div>
+</form>
