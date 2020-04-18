@@ -1,9 +1,13 @@
-<div class="panel panel-primary">
-  <div class="panel-heading">Correction des étapes</div>
-  <div *ngIf='stages'>
-    <div *ngFor="let stage of stages">
-      <div class="panel-body">
-        <app-details-stage [stage]='stage.stage' [team]='stage.team'></app-details-stage>
+<div class="container-fluid">
+  <div class="row mt-4 text-center">
+    <h1 class="col-12">Correction des épreuves</h1>
+  </div>
+  <div class="row justify-content-center mt-4 mb-5">
+    <div *ngIf='stages' class="col-12">
+      <div *ngFor="let stage of stages" class="row justify-content-center my-4">
+        <div class="col-12">
+          <app-details-stage [stage]='stage.stage' [team]='stage.team'></app-details-stage>
+        </div>
       </div>
     </div>
   </div>
