@@ -1,10 +1,21 @@
 <div *ngIf="point.stagePoints">
   <div *ngFor="let stagePoint of point.stagePoints | keyvalue">
     <div *ngIf="stagePoint.value.total > 0">
-      <h4>Equipe : {{point.team}} - Etape : {{stagePoint.value.stage}}</h4>
-      <div class="details-point">
-        <div *ngFor="let question of stagePoint.value.questions" class="raw">
-          <span class="col-1">{{question.name}} : {{question.total}} pts. </span>
+      <div class="row mt-4">
+        <h4 id="ranking_title" class="col-12 px-0 py-1 bg-secondary text-center text-white">Equipe {{point.team}} /
+          Epreuve
+          {{stagePoint.value.stage}}</h4>
+      </div>
+      <div class="row mt-0">
+        <div class="col-12 px-0 py-1 bg-light">
+          <h5 class="m-auto text-center">Points obtenus</h5>
+        </div>
+      </div>
+      <div class="row mt-1">
+        <div class="details-point col-12">
+          <div *ngFor="let question of stagePoint.value.questions" class="row">
+            <div class="mx-auto">{{question.name}}: {{question.total}} pts.</div>
+          </div>
         </div>
       </div>
     </div>

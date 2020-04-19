@@ -1,11 +1,14 @@
-<div class="panel panel-primary">
-  <div class="panel-heading">Liste des feuilles de réponses</div>
+<div class="container mb-5">
+  <div class="row mt-4">
+    <h1 class="col-12 text-center">Vérification de l'import des formulaires de réponses</h1>
+  </div>
   <div
     *ngIf='(fileUploads | async) && (fileUploads | async)._embedded && (fileUploads | async)._embedded.responseFileInfoes'>
     <div *ngFor="let file of (fileUploads | async)._embedded.responseFileInfoes">
-      <div class="panel-body" *ngIf="!file.checked">
-        <app-details-upload [fileUpload]='file' (checkedEvent)="file.checked = true"
-          (deleteEvent)="file.checked = true"></app-details-upload>
+      <div *ngIf="!file.checked" class="row justify-content-center mt-4">
+        <app-details-upload class="col-12" [fileUpload]='file' (checkedEvent)="file.checked = true"
+          (deleteEvent)="file.checked = true">
+        </app-details-upload>
       </div>
     </div>
   </div>

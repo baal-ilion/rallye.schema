@@ -1,4 +1,18 @@
-<button class="btn-info" ngbButtonLabel (click)='exportExcel()'>Télécharger le classement</button>
-<app-ranking rankingTitle="Général" [teamRanking]="generalRanking" [teamInfos]="teamInfos"></app-ranking>
-<app-ranking *ngFor="let stageRank of stageRanking | keyvalue" [rankingTitle]="stageParams[stageRank.key]?.name"
-  [teamRanking]="stageRank.value" [teamInfos]="teamInfos"></app-ranking>
+<div class="container mb-5">
+  <div class="row mt-4 text-center">
+    <h1 class="col-9">Classements des équipes</h1>
+    <div class="col-3 m-auto p-0">
+      <button class="btn-primary" ngbButtonLabel (click)='exportExcel()'>Télécharger</button>
+    </div>
+  </div>
+  <div class="row justify-content-center">
+    <app-ranking class="col-12" rankingTitle="Classement général" [teamRanking]="generalRanking"
+      [teamInfos]="teamInfos">
+    </app-ranking>
+  </div>
+  <div class="row justify-content-center">
+    <app-ranking class="col-12" *ngFor="let stageRank of stageRanking | keyvalue"
+      [rankingTitle]="stageParams[stageRank.key]?.name" [teamRanking]="stageRank.value" [teamInfos]="teamInfos">
+    </app-ranking>
+  </div>
+</div>
