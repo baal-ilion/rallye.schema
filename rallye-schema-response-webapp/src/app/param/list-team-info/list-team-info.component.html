@@ -1,12 +1,46 @@
-<div class="panel panel-primary">
-  <div class="panel-heading">List of Team</div>
-  <button class="btn-info" ngbButtonLabel (click)='addTeamInfo()'>Ajouter une équipe</button>
-  <div *ngIf='teamInfos'>
-    <div *ngFor="let teamInfo of teamInfos">
-      <div class="panel-body">
-        <button type="button" class="btn btn-link" (click)="modifyTeamInfo(teamInfo)">N° : {{teamInfo.team}} Nom :
-          {{teamInfo.name}}</button>
+<div class="container mb-5">
+
+  <div class="row mt-4">
+    <div class="col-9">
+      <h1 id="ranking_title" class="text-center">Paramétrage des équipes</h1>
+    </div>
+    <div class="col-3 m-auto p-0 text-center">
+      <button class="btn-primary" ngbButtonLabel (click)='addTeamInfo()'>Ajouter une équipe</button>
+    </div>
+  </div>
+
+   <div *ngIf='teamInfos' class="row justify-content-center">
+    <div class="col-12">
+
+      <div class="row mt-4">
+        <div class="col-12 px-0 py-1 bg-secondary">
+          <h4 class="my-auto text-center text-white">Liste des équipes</h4>
+        </div>
       </div>
+
+      <div class="row mt-0">
+        <div class="px-0 table-responsive text-nowrap">
+          <table class="table table-sm align-items-center text-center">
+            <thead class="bg-light">
+              <tr>
+                <th class="align-middle">#</th>
+                <th class="align-middle">Equipe</th>
+                <th class="align-middle">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let teamInfo of teamInfos">
+                <th class="align-middle">{{teamInfo.team}}</th>
+                <td class="align-middle">{{teamInfo.name}}</td>
+                <td class="align-middle">
+                  <button class="btn-primary" ngbButtonLabel (click)='modifyTeamInfo(teamInfo)'>Editer</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
