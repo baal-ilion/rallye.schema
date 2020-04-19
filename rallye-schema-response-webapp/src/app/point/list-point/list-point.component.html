@@ -2,10 +2,10 @@
   <div class="row mt-4 text-center">
     <h1 class="col-9" id="ranking_title">Détail des points</h1>
     <div class="col-3 m-auto p-0 text-center">
-      <button class="btn-info" ngbButtonLabel (click)='recomputePoints()'>Recalculer les points</button>
+      <button class="btn-primary" ngbButtonLabel (click)='recomputePoints()'>Recalculer les points</button>
     </div>
   </div>
-  <div *ngIf='points' class="row mt-4 text-center">
+  <div *ngIf='points' class="row">
     <div *ngFor="let point of points | async">
       <app-details-point class="col-12" [point]='point'></app-details-point>
     </div>
