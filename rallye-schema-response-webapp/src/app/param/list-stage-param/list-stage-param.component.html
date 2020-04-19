@@ -1,11 +1,20 @@
-<div *ngIf='stageParams' class="panel panel-primary">
-  <div class="panel-heading">Liste des étapes</div>
-  <button class="btn-info" ngbButtonLabel (click)='addStageParam()'>Ajouter une étape</button>
-  <div *ngIf='stageParams'>
-    <div *ngFor="let stageParam of stageParams">
-      <div class="panel-body">
+<div class="container mb-5">
+
+  <div class="row mt-4">
+    <div class="col-9">
+      <h1 id="ranking_title" class="text-center">Paramétrage des épreuves</h1>
+    </div>
+    <div class="col-3 m-auto p-0 text-center">
+      <button class="btn-primary" ngbButtonLabel (click)='addStageParam()'>Ajouter une épreuve</button>
+    </div>
+  </div>
+
+  <div *ngIf='stageParams' class="row justify-content-center">
+    <div class="col-12">
+      <div *ngFor="let stageParam of stageParams">
         <app-details-stage-param [stageParam]='stageParam'></app-details-stage-param>
       </div>
     </div>
   </div>
+
 </div>
