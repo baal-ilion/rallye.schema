@@ -1,20 +1,29 @@
-<div class="panel panel-default">
-  <div>Sélectionner les feuilles de réponses</div>
-  <div class="input-group">
-    <div class="custom-file">
-      <input type="file" class="custom-file-input" multiple id="importFile" accept="image/*" (change)="selectFile($event.target.files)">
-      <label class="custom-file-label" #labelImport for="importFile"><i class="fas fa-search">Choose file</i></label>
-    </div>
-    <div class="input-group-append">
-      <button class="btn-outline-secondary" ngbButtonLabel [disabled]="!selectedFiles"
-        (click)="upload()">Upload</button>
-    </div>
+<div class="container  mb-5">
+  <div class="row mt-4 text-center">
+    <h1 class="col-12">Import de formulaires de réponses</h1>
   </div>
-  <div *ngFor="let uploadFile of uploadedFiles">
-    <p>
-      <ngb-progressbar type="info" [value]="uploadFile.progress.percentage" max="100" [striped]="true"
-        [animated]="uploadFile.progress.percentage != 100">
-        {{uploadFile.file.name}} - {{uploadFile.progress.percentage}}%</ngb-progressbar>
-    </p>
+  <div class="row justify-content-center mt-4">
+    <div class="col-12">
+      <div class="input-group">
+        <div class="custom-file">
+          <input type="file" class="custom-file-input" multiple id="importFile" accept="image/*"
+            (change)="selectFile($event.target.files)">
+          <label class="custom-file-label text-nowrap overflow-hidden" #labelImport for="importFile"><i
+              class="fas fa-search">Sélectionnez des
+              formulaires de réponses corrigés.</i></label>
+        </div>
+        <div class="input-group-append">
+          <button class="btn-outline-secondary" ngbButtonLabel [disabled]="!selectedFiles"
+            (click)="upload()">Importer</button>
+        </div>
+      </div>
+      <div *ngFor="let uploadFile of uploadedFiles">
+        <p>
+          <ngb-progressbar type="info" [value]="uploadFile.progress.percentage" max="100" [striped]="true"
+            [animated]="uploadFile.progress.percentage != 100">
+            {{uploadFile.file.name}} - {{uploadFile.progress.percentage}}%</ngb-progressbar>
+        </p>
+      </div>
+    </div>
   </div>
 </div>
