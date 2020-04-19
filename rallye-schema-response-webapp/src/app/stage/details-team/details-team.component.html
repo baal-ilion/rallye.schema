@@ -1,6 +1,6 @@
 <div class="container mb-5" *ngIf="teamInfo">
   <div class="row mt-4 text-center">
-    <h1 class="col-12">Avancement</h1>
+    <h1 class="col-12">Avancement des équipes</h1>
   </div>
   <div class="row mt-4">
     <div class="col-12 px-0 py-1 bg-secondary">
@@ -30,19 +30,20 @@
           </td>
           <td class="align-middle">
             <div class="">
-              <button class="btn btn-outline-success ml-1" type="button"
+              <button class="btn btn-outline-success my-1 ml-1" style="width: 110px" type="button"
                 *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && !stages[stageParam.stage].end"
                 (click)="onStopStage(stageParam.stage)">Terminer</button>
-              <button class="btn btn-outline-primary ml-1" type="button"
+              <button class="btn btn-outline-primary my-1 ml-1" style="width: 110px" type="button"
                 *ngIf="!stages[stageParam.stage] || !stages[stageParam.stage].begin"
                 (click)="onStartStage(stageParam.stage)">Commencer</button>
-              <button class="btn btn-outline-danger ml-1" type="button"
+              <button class="btn btn-outline-danger my-1 ml-1" style="width: 110px" type="button"
                 *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && !stages[stageParam.stage].end"
                 (click)="onCancelStage(stageParam.stage)">Annuler</button>
-              <button class="btn btn-outline-danger ml-1" type="button"
+              <button class="btn btn-outline-danger my-1 ml-1" style="width: 110px" type="button"
                 *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && stages[stageParam.stage].end"
                 (click)="onUndoStage(stageParam.stage)">Reprendre</button>
-              <button class="btn btn-outline-info ml-1" type="button" *ngIf="stages[stageParam.stage]"
+              <button class="btn btn-outline-info my-1 ml-1" style="width: 110px" type="button"
+                *ngIf="stages[stageParam.stage]"
                 routerLink="/stage/{{teamInfo.team}}/{{stageParam.stage}}">Détails</button>
             </div>
           </td>
