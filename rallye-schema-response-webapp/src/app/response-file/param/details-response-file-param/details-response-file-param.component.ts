@@ -1,8 +1,11 @@
-import { Component, OnInit, Input, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
+import { QuestionType } from 'src/app/param/models/question-type';
+import { QuestionPageParam } from '../models/question-page-param';
+import { ResponseFileParam } from '../models/response-file-param';
 import { ModifyResponseFileParamComponent } from '../modify-response-file-param/modify-response-file-param.component';
 import { ResponseFileParamService } from '../response-file-param.service';
-import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
 
 @Component({
   selector: 'app-details-response-file-param',
@@ -13,9 +16,10 @@ export class DetailsResponseFileParamComponent implements OnInit {
   @Input() paramUrl: string;
   @Output() deleteEvent = new EventEmitter();
 
-  param: any;
+  param: ResponseFileParam;
+  modelUrl: string;
 
-  questions: { name: string, type: any }[];
+  questions: QuestionPageParam[];
   constructor(
     private responseFileParamService: ResponseFileParamService,
     private modalService: NgbModal,
@@ -28,18 +32,17 @@ export class DetailsResponseFileParamComponent implements OnInit {
     console.log(this.paramUrl);
     this.responseFileParamService.getResponseFileParamByResource(this.paramUrl).subscribe((param) => {
       console.log(param);
-      param.img = param._links.responseFileModel.href;
       this.param = param;
+      this.modelUrl = param._links.responseFileModel.href;
       this.loadQuestions(param.questions);
     });
   }
 
-  loadQuestions(questions) {
+  loadQuestions(questions: { [x: string]: QuestionPageParam }) {
     this.questions = [];
-    const questionKeys = Object.keys(questions);
-    for (const question of questionKeys) {
-      if (questions[question].type !== 'QUESTION' && questions[question].type !== 'PERFORMANCE') {
-        this.questions.push({ name: question, type: questions[question].type });
+    for (const question of Object.values(questions)) {
+      if (question.type !== QuestionType.QUESTION && question.type !== QuestionType.PERFORMANCE) {
+        this.questions.push(question);
       }
     }
   }

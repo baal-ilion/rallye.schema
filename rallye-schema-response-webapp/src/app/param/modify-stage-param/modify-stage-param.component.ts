@@ -7,7 +7,9 @@ import { HalLink } from 'src/app/models/hal-link';
 import { ModifyResponseFileParamComponent } from 'src/app/response-file/param/modify-response-file-param/modify-response-file-param.component';
 import { ResponseFileParamService } from 'src/app/response-file/param/response-file-param.service';
 import { QuestionParam } from '../models/question-param';
-import { StageParam } from '../models/stage-param';
+import { QuestionPointParam } from '../models/question-point-param';
+import { QuestionType } from '../models/question-type';
+import { PerformancePointParams, QuestionParams, QuestionPointParams, StageParam } from '../models/stage-param';
 import { StageParamService } from '../stage-param.service';
 
 @Component({
@@ -95,7 +97,7 @@ export class ModifyStageParamComponent implements OnInit {
   }
 
   private initQuestionPointParam(questionParam: QuestionParam) {
-    if (questionParam.type === 'QUESTION') {
+    if (questionParam.type === QuestionType.QUESTION) {
       let pointValue = 0;
       const questionPoint = this.stageParam.questionPointParams[questionParam.name];
       if (questionPoint && questionPoint.point) {
@@ -105,7 +107,7 @@ export class ModifyStageParamComponent implements OnInit {
         name: questionParam.name,
         point: pointValue
       }));
-    } else if (questionParam.type === 'PERFORMANCE') {
+    } else if (questionParam.type === QuestionType.PERFORMANCE) {
       const performancePoint = this.stageParam.performancePointParams[questionParam.name];
       const ranges = this.formBuilder.array([]);
       performancePoint?.ranges?.forEach(range => {
@@ -134,7 +136,7 @@ export class ModifyStageParamComponent implements OnInit {
   }
 
   private initQuestionParam(questionParam: QuestionParam) {
-    if (questionParam.type === 'QUESTION' || questionParam.type === 'PERFORMANCE') {
+    if (questionParam.type === QuestionType.QUESTION || questionParam.type === QuestionType.PERFORMANCE) {
       this.questionParams.push(this.formBuilder.group({
         name: questionParam.name,
         type: questionParam.type,
@@ -168,7 +170,7 @@ export class ModifyStageParamComponent implements OnInit {
     if (!this.questionParamNames.includes(paramName) || this.removedQuestionParams.includes(paramName)) {
       this.questionParams.push(this.formBuilder.group({
         name: paramName,
-        type: 'QUESTION',
+        type: QuestionType.QUESTION,
         staff: false
       }));
       const index = this.removedQuestionParams.indexOf(paramName, 0);
@@ -236,9 +238,9 @@ export class ModifyStageParamComponent implements OnInit {
     });
   }
 
-  private getModifiedQuestionPointParams() {
-    const modifiedQuestionPointParams = {};
-    this.stageParamForm.value.questionPointParams.forEach((item, index) => {
+  private getModifiedQuestionPointParams(): QuestionPointParams {
+    const modifiedQuestionPointParams: QuestionPointParams = {};
+    this.stageParamForm.value.questionPointParams.forEach((item: QuestionPointParam, index: number) => {
       const questionPoint = this.stageParam.questionPointParams[item.name];
       if ((!questionPoint && item.point && item.point !== 0) || (questionPoint && questionPoint.point !== item.point)) {
         if (!item.point) {
@@ -250,8 +252,8 @@ export class ModifyStageParamComponent implements OnInit {
     return modifiedQuestionPointParams;
   }
 
-  private getModifiedPerformancePointParams() {
-    const modifiedPerformancePointParams = {};
+  private getModifiedPerformancePointParams(): PerformancePointParams {
+    const modifiedPerformancePointParams: PerformancePointParams = {};
     this.stageParamForm.value.performancePointParams.forEach((item, index) => {
       const performancePoint = this.stageParam.performancePointParams[item.name];
       item.ranges.forEach((range, rangeIndex) => {
@@ -274,15 +276,15 @@ export class ModifyStageParamComponent implements OnInit {
     return modifiedPerformancePointParams;
   }
 
-  private getModifiedQuestionParams() {
-    const modifiedQuestionParams = {};
-    this.stageParamForm.value.questionParams.forEach((item, index) => {
+  private getModifiedQuestionParams(): QuestionParams {
+    const modifiedQuestionParams: QuestionParams = {};
+    this.stageParamForm.value.questionParams.forEach((item: QuestionParam, index: number) => {
       const question = this.stageParam.questionParams[item.name];
       if (!question) {
         modifiedQuestionParams[item.name] = item;
       } else {
         if (item.type !== question.type || item.staff !== question.staff) {
-          modifiedQuestionParams[item.name] = { name: item.name };
+          modifiedQuestionParams[item.name] = { name: item.name, type: undefined, staff: undefined };
           if (item.type !== question.type) {
             modifiedQuestionParams[item.name].type = item.type;
           }
@@ -293,7 +295,7 @@ export class ModifyStageParamComponent implements OnInit {
       }
     });
     this.removedQuestionParams.forEach((removed, index) => {
-      modifiedQuestionParams[removed] = { name: removed };
+      modifiedQuestionParams[removed] = { name: removed, type: undefined, staff: undefined };
     });
     return modifiedQuestionParams;
   }
