@@ -3,13 +3,25 @@ import { PerformancePointParam } from './performance-point-param';
 import { QuestionParam } from './question-param';
 import { QuestionPointParam } from './question-point-param';
 
+export interface QuestionPointParams {
+  [key: string]: QuestionPointParam;
+}
+
+export interface PerformancePointParams {
+  [key: string]: PerformancePointParam;
+}
+
+export interface QuestionParams {
+  [key: string]: QuestionParam;
+}
+
 export interface StageParam {
   id?: string;
   stage: number;
   name: string;
   inactive: boolean;
-  questionPointParams: { [key: string]: QuestionPointParam };
-  performancePointParams: { [key: string]: PerformancePointParam };
-  questionParams: { [key: string]: QuestionParam };
+  questionPointParams: QuestionPointParams;
+  performancePointParams: PerformancePointParams;
+  questionParams: QuestionParams;
   _links?: HalLinks;
 }
