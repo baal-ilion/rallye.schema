@@ -4,8 +4,13 @@ import { FormArray, FormBuilder, FormGroup } from '@angular/forms';
 import { NgbDateStruct, NgbTimeStruct } from '@ng-bootstrap/ng-bootstrap';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
 import { HalLink } from 'src/app/models/hal-link';
+import { QuestionParam } from 'src/app/param/models/question-param';
+import { QuestionType } from 'src/app/param/models/question-type';
 import { StageParam } from 'src/app/param/models/stage-param';
 import { StageParamService } from 'src/app/param/stage-param.service';
+import { QuestionPageParam } from 'src/app/response-file/param/models/question-page-param';
+import { ResponseFileParam } from 'src/app/response-file/param/models/response-file-param';
+import { ResponseFileParamService } from 'src/app/response-file/param/response-file-param.service';
 import { UploadFileService } from 'src/app/upload/upload-file.service';
 import { StageResult } from '../models/stage-result';
 import { StageService } from '../stage.service';
@@ -24,8 +29,9 @@ export class DetailsStageComponent implements OnInit {
 
   stageResult: StageResult;
   form: FormGroup;
-  files = [];
+  files: { [page: number]: any } = {};
   param: StageParam;
+  fileParams: ResponseFileParam[];
 
   constructor(
     private uploadFileService: UploadFileService,
@@ -33,17 +39,20 @@ export class DetailsStageComponent implements OnInit {
     private stageService: StageService,
     private stageParamService: StageParamService,
     private datePipe: DatePipe,
-    private confirmationDialogService: ConfirmationDialogService) { }
+    private confirmationDialogService: ConfirmationDialogService,
+    private responseFileParamService: ResponseFileParamService) { }
 
   // convenience getters for easy access to form fields
   get f() { return this.form.controls; }
-  get results() { return this.f.results as FormArray; }
-  get performances() { return this.f.performances as FormArray; }
+  get pages() { return this.f.pages as FormArray; }
+  getResultForms(formGroup: FormGroup): FormArray { return formGroup.controls.results as FormArray; }
+  getPerformanceForms(formGroup: FormGroup): FormArray { return formGroup.controls.performances as FormArray; }
 
   ngOnInit() {
     const ngbDate: NgbDateStruct = { year: 0, month: 0, day: 0 };
     const ngbTime: NgbTimeStruct = { hour: 0, minute: 0, second: 0 };
     this.form = this.formBuilder.group({
+      pages: this.formBuilder.array([]),
       results: this.formBuilder.array([]),
       performances: this.formBuilder.array([]),
       checked: false,
@@ -53,8 +62,9 @@ export class DetailsStageComponent implements OnInit {
       endtime: ngbTime,
     });
     this.param = null;
+    this.fileParams = null;
     this.stageResult = null;
-    this.files = [];
+    this.files = {};
 
     this.loadStage();
   }
@@ -80,7 +90,17 @@ export class DetailsStageComponent implements OnInit {
       this.loadErrorEvent.emit(error);
       return;
     }
-    this.loadQuestionResults();
+
+    try {
+      await this.loadResponseFileParams();
+    } catch (error) {
+      console.log(error);
+      this.loadErrorEvent.emit(error);
+      return;
+    }
+
+    this.loadQuestionPageResults();
+
     try {
       await loadResponceFilesPromise;
       await loadStageValuesPromise;
@@ -105,27 +125,70 @@ export class DetailsStageComponent implements OnInit {
     for (const responseFilePromise of responseFilePromises) {
       try {
         const responseFile = await responseFilePromise;
-        this.files.push(responseFile);
+        this.files[responseFile.page] = responseFile;
       } catch (error) {
         console.log(error);
       }
     }
-    this.files.sort((a, b) => (a.page > b.page) ? 1 : -1);
   }
 
-  private loadQuestionResults() {
-    for (const questionParamKey of Object.keys(this.param.questionParams)) {
-      const questionParam = this.param.questionParams[questionParamKey];
-      if (questionParam.type === 'QUESTION') {
-        const result = this.stageResult.results.find(element => element.name === questionParam.name);
-        this.results.push(this.formBuilder.group({
-          name: questionParam.name,
+  private async loadResponseFileParams() {
+    const fileParams: ResponseFileParam[] = [];
+    const responseFileParamPromises = (this.param._links?.responseFileParams as HalLink[] ?? [])
+      .map(responseFileParam => this.responseFileParamService.getResponseFileParamByResource(responseFileParam.href).toPromise());
+    for (const responseFileParamPromise of responseFileParamPromises) {
+      try {
+        const responseFileParam = await responseFileParamPromise;
+        fileParams.push(responseFileParam);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    this.fileParams = fileParams.sort((a, b) => a.page - b.page);
+  }
+
+  private loadQuestionPageResults() {
+    const questionParams = Object.values(this.param.questionParams);
+    for (const fileParam of this.fileParams) {
+      const pageForm = this.formBuilder.group({
+        page: fileParam.page,
+        results: this.formBuilder.array([]),
+        performances: this.formBuilder.array([]),
+      });
+      this.makeQuestionResults(
+        Object.values(fileParam.questions),
+        questionParams,
+        pageForm.controls.results as FormArray,
+        pageForm.controls.performances as FormArray);
+      this.pages.push(pageForm);
+    }
+    this.makeQuestionResults(
+      questionParams,
+      [],
+      this.getResultForms(this.form),
+      this.getPerformanceForms(this.form));
+  }
+
+  private makeQuestionResults(
+    questionPageParams: QuestionPageParam[],
+    questionParams: QuestionParam[],
+    results: FormArray,
+    performances: FormArray) {
+    for (const questionPageParam of questionPageParams) {
+      const index = questionParams.findIndex(q => q.name === questionPageParam.name);
+      if (index !== -1) {
+        questionParams.splice(index, 1);
+      }
+      if (questionPageParam.type === QuestionType.QUESTION) {
+        const result = this.stageResult.results.find(element => element.name === questionPageParam.name);
+        results.push(this.formBuilder.group({
+          name: questionPageParam.name,
           resultValue: result ? result.resultValue : null
         }));
-      } else if (questionParam.type === 'PERFORMANCE') {
-        const performance = this.stageResult.performances.find(element => element.name === questionParam.name);
-        this.performances.push(this.formBuilder.group({
-          name: questionParam.name,
+      } else if (questionPageParam.type === QuestionType.PERFORMANCE) {
+        const performance = this.stageResult.performances.find(element => element.name === questionPageParam.name);
+        performances.push(this.formBuilder.group({
+          name: questionPageParam.name,
           performanceValue: performance ? performance.performanceValue : null
         }));
       }
@@ -152,20 +215,33 @@ export class DetailsStageComponent implements OnInit {
     return new Date(date?.year, date?.month - 1, date?.day, time?.hour, time?.minute, time?.second);
   }
 
-  onSubmit() {
-    const modifiedResults = [];
-    this.form.value.results.forEach((item: any) => {
+  private findModifiedResults(form: FormGroup, modifiedResults: any[]) {
+    form.value.results?.forEach((item: any) => {
       const result = this.stageResult.results.find(element => element.name === item.name);
       if (!result || item.resultValue !== result.resultValue) {
         modifiedResults.push(item);
       }
     });
-    const modifiedperformances = [];
-    this.form.value.performances.forEach((item: any) => {
+  }
+
+  private findModifiedperformances(form: FormGroup, modifiedperformances: any[]) {
+    form.value.performances.forEach((item: any) => {
       const performance = this.stageResult.performances.find(element => element.name === item.name);
       if (!performance || item.performanceValue !== performance.performanceValue) {
         modifiedperformances.push(item);
       }
+    });
+  }
+
+  onSubmit() {
+    console.log(this.form.value);
+    const modifiedResults = [];
+    this.findModifiedResults(this.form, modifiedResults);
+    const modifiedperformances = [];
+    this.findModifiedperformances(this.form, modifiedperformances);
+    this.pages.controls.forEach(page => {
+      this.findModifiedResults(page as FormGroup, modifiedResults);
+      this.findModifiedperformances(page as FormGroup, modifiedperformances);
     });
     const begin = this.buildDate(this.form.value.begindate, this.form.value.begintime);
     const sameBegin = new Date(this.stageResult.begin).getTime() === begin.getTime();

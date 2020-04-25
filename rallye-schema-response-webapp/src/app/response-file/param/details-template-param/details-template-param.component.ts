@@ -1,6 +1,7 @@
-import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
 import { Corners } from '../../common/details-template/models/corners';
 import { FormTemplate } from '../../common/details-template/models/form-template';
+import { ResponseFileParam } from '../models/response-file-param';
 
 @Component({
   selector: 'app-details-template-param',
@@ -8,14 +9,15 @@ import { FormTemplate } from '../../common/details-template/models/form-template
   styleUrls: ['./details-template-param.component.scss']
 })
 export class DetailsTemplateParamComponent implements OnInit, OnChanges {
-  @Input() param: any;
+  @Input() param: ResponseFileParam;
+  @Input() modelUrl: string;
   @Output() endDragEvent = new EventEmitter<Corners>();
 
   template: FormTemplate;
   constructor() { }
 
   ngOnInit() {
-    this.loadTemplate(this.param);
+    this.loadTemplate(this.param, this.modelUrl);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -23,18 +25,18 @@ export class DetailsTemplateParamComponent implements OnInit, OnChanges {
       if (propName === 'param') {
         console.log(propName);
         const change = changes[propName];
-        this.loadTemplate(change.currentValue);
+        this.loadTemplate(change.currentValue, this.modelUrl);
       } else {
         console.log(propName);
       }
     }
   }
 
-  loadTemplate(param) {
+  loadTemplate(param: ResponseFileParam, modelUrl: string) {
     this.template = new FormTemplate();
     this.template.height = param.height;
     this.template.width = param.width;
-    this.template.fileUrl = param.img;
+    this.template.fileUrl = modelUrl;
     //this.template.fileAlt = this.alt;
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(param.template, 'text/xml');
