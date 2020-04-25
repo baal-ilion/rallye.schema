@@ -65,16 +65,16 @@
           </div>
           <!-- If the screen is extra-large, the switches are displayed on the right of the sheet only -->
           <!-- else the switches are displayed below the sheet                                         -->
-          <div class="col-12 col-xxl-2 h-xxl-100 page-item">
+          <div class="col-12 col-xxl-2 h-xxl-100">
             <ng-container
-              *ngTemplateOutlet="resultlist; context: { results: getResultForms(page), performances: getPerformanceForms(page) }">
+              *ngTemplateOutlet="resultlist; context: { results: getResultForms(page), performances: getPerformanceForms(page), forpage: true }">
             </ng-container>
           </div>
         </ng-template>
         <ng-template [ngIf]="!files[page.value.page]">
           <div class="col-12">
             <ng-container
-              *ngTemplateOutlet="resultlist; context: { results: getResultForms(page), performances: getPerformanceForms(page) }">
+              *ngTemplateOutlet="resultlist; context: { results: getResultForms(page), performances: getPerformanceForms(page), forpage: false }">
             </ng-container>
           </div>
         </ng-template>
@@ -90,12 +90,12 @@
   <div class="row">
     <div class="col-12">
       <ng-container
-        *ngTemplateOutlet="resultlist; context: { results: getResultForms(form), performances: getPerformanceForms(form) }">
+        *ngTemplateOutlet="resultlist; context: { results: getResultForms(form), performances: getPerformanceForms(form), forpage: false }">
       </ng-container>
     </div>
   </div>
-  <ng-template #resultlist let-results="results" let-performances="performances">
-    <div class="row h-item"></div>
+  <ng-template #resultlist let-results="results" let-performances="performances" let-forpage="forpage">
+    <div [ngClass]="{'row d-none': !forpage ,'row h-25 d-none d-xxl-block': forpage}" style="height: 15% !important"></div>
     <ng-template [ngIf]="results.controls.length > 0">
       <div class="row mt-2" *ngIf="performances.controls.length > 0">
         <div class="col-12 py-1 border border-light">
@@ -103,7 +103,8 @@
         </div>
       </div>
       <div class="row mt-2">
-        <div *ngFor="let result of results.controls" class="result-item">
+        <div *ngFor="let result of results.controls"
+          [ngClass]="{'col-3 col-md-2 col-xxl-1': !forpage ,'col-3 col-md-2 col-xxl-12': forpage}">
           <div [formGroup]="result" class="row">
             <label class="col-8 my-auto small">{{result.value.name}}</label>
             <div class="col-4 my-auto px-1 py-0 justify-content-start">

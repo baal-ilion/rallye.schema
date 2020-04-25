@@ -1,39 +1,3 @@
-$grid-breakpoints: (
-  xs: 0,
-  sm: 576px,
-  md: 768px,
-  lg: 992px,
-  xl: 1200px,
-  xxl: 1800px,
-);
-
-$container-max-widths: (
-  sm: 540px,
-  md: 720px,
-  lg: 960px,
-  xl: 1140px,
-  xxl: 1700px,
-);
-
-// Import BT sources
-@import "~bootstrap/scss/bootstrap";
-
-.result-item {
-  @extend .col-3, .col-md-2, .col-xxl-1;
-}
-.page-item .result-item {
-  @extend .col-3, .col-md-2, .col-xxl-12;
-}
-
-.h-item {
-  @extend .d-none;
-}
-
-.page-item .h-item {
-  @extend .h-25, .d-none, .d-xxl-block;
-  height: 15% !important;
-}
-
 button.calendar,
 button.calendar:active {
   width: 2.75rem;
