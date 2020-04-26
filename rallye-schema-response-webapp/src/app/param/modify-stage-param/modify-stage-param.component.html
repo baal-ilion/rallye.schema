@@ -1,5 +1,7 @@
-<div>
-  <h1 *ngIf="stageParam">Etape : {{stageParam.stage}} - {{stageParam.name}}</h1>
+<div class="mb-5" *ngIf="stageParam">
+  <div class="row mt-4 text-center">
+    <h1 class="col-12">Epreuve {{stageParam.stage}} / {{stageParam.name}}</h1>
+  </div>
   <form [formGroup]="stageParamForm" (ngSubmit)="onSubmit()" class="container">
     <div class="col-auto">
       <label>Nom : </label>
@@ -73,50 +75,117 @@
           </div>
         </ng-template>
         <ng-template ngbPanelContent>
-          <div class="row">
-            <div *ngFor="let questionPointParam of questionPointParams.controls"
-              class="col-6 col-lg-3 col-sm-6 col-md-4">
-              <div [formGroup]="questionPointParam" class="row">
-                <label class="col align-self-center">{{questionPointParam.value.name}}</label>
-                <div class="col-auto align-self-center">
-                  <input type="number" formControlName="point" class="col-auto">
+          <div *ngIf="questionPointParams.controls.length > 0">
+            <div class="row mt-4">
+              <div class="col-12 px-0 py-1 bg-secondary">
+                <h4 class="my-auto text-center text-white">Attribution de points aux questions</h4>
+              </div>
+            </div>
+            <div class="row">
+              <div *ngFor="let questionPointParam of questionPointParams.controls"
+                class="col-6 col-lg-3 col-sm-6 col-md-4">
+                <div [formGroup]="questionPointParam" class="row">
+                  <label class="col align-self-center">{{questionPointParam.value.name}}</label>
+                  <div class="col-auto align-self-center">
+                    <input type="number" formControlName="point" class="col-auto">
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-          <div class="row">
-            <div *ngFor="let performancePointParam of performancePointParams.controls"
-              class="col-6 col-lg-3 col-sm-6 col-md-4">
-              <div [formGroup]="performancePointParam" class="row">
-                <label class="col align-self-center">{{performancePointParam.value.name}}</label>
-                <div class="col-auto align-self-center">
-                  <div *ngFor="let range of getRanges(performancePointParam).controls">
-                    <div [formGroup]="range" class="row">
-                      <div class="col-auto align-self-center">
-                        <label class="col align-self-center">type</label>
-                        <select class="form-group custom-select" formControlName="type">
-                          <option value="VALUE">Valeur</option>
-                          <option value="BEGIN_DOWN_RANK">Début de l'epreuve (desc)</option>
-                          <option value="BEGIN_UP_RANK">Début de l'epreuve (asc)</option>
-                          <option value="END_DOWN_RANK">Fin de l'epreuve (desc)</option>
-                          <option value="END_UP_RANK">Fin de l'epreuve (asc)</option>
-                          <option value="PERF_DOWN_RANK">Ordre de la performance (desc)</option>
-                          <option value="PERF_UP_RANK">Ordre de la performance (asc)</option>
-                          <option value=""></option>
-                        </select>
+          <div *ngIf="performancePointParams.controls.length > 0">
+            <div class="row mt-4">
+              <div class="col-12 px-0 py-1 bg-secondary">
+                <h4 class="mx-0 my-auto text-center text-white">Attribution de points aux performances</h4>
+              </div>
+            </div>
+            <div *ngFor="let performancePointParam of performancePointParams.controls ; index as perfIndex" class="row mb-4">
+              <div class="col-12" [formGroup]="performancePointParam">
+
+                <!-- TODO à supprimer -->
+                <div class="row m-2">
+                  <label class="col-12">{{performancePointParam.value.name}} - A SUPPRIMER</label>
+                  <div class="col-12 align-self-center">
+                    <div *ngFor="let range of getRanges(performancePointParam).controls">
+                      <div [formGroup]="range" class="row">
+                        <div class="col-12 align-self-center">
+                            <div class="row">
+                            <select class="form-group custom-select" formControlName="type">
+                              <option value="VALUE">le score réalisé.</option>
+                              <option value="BEGIN_DOWN_RANK">la date de passage de l'épreuve (la meilleure équipe est celle qui commence l'épreuve en dernier).</option>
+                              <option value="BEGIN_UP_RANK">la date de passage de l'épreuve (la meilleure équipe est celle qui commence l'épreuve en premier).</option>
+                              <option value="END_DOWN_RANK">la date de passage de l'épreuve (la meilleure équipe est celle qui termine l'épreuve en dernier).</option>
+                              <option value="END_UP_RANK">la date de passage de l'épreuve (la meilleure équipe est celle qui termine l'épreuve en premier).</option>
+                              <option value="PERF_DOWN_RANK">le classement des équipes à l'épreuve (la meilleure équipe est celle qui obtient le plus grand des résultats).</option>
+                              <option value="PERF_UP_RANK">le classement des équipes à l'épreuve (la meilleure équipe est celle qui obtient le plus petit des résultats).</option>
+                              <option value=""></option>
+                            </select>
+                          </div>
+                        </div>
                       </div>
-                      <div class="col-auto align-self-center">
-                        <label class="col align-self-center">begin</label>
-                        <input type="number" formControlName="begin" class="col-auto">
-                      </div>
-                      <div class="col-auto align-self-center">
-                        <label class="col align-self-center">end</label>
-                        <input type="number" formControlName="end" class="col-auto">
-                      </div>
-                      <div class="col-auto align-self-center">
-                        <label class="col align-self-center">point</label>
-                        <input type="number" formControlName="point" class="col-auto">
-                      </div>
+                    </div>
+                  </div>
+                </div>
+                <!-- fin TODO à supprimer -->
+
+                <div class="row">
+                  <div class="col-12 m-0 px-0 py-1 bg-light">
+                    <h5 class="m-auto text-center">{{performancePointParam.value.name}}</h5>
+                  </div>
+                </div>
+                <div *ngFor="let range of getRanges(performancePointParam).controls ; let rangeIndex = index;" class="row mt-2 d-flex justify-content-center">
+                  <div class="col-4 m-0 px-1 py-0 align-self-center" id="{{'perfPointAllocationType_' + perfIndex + '_'+ rangeIndex}}">
+                    <label class="m-0 p-0 align-self-center">Attribution de points selon :</label>
+                    <select class='form-control custom-select' (change)="onPerfPointAllocationType($event.target.value, perfIndex, rangeIndex)">>
+                      <option value=""></option>
+                      <option value="SCORE">le score réalisé.</option>
+                      <option value="DATE">l'ordre de passage des équipes.</option>
+                      <option value="RANK">le classement l'épreuve.</option>
+                    </select>
+                  </div>
+                  <div class="col-4 m-0 px-1 py-0 align-self-center">
+                    <div id="{{'perfDateRankingType_' + perfIndex + '_'+ rangeIndex}}">
+                      <label class="m-0 p-0 align-self-center">La meilleure équipe est celle qui :</label>
+                      <select class='form-control custom-selec'>
+                        <option value=""></option>
+                        <option value="FIRST_TO_BEGIN">commence l'épreuve en premier.</option>
+                        <option value="LAST_TO_BEGIN">commence l'épreuve en dernier.</option>
+                        <option value="FIRST_TO_END">termine l'épreuve en premier.</option>
+                        <option value="LAST_TO_END">termine l'épreuve en dernier.</option>
+                      </select>
+                    </div>
+                    <div id="{{'perfResultRankingType_' + perfIndex + '_'+ rangeIndex}}">
+                      <label class="m-0 p-0 align-self-center">La meilleure équipe est celle qui :</label>
+                      <select class ='form-control custom-select'>
+                        <option value=""></option>
+                        <option value="HAS_SMALLEST_RESULT">obtient le plus petit des résultats.</option>
+                        <option value="HAS_BIGGEST_RESULT">obtient le plus grand des résultats.</option>
+                      </select>
+                    </div>
+                    <div id="{{'perfVoidType_' + perfIndex + '_'+ rangeIndex}}">
+                      <label class="m-0 p-0 align-self-center">-</label>
+                      <select class='form-control custom-selec' disabled>
+                        <option value=""></option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-3 m-0 px-1 py-0 align-self-center">
+                    <label class="col-12 m-0 p-0" id="{{'perfScoreIntervLabel_' + perfIndex + '_'+ rangeIndex}}">Score compris dans :</label>
+                    <label class="col-12 m-0 p-0" id="{{'perfResultRankingIntervLabel_' + perfIndex + '_'+ rangeIndex}}">Rang compris dans :</label>
+                    <label class="col-12 m-0 p-0" id="{{'perfDateRankingIntervLabel_' + perfIndex + '_'+ rangeIndex}}">N° de passage compris dans :</label>
+                    <label class="col-12 m-0 p-0" id="{{'perfVoidIntervLabel_' + perfIndex + '_'+ rangeIndex}}">-</label>
+                    <div class="col-12 m-0 p-1 border rounded">
+                      <div class="col-1 p-0 d-inline-block align-self-center text-left">] </div>
+                      <input class="col-4 d-inline-block align-self-center" type="number" formControlName="begin">
+                      <div class="col-2 p-0 d-inline-block align-self-center text-center"> ; </div>
+                      <input class="col-4 d-inline-block align-self-center" type="number" formControlName="end">
+                      <div class="col-1 p-0 d-inline-block align-self-center text-right"> ]</div>
+                    </div>
+                  </div>
+                  <div class="col-1 m-0 px-1 py-0 align-self-center">
+                    <label class="col-12 m-0 p-0 align-self-center">Points :</label>
+                    <div class="col-12 m-0 p-1 border rounded">
+                      <input class="col-12 d-inline-block" type="number" formControlName="point">
                     </div>
                   </div>
                 </div>
