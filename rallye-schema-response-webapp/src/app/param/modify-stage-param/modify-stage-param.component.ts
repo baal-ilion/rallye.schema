@@ -297,4 +297,62 @@ export class ModifyStageParamComponent implements OnInit {
     });
     return modifiedQuestionParams;
   }
+
+  onPerfPointAllocationType(value, perfIndex, rangeIndex){
+
+    const perfDateRankingTypeId: string = 'perfDateRankingType_' + perfIndex + '_' + rangeIndex;
+    const perfResultRankingTypeId: string = 'perfResultRankingType_' + perfIndex + '_' + rangeIndex;
+    const perfScoreIntervLabelId: string = 'perfScoreIntervLabel_' + perfIndex + '_' + rangeIndex;
+    const perfVoidTypeId: string = 'perfVoidType_' + perfIndex + '_' + rangeIndex;
+    const perfDateRankingIntervLabelId: string = 'perfDateRankingIntervLabel_' + perfIndex + '_' + rangeIndex;
+    const perfResultRankingIntervLabelId: string = 'perfResultRankingIntervLabel_' + perfIndex + '_' + rangeIndex;
+    const perfVoidIntervLabelId: string = 'perfVoidIntervLabel_' + perfIndex + '_' + rangeIndex;
+
+    const perfDateRankingTypeTarget = document.getElementById(perfDateRankingTypeId);
+    const perfResultRankingTypeTarget = document.getElementById(perfResultRankingTypeId);
+    const perfScoreIntervLabelTarget = document.getElementById(perfScoreIntervLabelId);
+    const perfVoidTypeTarget = document.getElementById(perfVoidTypeId);
+    const perfDateRankingIntervLabelTarget = document.getElementById(perfDateRankingIntervLabelId);
+    const perfResultRankingIntervLabelTarget = document.getElementById(perfResultRankingIntervLabelId);
+    const perfVoidIntervLabelTarget = document.getElementById(perfVoidIntervLabelId);
+
+    switch(value) {
+      case "SCORE":
+        perfDateRankingTypeTarget.hidden = true;
+        perfResultRankingTypeTarget.hidden = true;
+        perfScoreIntervLabelTarget.hidden = false;
+        perfVoidTypeTarget.hidden = false;
+        perfDateRankingIntervLabelTarget.hidden = true;
+        perfResultRankingIntervLabelTarget.hidden = true;
+        perfVoidIntervLabelTarget.hidden = true;
+        break;
+      case "DATE":
+        perfDateRankingTypeTarget.hidden = false;
+        perfResultRankingTypeTarget.hidden = true;
+        perfScoreIntervLabelTarget.hidden = true;
+        perfVoidTypeTarget.hidden = true;
+        perfDateRankingIntervLabelTarget.hidden = false;
+        perfResultRankingIntervLabelTarget.hidden = true;
+        perfVoidIntervLabelTarget.hidden = true;
+        break;
+      case "RANK":
+        perfDateRankingTypeTarget.hidden = true;
+        perfResultRankingTypeTarget.hidden = false;
+        perfScoreIntervLabelTarget.hidden = true;
+        perfVoidTypeTarget.hidden = true;
+        perfDateRankingIntervLabelTarget.hidden = true;
+        perfResultRankingIntervLabelTarget.hidden = false;
+        perfVoidIntervLabelTarget.hidden = true;
+        break;
+      default:
+        perfDateRankingTypeTarget.hidden = true;
+        perfResultRankingTypeTarget.hidden = true;
+        perfScoreIntervLabelTarget.hidden = true;
+        perfVoidTypeTarget.hidden = false;
+        perfDateRankingIntervLabelTarget.hidden = true;
+        perfResultRankingIntervLabelTarget.hidden = true;
+        perfVoidIntervLabelTarget.hidden = false;
+        break;
+    }
+  }
 }
