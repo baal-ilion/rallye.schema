@@ -1,6 +1,7 @@
-import { Component, OnInit, Input, ViewChild, ElementRef } from '@angular/core';
-import { FormGroup, FormBuilder } from '@angular/forms';
+import { Component, ElementRef, Input, OnInit, ViewChild } from '@angular/core';
+import { FormBuilder, FormGroup } from '@angular/forms';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
+import { ResponseFileParam } from '../models/response-file-param';
 
 @Component({
   selector: 'app-modify-response-file-param',
@@ -9,7 +10,7 @@ import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 })
 export class ModifyResponseFileParamComponent implements OnInit {
 
-  @Input() param: any;
+  @Input() param: ResponseFileParam;
   @ViewChild('labelImport')
   labelImport: ElementRef;
   @ViewChild('labelImportModel')
@@ -18,16 +19,17 @@ export class ModifyResponseFileParamComponent implements OnInit {
   templateFile: File;
   responseFileModel: File;
   myForm: FormGroup;
-  detailsParam: any;
+  detailsParam: ResponseFileParam;
+  modelUrl: string;
 
   constructor(public activeModal: NgbActiveModal, private formBuilder: FormBuilder) { }
 
   ngOnInit() {
     this.detailsParam = JSON.parse(JSON.stringify(this.param));
     if (this.param._links) {
-      this.detailsParam.img = this.param._links.responseFileModel.href;
+      this.modelUrl = this.param._links.responseFileModel.href;
     } else {
-      this.detailsParam.img = null;
+      this.modelUrl = null;
     }
     this.createForm();
   }
@@ -80,7 +82,7 @@ export class ModifyResponseFileParamComponent implements OnInit {
       const reader = new FileReader();
 
       reader.onload = (e) => {
-        this.detailsParam.img = reader.result.toString();
+        this.modelUrl = reader.result.toString();
         const img = new Image();
         img.onload = () => {
           this.detailsParam.width = img.width;
@@ -89,8 +91,8 @@ export class ModifyResponseFileParamComponent implements OnInit {
           console.log(this.detailsParam.height);
           this.detailsParam = Object.assign({}, this.detailsParam);
         };
-        img.src = this.detailsParam.img;
-        console.log(this.detailsParam.img);
+        img.src = this.modelUrl;
+        console.log(this.modelUrl);
         this.detailsParam = Object.assign({}, this.detailsParam);
       };
       reader.readAsDataURL(this.responseFileModel);

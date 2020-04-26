@@ -47,80 +47,92 @@
   <!-- TODO formatage si la page n'est pas encore importée -->
   <!-- TODO Ne pas afficher "Equipe x / Epreuve x / Page x" -->
   <!-- TODO Placer les boutons sous les questions en mode petit écran -->
-  <div *ngIf="files.length > 0" class="row">
-    <div *ngFor="let file of files" class="col-12">
+  <div *ngFor="let page of pages.controls" class="row">
+    <div class="col-12">
       <div class="row mt-4">
         <div class="col-12 py-1 bg-light">
-          <h5 class="m-auto text-center">Questions sur la page {{file.page}} du formulaire de réponses</h5>
+          <h5 class="m-auto text-center">Questions sur la page {{page.value.page}} du formulaire de réponses</h5>
         </div>
       </div>
       <div class="row mt-2">
         <!-- The response sheets are displayed only on medium or bigger screens -->
-        <div class="col-12 col-xxl-10 d-none d-md-block">
-          <div class="row justify-content-center border">
-            <app-details-upload [fileUpload]="file" [dragable]="false" (checkedEvent)="reload()"
-              (deleteEvent)="reload()"></app-details-upload>
-          </div>
-        </div>
-        <!-- If the screen is extra-large, the switches are displayed on the right of the sheet only -->
-        <!-- else the switches are displayed below the sheet                                         -->
-        <div class="col-12 col-xxl-2">
-          <div class="row h-100">
-            <div class="col-12 d-none d-xxl-block" style="height:25.59%"></div>
-            <div class="col-12 d-flex align-content-between flex-wrap p-0" style="height:61.11%">
-              <div *ngFor="let item of [].constructor(38); let i = index" class="col-3 col-md-2 col-xxl-12 p-0">
-                <div class="row">
-                  <label class="col-4 my-auto p-0 small text-right">Qxxx</label>
-                  <div class="col-8 my-auto px-1 py-0 justify-content-start">
-                    <ui-switch size="small"></ui-switch>
-                  </div>
-                </div>
-              </div>
+        <ng-template [ngIf]="files[page.value.page]">
+          <div class="col-md-12 col-xxl-10 d-none d-md-block">
+            <div class="row justify-content-center border">
+              <app-details-upload [fileUpload]="files[page.value.page]" [dragable]="false" (checkedEvent)="reload()"
+                (deleteEvent)="reload()"></app-details-upload>
             </div>
-            <div class="col-12 d-none d-xxl-block" style="height:13.30%"></div>
           </div>
-        </div>
+          <!-- If the screen is extra-large, the switches are displayed on the right of the sheet only -->
+          <!-- else the switches are displayed below the sheet                                         -->
+          <div class="col-12 col-xxl-2 h-xxl-100">
+            <ng-container
+              *ngTemplateOutlet="resultlist; context: { results: getResultForms(page), performances: getPerformanceForms(page), forpage: true }">
+            </ng-container>
+          </div>
+        </ng-template>
+        <ng-template [ngIf]="!files[page.value.page]">
+          <div class="col-12">
+            <ng-container
+              *ngTemplateOutlet="resultlist; context: { results: getResultForms(page), performances: getPerformanceForms(page), forpage: false }">
+            </ng-container>
+          </div>
+        </ng-template>
       </div>
     </div>
   </div>
   <!-- Questions without response sheets -->
-  <!-- TODO n'afficher que les questions qui ne sont pas dans une feuille de réponce -->
-  <div *ngIf="results.controls.length > 0">
-    <div class="row mt-4">
-      <div class="col-12 py-1 bg-light">
-        <h5 class="m-auto text-center">Questions hors formulaire de réponses</h5>
-      </div>
+  <div class="row mt-4">
+    <div class="col-12 py-1 bg-light">
+      <h5 class="m-auto text-center">Questions hors formulaire de réponses</h5>
     </div>
-    <div class="row mt-2">
-      <div *ngFor="let result of results.controls" class="col-3 col-md-2 col-xxl-1">
-
-        <div [formGroup]="result" class="row">
-          <label class="col-4 my-auto p-0 small text-right">{{result.value.name}}</label>
-          <div class="col-8 my-auto px-1 py-0 justify-content-start ">
-            <ui-switch formControlName="resultValue" size="small"></ui-switch>
+  </div>
+  <div class="row">
+    <div class="col-12">
+      <ng-container
+        *ngTemplateOutlet="resultlist; context: { results: getResultForms(form), performances: getPerformanceForms(form), forpage: false }">
+      </ng-container>
+    </div>
+  </div>
+  <ng-template #resultlist let-results="results" let-performances="performances" let-forpage="forpage">
+    <div [ngClass]="{'row d-none': !forpage ,'row h-25 d-none d-xxl-block': forpage}" style="height: 15% !important"></div>
+    <ng-template [ngIf]="results.controls.length > 0">
+      <div class="row mt-2" *ngIf="performances.controls.length > 0">
+        <div class="col-12 py-1 border border-light">
+          <h6 class="m-auto text-center">Questions</h6>
+        </div>
+      </div>
+      <div class="row mt-2">
+        <div *ngFor="let result of results.controls"
+          [ngClass]="{'col-3 col-md-2 col-xxl-1': !forpage ,'col-3 col-md-2 col-xxl-12': forpage}">
+          <div [formGroup]="result" class="row">
+            <label class="col-8 my-auto small">{{result.value.name}}</label>
+            <div class="col-4 my-auto px-1 py-0 justify-content-start">
+              <ui-switch formControlName="resultValue" size="small"></ui-switch>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+    <!-- Performances -->
+    <div *ngIf="performances.controls.length > 0">
+      <div class="row mt-2" *ngIf="results.controls.length > 0">
+        <div class="col-12 py-1 border border-light">
+          <h6 class="m-auto text-center">Performances</h6>
+        </div>
+      </div>
+      <div class="row mt-2">
+        <div *ngFor="let performance of performances.controls" class="col-6 col-md-4 col-lg-3 col-xl-2">
+          <div [formGroup]="performance" class="row">
+            <label class="col-4 my-auto small text-right">{{performance.value.name}}</label>
+            <div class="col-8 m-0 px-1 py-0 justify-content-start ">
+              <input type=number step=any formControlName="performanceValue" class="col-auto small" />
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-  <!-- Performances -->
-  <div *ngIf="performances.controls.length > 0">
-    <div class="row mt-4">
-      <div class="col-12 py-1 bg-light">
-        <h5 class="m-auto text-center">Performances</h5>
-      </div>
-    </div>
-    <div class="row mt-2">
-      <div *ngFor="let performance of performances.controls" class="col-6 col-md-4 col-lg-3 col-xl-2">
-        <div [formGroup]="performance" class="row">
-          <label class="col-4 m-0 px-0 py-0 small text-right">{{performance.value.name}}</label>
-          <div class="col-8 m-0 px-1 py-0 justify-content-start ">
-            <input type=number step=any formControlName="performanceValue" class="col-auto small" />
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  </ng-template>
   <!-- Validation -->
   <div class="row mt-4">
     <div class="col-12 py-1 bg-light">
