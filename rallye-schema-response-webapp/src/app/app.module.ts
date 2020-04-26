@@ -15,7 +15,6 @@ import { AppComponent } from './app.component';
 import { ConfirmationDialogComponent } from './confirmation-dialog/confirmation-dialog.component';
 import { LocaleService } from './locale.service';
 import { MenuComponent } from './menu/menu.component';
-import { DetailsStageParamComponent } from './param/details-stage-param/details-stage-param.component';
 import { ListStageParamComponent } from './param/list-stage-param/list-stage-param.component';
 import { ListTeamInfoComponent } from './param/list-team-info/list-team-info.component';
 import { ModifyStageParamComponent } from './param/modify-stage-param/modify-stage-param.component';
@@ -59,7 +58,6 @@ registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
     DetailsTemplateParamComponent,
     ListPointComponent,
     DetailsPointComponent,
-    DetailsStageParamComponent,
     ListStageParamComponent,
     MenuComponent,
     DetailsResponseFileComponent,
