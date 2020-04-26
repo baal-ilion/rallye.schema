@@ -1,5 +1,4 @@
 <div class="container mb-5">
-
   <div class="row mt-4">
     <div class="col-9">
       <h1 id="ranking_title" class="text-center">Paramétrage des épreuves</h1>
@@ -8,60 +7,41 @@
       <button class="btn-primary" ngbButtonLabel (click)='addStageParam()'>Ajouter une épreuve</button>
     </div>
   </div>
-
-  <!-- TODO à remplacer par le TODO suivant -->
-  <div *ngIf='stageParams' class="row justify-content-center">
+  <div *ngIf='stageParamDetails' class="row justify-content-center">
     <div class="col-12">
-      <div *ngFor="let stageParam of stageParams">
-        <app-details-stage-param [stageParam]='stageParam'></app-details-stage-param>
-      </div>
-    </div>
-  </div>
-  <!-- TODO -->
-
-  <!-- TODO -->
-  <div *ngIf='stageParams' class="row justify-content-center">
-    <div class="col-12">
-
       <div class="row mt-4">
         <div class="col-12 px-0 py-1 bg-secondary">
           <h4 class="my-auto text-center text-white">Liste des épreuves</h4>
         </div>
       </div>
-
       <div class="row mt-0">
         <div class="px-0 table-responsive text-nowrap">
           <table class="table table-sm align-items-center text-center">
             <thead class="bg-light">
               <tr>
-                <th class="align-middle">#</th>
-                <th class="align-middle">Epreuve</th>
-                <th class="align-middle">Nb de questions</th>
-                <th class="align-middle">Nb de performances</th>
-                <th class="align-middle">Nb de pages de réponses</th>
-                <th class="align-middle">Actions</th>
+                <th scope="col" class="align-middle">#</th>
+                <th scope="col" class="align-middle">Epreuve</th>
+                <th scope="col" class="align-middle">Nb de questions</th>
+                <th scope="col" class="align-middle">Nb de performances</th>
+                <th scope="col" class="align-middle">Nb de pages de réponses</th>
+                <th scope="col" class="align-middle">Actions</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let stageParam of stageParams">
-                <th class="align-middle">{{stageParam.stage}}</th>
-                <td class="align-middle">{{stageParam.name}}</td>
-                <td class="align-middle"><!--{{nbQuestion}}-->X</td>
-                <td class="align-middle"><!--{{nbPerformance}}-->Y</td>
-                <td class="align-middle"><!--{{nbResponceFile}}-->Z</td>
+              <tr *ngFor="let stageParamDetail of stageParamDetails">
+                <th scope="row" class="align-middle">{{stageParamDetail.param.stage}}</th>
+                <td class="align-middle">{{stageParamDetail.param.name}}</td>
+                <td class="align-middle">{{stageParamDetail.nbQuestion}}</td>
+                <td class="align-middle">{{stageParamDetail.nbPerformance}}</td>
+                <td class="align-middle">{{stageParamDetail.nbResponceFile}}</td>
                 <td class="align-middle">
-                  <a class="btn btn-primary mr-1" routerLink="/stageParam/{{stageParam.id}}">Editer</a>
+                  <a class="btn btn-primary mr-1" routerLink="/stageParam/{{stageParamDetail.param.id}}">Editer</a>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
-
     </div>
   </div>
-
-<!-- TODO -->
 </div>
-
-
