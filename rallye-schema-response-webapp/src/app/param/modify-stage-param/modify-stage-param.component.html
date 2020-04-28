@@ -11,20 +11,23 @@
       <label>Inactive : </label>
       <ui-switch formControlName="inactive" size="small" class="align-self-center"></ui-switch>
     </div>
-
     <ngb-accordion #acc="ngbAccordion">
       <ngb-panel>
         <ng-template ngbPanelHeader>
           <div class="d-flex align-items-center justify-content-between">
-            <button ngbPanelToggle class="btn btn-link container-fluid text-left pl-0">Paramétrage des feuilles de
-              réponses</button>
+            <button ngbPanelToggle class="btn btn-link container-fluid text-left pl-0">Paramétrage du formulaire de réponses</button>
             <div class="col-auto">
-              <button type="button" class="btn btn-sm btn-outline-primary ml-2" (click)='addResponseFileParam()'>Ajouter
-                une feuille de réponses</button>
+              <button type="button" class="btn btn-sm btn-outline-primary ml-2" (click)='addResponseFileParam()'>Ajouter un formulaire de réponses</button>
             </div>
           </div>
         </ng-template>
         <ng-template ngbPanelContent>
+          <div class="row mt-4 text-center">
+            <h1 class="col-9">Paramétrage du formulaire de réponses</h1>
+            <div class="col-3 m-auto p-0">
+              <button class="btn btn-primary">Ajouter une page</button>
+            </div>
+          </div>
           <div class="row" *ngIf='responseFileParamUrls'>
             <div *ngFor="let responseFileParamUrl of responseFileParamUrls">
               <div class="panel-body">
@@ -36,61 +39,19 @@
           </div>
         </ng-template>
       </ngb-panel>
-
-      <!-- TODO à remplacer par un bouton ajouter une question et par un bouton ajouter une performance
       <ngb-panel>
         <ng-template ngbPanelHeader>
           <div class="d-flex align-items-center justify-content-between">
-            <button ngbPanelToggle class="btn btn-link container-fluid text-left pl-0">Paramétrage des
-              questions</button>
-            <div class="col-auto">
-              <input type="text" [(ngModel)]="questionParamName" [ngModelOptions]="{standalone: true}">
-              <button type="button" class="btn btn-sm btn-outline-primary ml-2"
-                (click)="addQuestionParam(questionParamName)">Ajouter</button>
-            </div>
-          </div>
-        </ng-template>
-
-        <ng-template ngbPanelContent>
-          <div class="row">
-            <div class="card-deck">
-              <div *ngFor="let questionParam of questionParams.controls; let i = index;"
-                class="col-6 col-lg-3 col-sm-6 col-md-4">
-                <div [formGroup]="questionParam" class="row">
-                  <div class="card border-secondary mb-3">
-                    <div class="card-header font-weight-bold">
-                      {{questionParam.value.name}}
-                    </div>
-                    <div class="card-body">
-                      <label>Type de </label>
-                      <select class="form-group custom-select" formControlName="type">
-                        <option value="QUESTION">Question</option>
-                        <option value="PERFORMANCE">Performance</option>
-                      </select>
-                      <div class="col-auto align-self-center">
-                        <label>Staff </label>
-                        <ui-switch formControlName="staff" size="small" class="align-self-center"></ui-switch>
-                      </div>
-                    </div>
-                    <div class="card-footer">
-                      <button type="button" class="btn btn-sm btn-outline-danger ml-2" (click)="removeQuestionParam(i)">Supprimer</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </ng-template>
-      </ngb-panel>
-      -->
-
-      <ngb-panel>
-        <ng-template ngbPanelHeader>
-          <div class="d-flex align-items-center justify-content-between">
-            <button ngbPanelToggle class="btn btn-link container-fluid text-left pl-1">Paramétrage des points</button>
+            <button ngbPanelToggle class="btn btn-link container-fluid text-left pl-1">Paramétrage des questions</button>
           </div>
         </ng-template>
         <ng-template ngbPanelContent>
+          <div class="row mt-4 text-center">
+            <h1 class="col-9">Paramétrage des questions</h1>
+            <div class="col-3 m-auto p-0">
+              <button class="btn btn-primary">Ajouter une question</button>
+            </div>
+          </div>
           <div *ngIf="questionPointParams.controls.length > 0">
             <div class="row mt-4">
               <div class="col-12 px-0 py-1 bg-secondary">
@@ -100,9 +61,7 @@
             <div class="card-deck mt-4">
               <div *ngFor="let questionPointParam of questionPointParams.controls; index as questionIndex">
                 <div class="card border-secondary mb-3">
-                  <div class="card-header font-weight-bold">
-                    {{questionPointParam.value.name}}
-                  </div>
+                  <div class="card-header font-weight-bold">{{questionPointParam.value.name}}</div>
                   <div class="card-body">
                     <div class="px-1 py-0" [formGroup]="questionPointParam">
                       <label class="my-auto mr-2 ml-0 p-0">Points : </label>
@@ -114,10 +73,26 @@
                     </div>
                   </div>
                   <div class="card-footer text-center">
-                    <button type="button" class="btn btn-sm btn-danger" (click)="removeQuestionParam(questionIndex)">Supprimer</button>
+                    <button type="button" class="mx-2 btn btn-sm btn-success" style="width: 90px;">Valider</button>
+                    <button type="button" class="mx-2 btn btn-sm btn-danger" style="width: 90px;" (click)="removeQuestionParam(questionIndex)">Supprimer</button>
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </ng-template>
+      </ngb-panel>
+      <ngb-panel>
+        <ng-template ngbPanelHeader>
+          <div class="d-flex align-items-center justify-content-between">
+            <button ngbPanelToggle class="btn btn-link container-fluid text-left pl-1">Paramétrage des Performances</button>
+          </div>
+        </ng-template>
+        <ng-template ngbPanelContent>
+          <div class="row mt-4 text-center">
+            <h1 class="col-9">Paramétrage des performances</h1>
+            <div class="col-3 m-auto p-0">
+              <button class="btn btn-primary">Ajouter une performance</button>
             </div>
           </div>
           <div *ngIf="performancePointParams.controls.length > 0">
@@ -156,9 +131,7 @@
                 <!-- fin TODO à supprimer -->
 
                 <div class="card border-secondary mb-3">
-                  <div class="card-header font-weight-bold">
-                    {{performancePointParam.value.name}}
-                  </div>
+                  <div class="card-header font-weight-bold">{{performancePointParam.value.name}}</div>
                   <div class="card-body">
                     <div *ngFor="let range of getRanges(performancePointParam).controls ; let rangeIndex = index;" class="row mt-2 d-flex justify-content-center">
                       <div class="col-4 m-0 px-1 py-0 align-self-center" id="{{'perfPointAllocationType_' + perfIndex + '_'+ rangeIndex}}">
@@ -224,7 +197,8 @@
                     </div>
                   </div>
                   <div class="card-footer text-center">
-                    <button type="button" class="btn btn-danger" (click)="removeQuestionParam(perfIndex)">Supprimer</button>
+                    <button type="button" class="mx-4 btn btn-success" style="width: 100px;">Valider</button>
+                    <button type="button" class="mx-4 btn btn-danger" style="width: 100px;" (click)="removeQuestionParam(perfIndex)">Supprimer</button>
                   </div>
                 </div>
               </div>
@@ -233,9 +207,5 @@
         </ng-template>
       </ngb-panel>
     </ngb-accordion>
-    <div class="row">
-      <button class="btn btn-primary mr-1">Modifier</button>
-      <button class="btn btn-danger" (click)='deleteStageParam()'>Suppimer</button>
-    </div>
   </form>
 </div>
