@@ -6,6 +6,7 @@ import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmat
 import { HalLink } from 'src/app/models/hal-link';
 import { ModifyResponseFileParamComponent } from 'src/app/response-file/param/modify-response-file-param/modify-response-file-param.component';
 import { ResponseFileParamService } from 'src/app/response-file/param/response-file-param.service';
+import { PerformanceRangeType } from '../models/performance-range-type';
 import { QuestionParam } from '../models/question-param';
 import { QuestionPointParam } from '../models/question-point-param';
 import { QuestionType } from '../models/question-type';
@@ -19,6 +20,22 @@ import { StageParamService } from '../stage-param.service';
 })
 export class ModifyStageParamComponent implements OnInit {
   stageParam: StageParam;
+
+  perfPointAllocationType = {
+    VALUE: 'SCORE',
+    BEGIN_UP_RANK: 'DATE',
+    BEGIN_DOWN_RANK: 'DATE',
+    END_UP_RANK: 'DATE',
+    END_DOWN_RANK: 'DATE',
+    PERF_UP_RANK: 'RANK',
+    PERF_DOWN_RANK: 'RANK'
+  };
+
+  perfPointDefaultRangeType = {
+    SCORE: PerformanceRangeType.VALUE,
+    DATE: PerformanceRangeType.BEGIN_UP_RANK,
+    RANK: PerformanceRangeType.PERF_UP_RANK,
+  };
 
   stageParamForm: FormGroup;
   responseFileParamUrls: string[] = [];
@@ -112,10 +129,12 @@ export class ModifyStageParamComponent implements OnInit {
       const ranges = this.formBuilder.array([]);
       performancePoint?.ranges?.forEach(range => {
         const type: string = range.type;
+        const allocationType: string = this.perfPointAllocationType[range.type];
         const begin: number = range.begin;
         const end: number = range.end;
         const point: number = range.point;
         ranges.push(this.formBuilder.group({
+          allocationType,
           type,
           begin,
           end,
@@ -123,6 +142,7 @@ export class ModifyStageParamComponent implements OnInit {
         }));
       });
       ranges.push(this.formBuilder.group({
+        allocationType: null,
         type: null,
         begin: null,
         end: null,
@@ -298,5 +318,11 @@ export class ModifyStageParamComponent implements OnInit {
       modifiedQuestionParams[removed] = { name: removed, type: undefined, staff: undefined };
     });
     return modifiedQuestionParams;
+  }
+
+  onPerfPointAllocationType(value: string, range: FormGroup) {
+    if (this.perfPointAllocationType[range.value.type] !== value) {
+      range.patchValue({ type: this.perfPointDefaultRangeType[value] });
+    }
   }
 }
