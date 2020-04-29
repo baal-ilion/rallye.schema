@@ -1,32 +1,28 @@
-<div class="container-fluid">
-  <div *ngIf="param">
-    <div class="card-deck mt-4">
-      <div class="card border-secondary mb-3" style="max-width: 700px;">
-        <div class="card-header font-weight-bold">Page {{param.page}}</div>
-          <div class="card-body">
-            <div class="border">
-              <app-details-template-param [param]="param" [modelUrl]="modelUrl"></app-details-template-param>
-            </div>
-            <div *ngIf="questions">
-              <!--TODO formgroup-->
-              <div [formGroup]="" class="row mt-4 px-2 py-0">
-                <div *ngFor="let question of questions;">
-                  <div class="mx-2 my-1" style="width: 150px;">
-                    <label class="m-0 px-1 py-0">{{question.name}} est une :</label>
-                    <select class="form-group custom-select my-0 px-1 py-0" formControlName="type">
-                      <option value="QUESTION">Question</option>
-                      <option value="PERFORMANCE">Performance</option>
-                    </select>
-                  </div>
+<div *ngIf="param">
+  <div class="card border-secondary mb-3" style="max-width: 700px;">
+    <div class="card-header font-weight-bold">Page {{param.page}}</div>
+      <div class="card-body">
+        <div class="border">
+          <app-details-template-param [param]="param" [modelUrl]="modelUrl"></app-details-template-param>
+        </div>
+        <div *ngIf="questions">
+          <!--TODO formgroup-->
+          <div [formGroup]="" class="row mt-4 px-2 py-0">
+            <div *ngFor="let question of questions;">
+              <div class="mx-2 my-1" style="width: 150px;">
+                <label class="m-0 px-1 py-0">{{question.name}} est une :</label>
+                <select class="form-group custom-select my-0 px-1 py-0" formControlName="type">
+                  <option value="QUESTION">Question</option>
+                  <option value="PERFORMANCE">Performance</option>
+                </select>
               </div>
-            </div>
           </div>
         </div>
-        <div class="card-footer text-center">
-          <button type="button" class="mx-2 btn btn-sm btn-success" style="width: 90px;" ngbButtonLabel (click)='openModifyResponseFileParam()'> Valider</button>
-          <button type="button" class="mx-2 btn btn-sm btn-danger" style="width: 90px;" ngbButtonLabel (click)='deleteResponseFileParam()'>Supprimer</button>
-        </div>
       </div>
+    </div>
+    <div class="card-footer text-center">
+      <button type="button" class="mx-2 btn btn-sm btn-success" style="width: 90px;" ngbButtonLabel (click)='openModifyResponseFileParam()'> Valider</button>
+      <button type="button" class="mx-2 btn btn-sm btn-danger" style="width: 90px;" ngbButtonLabel (click)='deleteResponseFileParam()'>Supprimer</button>
     </div>
   </div>
 </div>
