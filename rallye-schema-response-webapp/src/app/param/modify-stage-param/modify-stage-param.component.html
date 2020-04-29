@@ -184,7 +184,7 @@
                       <div *ngFor="let range of getRanges(performancePointParam).controls ; let rangeIndex = index;" class="row mt-2 d-flex justify-content-center">
                         <div class="col-4 m-0 px-1 py-0 align-self-center" id="{{'perfPointAllocationType_' + perfIndex + '_'+ rangeIndex}}">
                           <label class="m-0 p-0 align-self-center">Attribution de points selon :</label>
-                          <select class='form-control custom-select' (change)="onPerfPointAllocationType($event.target.value, perfIndex, rangeIndex)">>
+                          <select class='form-control custom-select' (change)="onPerfPointAllocationType($event.target.value, perfIndex, rangeIndex)">
                             <option value=""></option>
                             <option value="SCORE">le score réalisé.</option>
                             <option value="DATE">l'ordre de passage des équipes.</option>
