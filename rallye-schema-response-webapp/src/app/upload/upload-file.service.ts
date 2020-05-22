@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { AppConfigService } from '../app-config.service';
+import { ResponseFileInfo } from './models/response-file-info';
+import { HalCollection } from '../models/hal-collection';
 
 @Injectable({
   providedIn: 'root'
@@ -18,20 +20,19 @@ export class UploadFileService {
     });
   }
 
-  getFiles(): Observable<any> {
+  getFiles(): Observable<HalCollection<ResponseFileInfo>> {
     return this.http.get(AppConfigService.settings.apiUrl.rallyeSchema + '/responseFileInfos/search/findByCheckedIsFalse');
   }
 
-  updateResponseFileInfoCorners(responseFileInfo): Observable<any> {
-    return this.http.patch(AppConfigService.settings.apiUrl.rallyeSchema + '/responseFileInfos', responseFileInfo);
+  updateResponseFileInfoCorners(responseFileInfo: ResponseFileInfo): Observable<ResponseFileInfo> {
+    return this.http.patch<ResponseFileInfo>(AppConfigService.settings.apiUrl.rallyeSchema + '/responseFileInfos', responseFileInfo);
   }
 
-  deleteResponseFile(id): Observable<any> {
+  deleteResponseFile(id: string): Observable<any> {
     return this.http.delete(AppConfigService.settings.apiUrl.rallyeSchema + '/responseFiles/' + id);
   }
 
-  getResource(url): Observable<any> {
-    return this.http.get(url);
+  getResource<T = any>(url: string): Observable<T> {
+    return this.http.get<T>(url);
   }
-
 }
