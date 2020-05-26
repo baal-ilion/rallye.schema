@@ -64,6 +64,9 @@ export class ListUploadComponent implements OnInit, OnDestroy {
   loadPage(page: number) {
     this.loadPages(page);
     sessionStorage.setItem(this.SelectedId, this.responseFileInfos[page - 1].id);
+    this.uploadService.getResource<ResponseFileInfo>(this.responseFileInfos[page - 1]._links.self.href).toPromise()
+      .then(r => this.responseFileInfos[page - 1] = r)
+      .catch(error => console.error(error));
   }
 
   @HostListener('window:keyup', ['$event'])
@@ -82,13 +85,15 @@ export class ListUploadComponent implements OnInit, OnDestroy {
   next() {
     if (this.page < this.pages.totalElements) {
       this.page++;
-      this.loadPages(this.page);
+      this.loadPage(this.page);
     }
   }
 
   previous() {
-    if (this.page > 1)
+    if (this.page > 1) {
       this.page--;
+      this.loadPage(this.page);
+    }
   }
 
   deletePage(page: number) {

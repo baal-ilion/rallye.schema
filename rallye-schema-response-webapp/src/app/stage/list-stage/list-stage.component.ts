@@ -1,8 +1,8 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { HalPage } from 'src/app/models/hal-page';
 import { StageResult } from '../models/stage-result';
 import { StageService } from '../stage.service';
-import { HalPage } from 'src/app/models/hal-page';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 
 @Component({
   selector: 'app-list-stage',
@@ -87,13 +87,15 @@ export class ListStageComponent implements OnInit, OnDestroy {
   next() {
     if (this.page < this.pages.totalElements) {
       this.page++;
-      this.loadPages(this.page);
+      this.loadPage(this.page);
     }
   }
 
   previous() {
-    if (this.page > 1)
+    if (this.page > 1) {
       this.page--;
+      this.loadPage(this.page);
+    }
   }
 
   deletePage(page: number) {
