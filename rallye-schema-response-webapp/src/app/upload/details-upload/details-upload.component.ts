@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CdkDragEnd } from '@angular/cdk/drag-drop';
 import { UploadFileService } from '../upload-file.service';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
@@ -13,7 +13,7 @@ import { CarouselResponseFileComponent } from '../carousel-response-file/carouse
   templateUrl: './details-upload.component.html',
   styleUrls: ['./details-upload.component.scss']
 })
-export class DetailsUploadComponent implements OnInit {
+export class DetailsUploadComponent implements OnInit, OnChanges {
 
   @Input() fileUpload: any;
   @Input() dragable = true;
@@ -27,19 +27,31 @@ export class DetailsUploadComponent implements OnInit {
     private modalService: NgbModal,
     private confirmationDialogService: ConfirmationDialogService) { }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (!changes.fileUpload.isFirstChange()) {
+      this.loadSames();
+    }
+  }
+
   ngOnInit() {
+    this.loadSames();
+  }
+
+  private loadSames() {
     if (this.fileUpload && this.fileUpload._links && this.fileUpload._links.same) {
       this.uploadService.getResource(this.fileUpload._links.same.href).subscribe(data => {
         if (data._embedded && data._embedded.responseFileInfoes) {
           this.sames = data._embedded.responseFileInfoes;
-        } else {
+        }
+        else {
           this.sames = [];
         }
       }, err => {
         console.log(err);
         this.sames = [];
       });
-    } else {
+    }
+    else {
       this.sames = [];
     }
   }

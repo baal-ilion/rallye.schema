@@ -2,14 +2,17 @@
   <div class="row mt-4">
     <h1 class="col-12 text-center">Vérification de l'import des formulaires de réponses</h1>
   </div>
-  <div
-    *ngIf='(fileUploads | async) && (fileUploads | async)._embedded && (fileUploads | async)._embedded.responseFileInfoes'>
-    <div *ngFor="let file of (fileUploads | async)._embedded.responseFileInfoes">
-      <div *ngIf="!file.checked" class="row justify-content-center mt-4">
-        <app-details-upload class="col-12" [fileUpload]='file' (checkedEvent)="file.checked = true"
-          (deleteEvent)="file.checked = true">
-        </app-details-upload>
-      </div>
+  <ngb-pagination [collectionSize]="pages.totalElements" pageSize=1 maxSize=10 [(page)]="page" [boundaryLinks]="true"
+    [disabled]='pages.totalElements == 0' (pageChange)="loadPage($event)" class="row justify-content-center mt-4">
+  </ngb-pagination>
+  <div *ngIf='pages.totalElements > 0'>
+    <div class="row justify-content-center mt-1">
+      <app-details-upload class="col-12" [fileUpload]='responseFileInfos[page-1]' (checkedEvent)="deletePage(page)"
+        (deleteEvent)="deletePage(page)">
+      </app-details-upload>
     </div>
   </div>
+  <ngb-pagination [collectionSize]="pages.totalElements" pageSize=1 maxSize=10 [(page)]="page" [boundaryLinks]="true"
+    [disabled]='pages.totalElements == 0' (pageChange)="loadPage($event)" class="row justify-content-center mt-2">
+  </ngb-pagination>
 </div>
