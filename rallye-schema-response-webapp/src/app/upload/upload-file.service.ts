@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { AppConfigService } from '../app-config.service';
 import { ResponseFileInfo } from './models/response-file-info';
@@ -20,8 +20,9 @@ export class UploadFileService {
     });
   }
 
-  getFiles(): Observable<HalCollection<ResponseFileInfo>> {
-    return this.http.get(AppConfigService.settings.apiUrl.rallyeSchema + '/responseFileInfos/search/findByCheckedIsFalse');
+  getFiles(pageNumber = 0, pageSize = 20): Observable<HalCollection<ResponseFileInfo>> {
+    const params = new HttpParams().set('page', pageNumber.toString()).set('size', pageSize.toString());
+    return this.http.get(AppConfigService.settings.apiUrl.rallyeSchema + '/responseFileInfos/search/findByCheckedIsFalse', { params });
   }
 
   updateResponseFileInfoCorners(responseFileInfo: ResponseFileInfo): Observable<ResponseFileInfo> {
