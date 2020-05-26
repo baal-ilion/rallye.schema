@@ -2,11 +2,17 @@
   <div class="row mt-4 text-center">
     <h1 class="col-12">Correction des épreuves</h1>
   </div>
-  <div *ngIf="stages">
-    <div *ngFor="let stage of stages" class="row justify-content-center mt-4">
+  <ngb-pagination [collectionSize]="pages.totalElements" pageSize=1 maxSize=10 [(page)]="page" [boundaryLinks]="true"
+    [disabled]='pages.totalElements == 0' (pageChange)="loadPage($event)" class="row justify-content-center mt-4">
+  </ngb-pagination>
+  <div *ngIf='pages.totalElements > 0'>
+    <div class="row justify-content-center mt-1">
       <div class="col-12">
-        <app-details-stage [stage]='stage.stage' [team]='stage.team'></app-details-stage>
+        <app-details-stage [stage]='stages[page-1].stage' [team]='stages[page-1].team'></app-details-stage>
       </div>
     </div>
   </div>
+  <ngb-pagination [collectionSize]="pages.totalElements" pageSize=1 maxSize=10 [(page)]="page" [boundaryLinks]="true"
+    [disabled]='pages.totalElements == 0' (pageChange)="loadPage($event)" class="row justify-content-center mt-2">
+  </ngb-pagination>
 </div>
