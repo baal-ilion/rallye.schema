@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup } from '@angular/forms';
 import { NgbDateStruct, NgbTimeStruct } from '@ng-bootstrap/ng-bootstrap';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
@@ -21,7 +21,7 @@ import { StageService } from '../stage.service';
   styleUrls: ['./details-stage.component.scss'],
   providers: [DatePipe]
 })
-export class DetailsStageComponent implements OnInit {
+export class DetailsStageComponent implements OnInit, OnChanges {
 
   @Input() stage: number;
   @Input() team: number;
@@ -48,7 +48,22 @@ export class DetailsStageComponent implements OnInit {
   getResultForms(formGroup: FormGroup): FormArray { return formGroup.controls.results as FormArray; }
   getPerformanceForms(formGroup: FormGroup): FormArray { return formGroup.controls.performances as FormArray; }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    console.log('ngOnChanges');
+    if (!(changes.stage?.isFirstChange() ?? true) || !(changes.team?.isFirstChange() ?? true)) {
+      console.log(changes);
+      this.loadStage().then().catch(error => console.error(error));
+    }
+  }
+
   ngOnInit() {
+    console.log('ngOnInit');
+    this.clear();
+    this.loadStage();
+  }
+
+  private clear() {
+    console.log('clear');
     const ngbDate: NgbDateStruct = { year: 0, month: 0, day: 0 };
     const ngbTime: NgbTimeStruct = { hour: 0, minute: 0, second: 0 };
     this.form = this.formBuilder.group({
@@ -65,11 +80,11 @@ export class DetailsStageComponent implements OnInit {
     this.fileParams = null;
     this.stageResult = null;
     this.files = {};
-
-    this.loadStage();
   }
 
   private async loadStage() {
+    console.log('loadStage');
+    this.clear();
     const paramPromise = this.stageParamService.findByStage(this.stage).toPromise();
     const stagePromise = this.stageService.findStage(this.stage, this.team).toPromise();
     try {
