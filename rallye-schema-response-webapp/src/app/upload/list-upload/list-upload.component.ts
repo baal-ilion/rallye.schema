@@ -71,14 +71,11 @@ export class ListUploadComponent implements OnInit, OnDestroy {
 
   @HostListener('window:keyup', ['$event'])
   keyEvent(event: KeyboardEvent) {
-    console.log(event);
-    if (!this.modalService.hasOpenModals()) {
-      if (event.key === 'ArrowRight') {
-        this.next();
-      }
-      if (event.key === 'ArrowLeft') {
-        this.previous();
-      }
+    if (event.key === 'ArrowRight' && !this.modalService.hasOpenModals()) {
+      this.next();
+    }
+    if (event.key === 'ArrowLeft' && !this.modalService.hasOpenModals()) {
+      this.previous();
     }
   }
 
@@ -97,10 +94,12 @@ export class ListUploadComponent implements OnInit, OnDestroy {
   }
 
   deletePage(page: number) {
-    if (page > 0 && page < this.pages.totalElements) {
+    if (page > 0 && page <= this.pages.totalElements) {
       this.responseFileInfos.splice(page - 1, 1);
       this.pages.totalElements--;
       this.loadPage(page);
+      if (this.page > this.pages.totalElements)
+        this.page--;
     }
   }
 }

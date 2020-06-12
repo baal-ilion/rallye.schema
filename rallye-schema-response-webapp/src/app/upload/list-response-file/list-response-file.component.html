@@ -1,0 +1,27 @@
+<div class="modal-header">
+  <h4 class="modal-title">Doublon n°{{page}} - Equipe {{responseFiles[page-1].team}} / Epreuve
+    {{responseFiles[page-1].stage}} / Page {{responseFiles[page-1].page}}</h4>
+  <button type="button" ngbAutofocus class="close" aria-label="Close" (click)="activeModal.dismiss()">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<div class="modal-body">
+  <ngb-pagination *ngIf="responseFiles.length > 1" [collectionSize]="responseFiles.length" pageSize=1 maxSize=10
+    [(page)]="page" [boundaryLinks]="true" [disabled]='responseFiles.length == 0'
+    class="row justify-content-center mt-2">
+  </ngb-pagination>
+  <app-details-response-file class="row justify-content-center mt-1" [fileUpload]='responseFiles[page-1]'
+    [dragable]="false">
+  </app-details-response-file>
+  <ngb-pagination *ngIf="responseFiles.length > 1" [collectionSize]="responseFiles.length" pageSize=1 maxSize=10
+    [(page)]="page" [boundaryLinks]="true" [disabled]='responseFiles.length == 0'
+    class="row justify-content-center mt-2">
+  </ngb-pagination>
+  <div class="row border-top justify-content-center mt-2">
+    <div class="col-12 mt-2">
+      <app-response-file-actions [responseFileInfo]="responseFiles[page-1]"
+        (deleteEvent)="delete(responseFiles[page-1])" (checkedEvent)="check($event)" [viewOtherFiles]="false">
+      </app-response-file-actions>
+    </div>
+  </div>
+</div>

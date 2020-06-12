@@ -1,0 +1,30 @@
+<div *ngIf="!isSelected && selecteds.length > 0" class="row">
+  <div class="col bg-warning mx-auto text-center"><strong>Cette page a déjà été importée !</strong></div>
+</div>
+<div class="row justify-content-center mt-2">
+  <div class="btn-group">
+    <button type="button" *ngIf="!responseFileInfo.checked && selecteds.length === 0" class="btn btn-success"
+      (click)="check()">Accepter</button>
+    <button type="button" *ngIf="!responseFileInfo.checked && !isSelected && selecteds.length > 0"
+      class="btn btn-success" (click)="replace()">Accepter et utiliser cette feuille</button>
+    <button type="button" *ngIf="responseFileInfo.checked && !isSelected && selecteds.length > 0"
+      class="btn btn-success" (click)="replace()">Utiliser cette feuille</button>
+    <button type="button" class="btn btn-danger" (click)="delete()">Supprimer</button>
+    <div class="btn-group" ngbDropdown display="dynamic" role="group"
+      *ngIf="displaySelectedResponseFile || displaySelectablesResponseFile || displayKeptResponseFile || responseFileInfo.checked">
+      <button type="button" class="btn btn-primary" ngbDropdownToggle>...</button>
+      <div class="dropdown-menu" ngbDropdownMenu>
+        <button type="button" ngbDropdownItem *ngIf="displaySelectedResponseFile"
+          (click)="showSelectedResponseFile()">Afficher la feuille de réponse
+          actuelle</button>
+        <button type="button" ngbDropdownItem *ngIf="displaySelectablesResponseFile"
+          (click)="showSelectablesResponseFile()">Choisir une autre feuille de
+          réponse</button>
+        <button type="button" ngbDropdownItem *ngIf="displayKeptResponseFile" (click)="check()">Conserver cette
+          feuille</button>
+        <button type="button" ngbDropdownItem *ngIf="responseFileInfo.checked" (click)="uncheck()">Remettre cette
+          feuille à valider</button>
+      </div>
+    </div>
+  </div>
+</div>

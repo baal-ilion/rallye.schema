@@ -52,6 +52,16 @@ export class StageService {
       '/stageResults/search/findByStageAndTeam', { params });
   }
 
+  selectResponseFile(stage: number, team: number, responseFileId: string, del: boolean): Observable<StageResult> {
+    const params = new HttpParams()
+      .set('stage', stage.toString())
+      .set('team', team.toString())
+      .set('responseFileId', responseFileId)
+      .set('delete', del.toString());
+    return this.http.post<StageResult>(AppConfigService.settings.apiUrl.rallyeSchema +
+      '/stageResults/responseFile', params);
+  }
+
   getResource<T = any>(url: string): Observable<T> {
     return this.http.get<T>(url);
   }
