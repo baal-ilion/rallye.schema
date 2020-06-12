@@ -33,12 +33,13 @@ import { DetailsStageComponent } from './stage/details-stage/details-stage.compo
 import { DetailsTeamStageComponent } from './stage/details-team-stage/details-team-stage.component';
 import { DetailsTeamComponent } from './stage/details-team/details-team.component';
 import { ListStageComponent } from './stage/list-stage/list-stage.component';
-import { CarouselResponseFileComponent } from './upload/carousel-response-file/carousel-response-file.component';
 import { DetailsResponseFileComponent } from './upload/details-response-file/details-response-file.component';
 import { DetailsUploadComponent } from './upload/details-upload/details-upload.component';
 import { FormUploadComponent } from './upload/form-upload/form-upload.component';
+import { ListResponseFileComponent } from './upload/list-response-file/list-response-file.component';
 import { ListUploadComponent } from './upload/list-upload/list-upload.component';
 import { ModifyUploadComponent } from './upload/modify-upload/modify-upload.component';
+import { ResponseFileActionsComponent } from './upload/response-file-actions/response-file-actions.component';
 
 
 registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
@@ -67,11 +68,12 @@ registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
     NewStageParamComponent,
     ConfirmationDialogComponent,
     DetailsTeamComponent,
-    CarouselResponseFileComponent,
+    ListResponseFileComponent,
     SharingParamComponent,
     RankingComponent,
     ListRankingComponent,
-    DetailsTeamStageComponent
+    DetailsTeamStageComponent,
+    ResponseFileActionsComponent
   ],
   entryComponents: [
     ModifyUploadComponent,
@@ -79,7 +81,7 @@ registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
     ModifyTeamInfoComponent,
     NewStageParamComponent,
     ConfirmationDialogComponent,
-    CarouselResponseFileComponent,
+    ListResponseFileComponent,
   ],
   imports: [
     BrowserModule,

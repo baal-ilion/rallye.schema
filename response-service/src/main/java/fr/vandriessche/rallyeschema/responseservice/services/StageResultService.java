@@ -1,14 +1,24 @@
 package fr.vandriessche.rallyeschema.responseservice.services;
 
+import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.xml.sax.SAXException;
+
+import com.albertoborsetta.formscanner.api.exceptions.FormScannerException;
 
 import fr.vandriessche.rallyeschema.responseservice.entities.PerformanceResult;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileInfo;
@@ -98,6 +108,30 @@ public class StageResultService {
 			removeStageResponseAndSearch(stageResult, id);
 			save(stageResult);
 		}
+	}
+
+	@Transactional
+	public StageResult selectResponseFile(Integer stage, Integer team, String[] responseFileIds, Boolean delete)
+			throws InvalidAlgorithmParameterException, ParserConfigurationException, SAXException, IOException,
+			FormScannerException {
+		var responseFileInfos = Stream.of(responseFileIds)
+				.map(responseFileId -> responseFileService.getResponseFileInfo(responseFileId))
+				.collect(Collectors.toList());
+		if (!responseFileInfos.isEmpty()) {
+			for (var responseFileInfo : responseFileInfos) {
+				if (!responseFileInfo.getStage().equals(stage) || !responseFileInfo.getTeam().equals(team))
+					throw new InvalidAlgorithmParameterException(
+							"the responseFileIds parameter must be for same stage and team");
+			}
+			if (responseFileInfos.stream().map(ResponseFileInfo::getPage).distinct().count() != responseFileIds.length)
+				throw new InvalidAlgorithmParameterException(
+						"the responseFileIds parameter must be for different pages");
+			StageResult stageResult = findOrMakeStageResultByStageAndTeam(stage, team);
+			if (Objects.nonNull(stageResult)) {
+				return selectResponseFile(stageResult, responseFileInfos, delete);
+			}
+		}
+		return null;
 	}
 
 	public StageResult undoStageResult(int stage, int team) {
@@ -258,6 +292,32 @@ public class StageResultService {
 			return true;
 		}
 		return false;
+	}
+
+	private StageResult selectResponseFile(StageResult stageResult, List<ResponseFileInfo> responseFileInfos,
+			Boolean delete) throws ParserConfigurationException, SAXException, IOException, FormScannerException {
+		var toUpdate = new ArrayList<ResponseFileInfo>();
+		var initalSources = stageResult.getResponseSources().stream()
+				.filter(s -> s.getClass().equals(ResponseFileSource.class)).collect(Collectors.toList());
+
+		for (var responseFileInfo : responseFileInfos) {
+			if (!Boolean.TRUE.equals(responseFileInfo.getChecked())) {
+				responseFileInfo.setChecked(true);
+				toUpdate.add(responseFileInfo);
+			}
+			setResponseFile(stageResult, responseFileInfo);
+		}
+		stageResult = save(stageResult);
+		for (var responseFileInfo : toUpdate) {
+			responseFileService.updateResponseFileInfo(responseFileInfo);
+		}
+		if (Boolean.TRUE.equals(delete)) {
+			for (var source : initalSources) {
+				if (!stageResult.getResponseSources().contains(source))
+					responseFileService.deleteResponseFile(source.getId());
+			}
+		}
+		return stageResult;
 	}
 
 	private void setResponseFile(StageResult stageResult, ResponseFileInfo responseFileInfo) {

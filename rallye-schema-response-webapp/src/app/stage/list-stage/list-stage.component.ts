@@ -70,10 +70,7 @@ export class ListStageComponent implements OnInit, OnDestroy {
 
   @HostListener('window:keyup', ['$event'])
   keyEvent(event: KeyboardEvent) {
-    console.log(event);
     const element = event.target as HTMLElement;
-    console.log(element);
-    console.log(element.tagName);
     if (!this.modalService.hasOpenModals() && element.tagName !== 'INPUT') {
       if (event.key === 'ArrowRight') {
         this.next();
@@ -95,14 +92,6 @@ export class ListStageComponent implements OnInit, OnDestroy {
     if (this.page > 1) {
       this.page--;
       this.loadPage(this.page);
-    }
-  }
-
-  deletePage(page: number) {
-    if (page > 0 && page < this.pages.totalElements) {
-      this.stages.splice(page - 1, 1);
-      this.pages.totalElements--;
-      this.loadPage(page);
     }
   }
 }

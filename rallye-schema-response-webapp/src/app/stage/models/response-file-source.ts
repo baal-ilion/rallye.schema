@@ -4,6 +4,6 @@ import { ResponseSource } from './response-source';
 export interface ResponseFileSource extends ResponseSource {
 }
 
-function isResponseFileSource(source: ResponseSource): source is ResponseFileSource {
+export function isResponseFileSource(source: ResponseSource): source is ResponseFileSource {
   return source.type === 'ResponseFile';
 }

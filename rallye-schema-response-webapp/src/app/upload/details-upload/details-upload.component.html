@@ -4,26 +4,13 @@
       Equipe {{fileUpload.team}} / Epreuve {{fileUpload.stage}} / Page {{fileUpload.page}}</button>
   </div>
   <!-- On utilise dragable pour savoir dans quel ecran on est. -->
-  <div class="row justify-content-center" *ngIf="dragable">
-    <!-- Pour la Vérification de l'import des formulaires de réponses -->
-    <app-details-response-file [fileUpload]="fileUpload" [dragable]="dragable" (endDragEvent)="endDrag($event)"
+  <div class="row justify-content-center">
+    <app-details-response-file [fileUpload]="fileUpload" [dragable]="true" (endDragEvent)="endDrag($event)"
       class="col-8 border">
     </app-details-response-file>
-  </div>
-  <div class="row justify-content-center" *ngIf="!dragable">
-    <!-- Pour la Visualisation des doublons -->
-    <app-details-response-file [fileUpload]="fileUpload" [dragable]="dragable" (endDragEvent)="endDrag($event)">
-    </app-details-response-file>
-  </div>
-  <div *ngIf="sames.length > 0" class="row">
-    <div class="col-8 bg-warning mx-auto text-center"><strong>Cette page a déjà été importée !</strong></div>
+    <app-response-file-actions [responseFileInfo]="fileUpload" (checkedEvent)="check($event)"
+      (deleteEvent)="delete($event)" class="col-8"></app-response-file-actions>
   </div>
 
-  <div class="row justify-content-center mt-2">
-    <button type="button" *ngIf="(!fileUpload.checked) && (sames.length === 0)" class="btn btn-success mx-2"
-      (click)="check()">Accepter</button>
-    <button type="button" class="btn btn-danger mx-2" (click)="delete()">Supprimer</button>
-    <button type="button" *ngIf="sames.length > 0" class="btn btn-primary mx-2"
-      (click)="showSameResponseFile()">Afficher les doublons</button>
-  </div>
+
 </div>

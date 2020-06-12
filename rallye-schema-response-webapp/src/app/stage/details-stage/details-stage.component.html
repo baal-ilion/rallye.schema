@@ -58,9 +58,11 @@
         <!-- The response sheets are displayed only on medium or bigger screens -->
         <ng-template [ngIf]="files[page.value.page]">
           <div class="col-md-12 col-xxl-10 d-none d-md-block">
-            <div class="row justify-content-center border">
-              <app-details-upload [fileUpload]="files[page.value.page]" [dragable]="false" (checkedEvent)="reload()"
-                (deleteEvent)="reload()"></app-details-upload>
+            <div class="row justify-content-center">
+              <app-details-response-file [fileUpload]="files[page.value.page]" [dragable]="false" class="border">
+              </app-details-response-file>
+              <app-response-file-actions [responseFileInfo]="files[page.value.page]" (checkedEvent)="reload()"
+                (deleteEvent)="reload()"></app-response-file-actions>
             </div>
           </div>
           <!-- If the screen is extra-large, the switches are displayed on the right of the sheet only -->
@@ -95,7 +97,8 @@
     </div>
   </div>
   <ng-template #resultlist let-results="results" let-performances="performances" let-forpage="forpage">
-    <div [ngClass]="{'row d-none': !forpage ,'row h-25 d-none d-xxl-block': forpage}" style="height: 15% !important"></div>
+    <div [ngClass]="{'row d-none': !forpage ,'row h-25 d-none d-xxl-block': forpage}" style="height: 15% !important">
+    </div>
     <ng-template [ngIf]="results.controls.length > 0">
       <div class="row mt-2" *ngIf="performances.controls.length > 0">
         <div class="col-12 py-1 border border-light">

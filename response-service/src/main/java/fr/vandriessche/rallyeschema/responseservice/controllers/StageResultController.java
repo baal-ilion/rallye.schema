@@ -1,5 +1,10 @@
 package fr.vandriessche.rallyeschema.responseservice.controllers;
 
+import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
+
+import javax.xml.parsers.ParserConfigurationException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
@@ -11,6 +16,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.xml.sax.SAXException;
+
+import com.albertoborsetta.formscanner.api.exceptions.FormScannerException;
 
 import fr.vandriessche.rallyeschema.responseservice.entities.StageResult;
 import fr.vandriessche.rallyeschema.responseservice.models.StageResultModelAssembler;
@@ -29,22 +37,16 @@ public class StageResultController {
 		return assembler.toModel(stageResultService.beginStageResult(stage, team));
 	}
 
-	@PostMapping(URL + "/end")
-	public EntityModel<StageResult> endStageResult(@RequestParam Integer stage, @RequestParam Integer team,
-			StageResultModelAssembler assembler) {
-		return assembler.toModel(stageResultService.endStageResult(stage, team));
-	}
-
 	@DeleteMapping(URL + "/begin")
 	public EntityModel<StageResult> cancelStageResult(@RequestParam Integer stage, @RequestParam Integer team,
 			StageResultModelAssembler assembler) {
 		return assembler.toModel(stageResultService.cancelStageResult(stage, team));
 	}
 
-	@DeleteMapping(URL + "/end")
-	public EntityModel<StageResult> undoStageResult(@RequestParam Integer stage, @RequestParam Integer team,
+	@PostMapping(URL + "/end")
+	public EntityModel<StageResult> endStageResult(@RequestParam Integer stage, @RequestParam Integer team,
 			StageResultModelAssembler assembler) {
-		return assembler.toModel(stageResultService.undoStageResult(stage, team));
+		return assembler.toModel(stageResultService.endStageResult(stage, team));
 	}
 
 	@GetMapping(URL + "/{id}")
@@ -67,6 +69,20 @@ public class StageResultController {
 	public CollectionModel<EntityModel<StageResult>> getStageResultsByTeam(@RequestParam Integer team,
 			StageResultModelAssembler assembler) {
 		return assembler.toCollectionModel(stageResultService.getStageResultsByTeam(team));
+	}
+
+	@PostMapping(URL + "/responseFile")
+	public EntityModel<StageResult> selectResponseFile(@RequestParam Integer stage, @RequestParam Integer team,
+			@RequestParam(value = "responseFileId") String[] responseFileIds, @RequestParam Boolean delete,
+			StageResultModelAssembler assembler) throws InvalidAlgorithmParameterException,
+			ParserConfigurationException, SAXException, IOException, FormScannerException {
+		return assembler.toModel(stageResultService.selectResponseFile(stage, team, responseFileIds, delete));
+	}
+
+	@DeleteMapping(URL + "/end")
+	public EntityModel<StageResult> undoStageResult(@RequestParam Integer stage, @RequestParam Integer team,
+			StageResultModelAssembler assembler) {
+		return assembler.toModel(stageResultService.undoStageResult(stage, team));
 	}
 
 	@PatchMapping(URL)
