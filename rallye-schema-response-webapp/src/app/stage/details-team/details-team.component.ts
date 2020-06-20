@@ -1,7 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { interval } from 'rxjs/internal/observable/interval';
-import { startWith, switchMap } from 'rxjs/operators';
+import { interval, Subscription } from 'rxjs';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
 import { StageParam } from 'src/app/param/models/stage-param';
 import { TeamInfo } from 'src/app/param/models/team-info';
@@ -15,10 +14,12 @@ import { StageService } from '../stage.service';
   templateUrl: './details-team.component.html',
   styleUrls: ['./details-team.component.scss']
 })
-export class DetailsTeamComponent implements OnInit {
+export class DetailsTeamComponent implements OnInit, OnDestroy {
+  id: string;
   teamInfo: TeamInfo;
   stageParams: StageParam[] = [];
   stages: { [stage: number]: StageResult } = {};
+  subs: Subscription;
 
   constructor(
     private teamInfoService: TeamInfoService,
@@ -29,40 +30,65 @@ export class DetailsTeamComponent implements OnInit {
     private router: Router,
   ) { }
 
+  ngOnDestroy(): void {
+    this.subs.unsubscribe();
+  }
+
   ngOnInit() {
-    this.route.params.subscribe(params => {
-      const id = params.id;
-      this.teamInfoService.findById(id).subscribe(teamInfo => {
-        this.teamInfo = teamInfo;
-        this.stages = {};
-        interval(1000).pipe(
-          startWith(0),
-          switchMap(() => this.stageService.getStagesByTeam(this.teamInfo.team))
-        ).subscribe(stages => {
-          const stageResults = stages._embedded.stageResults;
-          if (stageResults) {
-            for (const stage of stageResults) {
-              this.stages[stage.stage] = stage;
-            }
-          }
-        });
-      }, error => {
-        this.teamInfo = null;
-        console.log(error);
-        this.router.navigateByUrl('/');
-      });
+    console.log('ngOnInit');
+    this.route.paramMap.subscribe(params => {
+      this.id = params.get('id');
+      this.init();
     }, error => {
       this.teamInfo = null;
       console.log(error);
       this.router.navigateByUrl('/');
     });
+    this.loadStageParams();
+    this.subs = interval(1000).subscribe(() => this.loadTeamInfo(this.id));
+  }
 
-    this.stageParamService.getStageParams().subscribe(stageParams => {
+  private async init() {
+    this.teamInfo = null;
+    this.stages = {};
+    await this.loadTeamInfo(this.id);
+  }
+
+  private async loadTeamInfo(id: string) {
+    try {
+      console.log('loadTeamInfo:' + id);
+      this.teamInfo = await this.teamInfoService.findById(id).toPromise();
+    } catch (error) {
+      this.teamInfo = null;
+      console.log(error);
+      this.router.navigateByUrl('/');
+    }
+    await this.loadStages(this.teamInfo?.team);
+  }
+
+  private async loadStages(team: number) {
+    try {
+      const stages = await this.stageService.getStagesByTeam(team).toPromise();
+      const stageResults = stages._embedded.stageResults;
+      if (stageResults) {
+        for (const stage of stageResults) {
+          this.stages[stage.stage] = stage;
+        }
+      }
+    } catch (error) {
+      this.stages = {};
+      console.log(error);
+    }
+  }
+
+  private async loadStageParams() {
+    try {
+      const stageParams = await this.stageParamService.getStageParams().toPromise();
       this.stageParams = stageParams._embedded.stageParams;
-    }, error => {
+    } catch (error) {
       this.stageParams = [];
       console.log(error);
-    });
+    }
   }
 
   onStartStage(stage: number) {
