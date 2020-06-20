@@ -97,7 +97,7 @@
     </div>
   </div>
   <ng-template #resultlist let-results="results" let-performances="performances" let-forpage="forpage">
-    <div [ngClass]="{'row d-none': !forpage ,'row h-25 d-none d-xxl-block': forpage}" style="height: 15% !important">
+    <div [ngClass]="{'row': true, 'd-none': true ,'h-25': forpage, 'd-xxl-block': forpage}">
     </div>
     <ng-template [ngIf]="results.controls.length > 0">
       <div class="row mt-2" *ngIf="performances.controls.length > 0">
@@ -107,8 +107,8 @@
       </div>
       <div class="row mt-2">
         <div *ngFor="let result of results.controls"
-          [ngClass]="{'col-3 col-md-2 col-xxl-1': !forpage ,'col-3 col-md-2 col-xxl-12': forpage}">
-          <div [formGroup]="result" class="row">
+          [ngClass]="{'col-3': true, 'col-md-2': true, 'col-xxl-1': !forpage ,'col-xxl-12': forpage}">
+          <div [formGroup]="result" class="row" style="height: 32px;">
             <label class="col-8 my-auto small">{{result.value.name}}</label>
             <div class="col-4 my-auto px-1 py-0 justify-content-start">
               <ui-switch formControlName="resultValue" size="small"></ui-switch>
