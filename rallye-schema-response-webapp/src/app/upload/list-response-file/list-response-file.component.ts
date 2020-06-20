@@ -1,10 +1,9 @@
-import { Component, HostListener, Input, OnInit } from '@angular/core';
-import { NgbActiveModal, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { Component, ElementRef, HostListener, Input, OnInit } from '@angular/core';
+import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 import { ResponseFileInfo } from '../models/response-file-info';
 
-const selector = 'app-list-response-file';
 @Component({
-  selector,
+  selector: 'app-list-response-file',
   templateUrl: './list-response-file.component.html',
   styleUrls: ['./list-response-file.component.scss']
 })
@@ -12,9 +11,12 @@ export class ListResponseFileComponent implements OnInit {
   @Input() responseFiles: ResponseFileInfo[];
   page = 1;
 
-  constructor(public activeModal: NgbActiveModal, private modalService: NgbModal) { }
+  constructor(
+    public activeModal: NgbActiveModal,
+    private elementRef: ElementRef) { }
 
   ngOnInit() {
+    console.log(this.elementRef);
   }
 
   delete(responseFile: ResponseFileInfo) {
@@ -47,7 +49,7 @@ export class ListResponseFileComponent implements OnInit {
     while (target && target.tagName !== modalWindow) {
       target = target.parentElement;
     }
-    return !target || target?.getElementsByTagName(selector.toUpperCase()).length > 0;
+    return !target || target?.contains(this.elementRef.nativeElement);
   }
 
   next() {
