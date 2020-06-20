@@ -56,7 +56,7 @@ export class ListUploadComponent implements OnInit, OnDestroy {
         this.pages = files.page;
         console.log(this.pages);
         this.responseFileInfos = this.responseFileInfos.concat(files._embedded?.responseFileInfoes ?? []);
-        this.loadPages(page);
+        await this.loadPages(page);
       }
     }
   }
