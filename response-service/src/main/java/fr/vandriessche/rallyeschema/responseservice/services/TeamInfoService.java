@@ -13,24 +13,28 @@ public class TeamInfoService {
 	@Autowired
 	private TeamInfoRepository teamInfoRepository;
 
-	public TeamInfo getTeamInfo(String id) {
-		return teamInfoRepository.findById(id).orElseThrow();
+	public TeamInfo addTeamInfo(TeamInfo teamInfo) {
+		return teamInfoRepository.save(teamInfo);
 	}
 
-	public TeamInfo getTeamInfoByTeam(Integer team) {
-		return teamInfoRepository.findByTeam(team).orElse(null);
+	public long countTeamInfo() {
+		return teamInfoRepository.count();
+	}
+
+	public TeamInfo getTeamInfo(String id) {
+		return teamInfoRepository.findById(id).orElseThrow();
 	}
 
 	public TeamInfo getTeamInfoByName(String name) {
 		return teamInfoRepository.findByName(name).orElse(null);
 	}
 
-	public List<TeamInfo> getTeamInfos() {
-		return teamInfoRepository.findAll();
+	public TeamInfo getTeamInfoByTeam(Integer team) {
+		return teamInfoRepository.findByTeam(team).orElse(null);
 	}
 
-	public TeamInfo addTeamInfo(TeamInfo teamInfo) {
-		return teamInfoRepository.save(teamInfo);
+	public List<TeamInfo> getTeamInfos() {
+		return teamInfoRepository.findAll();
 	}
 
 	public TeamInfo updateTeamInfo(TeamInfo teamInfo) {
