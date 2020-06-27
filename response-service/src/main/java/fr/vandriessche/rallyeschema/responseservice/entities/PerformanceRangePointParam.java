@@ -12,4 +12,5 @@ public class PerformanceRangePointParam {
 	private Double begin;
 	private Double end;
 	private Long point;
+	private String expression;
 }
