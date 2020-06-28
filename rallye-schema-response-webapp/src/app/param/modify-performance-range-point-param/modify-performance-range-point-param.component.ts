@@ -56,10 +56,10 @@ export class ModifyPerformanceRangePointParamComponent implements OnInit {
     try {
       const spelContext = StandardContext.create({}, {});
       const locals = {
-        value: this.rangeForm.value.value,
-        nbAllTeam: this.rangeForm.value.nbAllTeam,
-        nbTeam: this.rangeForm.value.nbTeam,
-        toLong: (i: number) => Math.trunc(i)
+        valeur: this.rangeForm.value.value,
+        nbEqInscrites: this.rangeForm.value.nbAllTeam,
+        nbEqParticipantes: this.rangeForm.value.nbTeam,
+        arrondi: (i: number) => Math.trunc(i)
       };
       const compiledExpression = SpelExpressionEvaluator.compile(this.rangeForm.value.expression);
       this.result = Math.trunc(compiledExpression.eval(spelContext, locals));

@@ -117,15 +117,16 @@ public class TeamPointService {
 		if (Objects.nonNull(range.getExpression()) && !range.getExpression().isBlank()) {
 			try {
 				StandardEvaluationContext context = new StandardEvaluationContext();
-				context.setVariable("value", value);
-				context.setVariable("nbAllTeam", nbTeam);
-				context.setVariable("nbTeam", stageRanking.getEnds().size());
-				context.registerFunction("toLong",
+				context.setVariable("valeur", value);
+				context.setVariable("nbEqInscrites", nbTeam);
+				context.setVariable("nbEqParticipantes", stageRanking.getEnds().size());
+				context.registerFunction("arrondi",
 						TeamPointService.class.getDeclaredMethod("toLongHelper", new Class[] { Double.class }));
 				return parser.parseExpression(range.getExpression()).getValue(context, Long.class);
 			} catch (Exception e) {
-				log.log(Level.WARNING, "Expression : " + range.getExpression() + " [#value=" + value + ", #nbAllTeam="
-						+ nbTeam + ", #nbTeam=" + stageRanking.getEnds().size() + "] ", e);
+				log.log(Level.WARNING, "Expression : " + range.getExpression() + " [#valeur=" + value
+						+ ", #nbEqInscrites=" + nbTeam + ", #nbEqParticipantes=" + stageRanking.getEnds().size() + "] ",
+						e);
 			}
 		}
 		return 0l;
