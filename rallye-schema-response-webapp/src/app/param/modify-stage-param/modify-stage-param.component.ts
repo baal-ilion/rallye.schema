@@ -6,11 +6,13 @@ import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmat
 import { HalLink } from 'src/app/models/hal-link';
 import { ModifyResponseFileParamComponent } from 'src/app/response-file/param/modify-response-file-param/modify-response-file-param.component';
 import { ResponseFileParamService } from 'src/app/response-file/param/response-file-param.service';
+import { PerformanceRangePointParam } from '../models/performance-range-point-param';
 import { PerformanceRangeType } from '../models/performance-range-type';
 import { QuestionParam } from '../models/question-param';
 import { QuestionPointParam } from '../models/question-point-param';
 import { QuestionType } from '../models/question-type';
 import { PerformancePointParams, QuestionParams, QuestionPointParams, StageParam } from '../models/stage-param';
+import { ModifyPerformanceRangePointParamComponent } from '../modify-performance-range-point-param/modify-performance-range-point-param.component';
 import { StageParamService } from '../stage-param.service';
 
 @Component({
@@ -127,32 +129,25 @@ export class ModifyStageParamComponent implements OnInit {
     } else if (questionParam.type === QuestionType.PERFORMANCE) {
       const performancePoint = this.stageParam.performancePointParams[questionParam.name];
       const ranges = this.formBuilder.array([]);
-      performancePoint?.ranges?.forEach(range => {
-        const type: string = range.type;
-        const allocationType: string = this.perfPointAllocationType[range.type];
-        const begin: number = range.begin;
-        const end: number = range.end;
-        const point: number = range.point;
-        ranges.push(this.formBuilder.group({
-          allocationType,
-          type,
-          begin,
-          end,
-          point
-        }));
-      });
-      ranges.push(this.formBuilder.group({
-        allocationType: null,
-        type: null,
-        begin: null,
-        end: null,
-        point: null
-      }));
+      if (performancePoint?.ranges)
+        performancePoint.ranges.forEach(range => ranges.push(this.buildFormGroup(range)));
+      ranges.push(this.buildFormGroup({} as PerformanceRangePointParam));
       this.performancePointParams.push(this.formBuilder.group({
         name: questionParam.name,
         ranges
       }));
     }
+  }
+
+  private buildFormGroup(range: PerformanceRangePointParam): FormGroup {
+    return this.formBuilder.group({
+      allocationType: range.type ? this.perfPointAllocationType[range.type] : null,
+      type: range.type,
+      begin: range.begin,
+      end: range.end,
+      point: range.point,
+      expression: range.expression
+    });
   }
 
   private initQuestionParam(questionParam: QuestionParam) {
@@ -175,7 +170,7 @@ export class ModifyStageParamComponent implements OnInit {
     };
     modalRef.result.then((result) => {
       console.log(result);
-      this.responseFileParamService.createResponseFileParam(result).subscribe(data => {
+      this.responseFileParamService.createResponseFileParam(result).subscribe(() => {
         this.ngOnInit();
       }, err => {
         console.log(err);
@@ -260,7 +255,7 @@ export class ModifyStageParamComponent implements OnInit {
 
   private getModifiedQuestionPointParams(): QuestionPointParams {
     const modifiedQuestionPointParams: QuestionPointParams = {};
-    this.stageParamForm.value.questionPointParams.forEach((item: QuestionPointParam, index: number) => {
+    this.stageParamForm.value.questionPointParams.forEach((item: QuestionPointParam) => {
       const questionPoint = this.stageParam.questionPointParams[item.name];
       if ((!questionPoint && item.point && item.point !== 0) || (questionPoint && questionPoint.point !== item.point)) {
         if (!item.point) {
@@ -274,31 +269,32 @@ export class ModifyStageParamComponent implements OnInit {
 
   private getModifiedPerformancePointParams(): PerformancePointParams {
     const modifiedPerformancePointParams: PerformancePointParams = {};
-    this.stageParamForm.value.performancePointParams.forEach((item, index) => {
+    this.stageParamForm.value.performancePointParams.forEach((item: any) => {
       const performancePoint = this.stageParam.performancePointParams[item.name];
-      item.ranges.forEach((range, rangeIndex) => {
+      item.ranges.forEach((range: any, rangeIndex: number) => {
         if (performancePoint.ranges.length > rangeIndex) {
           const rangePoint = performancePoint.ranges[rangeIndex];
           if (rangePoint.type !== range.type ||
             rangePoint.begin !== range.begin ||
             rangePoint.end !== range.end ||
-            rangePoint.point !== range.point) {
+            rangePoint.point !== range.point ||
+            rangePoint.expression !== range.expression) {
             modifiedPerformancePointParams[item.name] = item;
           }
         } else {
-          if (range.point && range.point !== 0 && range.type) {
+          if (((range.point && range.point !== 0) || range.expression) && range.type) {
             modifiedPerformancePointParams[item.name] = item;
           }
         }
       });
-      item.ranges = item.ranges.filter(range => range.point && range.type);
+      item.ranges = item.ranges.filter((range: PerformanceRangePointParam) => (range.point || range.expression) && range.type);
     });
     return modifiedPerformancePointParams;
   }
 
   private getModifiedQuestionParams(): QuestionParams {
     const modifiedQuestionParams: QuestionParams = {};
-    this.stageParamForm.value.questionParams.forEach((item: QuestionParam, index: number) => {
+    this.stageParamForm.value.questionParams.forEach((item: QuestionParam) => {
       const question = this.stageParam.questionParams[item.name];
       if (!question) {
         modifiedQuestionParams[item.name] = item;
@@ -314,7 +310,7 @@ export class ModifyStageParamComponent implements OnInit {
         }
       }
     });
-    this.removedQuestionParams.forEach((removed, index) => {
+    this.removedQuestionParams.forEach((removed) => {
       modifiedQuestionParams[removed] = { name: removed, type: undefined, staff: undefined };
     });
     return modifiedQuestionParams;
@@ -324,5 +320,30 @@ export class ModifyStageParamComponent implements OnInit {
     if (this.perfPointAllocationType[range.value.type] !== value) {
       range.patchValue({ type: this.perfPointDefaultRangeType[value] });
     }
+  }
+
+  onChangePerformanceRangePointParam(value: string, ranges: FormArray, index: number) {
+    console.log('onChangePerformanceRangePointParam : ' + index);
+    if (index === ranges.length - 1) {
+      if (value) {
+        ranges.push(this.buildFormGroup({} as PerformanceRangePointParam));
+      }
+    } else if (!value) {
+      const range = ranges.at(index).value;
+      if (!range.point && !range.expression) {
+        ranges.removeAt(index);
+      }
+    }
+  }
+
+  onClickDetailPoint(range: FormGroup) {
+    const modalRef = this.modalService.open(ModifyPerformanceRangePointParamComponent, { size: 'xl' });
+    modalRef.componentInstance.range = range.value as PerformanceRangePointParam;
+    modalRef.result.then((result: PerformanceRangePointParam) => {
+      console.log(result);
+      range.patchValue({ point: result.point, expression: result.expression });
+    }).catch((error) => {
+      console.log(error);
+    });
   }
 }

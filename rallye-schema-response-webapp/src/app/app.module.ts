@@ -17,6 +17,7 @@ import { LocaleService } from './locale.service';
 import { MenuComponent } from './menu/menu.component';
 import { ListStageParamComponent } from './param/list-stage-param/list-stage-param.component';
 import { ListTeamInfoComponent } from './param/list-team-info/list-team-info.component';
+import { ModifyPerformanceRangePointParamComponent } from './param/modify-performance-range-point-param/modify-performance-range-point-param.component';
 import { ModifyStageParamComponent } from './param/modify-stage-param/modify-stage-param.component';
 import { ModifyTeamInfoComponent } from './param/modify-team-info/modify-team-info.component';
 import { NewStageParamComponent } from './param/new-stage-param/new-stage-param.component';
@@ -73,7 +74,8 @@ registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
     RankingComponent,
     ListRankingComponent,
     DetailsTeamStageComponent,
-    ResponseFileActionsComponent
+    ResponseFileActionsComponent,
+    ModifyPerformanceRangePointParamComponent,
   ],
   entryComponents: [
     ModifyUploadComponent,
@@ -82,6 +84,7 @@ registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
     NewStageParamComponent,
     ConfirmationDialogComponent,
     ListResponseFileComponent,
+    ModifyPerformanceRangePointParamComponent,
   ],
   imports: [
     BrowserModule,
