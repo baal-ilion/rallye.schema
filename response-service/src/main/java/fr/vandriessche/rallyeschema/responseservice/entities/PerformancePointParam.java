@@ -15,6 +15,6 @@ public class PerformancePointParam {
 	public PerformancePointParam(String name, Long point) {
 		super();
 		this.name = name;
-		this.ranges.add(new PerformanceRangePointParam(PerformanceRangeType.VALUE, null, null, point));
+		this.ranges.add(new PerformanceRangePointParam(PerformanceRangeType.VALUE, null, null, point, null));
 	}
 }
