@@ -1,11 +1,13 @@
 <div class="mb-5" *ngIf="stageParam">
   <div class="row mt-4 text-center">
-    <h1 class="col-12">Epreuve {{stageParam.stage}} / {{stageParam.name}}</h1>
+    <h1 class="col-12">
+      Epreuve {{ stageParam.stage }} / {{ stageParam.name }}
+    </h1>
   </div>
   <form [formGroup]="stageParamForm" (ngSubmit)="onSubmit()" class="container">
     <div class="col-auto">
       <label>Nom : </label>
-      <input type="text" formControlName="name">
+      <input type="text" formControlName="name" />
     </div>
     <div class="col-auto">
       <label>Inactive : </label>
@@ -15,19 +17,21 @@
       <ngb-panel>
         <ng-template ngbPanelHeader>
           <div class="d-flex align-items-center justify-content-between">
-            <button ngbPanelToggle class="btn btn-link container-fluid text-left pl-0">Paramétrage des feuilles de
-              réponses</button>
+            <button ngbPanelToggle class="btn btn-link container-fluid text-left pl-0">
+              Paramétrage des feuilles de réponses
+            </button>
             <div class="col-auto">
-              <button type="button" class="btn btn-sm btn-outline-primary ml-2" (click)='addResponseFileParam()'>Ajouter
-                une feuille de réponses</button>
+              <button type="button" class="btn btn-sm btn-outline-primary ml-2" (click)="addResponseFileParam()">
+                Ajouter une feuille de réponses
+              </button>
             </div>
           </div>
         </ng-template>
         <ng-template ngbPanelContent>
-          <div class="row" *ngIf='responseFileParamUrls'>
+          <div class="row" *ngIf="responseFileParamUrls">
             <div *ngFor="let responseFileParamUrl of responseFileParamUrls">
               <div class="panel-body">
-                <app-details-response-file-param [paramUrl]='responseFileParamUrl'
+                <app-details-response-file-param [paramUrl]="responseFileParamUrl"
                   (deleteEvent)="onDeleteResponseFileParam($event)">
                 </app-details-response-file-param>
               </div>
@@ -38,19 +42,24 @@
       <ngb-panel>
         <ng-template ngbPanelHeader>
           <div class="d-flex align-items-center justify-content-between">
-            <button ngbPanelToggle class="btn btn-link container-fluid text-left pl-0">Paramétrage des
-              questions</button>
+            <button ngbPanelToggle class="btn btn-link container-fluid text-left pl-0">
+              Paramétrage des questions
+            </button>
             <div class="col-auto">
-              <input type="text" [(ngModel)]="questionParamName" [ngModelOptions]="{standalone: true}">
+              <input type="text" [(ngModel)]="questionParamName" [ngModelOptions]="{ standalone: true }" />
               <button type="button" class="btn btn-sm btn-outline-primary ml-2"
-                (click)="addQuestionParam(questionParamName)">Ajouter</button>
+                (click)="addQuestionParam(questionParamName)">
+                Ajouter
+              </button>
             </div>
           </div>
         </ng-template>
         <ng-template ngbPanelContent>
           <div class="row">
-            <div *ngFor="let questionParam of questionParams.controls; let i = index;"
-              class="col-6 col-lg-3 col-sm-6 col-md-4">
+            <div *ngFor="
+                let questionParam of questionParams.controls;
+                let i = index
+              " class="col-6 col-lg-3 col-sm-6 col-md-4">
               <div [formGroup]="questionParam" class="row">
                 <label class="col align-self-center">{{questionParam.value.name}}</label>
                 <div class="col-auto align-self-center">
@@ -61,8 +70,9 @@
                   <option value="QUESTION">Question</option>
                   <option value="PERFORMANCE">Performance</option>
                 </select>
-                <button type="button" class="btn btn-sm btn-outline-danger ml-2"
-                  (click)="removeQuestionParam(i)">Supprimer</button>
+                <button type="button" class="btn btn-sm btn-outline-danger ml-2" (click)="removeQuestionParam(i)">
+                  Supprimer
+                </button>
               </div>
             </div>
           </div>
@@ -71,14 +81,18 @@
       <ngb-panel>
         <ng-template ngbPanelHeader>
           <div class="d-flex align-items-center justify-content-between">
-            <button ngbPanelToggle class="btn btn-link container-fluid text-left pl-1">Paramétrage des points</button>
+            <button ngbPanelToggle class="btn btn-link container-fluid text-left pl-1">
+              Paramétrage des points
+            </button>
           </div>
         </ng-template>
         <ng-template ngbPanelContent>
           <div *ngIf="questionPointParams.controls.length > 0">
             <div class="row mt-4">
               <div class="col-12 px-0 py-1 bg-secondary">
-                <h4 class="my-auto text-center text-white">Attribution de points aux questions</h4>
+                <h4 class="my-auto text-center text-white">
+                  Attribution de points aux questions
+                </h4>
               </div>
             </div>
             <div class="row">
@@ -87,7 +101,7 @@
                 <div [formGroup]="questionPointParam" class="row">
                   <label class="col align-self-center">{{questionPointParam.value.name}}</label>
                   <div class="col-auto align-self-center">
-                    <input type="number" formControlName="point" class="col-auto">
+                    <input type="number" formControlName="point" class="col-auto" />
                   </div>
                 </div>
               </div>
@@ -96,93 +110,123 @@
           <div *ngIf="performancePointParams.controls.length > 0">
             <div class="row mt-4">
               <div class="col-12 px-0 py-1 bg-secondary">
-                <h4 class="mx-0 my-auto text-center text-white">Attribution de points aux performances</h4>
+                <h4 class="mx-0 my-auto text-center text-white">
+                  Attribution de points aux performances
+                </h4>
               </div>
             </div>
-            <div *ngFor="let performancePointParam of performancePointParams.controls ; index as perfIndex"
-              class="row mb-4">
+            <div *ngFor="
+                let performancePointParam of performancePointParams.controls;
+                index as perfIndex
+              " class="row mb-4">
               <div class="col-12" [formGroup]="performancePointParam">
                 <div class="row">
                   <div class="col-12 m-0 px-0 py-1 bg-light">
-                    <h5 class="m-auto text-center">{{performancePointParam.value.name}}</h5>
+                    <h5 class="m-auto text-center">
+                      {{ performancePointParam.value.name }}
+                    </h5>
                   </div>
                 </div>
-                <div *ngFor="let range of getRanges(performancePointParam).controls"
+                <div *ngFor="let range of getRanges(performancePointParam).controls; index as i"
                   class="row mt-2 d-flex justify-content-center" [formGroup]="range">
-                  <div class="col-4 m-0 px-1 py-0 align-self-center">
-                    <label class="m-0 p-0 align-self-center">Attribution de points selon :</label>
-                    <select class='form-control custom-select' formControlName="allocationType"
-                      (change)="onPerfPointAllocationType($event.target.value, range)">
-                      <option value=""></option>
-                      <option value="SCORE">le score réalisé.</option>
-                      <option value="DATE">l'ordre de passage des équipes.</option>
-                      <option value="RANK">le classement l'épreuve.</option>
-                    </select>
+                  <div class="col-7 row">
+                    <div class="col-6 m-0 px-1 py-0 align-self-center">
+                      <label class="m-0 p-0 align-self-center">Attribution de points selon :</label>
+                      <select class="form-control custom-select" formControlName="allocationType" (change)="onPerfPointAllocationType($event.target.value, range);
+                         onChangePerformanceRangePointParam($event.target.value, getRanges(performancePointParam), i)">
+                        <option value=""></option>
+                        <option value="SCORE">le score réalisé.</option>
+                        <option value="DATE">l'ordre de passage des équipes.</option>
+                        <option value="RANK">le classement l'épreuve.</option>
+                      </select>
+                    </div>
+                    <fieldset class="col-6 m-0 px-1 py-0 align-self-center" [disabled]="
+                        !(
+                          range.value.allocationType === 'RANK' ||
+                          range.value.allocationType === 'DATE'
+                        )
+                      ">
+                      <legend *ngIf="false"></legend>
+                      <label *ngIf="range.value.allocationType === 'DATE'" class="m-0 p-0 align-self-center">La
+                        meilleure équipe est celle qui :</label>
+                      <label *ngIf="range.value.allocationType === 'RANK'" class="m-0 p-0 align-self-center">La
+                        meilleure équipe est celle qui :</label>
+                      <label *ngIf="
+                          range.value.allocationType === 'SCORE' ||
+                          (range.value.allocationType !== 'RANK' &&
+                            range.value.allocationType !== 'DATE')
+                        " class="m-0 p-0 align-self-center">-</label>
+                      <select class="form-control custom-select" formControlName="type">
+                        <option *ngIf="range.value.allocationType === 'SCORE'" value="VALUE">-</option>
+                        <option *ngIf="range.value.allocationType === 'DATE'" value="BEGIN_UP_RANK">commence l'épreuve
+                          en premier.</option>
+                        <option *ngIf="range.value.allocationType === 'DATE'" value="BEGIN_DOWN_RANK">commence l'épreuve
+                          en dernier.</option>
+                        <option *ngIf="range.value.allocationType === 'DATE'" value="END_UP_RANK">termine l'épreuve en
+                          premier.</option>
+                        <option *ngIf="range.value.allocationType === 'DATE'" value="END_DOWN_RANK">termine l'épreuve en
+                          dernier.</option>
+                        <option *ngIf="range.value.allocationType === 'RANK'" value="PERF_UP_RANK">obtient le plus petit
+                          des résultats.</option>
+                        <option *ngIf="range.value.allocationType === 'RANK'" value="PERF_DOWN_RANK">obtient le plus
+                          grand des résultats.</option>
+                      </select>
+                    </fieldset>
                   </div>
-                  <fieldset class="col-4 m-0 px-1 py-0 align-self-center"
-                    [disabled]="!(range.value.allocationType === 'RANK' || range.value.allocationType === 'DATE')">
-                    <legend *ngIf="false"> </legend>
-                    <label *ngIf="range.value.allocationType === 'DATE'" class="m-0 p-0 align-self-center">La
-                      meilleure
-                      équipe est celle qui :</label>
-                    <label *ngIf="range.value.allocationType === 'RANK'" class="m-0 p-0 align-self-center">La
-                      meilleure
-                      équipe est celle qui :</label>
-                    <label
-                      *ngIf="range.value.allocationType === 'SCORE' || (range.value.allocationType !== 'RANK' && range.value.allocationType !== 'DATE')"
-                      class="m-0 p-0 align-self-center">-</label>
-                    <select class='form-control custom-select' formControlName="type">
-                      <option *ngIf="range.value.allocationType === 'SCORE'" value="VALUE">-</option>
-                      <option value=""></option>
-                      <option *ngIf="range.value.allocationType === 'DATE'" value="BEGIN_UP_RANK">commence l'épreuve
-                        en
-                        premier.</option>
-                      <option *ngIf="range.value.allocationType === 'DATE'" value="BEGIN_DOWN_RANK">commence
-                        l'épreuve
-                        en dernier.</option>
-                      <option *ngIf="range.value.allocationType === 'DATE'" value="END_UP_RANK">termine l'épreuve en
-                        premier.</option>
-                      <option *ngIf="range.value.allocationType === 'DATE'" value="END_DOWN_RANK">termine l'épreuve
-                        en
-                        dernier.</option>
-                      <option *ngIf="range.value.allocationType === 'RANK'" value="PERF_UP_RANK">obtient le plus
-                        petit
-                        des résultats.</option>
-                      <option *ngIf="range.value.allocationType === 'RANK'" value="PERF_DOWN_RANK">obtient le plus
-                        grand
-                        des résultats.</option>
-                    </select>
-                  </fieldset>
-                  <fieldset class="col-3 m-0 px-1 py-0 align-self-center"
-                    [disabled]="!(range.value.allocationType === 'SCORE' || range.value.allocationType === 'RANK' || range.value.allocationType === 'DATE')">
-                    <legend *ngIf="false"> </legend>
-                    <label class="col-12 m-0 p-0" *ngIf="range.value.allocationType === 'SCORE'">Score
-                      compris dans :</label>
+                  <fieldset class="col-3 m-0 px-1 py-0 align-self-center" [disabled]="
+                      !(
+                        range.value.allocationType === 'SCORE' ||
+                        range.value.allocationType === 'RANK' ||
+                        range.value.allocationType === 'DATE'
+                      )
+                    ">
+                    <legend *ngIf="false"></legend>
+                    <label class="col-12 m-0 p-0" *ngIf="range.value.allocationType === 'SCORE'">Score compris dans
+                      :</label>
                     <label class="col-12 m-0 p-0" *ngIf="range.value.allocationType === 'RANK'">Rang compris dans
                       :</label>
                     <label class="col-12 m-0 p-0" *ngIf="range.value.allocationType === 'DATE'">N° de passage compris
-                      dans
-                      :</label>
-                    <label
-                      *ngIf="range.value.allocationType !== 'SCORE' && range.value.allocationType !== 'RANK' && range.value.allocationType !== 'DATE'"
-                      class="m-0 p-0 align-self-center">-</label>
+                      dans :</label>
+                    <label *ngIf="
+                        range.value.allocationType !== 'SCORE' &&
+                        range.value.allocationType !== 'RANK' &&
+                        range.value.allocationType !== 'DATE'
+                      " class="m-0 p-0 align-self-center">-</label>
                     <div class="col-12 m-0 p-1 border rounded">
-                      <div class="col-1 p-0 d-inline-block align-self-center text-left">] </div>
+                      <div class="col-1 p-0 d-inline-block align-self-center text-left">
+                        [
+                      </div>
                       <input class="col-4 d-inline-block align-self-center form-control form-control-sm" type="number"
-                        formControlName="begin">
-                      <div class="col-2 p-0 d-inline-block align-self-center text-center"> ; </div>
+                        formControlName="begin" />
+                      <div class="col-2 p-0 d-inline-block align-self-center text-center">
+                        ;
+                      </div>
                       <input class="col-4 d-inline-block align-self-center form-control form-control-sm" type="number"
-                        formControlName="end">
-                      <div class="col-1 p-0 d-inline-block align-self-center text-right"> ]</div>
+                        formControlName="end" />
+                      <div class="col-1 p-0 d-inline-block align-self-center text-right">
+                        [
+                      </div>
                     </div>
                   </fieldset>
-                  <fieldset class="col-1 m-0 px-1 py-0 align-self-center"
-                    [disabled]="!(range.value.allocationType === 'SCORE' || range.value.allocationType === 'RANK' || range.value.allocationType === 'DATE')">
-                    <legend *ngIf="false"> </legend>
+                  <fieldset class="col-2 m-0 px-1 py-0 align-self-center" [disabled]="
+                      !(
+                        range.value.allocationType === 'SCORE' ||
+                        range.value.allocationType === 'RANK' ||
+                        range.value.allocationType === 'DATE'
+                      )
+                    ">
+                    <legend *ngIf="false"></legend>
                     <label class="col-12 m-0 p-0 align-self-center">Points :</label>
                     <div class="col-12 m-0 p-1 border rounded">
-                      <input class="col-12 d-inline-block form-control form-control-sm" type="number"
-                        formControlName="point">
+                      <input *ngIf="range.value.point || !range.value.expression"
+                        class="col-9 d-inline-block form-control form-control-sm" type="number"
+                        formControlName="point" />
+                      <input *ngIf="!range.value.point && range.value.expression"
+                        class="col-9 d-inline-block form-control form-control-sm" type="text"
+                        formControlName="expression" readonly />
+                      <button type="button" class="btn btn-sm col-3" (click)="onClickDetailPoint(range)">
+                        ...
+                      </button>
                     </div>
                   </fieldset>
                 </div>
@@ -194,7 +238,9 @@
     </ngb-accordion>
     <div class="row">
       <button class="btn btn-primary mr-1">Modifier</button>
-      <button class="btn btn-danger" (click)='deleteStageParam()'>Suppimer</button>
+      <button class="btn btn-danger" (click)="deleteStageParam()">
+        Suppimer
+      </button>
     </div>
   </form>
 </div>

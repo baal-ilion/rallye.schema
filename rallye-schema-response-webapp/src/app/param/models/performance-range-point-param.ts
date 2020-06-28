@@ -5,4 +5,5 @@ export interface PerformanceRangePointParam {
   begin: number;
   end: number;
   point: number;
+  expression: string;
 }

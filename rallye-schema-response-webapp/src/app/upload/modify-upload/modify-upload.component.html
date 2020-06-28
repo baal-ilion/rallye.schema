@@ -1,10 +1,11 @@
 <div class="modal-header">
   <h4 class="modal-title">Modifier les informations</h4>
   <button type="button" class="close" aria-label="Close" (click)="activeModal.dismiss('Cross click')">
+    <span aria-hidden="true">&times;</span>
   </button>
 </div>
 <form [formGroup]="myForm" (ngSubmit)="submitForm()">
-  <div class="modal-boy">
+  <div class="modal-body">
     <div class="container">
       <div class="form-group">
         <label for="stage">Etape</label>
