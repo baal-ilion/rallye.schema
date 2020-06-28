@@ -34,6 +34,11 @@ import lombok.extern.java.Log;
 @Service
 @Log
 public class TeamPointService {
+	@SuppressWarnings("unused")
+	private static Long toLongHelper(Double i) {
+		return i.longValue();
+	}
+
 	@Autowired
 	private TeamPointRepository teamPointRepository;
 	@Autowired
@@ -115,6 +120,8 @@ public class TeamPointService {
 				context.setVariable("value", value);
 				context.setVariable("nbAllTeam", nbTeam);
 				context.setVariable("nbTeam", stageRanking.getEnds().size());
+				context.registerFunction("toLong",
+						TeamPointService.class.getDeclaredMethod("toLongHelper", new Class[] { Double.class }));
 				return parser.parseExpression(range.getExpression()).getValue(context, Long.class);
 			} catch (Exception e) {
 				log.log(Level.WARNING, "Expression : " + range.getExpression() + " [#value=" + value + ", #nbAllTeam="
@@ -133,7 +140,8 @@ public class TeamPointService {
 					if (Objects.nonNull(performancePointParam)) {
 						return new QuestionPoint(performance.getName(),
 								performancePointParam.getRanges().stream().map(range -> {
-									Double value = computePerformancePointValue(stageResult, stageRanking, range, performance);
+									Double value = computePerformancePointValue(stageResult, stageRanking, range,
+											performance);
 									if (Objects.nonNull(value)
 											&& (Objects.isNull(range.getBegin()) || range.getBegin() <= value)
 											&& (Objects.isNull(range.getEnd()) || value < range.getEnd()))
@@ -145,8 +153,8 @@ public class TeamPointService {
 				}).filter(Objects::nonNull);
 	}
 
-	private Double computePerformancePointValue(StageResult stageResult, StageRanking stageRanking, PerformanceRangePointParam range,
-			PerformanceResult performance) {
+	private Double computePerformancePointValue(StageResult stageResult, StageRanking stageRanking,
+			PerformanceRangePointParam range, PerformanceResult performance) {
 		switch (range.getType()) {
 		case VALUE:
 			return performance.getPerformanceValue();
