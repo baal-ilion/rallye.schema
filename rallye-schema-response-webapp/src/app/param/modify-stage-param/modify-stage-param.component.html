@@ -156,19 +156,26 @@
                           (range.value.allocationType !== 'RANK' &&
                             range.value.allocationType !== 'DATE')
                         " class="m-0 p-0 align-self-center">-</label>
-                      <select class="form-control custom-select" formControlName="type">
-                        <option *ngIf="range.value.allocationType === 'SCORE'" value="VALUE">-</option>
-                        <option *ngIf="range.value.allocationType === 'DATE'" value="BEGIN_UP_RANK">commence l'épreuve
+                      <select class="form-control custom-select" formControlName="type"
+                        *ngIf="range.value.allocationType === 'SCORE'">
+                        <option value="VALUE">-</option>
+                      </select>
+                      <select class="form-control custom-select" formControlName="type"
+                        *ngIf="range.value.allocationType === 'DATE'">
+                        <option value="BEGIN_UP_RANK">commence l'épreuve
                           en premier.</option>
-                        <option *ngIf="range.value.allocationType === 'DATE'" value="BEGIN_DOWN_RANK">commence l'épreuve
+                        <option value="BEGIN_DOWN_RANK">commence l'épreuve
                           en dernier.</option>
-                        <option *ngIf="range.value.allocationType === 'DATE'" value="END_UP_RANK">termine l'épreuve en
+                        <option value="END_UP_RANK">termine l'épreuve en
                           premier.</option>
-                        <option *ngIf="range.value.allocationType === 'DATE'" value="END_DOWN_RANK">termine l'épreuve en
+                        <option value="END_DOWN_RANK">termine l'épreuve en
                           dernier.</option>
-                        <option *ngIf="range.value.allocationType === 'RANK'" value="PERF_UP_RANK">obtient le plus petit
+                      </select>
+                      <select class="form-control custom-select" formControlName="type"
+                        *ngIf="range.value.allocationType === 'RANK'">
+                        <option value="PERF_UP_RANK">obtient le plus petit
                           des résultats.</option>
-                        <option *ngIf="range.value.allocationType === 'RANK'" value="PERF_DOWN_RANK">obtient le plus
+                        <option value="PERF_DOWN_RANK">obtient le plus
                           grand des résultats.</option>
                       </select>
                     </fieldset>
