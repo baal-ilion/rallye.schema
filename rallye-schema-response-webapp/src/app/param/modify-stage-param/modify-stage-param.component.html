@@ -156,6 +156,13 @@
                           (range.value.allocationType !== 'RANK' &&
                             range.value.allocationType !== 'DATE')
                         " class="m-0 p-0 align-self-center">-</label>
+                      <select class="form-control custom-select" formControlName="type" *ngIf="
+                        range.value.allocationType !== 'SCORE' &&
+                        range.value.allocationType !== 'RANK' &&
+                        range.value.allocationType !== 'DATE'
+                      " disabled>
+                        <option></option>
+                      </select>
                       <select class="form-control custom-select" formControlName="type"
                         *ngIf="range.value.allocationType === 'SCORE'">
                         <option value="VALUE">-</option>
