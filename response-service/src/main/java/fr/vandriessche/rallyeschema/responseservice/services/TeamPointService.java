@@ -19,6 +19,7 @@ import fr.vandriessche.rallyeschema.responseservice.entities.PerformanceRangePoi
 import fr.vandriessche.rallyeschema.responseservice.entities.PerformanceRangeType;
 import fr.vandriessche.rallyeschema.responseservice.entities.PerformanceResult;
 import fr.vandriessche.rallyeschema.responseservice.entities.QuestionPoint;
+import fr.vandriessche.rallyeschema.responseservice.entities.ResponseResult;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseSource;
 import fr.vandriessche.rallyeschema.responseservice.entities.StageParam;
 import fr.vandriessche.rallyeschema.responseservice.entities.StagePoint;
@@ -133,10 +134,11 @@ public class TeamPointService {
 	}
 
 	private Stream<QuestionPoint> computePerformancePoint(StageResult stageResult, StageRanking stageRanking,
-			StageParam stageParam) {
+			StageParam stageParam, List<String> sourceQuestionNames) {
 		var nbTeam = teamInfoService.countTeamInfo();
 		return stageResult.getPerformances().stream()
-				.filter(performance -> Objects.nonNull(performance.getPerformanceValue())).map(performance -> {
+				.filter(performance -> Objects.nonNull(performance.getPerformanceValue()))
+				.filter(performance -> !sourceQuestionNames.contains(performance.getName())).map(performance -> {
 					var performancePointParam = stageParam.getPerformancePointParams().get(performance.getName());
 					if (Objects.nonNull(performancePointParam)) {
 						return new QuestionPoint(performance.getName(),
@@ -183,9 +185,10 @@ public class TeamPointService {
 		}
 	}
 
-	private Stream<QuestionPoint> computeResultPoint(StageResult stageResult, StageParam stageParam) {
+	private Stream<QuestionPoint> computeResultPoint(StageResult stageResult, StageParam stageParam,
+			List<String> sourceQuestionNames) {
 		return stageResult.getResults().stream().filter(result -> Boolean.TRUE.equals(result.getResultValue()))
-				.map(result -> {
+				.filter(result -> !sourceQuestionNames.contains(result.getName())).map(result -> {
 					var questionPointParam = stageParam.getQuestionPointParams().get(result.getName());
 					if (Objects.nonNull(questionPointParam) && Objects.nonNull(questionPointParam.getPoint()))
 						return new QuestionPoint(result.getName(), questionPointParam.getPoint());
@@ -193,38 +196,47 @@ public class TeamPointService {
 				}).filter(Objects::nonNull);
 	}
 
-	private boolean computeStagePoint(StagePoint stagePoint, ResponseSource source) {
-		var stageResponse = stageResponseService.getStageResponse(source.getId());
-		if (Boolean.TRUE.equals(((StageResponseSource) source).getPointUsed())
-				&& (Objects.nonNull(stageResponse.getQuestions()) || Objects.nonNull(stageResponse.getTotal()))) {
-			stagePoint.setQuestions(
-					Objects.nonNull(stageResponse.getQuestions()) ? stageResponse.getQuestions() : new ArrayList<>());
-			stagePoint.setTotal(Objects.nonNull(stageResponse.getTotal()) ? stageResponse.getTotal()
-					: sumQuestionPoint(stagePoint));
-			return true;
+	private List<String> computeStagePoint(StagePoint stagePoint, ResponseSource source) {
+		if (Objects.nonNull(source)) {
+			var stageResponse = stageResponseService.getStageResponse(source.getId());
+			if (Boolean.TRUE.equals(((StageResponseSource) source).getPointUsed())
+					&& (Objects.nonNull(stageResponse.getQuestions()) || Objects.nonNull(stageResponse.getTotal()))) {
+				stagePoint.setQuestions(Objects.nonNull(stageResponse.getQuestions()) ? stageResponse.getQuestions()
+						: new ArrayList<>());
+				stagePoint.setTotal(Objects.nonNull(stageResponse.getTotal()) ? stageResponse.getTotal()
+						: sumQuestionPoint(stagePoint.getQuestions()));
+				return Stream
+						.concat(stageResponse.getQuestions().stream().map(QuestionPoint::getName),
+								Stream.concat(stageResponse.getPerformances().stream().map(PerformanceResult::getName),
+										stageResponse.getResults().stream().map(ResponseResult::getName)))
+						.distinct().collect(Collectors.toList());
+			}
 		}
-		return false;
+
+		stagePoint.setQuestions(new ArrayList<>());
+		stagePoint.setTotal(0l);
+		return new ArrayList<>();
 	}
 
 	private void computeStagePoint(StagePoint stagePoint, StageResult stageResult, StageRanking stageRanking,
-			StageParam stageParam) {
-		stagePoint.setQuestions(Stream
-				.concat(computeResultPoint(stageResult, stageParam),
-						computePerformancePoint(stageResult, stageRanking, stageParam))
+			StageParam stageParam, ResponseSource source) {
+		var sourceQuestionNames = computeStagePoint(stagePoint, source);
+		var questions = Stream
+				.concat(computeResultPoint(stageResult, stageParam, sourceQuestionNames),
+						computePerformancePoint(stageResult, stageRanking, stageParam, sourceQuestionNames))
+				.collect(Collectors.toList());
+		stagePoint.setQuestions(Stream.concat(stagePoint.getQuestions().stream(), questions.stream())
 				.sorted(Comparator.comparing(QuestionPoint::getName)).collect(Collectors.toList()));
-		stagePoint.setTotal(sumQuestionPoint(stagePoint));
+		stagePoint.setTotal(stagePoint.getTotal() + sumQuestionPoint(questions));
 	}
 
 	private StagePoint computeStagePoint(StageResult stageResult, StageRanking stageRanking) {
 		StagePoint stagePoint = new StagePoint(stageResult.getStage(), 0l);
 		var stageParam = stageParamService.getStageParamByStage(stageResult.getStage());
 		if (Boolean.TRUE.equals(stageResult.getChecked())) {
-			stageResult.getResponseSources().stream().filter(source -> source instanceof StageResponseSource)
-					.findFirst().ifPresentOrElse(source -> {
-						if (!computeStagePoint(stagePoint, source)) {
-							computeStagePoint(stagePoint, stageResult, stageRanking, stageParam);
-						}
-					}, () -> computeStagePoint(stagePoint, stageResult, stageRanking, stageParam));
+			var source = stageResult.getResponseSources().stream().filter(s -> s instanceof StageResponseSource)
+					.findFirst().orElse(null);
+			computeStagePoint(stagePoint, stageResult, stageRanking, stageParam, source);
 		}
 		return stagePoint;
 	}
@@ -249,8 +261,8 @@ public class TeamPointService {
 		return teamPointRepository.save(teamPoint);
 	}
 
-	private Long sumQuestionPoint(StagePoint stagePoint) {
-		return stagePoint.getQuestions().stream().map(QuestionPoint::getTotal).reduce(0l, Long::sum);
+	private Long sumQuestionPoint(List<QuestionPoint> questions) {
+		return questions.stream().map(QuestionPoint::getTotal).reduce(0l, Long::sum);
 	}
 
 }
