@@ -25,6 +25,8 @@ public class MessageQueueConfig {
 	public static final String COMPUTE_TEAM_POINT_ROUTING_KEYS_CONFIG = "${rallyeschema.message.computeTeamPoint.routing.key:stageResult.*,stageRanking.*}";
 	public static final String COMPUTE_STAGE_RANKING_QUEUE_NAME_CONFIG = "${rallyeschema.message.computeStageRanking.queue.name:rallyeschema-computeStageRanking}";
 	public static final String COMPUTE_STAGE_RANKING_ROUTING_KEYS_CONFIG = "${rallyeschema.message.computeStageRanking.routing.key:stageResult.*}";
+	public static final String DELETE_TEAM_QUEUE_NAME_CONFIG = "${rallyeschema.message.deleteTeam.queue.name:rallyeschema-deleteTeam}";
+	public static final String DELETE_TEAM_ROUTING_KEYS_CONFIG = "${rallyeschema.message.deleteTeam.routing.key:teamInfo.delete}";
 
 	@Value(EXCHANGE_NAME_CONFIG)
 	private String exchangeName;
@@ -41,6 +43,10 @@ public class MessageQueueConfig {
 	private String computeStageRankingQueueName;
 	@Value(COMPUTE_STAGE_RANKING_ROUTING_KEYS_CONFIG)
 	private String[] computeStageRankingRoutingKeys;
+	@Value(DELETE_TEAM_QUEUE_NAME_CONFIG)
+	private String deleteTeamQueueName;
+	@Value(DELETE_TEAM_ROUTING_KEYS_CONFIG)
+	private String[] deleteTeamRoutingKeys;
 
 	@Bean
 	public TopicExchange getExchange() {
@@ -80,6 +86,18 @@ public class MessageQueueConfig {
 	public Declarables declareBindingComputeStageRanking() {
 		return new Declarables(Arrays.asList(computeStageRankingRoutingKeys).stream().map(
 				routingKey -> BindingBuilder.bind(getComputeStageRankingQueue()).to(getExchange()).with(routingKey))
+				.collect(Collectors.toList()));
+	}
+
+	@Bean
+	public Queue getDeleteTeamQueue() {
+		return new Queue(deleteTeamQueueName);
+	}
+
+	@Bean
+	public Declarables declareBindingDeleteTeam() {
+		return new Declarables(Arrays.asList(deleteTeamRoutingKeys).stream()
+				.map(routingKey -> BindingBuilder.bind(getDeleteTeamQueue()).to(getExchange()).with(routingKey))
 				.collect(Collectors.toList()));
 	}
 

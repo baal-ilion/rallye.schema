@@ -10,15 +10,30 @@ import fr.vandriessche.rallyeschema.responseservice.repositories.TeamInfoReposit
 
 @Service
 public class TeamInfoService {
+	public static final String TEAM_INFO_CREATE_EVENT = "teamInfo.create";
+	public static final String TEAM_INFO_UPDATE_EVENT = "teamInfo.update";
+	public static final String TEAM_INFO_DELETE_EVENT = "teamInfo.delete";
+
 	@Autowired
 	private TeamInfoRepository teamInfoRepository;
 
+	@Autowired
+	private MessageProducerService messageProducerService;
+
 	public TeamInfo addTeamInfo(TeamInfo teamInfo) {
-		return teamInfoRepository.save(teamInfo);
+		teamInfo = teamInfoRepository.save(teamInfo);
+		messageProducerService.sendMessage(TEAM_INFO_CREATE_EVENT, teamInfo);
+		return teamInfo;
 	}
 
 	public long countTeamInfo() {
 		return teamInfoRepository.count();
+	}
+
+	public void deleteTeamInfo(String id) {
+		var teamInfo = teamInfoRepository.findById(id).orElseThrow();
+		teamInfoRepository.deleteById(id);
+		messageProducerService.sendMessage(TEAM_INFO_DELETE_EVENT, teamInfo);
 	}
 
 	public TeamInfo getTeamInfo(String id) {
@@ -39,6 +54,8 @@ public class TeamInfoService {
 
 	public TeamInfo updateTeamInfo(TeamInfo teamInfo) {
 		teamInfoRepository.findById(teamInfo.getId()).orElseThrow();
-		return teamInfoRepository.save(teamInfo);
+		teamInfo = teamInfoRepository.save(teamInfo);
+		messageProducerService.sendMessage(TEAM_INFO_UPDATE_EVENT, teamInfo);
+		return teamInfo;
 	}
 }

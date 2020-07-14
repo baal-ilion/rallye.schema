@@ -9,7 +9,7 @@
     </div>
   </div>
 
-   <div *ngIf='teamInfos' class="row justify-content-center">
+  <div *ngIf='teamInfos' class="row justify-content-center">
     <div class="col-12">
 
       <div class="row mt-4">
@@ -23,17 +23,22 @@
           <table class="table table-sm align-items-center text-center">
             <thead class="bg-light">
               <tr>
-                <th class="align-middle">#</th>
-                <th class="align-middle">Equipe</th>
-                <th class="align-middle">Actions</th>
+                <th scope="col" class="align-middle">#</th>
+                <th scope="col" class="align-middle">Equipe</th>
+                <th scope="col" class="align-middle">Actions</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let teamInfo of teamInfos">
-                <th class="align-middle">{{teamInfo.team}}</th>
+                <th scope="row" class="align-middle">{{teamInfo.team}}</th>
                 <td class="align-middle">{{teamInfo.name}}</td>
                 <td class="align-middle">
-                  <button class="btn-primary" ngbButtonLabel (click)='modifyTeamInfo(teamInfo)'>Editer</button>
+                  <div class="btn-group">
+                    <button type="button" class="btn-primary" ngbButtonLabel
+                      (click)='modifyTeamInfo(teamInfo)'>Editer</button>
+                    <button type="button" class="btn-danger" ngbButtonLabel
+                      (click)='deleteTeamInfo(teamInfo)'>Supprimer</button>
+                  </div>
                 </td>
               </tr>
             </tbody>
