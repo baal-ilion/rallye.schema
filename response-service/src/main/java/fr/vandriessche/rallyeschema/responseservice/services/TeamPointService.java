@@ -92,6 +92,10 @@ public class TeamPointService {
 				.collect(Collectors.toList());
 	}
 
+	public void deleteByTeam(Integer team) {
+		teamPointRepository.findByTeam(team).ifPresent(teamPoint -> teamPointRepository.delete(teamPoint));
+	}
+
 	public TeamPoint getTeamPoint(String id) {
 		return teamPointRepository.findById(id).orElseThrow();
 	}

@@ -40,9 +40,16 @@ public class StageResponseService {
 		return stageResponse2;
 	}
 
+	public void deleteByTeam(Integer team) {
+		stageResponseRepository.findByTeam(team).forEach(stageResponse -> {
+			stageResponseRepository.delete(stageResponse);
+			messageProducerService.sendMessage(STAGE_RESPONSE_DELETE_EVENT, new StageResponseMessage(stageResponse));
+		});
+	}
+
 	public void deleteStageResponse(String id) {
 		stageResponseRepository.findById(id).ifPresent(stageResponse -> {
-			stageResponse = stageResponseRepository.save(stageResponse);
+			stageResponseRepository.delete(stageResponse);
 			messageProducerService.sendMessage(STAGE_RESPONSE_DELETE_EVENT, new StageResponseMessage(stageResponse));
 		});
 	}
