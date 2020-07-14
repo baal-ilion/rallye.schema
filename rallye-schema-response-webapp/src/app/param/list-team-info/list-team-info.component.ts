@@ -3,6 +3,7 @@ import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { TeamInfo } from '../models/team-info';
 import { ModifyTeamInfoComponent } from '../modify-team-info/modify-team-info.component';
 import { TeamInfoService } from '../team-info.service';
+import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
 
 @Component({
   selector: 'app-list-team-info',
@@ -13,7 +14,11 @@ export class ListTeamInfoComponent implements OnInit {
 
   teamInfos: TeamInfo[] = [];
 
-  constructor(private teamInfoService: TeamInfoService, private modalService: NgbModal) { }
+  constructor(
+    private teamInfoService: TeamInfoService,
+    private modalService: NgbModal,
+    private confirmationDialogService: ConfirmationDialogService
+  ) { }
 
   ngOnInit() {
     this.teamInfoService.getTeamInfos().subscribe((value) => {
@@ -60,5 +65,27 @@ export class ListTeamInfoComponent implements OnInit {
     }).catch((error) => {
       console.log(error);
     });
+  }
+
+  async deleteTeamInfo(teamInfo: TeamInfo) {
+    try {
+      const confirmed = await this.confirmationDialogService.confirm(
+        'Suppression de l\'équipe ' + teamInfo.name,
+        'Cette opération est irréversible.\nVoulez-vous supprimer l\'équipe ' + teamInfo.team + ' - ' + teamInfo.name + ' ?',
+        'Oui', 'Non');
+      console.log('User confirmed:', confirmed);
+      try {
+        if (confirmed) {
+          await this.teamInfoService.deleteTeamInfo(teamInfo.id).toPromise();
+        }
+        this.ngOnInit();
+      } catch (error) {
+        console.log(error);
+        this.ngOnInit();
+      }
+    } catch (error) {
+      console.log('User dismissed the dialog (e.g., by using ESC, clicking the cross icon, or clicking outside the dialog)');
+      this.ngOnInit();
+    }
   }
 }

@@ -70,6 +70,13 @@ public class StageResultService {
 		return null;
 	}
 
+	public void deleteByTeam(Integer team) {
+		stageResultRepository.findByTeam(team).forEach(stageResult -> {
+			stageResultRepository.delete(stageResult);
+			messageProducerService.sendMessage(STAGE_RESULT_DELETE_EVENT, new StageResultMessage(stageResult));
+		});
+	}
+
 	public StageResult endStageResult(Integer stage, Integer team) {
 		StageResult stageResult = getStageResultByStageAndTeam(stage, team);
 		if (Objects.nonNull(stageResult))

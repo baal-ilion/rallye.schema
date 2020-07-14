@@ -67,6 +67,16 @@ public class TeamPointService {
 		return save(teamPoint);
 	}
 
+	public TeamPoint computeTeamPointFromDeletedStageResult(Integer stage, Integer team) {
+		TeamPoint teamPoint = teamPointRepository.findByTeam(team).orElse(null);
+		if (Objects.nonNull(teamPoint)) {
+			teamPoint.getStagePoints().remove(stage);
+			computeTeamPointTotal(teamPoint);
+			return save(teamPoint);
+		}
+		return null;
+	}
+
 	public List<TeamPoint> computeTeamPointFromStageRanking(@NonNull Integer stage) {
 		var stageRanking = stageRankingService.getStageRankingByStage(stage);
 		return Stream.concat(
@@ -90,6 +100,10 @@ public class TeamPointService {
 		List<StageResult> stageResults = stageResultService.getStageResults();
 		return stageResults.stream().map(StageResult::getTeam).distinct().map(team -> computeTeamPoint(team))
 				.collect(Collectors.toList());
+	}
+
+	public void deleteByTeam(Integer team) {
+		teamPointRepository.findByTeam(team).ifPresent(teamPoint -> teamPointRepository.delete(teamPoint));
 	}
 
 	public TeamPoint getTeamPoint(String id) {
