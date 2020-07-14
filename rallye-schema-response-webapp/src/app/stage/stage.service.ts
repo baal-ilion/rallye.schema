@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { AppConfigService } from '../app-config.service';
 import { HalCollection } from '../models/hal-collection';
 import { StageResult } from './models/stage-result';
+import { StageResponse } from './models/stage-response';
 
 @Injectable({
   providedIn: 'root'
@@ -50,6 +51,11 @@ export class StageService {
     const params = new HttpParams().set('stage', stage.toString()).set('team', team.toString());
     return this.http.get<StageResult>(AppConfigService.settings.apiUrl.rallyeSchema +
       '/stageResults/search/findByStageAndTeam', { params });
+  }
+
+  getStageResponse(id: string): Observable<StageResponse> {
+    return this.http.get<StageResult>(AppConfigService.settings.apiUrl.rallyeSchema +
+      '/stageResponses/' + id);
   }
 
   selectResponseFile(stage: number, team: number, responseFileId: string, del: boolean): Observable<StageResult> {

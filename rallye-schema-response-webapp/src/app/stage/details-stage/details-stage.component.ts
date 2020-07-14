@@ -14,6 +14,8 @@ import { ResponseFileParamService } from 'src/app/response-file/param/response-f
 import { UploadFileService } from 'src/app/upload/upload-file.service';
 import { StageResult } from '../models/stage-result';
 import { StageService } from '../stage.service';
+import { isStageResponseSource, StageResponseSource } from '../models/stage-response-source';
+import { StageResponse } from '../models/stage-response';
 
 @Component({
   selector: 'app-details-stage',
@@ -32,6 +34,8 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   files: { [page: number]: any } = {};
   param: StageParam;
   fileParams: ResponseFileParam[];
+  stageResponse: StageResponse;
+  stageResponseNames: string[];
 
   constructor(
     private uploadFileService: UploadFileService,
@@ -79,6 +83,7 @@ export class DetailsStageComponent implements OnInit, OnChanges {
     this.param = null;
     this.fileParams = null;
     this.stageResult = null;
+    this.stageResponse = null;
     this.files = {};
   }
 
@@ -97,6 +102,7 @@ export class DetailsStageComponent implements OnInit, OnChanges {
 
     const loadStageValuesPromise = this.loadStageValues();
     const loadResponceFilesPromise = this.loadResponseFiles();
+    const loadStageResponsePromise = this.loadStageResponse();
 
     try {
       this.param = await paramPromise;
@@ -119,9 +125,30 @@ export class DetailsStageComponent implements OnInit, OnChanges {
     try {
       await loadResponceFilesPromise;
       await loadStageValuesPromise;
+      await loadStageResponsePromise;
     } catch (error) {
       console.log(error);
     }
+  }
+
+  private async loadStageResponse() {
+    const source = this.stageResult?.responseSources?.filter(s => isStageResponseSource(s))
+      .map(s => s as StageResponseSource).shift();
+    if (source.pointUsed) {
+      try {
+        this.stageResponse = await this.stageService.getStageResponse(source.id).toPromise();
+        this.stageResponseNames = this.stageResponse?.performances?.map(p => p.name) ?? [];
+        this.stageResponseNames = this.stageResponseNames.concat(this.stageResponse?.results?.map(p => p.name) ?? []);
+        this.stageResponseNames = this.stageResponseNames.concat(this.stageResponse?.questions?.map(p => p.name) ?? []);
+        this.stageResponseNames = this.stageResponseNames.filter((v, i, a) => a.indexOf(v) === i);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+  }
+
+  public isReadOnly(name: string): boolean {
+    return this.stageResponseNames?.some(v => v === name) ?? false;
   }
 
   private async loadStageValues() {
