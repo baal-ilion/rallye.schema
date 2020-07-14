@@ -37,6 +37,8 @@ public class ComputeTeamPointConsumer {
 					computeTeamPointQueueName, stageResult));
 			switch (routingKey) {
 			case StageResultService.STAGE_RESULT_DELETE_EVENT:
+				teamPointService.computeTeamPointFromDeletedStageResult(stageResult.getStage(), stageResult.getTeam());
+				break;
 			case StageResultService.STAGE_RESULT_CREATE_EVENT:
 			case StageResultService.STAGE_RESULT_UPDATE_EVENT:
 			default:
