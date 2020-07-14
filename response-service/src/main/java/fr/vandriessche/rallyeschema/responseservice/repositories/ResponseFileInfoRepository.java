@@ -16,4 +16,6 @@ public interface ResponseFileInfoRepository extends MongoRepository<ResponseFile
 	List<ResponseFileInfo> findByStageAndTeam(Integer stage, Integer team);
 
 	Page<ResponseFileInfo> findByCheckedFalseOrCheckedNull(Pageable pageable);
+
+	List<ResponseFileInfo> findByTeam(Integer team);
 }
