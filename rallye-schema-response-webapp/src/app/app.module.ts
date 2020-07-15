@@ -41,6 +41,7 @@ import { ListResponseFileComponent } from './upload/list-response-file/list-resp
 import { ListUploadComponent } from './upload/list-upload/list-upload.component';
 import { ModifyUploadComponent } from './upload/modify-upload/modify-upload.component';
 import { ResponseFileActionsComponent } from './upload/response-file-actions/response-file-actions.component';
+import { LogFilesComponent } from './log-file/log-files/log-files.component';
 
 
 registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
@@ -76,6 +77,7 @@ registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
     DetailsTeamStageComponent,
     ResponseFileActionsComponent,
     ModifyPerformanceRangePointParamComponent,
+    LogFilesComponent,
   ],
   entryComponents: [
     ModifyUploadComponent,
