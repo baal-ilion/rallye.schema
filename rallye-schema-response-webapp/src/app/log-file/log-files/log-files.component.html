@@ -1,0 +1,13 @@
+<div *ngIf="logFileTeams | async">
+  <div *ngIf="logFileTeams | async">
+    <div *ngIf="logFileTeams | async">
+      <div class="row mt-4">
+        <h4 class="col-12 px-0 py-1 text-center">Logs de l'application mobile</h4>
+      </div>
+      <div class="row mt-1 row-cols-1 row-cols-sm-2 row-cols-md-4">
+        <a *ngFor="let team of (logFileTeams | async)?.sort()" class="col"
+          [href]="apiUrl + '/logFiles/mobileStage/' + team">Equipe n°{{team}}</a>
+      </div>
+    </div>
+  </div>
+</div>
