@@ -28,4 +28,8 @@ export class TeamInfoService {
   findById(id: string): Observable<TeamInfo> {
     return this.http.get<TeamInfo>(AppConfigService.settings.apiUrl.rallyeSchema + '/teamInfos/' + id);
   }
+
+  deleteTeamInfo(id: string): Observable<any> {
+    return this.http.delete(AppConfigService.settings.apiUrl.rallyeSchema + '/teamInfos/' + id);
+  }
 }

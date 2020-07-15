@@ -155,11 +155,13 @@ public class ResponseFileService {
 		}
 	}
 
+	public void deleteByTeam(Integer team) {
+		responseFileInfoRepository.findByTeam(team).forEach(responseFileInfo -> deleteResponseFile(responseFileInfo));
+	}
+
 	public void deleteResponseFile(String id) {
 		ResponseFileInfo responseFileInfo = responseFileInfoRepository.findById(id).orElseThrow();
-		responseFileRepository.deleteById(id);
-		responseFileInfoRepository.deleteById(id);
-		messageProducerService.sendMessage(RESPONSE_FILE_DELETE_EVENT, responseFileInfo);
+		deleteResponseFile(responseFileInfo);
 	}
 
 	public Page<ResponseFileInfo> getNotCheckedResponseFileInfos(Pageable pageable) {
@@ -270,6 +272,12 @@ public class ResponseFileService {
 		updatedResponseFileInfo = responseFileInfoRepository.save(updatedResponseFileInfo);
 		messageProducerService.sendMessage(RESPONSE_FILE_UPDATE_EVENT, updatedResponseFileInfo);
 		return updatedResponseFileInfo;
+	}
+
+	private void deleteResponseFile(ResponseFileInfo responseFileInfo) {
+		responseFileRepository.deleteById(responseFileInfo.getId());
+		responseFileInfoRepository.deleteById(responseFileInfo.getId());
+		messageProducerService.sendMessage(RESPONSE_FILE_DELETE_EVENT, responseFileInfo);
 	}
 
 	private void fillResponseFileInfo(FormTemplate filledForm, ResponseFileInfo responseFileInfo) {
