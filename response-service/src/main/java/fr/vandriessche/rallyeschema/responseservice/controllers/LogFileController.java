@@ -29,13 +29,13 @@ import lombok.extern.java.Log;
 @Log
 public class LogFileController {
 	public static final String URL = "/logFiles";
-
+	public static final String DEFAULT_SOURCE = "mobileStage";
 	@Autowired
 	private LogFileService logFileService;
 
-	@DeleteMapping(URL + "/{source}/{team}")
-	public void deleteLogFile(@PathVariable String source, @PathVariable Integer team) {
-		deleteLogFileP(source, team);
+	@DeleteMapping(URL + "/" + DEFAULT_SOURCE + "/{team}")
+	public void deleteLogFile(@PathVariable Integer team) {
+		deleteLogFileP(DEFAULT_SOURCE, team);
 	}
 
 	@DeleteMapping(URL)
@@ -43,10 +43,9 @@ public class LogFileController {
 		logFileService.deleteLogFile(source, team);
 	}
 
-	@GetMapping(URL + "/{source}/{team}")
-	public ResponseEntity<Resource> downloadFile(@PathVariable String source, @PathVariable Integer team,
-			HttpServletRequest request) {
-		return downloadFileP(source, team, request);
+	@GetMapping(URL + "/" + DEFAULT_SOURCE + "/{team}")
+	public ResponseEntity<Resource> downloadFile(@PathVariable Integer team, HttpServletRequest request) {
+		return downloadFileP(DEFAULT_SOURCE, team, request);
 	}
 
 	@GetMapping(URL)
@@ -59,17 +58,18 @@ public class LogFileController {
 		}
 		return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType))
 				.header(HttpHeaders.CONTENT_DISPOSITION,
-						"attachment; filename=\"" + logFile.getId() + "." + logFile.getFileExtension() + "\"")
+						"attachment; filename=\"" + logFile.getSource() + "_" + logFile.getTeam().toString() + "_"
+								+ logFile.getId() + "." + logFile.getFileExtension() + "\"")
 				.body(new ByteArrayResource(logFile.getFile().getData()));
 	}
 
-	@GetMapping(URL + "/{source}")
-	public List<Integer> findTeamsBySource(@PathVariable String source) {
-		return logFileService.findTeamsBySource(source);
+	@GetMapping(URL + "/" + DEFAULT_SOURCE)
+	public List<Integer> findTeamsBySource() {
+		return logFileService.findTeamsBySource(DEFAULT_SOURCE);
 	}
 
 	@PostMapping(URL)
-	public String uploadLogFile(@RequestParam String source, @RequestParam Integer team,
+	public String uploadLogFile(@RequestParam(defaultValue = "mobileStage") String source, @RequestParam Integer team,
 			@RequestParam("file") MultipartFile file) {
 		try {
 			return logFileService.addLogFile(source, team, file).getId();
