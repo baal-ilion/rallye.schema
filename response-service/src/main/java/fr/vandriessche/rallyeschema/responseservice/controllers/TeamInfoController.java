@@ -39,7 +39,7 @@ public class TeamInfoController {
 	}
 
 	@GetMapping(URL + "/search/findByTeam")
-	public EntityModel<TeamInfo> getTeamInfoByStageAndPage(@RequestParam Integer team,
+	public EntityModel<TeamInfo> getTeamInfoByTeam(@RequestParam Integer team,
 			TeamInfoModelAssembler assembler) {
 		return assembler.toModel(teamInfoService.getTeamInfoByTeam(team));
 	}
