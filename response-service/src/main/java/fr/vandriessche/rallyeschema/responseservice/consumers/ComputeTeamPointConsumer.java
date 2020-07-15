@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import fr.vandriessche.rallyeschema.responseservice.config.MessageQueueConfig;
 import fr.vandriessche.rallyeschema.responseservice.message.StageRankingMessage;
 import fr.vandriessche.rallyeschema.responseservice.message.StageResultMessage;
+import fr.vandriessche.rallyeschema.responseservice.services.StageRankingService;
 import fr.vandriessche.rallyeschema.responseservice.services.StageResultService;
 import fr.vandriessche.rallyeschema.responseservice.services.TeamPointService;
 import lombok.extern.java.Log;
@@ -36,6 +37,8 @@ public class ComputeTeamPointConsumer {
 					computeTeamPointQueueName, stageResult));
 			switch (routingKey) {
 			case StageResultService.STAGE_RESULT_DELETE_EVENT:
+				teamPointService.computeTeamPointFromDeletedStageResult(stageResult.getStage(), stageResult.getTeam());
+				break;
 			case StageResultService.STAGE_RESULT_CREATE_EVENT:
 			case StageResultService.STAGE_RESULT_UPDATE_EVENT:
 			default:
@@ -56,9 +59,9 @@ public class ComputeTeamPointConsumer {
 			log.info(MessageFormat.format("Received message {0} from {1} queue : {2}", routingKey,
 					computeTeamPointQueueName, stageRanking));
 			switch (routingKey) {
-			case StageResultService.STAGE_RESULT_DELETE_EVENT:
-			case StageResultService.STAGE_RESULT_CREATE_EVENT:
-			case StageResultService.STAGE_RESULT_UPDATE_EVENT:
+			case StageRankingService.STAGE_RANKING_DELETE_EVENT:
+			case StageRankingService.STAGE_RANKING_CREATE_EVENT:
+			case StageRankingService.STAGE_RANKING_UPDATE_EVENT:
 			default:
 				teamPointService.computeTeamPointFromStageRanking(stageRanking.getStage());
 				break;

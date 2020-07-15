@@ -3,6 +3,7 @@ package fr.vandriessche.rallyeschema.responseservice.controllers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,19 +18,19 @@ import fr.vandriessche.rallyeschema.responseservice.services.TeamInfoService;
 
 @RestController
 public class TeamInfoController {
+	public static final String URL = "/teamInfos";
+
 	@Autowired
 	private TeamInfoService teamInfoService;
 
-	public static final String URL = "/teamInfos";
-
-	@GetMapping(URL)
-	public CollectionModel<EntityModel<TeamInfo>> getTeamInfos(TeamInfoModelAssembler assembler) {
-		return assembler.toCollectionModel(teamInfoService.getTeamInfos());
+	@PostMapping(URL)
+	public EntityModel<TeamInfo> addTeamInfo(@RequestBody TeamInfo teamInfo, TeamInfoModelAssembler assembler) {
+		return assembler.toModel(teamInfoService.addTeamInfo(teamInfo));
 	}
 
-	@GetMapping(URL + "/search/findByTeam")
-	public EntityModel<TeamInfo> getTeamInfoByTeam(@RequestParam Integer team, TeamInfoModelAssembler assembler) {
-		return assembler.toModel(teamInfoService.getTeamInfoByTeam(team));
+	@DeleteMapping(URL + "/{id}")
+	public void deleteTeamInfo(@PathVariable String id) {
+		teamInfoService.deleteTeamInfo(id);
 	}
 
 	@GetMapping(URL + "/{id}")
@@ -37,9 +38,15 @@ public class TeamInfoController {
 		return assembler.toModel(teamInfoService.getTeamInfo(id));
 	}
 
-	@PostMapping(URL)
-	public EntityModel<TeamInfo> addTeamInfo(@RequestBody TeamInfo teamInfo, TeamInfoModelAssembler assembler) {
-		return assembler.toModel(teamInfoService.addTeamInfo(teamInfo));
+	@GetMapping(URL + "/search/findByTeam")
+	public EntityModel<TeamInfo> getTeamInfoByTeam(@RequestParam Integer team,
+			TeamInfoModelAssembler assembler) {
+		return assembler.toModel(teamInfoService.getTeamInfoByTeam(team));
+	}
+
+	@GetMapping(URL)
+	public CollectionModel<EntityModel<TeamInfo>> getTeamInfos(TeamInfoModelAssembler assembler) {
+		return assembler.toCollectionModel(teamInfoService.getTeamInfos());
 	}
 
 	@PutMapping(URL)
