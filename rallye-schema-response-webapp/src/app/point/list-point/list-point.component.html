@@ -5,6 +5,9 @@
       <button class="btn-primary" ngbButtonLabel (click)='recomputePoints()'>Recalculer les points</button>
     </div>
   </div>
+  <div class="row">
+    <app-log-files class="col-12"></app-log-files>
+  </div>
   <div *ngIf='points' class="row">
     <div *ngFor="let point of points | async">
       <app-details-point class="col-12" [point]='point'></app-details-point>
