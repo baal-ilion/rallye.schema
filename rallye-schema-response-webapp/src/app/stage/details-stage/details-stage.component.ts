@@ -134,7 +134,7 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   private async loadStageResponse() {
     const source = this.stageResult?.responseSources?.filter(s => isStageResponseSource(s))
       .map(s => s as StageResponseSource).shift();
-    if (source.pointUsed) {
+    if (source?.pointUsed) {
       try {
         this.stageResponse = await this.stageService.getStageResponse(source.id).toPromise();
         this.stageResponseNames = this.stageResponse?.performances?.map(p => p.name) ?? [];
@@ -254,6 +254,11 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   }
 
   buildDate(date: NgbDateStruct, time: NgbTimeStruct): Date {
+    // tslint:disable-next-line: triple-equals
+    if (!date?.year || !date?.month || !date?.day || date?.year == 0 || date?.month == 0 || date?.day == 0)
+      return null;
+    if (!time?.hour)
+      return null;
     return new Date(date?.year, date?.month - 1, date?.day, time?.hour, time?.minute, time?.second);
   }
 
@@ -276,38 +281,50 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   }
 
   onSubmit() {
-    console.log(this.form.value);
-    const modifiedResults = [];
-    this.findModifiedResults(this.form, modifiedResults);
-    const modifiedperformances = [];
-    this.findModifiedperformances(this.form, modifiedperformances);
-    this.pages.controls.forEach(page => {
-      this.findModifiedResults(page as FormGroup, modifiedResults);
-      this.findModifiedperformances(page as FormGroup, modifiedperformances);
+    this.modifyStage().then(modified => {
+      if (modified)
+        this.reload();
+    }, error => {
+      console.log(error);
+      this.reload();
     });
-    const begin = this.buildDate(this.form.value.begindate, this.form.value.begintime);
-    const sameBegin = new Date(this.stageResult.begin).getTime() === begin.getTime();
-    const end = this.buildDate(this.form.value.enddate, this.form.value.endtime);
-    const sameEnd = new Date(this.stageResult.end).getTime() === end.getTime();
-    if (!sameBegin || !sameEnd ||
-      modifiedResults.length !== 0 || modifiedperformances.length !== 0 ||
-      this.form.value.checked !== this.stageResult.checked) {
-      this.stageService.updateStage({
-        id: this.stageResult.id,
-        team: this.stageResult.team,
-        stage: this.stageResult.stage,
-        checked: this.form.value.checked,
-        begin: sameBegin ? undefined : begin,
-        end: sameEnd ? undefined : end,
-        results: modifiedResults.length !== 0 ? modifiedResults : undefined,
-        performances: modifiedperformances.length !== 0 ? modifiedperformances : undefined
-      }).toPromise().then(stageResult => {
-        console.log(stageResult);
-        this.reload();
-      }, error => {
-        console.log(error);
-        this.reload();
+  }
+
+  async modifyStage(): Promise<boolean> {
+    try {
+      console.log(this.form.value);
+      const modifiedResults = [];
+      this.findModifiedResults(this.form, modifiedResults);
+      const modifiedperformances = [];
+      this.findModifiedperformances(this.form, modifiedperformances);
+      this.pages.controls.forEach(page => {
+        this.findModifiedResults(page as FormGroup, modifiedResults);
+        this.findModifiedperformances(page as FormGroup, modifiedperformances);
       });
+      const begin = this.buildDate(this.form.value.begindate, this.form.value.begintime);
+      const sameBegin = (!begin && !this.stageResult.begin) || new Date(this.stageResult.begin).getTime() === begin?.getTime();
+      const end = this.buildDate(this.form.value.enddate, this.form.value.endtime);
+      const sameEnd = (!end && !this.stageResult.end) || new Date(this.stageResult.end).getTime() === end?.getTime();
+      if (!sameBegin || !sameEnd ||
+        modifiedResults.length !== 0 || modifiedperformances.length !== 0 ||
+        this.form.value.checked !== this.stageResult.checked) {
+        const stageResult = await this.stageService.updateStage({
+          id: this.stageResult.id,
+          team: this.stageResult.team,
+          stage: this.stageResult.stage,
+          checked: this.form.value.checked,
+          begin: sameBegin ? undefined : begin,
+          end: sameEnd ? undefined : end,
+          results: modifiedResults.length !== 0 ? modifiedResults : undefined,
+          performances: modifiedperformances.length !== 0 ? modifiedperformances : undefined
+        }).toPromise();
+        console.log(stageResult);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.log(error);
+      throw error;
     }
   }
 
@@ -324,6 +341,7 @@ export class DetailsStageComponent implements OnInit, OnChanges {
       console.log('User confirmed:', confirmed);
       if (confirmed) {
         try {
+          await this.modifyStage();
           await this.stageService.cancelStage(this.stageResult.stage, this.stageResult.team).toPromise();
         } catch (error) {
           console.log(error);
@@ -346,6 +364,7 @@ export class DetailsStageComponent implements OnInit, OnChanges {
       console.log('User confirmed:', confirmed);
       if (confirmed) {
         try {
+          await this.modifyStage();
           await this.stageService.undoStage(this.stageResult.stage, this.stageResult.team).toPromise();
         } catch (error) {
           console.log(error);
@@ -359,4 +378,47 @@ export class DetailsStageComponent implements OnInit, OnChanges {
     }
   }
 
+  async onStartStage() {
+    try {
+      const confirmed = await this.confirmationDialogService.confirm(
+        'Démarrer l\'étape',
+        'Démarrer l\'étape ' + this.stageResult.stage + ' ?',
+        'Oui', 'Non');
+      if (confirmed) {
+        try {
+          await this.modifyStage();
+          await this.stageService.beginStage(this.stageResult.stage, this.stageResult.team).toPromise();
+        } catch (error) {
+          console.log(error);
+        }
+        this.reload();
+      }
+    } catch (error) {
+      console.log('User dismissed the dialog (e.g., by using ESC, clicking the cross icon, or clicking outside the dialog)');
+      console.log(error);
+      return;
+    }
+  }
+
+  async onStopStage() {
+    try {
+      const confirmed = await this.confirmationDialogService.confirm(
+        'Finir l\'étape',
+        'Finir l\'étape ' + this.stageResult.stage + ' ?',
+        'Oui', 'Non');
+      if (confirmed) {
+        try {
+          await this.modifyStage();
+          await this.stageService.endStage(this.stageResult.stage, this.stageResult.team).toPromise();
+        } catch (error) {
+          console.log(error);
+        }
+        this.reload();
+      }
+    } catch (error) {
+      console.log('User dismissed the dialog (e.g., by using ESC, clicking the cross icon, or clicking outside the dialog)');
+      console.log(error);
+      return;
+    }
+  }
 }
