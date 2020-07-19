@@ -25,7 +25,6 @@
     "@ng-bootstrap/ng-bootstrap": "^6.1.0",
     "bootstrap": "^4.4.1",
     "file-saver": "^2.0.2",
-    "ngx-ui-switch": "^9.0.1",
     "rxjs": "~6.5.5",
     "spel2js": "^0.2.7",
     "tslib": "^1.11.1",
