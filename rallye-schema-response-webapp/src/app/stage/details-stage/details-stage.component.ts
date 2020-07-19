@@ -233,10 +233,10 @@ export class DetailsStageComponent implements OnInit, OnChanges {
         results.push(this.formBuilder.group({
           name: questionPageParam.name,
           resultValue: [{
-            value: fromSource ? result?.resultValue === true : result?.resultValue,
+            value: result?.resultValue,
             disabled: this.isReadOnly(questionPageParam.name)
           }],
-          init: fromSource ? result?.resultValue === true : result?.resultValue,
+          init: result?.resultValue,
           light: fromSource
         }));
       } else if (questionPageParam.type === QuestionType.PERFORMANCE) {
