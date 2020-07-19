@@ -208,10 +208,10 @@ public class StageResultService {
 
 	private boolean checkResponseFileSources(StageResult stageResult, ResponseFileInfo responseFileInfo) {
 		ResponseFileSource source = new ResponseFileSource(responseFileInfo.getId());
-		if (stageResult.getResponseSources().contains(source))
-			return true;
 		if (!Boolean.TRUE.equals(responseFileInfo.getChecked()))
 			return false;
+		if (stageResult.getResponseSources().contains(source))
+			return true;
 		// Il ne doit pas y avoir de réponce
 		if (stageResult.getResponseSources().stream().anyMatch(s -> s.getClass().equals(StageResponseSource.class)))
 			return false;
