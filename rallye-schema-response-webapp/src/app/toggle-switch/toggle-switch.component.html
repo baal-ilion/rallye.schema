@@ -1,0 +1,5 @@
+<label class="toggle-switch">
+  <input type="checkbox" [(ngModel)]="checked" [indeterminate]="checked !== true && checked !== false"
+    [disabled]="disabled" [class.light]="light">
+  <div class="slider"></div>
+</label>

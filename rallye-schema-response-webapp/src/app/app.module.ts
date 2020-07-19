@@ -8,7 +8,6 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
-import { UiSwitchModule } from 'ngx-ui-switch';
 import { AppConfigService } from './app-config.service';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -42,6 +41,7 @@ import { ListUploadComponent } from './upload/list-upload/list-upload.component'
 import { ModifyUploadComponent } from './upload/modify-upload/modify-upload.component';
 import { ResponseFileActionsComponent } from './upload/response-file-actions/response-file-actions.component';
 import { LogFilesComponent } from './log-file/log-files/log-files.component';
+import { ToggleSwitchComponent } from './toggle-switch/toggle-switch.component';
 
 
 registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
@@ -78,6 +78,7 @@ registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
     ResponseFileActionsComponent,
     ModifyPerformanceRangePointParamComponent,
     LogFilesComponent,
+    ToggleSwitchComponent,
   ],
   entryComponents: [
     ModifyUploadComponent,
@@ -95,7 +96,6 @@ registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
     BrowserAnimationsModule,
     DragDropModule,
     NgbModule,
-    UiSwitchModule,
     FormsModule,
     ReactiveFormsModule
   ],

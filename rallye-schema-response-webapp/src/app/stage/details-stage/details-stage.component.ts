@@ -12,10 +12,11 @@ import { QuestionPageParam } from 'src/app/response-file/param/models/question-p
 import { ResponseFileParam } from 'src/app/response-file/param/models/response-file-param';
 import { ResponseFileParamService } from 'src/app/response-file/param/response-file-param.service';
 import { UploadFileService } from 'src/app/upload/upload-file.service';
+import { isResponseFileSource } from '../models/response-file-source';
+import { StageResponse } from '../models/stage-response';
+import { isStageResponseSource, StageResponseSource } from '../models/stage-response-source';
 import { StageResult } from '../models/stage-result';
 import { StageService } from '../stage.service';
-import { isStageResponseSource, StageResponseSource } from '../models/stage-response-source';
-import { StageResponse } from '../models/stage-response';
 
 @Component({
   selector: 'app-details-stage',
@@ -82,6 +83,7 @@ export class DetailsStageComponent implements OnInit, OnChanges {
     });
     this.param = null;
     this.fileParams = null;
+    this.stageResponseNames = [];
     this.stageResult = null;
     this.stageResponse = null;
     this.files = {};
@@ -119,13 +121,17 @@ export class DetailsStageComponent implements OnInit, OnChanges {
       this.loadErrorEvent.emit(error);
       return;
     }
+    try {
+      await loadStageResponsePromise;
+    } catch (error) {
+      console.log(error);
+    }
 
     this.loadQuestionPageResults();
 
     try {
       await loadResponceFilesPromise;
       await loadStageValuesPromise;
-      await loadStageResponsePromise;
     } catch (error) {
       console.log(error);
     }
@@ -223,15 +229,24 @@ export class DetailsStageComponent implements OnInit, OnChanges {
       }
       if (questionPageParam.type === QuestionType.QUESTION) {
         const result = this.stageResult.results.find(element => element.name === questionPageParam.name);
+        const fromSource = isStageResponseSource(result?.source) || isResponseFileSource(result?.source);
         results.push(this.formBuilder.group({
           name: questionPageParam.name,
-          resultValue: result ? result.resultValue : null
+          resultValue: [{
+            value: fromSource ? result?.resultValue === true : result?.resultValue,
+            disabled: this.isReadOnly(questionPageParam.name)
+          }],
+          init: fromSource ? result?.resultValue === true : result?.resultValue,
+          light: fromSource
         }));
       } else if (questionPageParam.type === QuestionType.PERFORMANCE) {
         const performance = this.stageResult.performances.find(element => element.name === questionPageParam.name);
         performances.push(this.formBuilder.group({
           name: questionPageParam.name,
-          performanceValue: performance ? performance.performanceValue : null
+          performanceValue: [{
+            value: performance ? performance.performanceValue : null,
+            disabled: this.isReadOnly(questionPageParam.name)
+          }]
         }));
       }
     }
@@ -263,7 +278,7 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   }
 
   private findModifiedResults(form: FormGroup, modifiedResults: any[]) {
-    form.value.results?.forEach((item: any) => {
+    form.getRawValue().results?.forEach((item: any) => {
       const result = this.stageResult.results.find(element => element.name === item.name);
       if (!result || item.resultValue !== result.resultValue) {
         modifiedResults.push(item);
@@ -272,7 +287,7 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   }
 
   private findModifiedperformances(form: FormGroup, modifiedperformances: any[]) {
-    form.value.performances.forEach((item: any) => {
+    form.getRawValue().performances.forEach((item: any) => {
       const performance = this.stageResult.performances.find(element => element.name === item.name);
       if (!performance || item.performanceValue !== performance.performanceValue) {
         modifiedperformances.push(item);

@@ -112,12 +112,11 @@
       <div class="row mt-2">
         <div *ngFor="let result of results.controls"
           [ngClass]="{'col-3': true, 'col-md-2': true, 'col-xxl-1': !forpage ,'col-xxl-12': forpage}">
-          <div [formGroup]="result" class="row" style="height: 32px;">
-            <label class="col-8 my-auto small">{{result.value.name}}</label>
-            <div class="col-4 my-auto px-1 py-0 justify-content-start">
-              <ui-switch formControlName="resultValue" size="small" [disabled]="isReadOnly(result.value.name)">
-              </ui-switch>
-            </div>
+          <div [formGroup]="result" class="row align-items-center" style="height: 32px;">
+            <label class="col-8 my-auto small text-right">{{result.value.name}}</label>
+            <app-toggle-switch formControlName="resultValue" class="col-4 my-auto px-1 py-0"
+              [light]="result.value.light && result.value.resultValue == result.value.init ">
+            </app-toggle-switch>
           </div>
         </div>
       </div>
@@ -134,10 +133,7 @@
           <div [formGroup]="performance" class="row">
             <label class="col-4 my-auto small text-right">{{performance.value.name}}</label>
             <div class="col-8 m-0 px-1 py-0 justify-content-start ">
-              <input type=number step=any formControlName="performanceValue" class="col-auto small"
-                *ngIf="isReadOnly(performance.value.name)" disabled />
-              <input type=number step=any formControlName="performanceValue" class="col-auto small"
-                *ngIf="!isReadOnly(performance.value.name)" />
+              <input type=number step=any formControlName="performanceValue" class="col-auto small" />
             </div>
           </div>
         </div>
