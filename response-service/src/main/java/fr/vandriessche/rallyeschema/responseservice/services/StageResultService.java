@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -394,6 +395,15 @@ public class StageResultService {
 		stageResultToUpdate.getResults().sort(Comparator.comparing(ResponseResult::getName));
 		if (isUpdated)
 			stageResultToUpdate.setChecked(false);
+
+		if (isUpdated || Objects.nonNull(checked)) {
+			var stageParam = Optional.ofNullable(stageParamService.getStageParamByStage(stageResultToUpdate.getStage()))
+					.orElseThrow();
+			stageResultToUpdate.setMissing((int) (stageParam.getQuestionParams().size()
+					- stageResultToUpdate.getResults().stream().filter(r -> Objects.nonNull(r.getResultValue())).count()
+					- stageResultToUpdate.getPerformances().stream()
+							.filter(r -> Objects.nonNull(r.getPerformanceValue())).count()));
+		}
 		if (Objects.nonNull(checked)) {
 			stageResultToUpdate.setChecked(checked);
 			isUpdated = true;
