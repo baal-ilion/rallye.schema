@@ -1,5 +1,9 @@
 package fr.vandriessche.rallyeschema.responseservice.services;
 
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.sort;
+
 import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
 import java.time.Instant;
@@ -15,6 +19,11 @@ import java.util.stream.Stream;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
+import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.xml.sax.SAXException;
@@ -41,6 +50,8 @@ public class StageResultService {
 
 	@Autowired
 	private StageResultRepository stageResultRepository;
+	@Autowired
+	private MongoTemplate mongoTemplate;
 
 	@Autowired
 	private TeamInfoService teamInfoService;
@@ -96,6 +107,37 @@ public class StageResultService {
 
 	public List<StageResult> getStageResults() {
 		return stageResultRepository.findAll();
+	}
+
+	public List<StageResult> getStageResults(Integer stage, Integer team, Boolean checked, Boolean entered,
+			Boolean finished, Sort by) {
+		List<Criteria> crits = new ArrayList<>();
+		if (Objects.nonNull(stage))
+			crits.add(Criteria.where("stage").is(stage));
+		if (Objects.nonNull(team))
+			crits.add(Criteria.where("team").is(team));
+		if (Boolean.TRUE.equals(checked))
+			crits.add(Criteria.where("checked").is(Boolean.TRUE));
+		if (Boolean.FALSE.equals(checked))
+			crits.add(Criteria.where("checked").ne(Boolean.TRUE));
+		if (Boolean.TRUE.equals(entered))
+			crits.add(Criteria.where("missing").is(0));
+		if (Boolean.FALSE.equals(entered))
+			crits.add(Criteria.where("missing").ne(0));
+		if (Boolean.TRUE.equals(finished))
+			crits.add(new Criteria().andOperator(Criteria.where("begin").ne(null), Criteria.where("end").ne(null)));
+		if (Boolean.FALSE.equals(finished))
+			crits.add(new Criteria().orOperator(Criteria.where("begin").is(null), Criteria.where("end").is(null)));
+		List<AggregationOperation> aggs = new ArrayList<>();
+		if (crits.size() == 1) {
+			aggs.add(match(crits.get(0)));
+		} else if (crits.size() > 1) {
+			aggs.add(match(crits.remove(0).andOperator(crits.toArray(new Criteria[crits.size()]))));
+		}
+		aggs.add(sort(by));
+		Aggregation agg = newAggregation(aggs);
+		var results = mongoTemplate.aggregate(agg, StageResult.class, StageResult.class);
+		return results.getMappedResults();
 	}
 
 	public List<StageResult> getStageResultsByTeam(Integer team) {
@@ -417,5 +459,4 @@ public class StageResultService {
 			return save(stageResultToUpdate);
 		return stageResultToUpdate;
 	}
-
 }
