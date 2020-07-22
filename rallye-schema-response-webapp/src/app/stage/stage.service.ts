@@ -3,8 +3,9 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { AppConfigService } from '../app-config.service';
 import { HalCollection } from '../models/hal-collection';
-import { StageResult } from './models/stage-result';
+import { StageCriteria } from './models/stage-criteria';
 import { StageResponse } from './models/stage-response';
+import { StageResult } from './models/stage-result';
 
 @Injectable({
   providedIn: 'root'
@@ -13,8 +14,29 @@ export class StageService {
 
   constructor(private http: HttpClient) { }
 
-  getStages(): Observable<HalCollection<StageResult>> {
-    return this.http.get(AppConfigService.settings.apiUrl.rallyeSchema + '/stageResults');
+  getStages(crit: StageCriteria): Observable<HalCollection<StageResult>> {
+    let params = new HttpParams();
+    if (crit.stage) {
+      params = params.set('stage', crit.stage.toString());
+    }
+    if (crit.team) {
+      params = params.set('team', crit.team.toString());
+    }
+    if (crit.checked === true || crit.checked === false) {
+      params = params.set('checked', crit.checked.toString());
+    }
+    if (crit.entered === true || crit.entered === false) {
+      params = params.set('entered', crit.entered.toString());
+    }
+    if (crit.finished === true || crit.finished === false) {
+      params = params.set('finished', crit.finished.toString());
+    }
+    if (crit.sortBy) {
+      for (const by of crit.sortBy) {
+        params = params.set('sortBy', by.toString());
+      }
+    }
+    return this.http.get(AppConfigService.settings.apiUrl.rallyeSchema + '/stageResults', { params });
   }
 
   getStagesByTeam(team: number): Observable<HalCollection<StageResult>> {
