@@ -1,0 +1,73 @@
+@import "node_modules/bootstrap/scss/functions";
+@import "node_modules/bootstrap/scss/variables";
+@import "node_modules/bootstrap/scss/mixins";
+
+:host {
+  height: 20px;
+}
+
+.toggle-switch {
+  height: 20px;
+  width: 33px;
+  display: inline-block;
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+
+  input {
+    display: none;
+    &:checked + .slider {
+      background-color: theme-color("success");
+    }
+    &:checked + .slider::after {
+      -webkit-transform: translate(12px, -50%);
+      -ms-transform: translate(12px, -50%);
+      transform: translate(12px, -50%);
+    }
+    &:indeterminate + .slider {
+      background-color: $gray-400;
+    }
+    &:indeterminate + .slider::after {
+      -webkit-transform: translate(6px, -50%);
+      -ms-transform: translate(6px, -50%);
+      transform: translate(6px, -50%);
+    }
+    &:disabled + .slider {
+      opacity: 0.30;
+    }
+    &:disabled + .slider::after {
+      border: 0px inset;
+    }
+  }
+  .light {
+    + .slider {
+      opacity: 0.60;
+    }
+  }
+
+  .slider {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: theme-color("danger");
+    transition: 0.25s;
+
+    &::after {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 18px;
+      background-color: white;
+      left: 2px;
+      top: 50%;
+      -webkit-transform: translateY(-50%);
+      -ms-transform: translateY(-50%);
+      transform: translateY(-50%);
+      transition: 0.25s;
+      border-radius: 10px;
+      border: 1px solid;
+    }
+  }
+}

@@ -5,5 +5,5 @@ export interface ResponseFileSource extends ResponseSource {
 }
 
 export function isResponseFileSource(source: ResponseSource): source is ResponseFileSource {
-  return source.type === 'ResponseFile';
+  return source?.type === 'ResponseFile';
 }

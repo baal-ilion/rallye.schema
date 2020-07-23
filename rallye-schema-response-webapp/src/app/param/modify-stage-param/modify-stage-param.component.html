@@ -5,13 +5,18 @@
     </h1>
   </div>
   <form [formGroup]="stageParamForm" (ngSubmit)="onSubmit()" class="container">
-    <div class="col-auto">
-      <label>Nom : </label>
-      <input type="text" formControlName="name" />
+    <div class="form-group row">
+      <label for="stage-name" class="col-sm-1 col-form-label">Nom : </label>
+      <div class="col-sm-10">
+        <input type="text" formControlName="name" class="form-control" id="stage-name">
+      </div>
     </div>
-    <div class="col-auto">
-      <label>Inactive : </label>
-      <ui-switch formControlName="inactive" size="small" class="align-self-center"></ui-switch>
+    <div class="form-group row">
+      <label for="stage-inactive" class="col-sm-1 col-form-label">Inactive : </label>
+      <div class="col-sm-10 mt-2">
+        <app-toggle-switch formControlName="inactive" id="stage-inactive">
+        </app-toggle-switch>
+      </div>
     </div>
     <ngb-accordion #acc="ngbAccordion">
       <ngb-panel>
@@ -62,9 +67,11 @@
               " class="col-6 col-lg-3 col-sm-6 col-md-4">
               <div [formGroup]="questionParam" class="row">
                 <label class="col align-self-center">{{questionParam.value.name}}</label>
-                <div class="col-auto align-self-center">
-                  <label>Staff </label>
-                  <ui-switch formControlName="staff" size="small" class="align-self-center"></ui-switch>
+                <div class="col-auto d-flex align-items-center">
+                  <label for="staff">Staff </label>
+                  <app-toggle-switch formControlName="staff" id="staff"
+                    style="-webkit-transform: translateY(-20%); -ms-transform: translateY(-20%); transform: translateY(-20%);">
+                  </app-toggle-switch>
                 </div>
                 <select class="form-group custom-select" formControlName="type">
                   <option value="QUESTION">Question</option>

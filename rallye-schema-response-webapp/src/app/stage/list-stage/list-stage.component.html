@@ -1,6 +1,47 @@
 <div class="container-fluid mb-5">
   <div class="row mt-4 text-center">
-    <h1 class="col-12">Correction des épreuves</h1>
+    <h1 class="col-12">Validation des épreuves</h1>
+  </div>
+  <div class="row mt-2 justify-content-center">
+    <div class="form-inline">
+      <div class="form-group mr-4">
+        <label for="critchecked">Validée</label>
+        <app-toggle-switch [checked]="criteria.checked" id="critchecked"
+          [light]="criteria.checked !== true && criteria.checked !== false"
+          (change)="criteria.checked = nextChecked(criteria.checked); changeCriteria($event);" class="ml-1">
+        </app-toggle-switch>
+      </div>
+      <div class="form-group mr-4">
+        <label for="critentered">Saisie</label>
+        <app-toggle-switch [checked]="criteria.entered" id="critentered"
+          [light]="criteria.entered !== true && criteria.entered !== false"
+          (change)="criteria.entered = nextChecked(criteria.entered); changeCriteria($event);" class="ml-1">
+        </app-toggle-switch>
+      </div>
+      <div class="form-group mr-4">
+        <label for="critfinished">Epreuve terminée</label>
+        <app-toggle-switch [checked]="criteria.finished" id="critfinished"
+          [light]="criteria.finished !== true && criteria.finished !== false"
+          (change)="criteria.finished = nextChecked(criteria.finished); changeCriteria($event);" class="ml-1">
+        </app-toggle-switch>
+      </div>
+      <div class="form-group mr-4">
+        <label for="critteam">Equipe</label>
+        <select [(ngModel)]="criteria.team" (change)="changeCriteria($event)" id="critteam"
+          class="form-control custom-select ml-1">
+          <option value=""></option>
+          <option *ngFor="let team of teams" [value]="team.team">{{team.name}}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="critstage">Epreuve</label>
+        <select [(ngModel)]="criteria.stage" (change)="changeCriteria($event)" id="critstage"
+          class="form-control custom-select ml-1">
+          <option value=""></option>
+          <option *ngFor="let stage of stageParams" [value]="stage.stage">{{stage.name}}</option>
+        </select>
+      </div>
+    </div>
   </div>
   <ngb-pagination [collectionSize]="pages.totalElements" pageSize=1 maxSize=10 [(page)]="page" [boundaryLinks]="true"
     [disabled]='pages.totalElements == 0' (pageChange)="loadPage($event)" class="row justify-content-center mt-4">

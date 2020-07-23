@@ -9,6 +9,7 @@ export interface StageResult {
   team: number;
   begin?: Date;
   end?: Date;
+  missing?: number;
   checked?: boolean;
   results?: ResponseResult[];
   performances?: PerformanceResult[];
