@@ -305,7 +305,7 @@ public class ResponseFileService {
 	}
 
 	private Boolean getResultValue(FormQuestion field) {
-		Boolean resultValue = null;
+		Boolean resultValue = false;
 		var pointKeys = field.getPoints().keySet();
 		if (pointKeys.contains("O")) {
 			resultValue = true;

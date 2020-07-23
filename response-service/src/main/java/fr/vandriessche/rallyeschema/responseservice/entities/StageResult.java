@@ -25,6 +25,8 @@ public class StageResult {
 	private Instant begin;
 	private Instant end;
 
+	private Integer missing;
+
 	private Boolean checked;
 
 	private List<ResponseResult> results = new ArrayList<>();

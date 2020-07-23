@@ -5,5 +5,5 @@ export interface UserSource extends ResponseSource {
 }
 
 export function isUserSource(source: ResponseSource): source is UserSource {
-  return source.type === 'User';
+  return source?.type === 'User';
 }

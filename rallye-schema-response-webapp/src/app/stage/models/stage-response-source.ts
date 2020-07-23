@@ -5,5 +5,5 @@ export interface StageResponseSource extends ResponseSource {
 }
 
 export function isStageResponseSource(source: ResponseSource): source is StageResponseSource {
-  return source.type === 'StageResponse';
+  return source?.type === 'StageResponse';
 }
