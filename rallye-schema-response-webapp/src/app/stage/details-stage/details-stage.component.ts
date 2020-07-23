@@ -436,4 +436,31 @@ export class DetailsStageComponent implements OnInit, OnChanges {
       return;
     }
   }
+
+  private hasEmptyPerformances(form: FormGroup): boolean {
+    return form.getRawValue().performances?.find(item => !item.performanceValue) ?? false;
+  }
+
+  private hasEmptyResults(form: FormGroup): boolean {
+    return form.getRawValue().results?.find(item => item.resultValue !== true && item.resultValue !== false) ?? false;
+  }
+
+  get validable() {
+    if (!this.buildDate(this.form.value.begindate, this.form.value.begintime)) {
+      return false;
+    }
+    if (!this.buildDate(this.form.value.enddate, this.form.value.endtime)) {
+      return false;
+    }
+    if (this.hasEmptyPerformances(this.form)) {
+      return false;
+    }
+    if (this.hasEmptyResults(this.form)) {
+      return false;
+    }
+    if (this.pages.controls.find(page => this.hasEmptyResults(page as FormGroup) || this.hasEmptyPerformances(page as FormGroup))) {
+      return false;
+    }
+    return true;
+  }
 }
