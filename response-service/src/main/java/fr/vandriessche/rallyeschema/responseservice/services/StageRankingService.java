@@ -33,109 +33,6 @@ public class StageRankingService {
 	public static final String STAGE_RANKING_UPDATE_EVENT = "stageRanking.update";
 	public static final String STAGE_RANKING_DELETE_EVENT = "stageRanking.delete";
 
-	@Autowired
-	private StageRankingRepository stageRankingRepository;
-	@Autowired
-	private MongoTemplate mongoTemplate;
-
-	@Autowired
-	private StageParamService stageParamService;
-	@Autowired
-	private MessageProducerService messageProducerService;
-
-	public void computeAllStageRanking() {
-		stageParamService.getStageParams().forEach(stageParam -> computeStageRanking(stageParam.getStage()));
-	}
-
-	public StageRanking computeStageRanking(Integer stage) {
-		StageRanking stageRanking = findOrMakeStageRankingByStage(stage);
-		if (stageRanking == null)
-			return null;
-		computeBegins(stageRanking);
-		computeEnds(stageRanking);
-		computePerformances(stageRanking);
-		return save(stageRanking);
-	}
-
-	public StageRanking getStageRankingByStage(Integer stage) {
-		return findOrMakeStageRankingByStage(stage);
-	}
-
-	private void computeBegins(StageRanking stageRanking) {
-		/*
-		 * [{ $match: { "begin": { $exists: true } } }, { $project: { stage: 1, team: 1,
-		 * begin: 1 } }, { $sort: { stage: 1, begin: 1, team: 1 } }, { $group: { _id: {
-		 * stage: "$stage" }, begins: { $push: { team: "$team", value: "$begin" } } } },
-		 * { $project: { _id: 0, stage: "$_id.stage", begins: "$begins" } }]
-		 */
-		Aggregation agg = newAggregation(
-				match(Criteria.where("begin").exists(true)
-						.andOperator(Criteria.where("stage").is(stageRanking.getStage()))),
-				project("stage", "team", "begin"),
-				sort(org.springframework.data.domain.Sort.Direction.ASC, "stage", "begin", "team"),
-				group("stage").push(new BasicDBObject("team", "$team").append("value", "$begin")).as("_begins"),
-				project().andExclude("_id").and("_id").as("stage").and("_begins").as("begins"));
-
-		var results = mongoTemplate.aggregate(agg, StageResult.class, StageRanking.class);
-		results.getMappedResults().stream().filter(o -> o.getStage().equals(stageRanking.getStage())).findFirst()
-				.ifPresent(result -> stageRanking.setBegins(result.getBegins()));
-
-		computeRanking(stageRanking.getBegins());
-	}
-
-	private void computeEnds(StageRanking stageRanking) {
-		/*
-		 * [{ $match: { "end": { $exists: true } } }, { $project: { stage: 1, team: 1,
-		 * end: 1 } }, { $sort: { stage: 1, end: 1, team: 1 } }, { $group: { _id: {
-		 * stage: "$stage" }, ends: { $push: { team: "$team", value: "$end" } } } }, {
-		 * $project: { _id: 0, stage: "$_id.stage", ends: "$ends" } }]
-		 */
-		Aggregation agg = newAggregation(
-				match(Criteria.where("end").exists(true)
-						.andOperator(Criteria.where("stage").is(stageRanking.getStage()))),
-				project("stage", "team", "end"),
-				sort(org.springframework.data.domain.Sort.Direction.ASC, "stage", "end", "team"),
-				group("stage").push(new BasicDBObject("team", "$team").append("value", "$end")).as("_ends"),
-				project().andExclude("_id").and("_id").as("stage").and("_ends").as("ends"));
-
-		var results = mongoTemplate.aggregate(agg, StageResult.class, StageRanking.class);
-		results.getMappedResults().stream().filter(o -> o.getStage().equals(stageRanking.getStage())).findFirst()
-				.ifPresent(result -> stageRanking.setEnds(result.getEnds()));
-
-		computeRanking(stageRanking.getEnds());
-	}
-
-	private void computePerformances(StageRanking stageRanking) {
-		/*
-		 * [{ $match: { "performances.performanceValue": { $exists: true } } }, {
-		 * $unwind: { path: "$performances", preserveNullAndEmptyArrays: false } }, {
-		 * $match: { "performances.performanceValue": { $exists: true } } }, { $project:
-		 * { stage: 1, team: 1, name: "$performances.name", performanceValue:
-		 * "$performances.performanceValue" } }, { $sort: { stage: 1, name: 1,
-		 * performanceValue: 1, team: 1 } }, { $group: { _id: { stage: "$stage", name:
-		 * "$name" }, ranking: { $push: { team: "$team", value: "$performanceValue" } }
-		 * } }, { $group: { _id: "$_id.stage", performances: { $push: { k: "$_id.name",
-		 * v: "$ranking" } } } }, { $project: { _id: 0, stage: "$_id", performances: {
-		 * $arrayToObject: "$performances" } } }]
-		 */
-		Aggregation agg = newAggregation(
-				match(Criteria.where("performances.performanceValue").exists(true)
-						.andOperator(Criteria.where("stage").is(stageRanking.getStage()))),
-				unwind("performances"), match(Criteria.where("performances.performanceValue").exists(true)),
-				project("stage", "team", "performances.name", "performances.performanceValue"),
-				sort(org.springframework.data.domain.Sort.Direction.ASC, "stage", "name", "performanceValue", "team"),
-				group("stage", "name").push(new BasicDBObject("team", "$team").append("value", "$performanceValue"))
-						.as("ranking"),
-				group("_id.stage").push(new BasicDBObject("k", "$_id.name").append("v", "$ranking")).as("performances"),
-				project().andExclude("_id").and("_id").as("stage").and(ArrayToObject.arrayToObject("$performances"))
-						.as("performances"));
-
-		var results = mongoTemplate.aggregate(agg, StageResult.class, StageRanking.class);
-		results.getMappedResults().stream().filter(o -> o.getStage().equals(stageRanking.getStage())).findFirst()
-				.ifPresent(result -> stageRanking.setPerformances(result.getPerformances()));
-		stageRanking.getPerformances().values().forEach(StageRankingService::computeRanking);
-	}
-
 	private static <T> void computeRanking(List<TeamRank<T>> ranks) {
 		int rank = 1;
 		T value = null;
@@ -160,6 +57,119 @@ public class StageRankingService {
 			teamRank.setDownRank(rank);
 			++idx;
 		}
+	}
+	@Autowired
+	private StageRankingRepository stageRankingRepository;
+
+	@Autowired
+	private MongoTemplate mongoTemplate;
+	@Autowired
+	private StageParamService stageParamService;
+
+	@Autowired
+	private MessageProducerService messageProducerService;
+
+	public void computeAllStageRanking() {
+		stageParamService.getStageParams().forEach(stageParam -> computeStageRanking(stageParam.getStage()));
+	}
+
+	public StageRanking computeStageRanking(Integer stage) {
+		StageRanking stageRanking = findOrMakeStageRankingByStage(stage);
+		if (stageRanking == null)
+			return null;
+		computeBegins(stageRanking);
+		computeEnds(stageRanking);
+		computePerformances(stageRanking);
+		return save(stageRanking);
+	}
+
+	public StageRanking getStageRankingByStage(Integer stage) {
+		return findOrMakeStageRankingByStage(stage);
+	}
+
+	private void computeBegins(StageRanking stageRanking) {
+		/*
+		 * [{ "$match" : { "$and" : [{ "begin" : { "$exists" : true}}, { "begin" : {
+		 * "$ne" : null}}, { "stage" : ...}, { "checked" : true}]}}, { "$project" : {
+		 * "stage" : 1, "team" : 1, "begin" : 1}}, { "$sort" : { "stage" : 1, "begin" :
+		 * 1, "team" : 1}}, { "$group" : { "_id" : "$stage", "_begins" : { "$push" : {
+		 * "team" : "$team", "value" : "$begin"}}}}, { "$project" : { "_id" : 0, "stage"
+		 * : "$_id", "begins" : "$_begins"}}]
+		 */
+		Aggregation agg = newAggregation(
+				match(new Criteria().andOperator(Criteria.where("begin").exists(true), Criteria.where("begin").ne(null),
+						Criteria.where("stage").is(stageRanking.getStage()), Criteria.where("checked").is(true))),
+				project("stage", "team", "begin"),
+				sort(org.springframework.data.domain.Sort.Direction.ASC, "stage", "begin", "team"),
+				group("stage").push(new BasicDBObject("team", "$team").append("value", "$begin")).as("_begins"),
+				project().andExclude("_id").and("_id").as("stage").and("_begins").as("begins"));
+
+		var results = mongoTemplate.aggregate(agg, StageResult.class, StageRanking.class);
+		results.getMappedResults().stream().filter(o -> o.getStage().equals(stageRanking.getStage())).findFirst()
+				.ifPresentOrElse(result -> stageRanking.setBegins(result.getBegins()),
+						() -> stageRanking.getBegins().clear());
+
+		computeRanking(stageRanking.getBegins());
+	}
+
+	private void computeEnds(StageRanking stageRanking) {
+		/*
+		 * [{ "$match" : { "$and" : [{ "end" : { "$exists" : true}}, { "end" : { "$ne" :
+		 * null}}, { "stage" : ...}, { "checked" : true}]}}, { "$project" : { "stage" :
+		 * 1, "team" : 1, "end" : 1}}, { "$sort" : { "stage" : 1, "end" : 1, "team" :
+		 * 1}}, { "$group" : { "_id" : "$stage", "_ends" : { "$push" : { "team" :
+		 * "$team", "value" : "$end"}}}}, { "$project" : { "_id" : 0, "stage" : "$_id",
+		 * "ends" : "$_ends"}}]
+		 */
+		Aggregation agg = newAggregation(
+				match(new Criteria().andOperator(Criteria.where("end").exists(true), Criteria.where("end").ne(null),
+						Criteria.where("stage").is(stageRanking.getStage()), Criteria.where("checked").is(true))),
+				project("stage", "team", "end"),
+				sort(org.springframework.data.domain.Sort.Direction.ASC, "stage", "end", "team"),
+				group("stage").push(new BasicDBObject("team", "$team").append("value", "$end")).as("_ends"),
+				project().andExclude("_id").and("_id").as("stage").and("_ends").as("ends"));
+
+		var results = mongoTemplate.aggregate(agg, StageResult.class, StageRanking.class);
+		results.getMappedResults().stream().filter(o -> o.getStage().equals(stageRanking.getStage())).findFirst()
+				.ifPresentOrElse(result -> stageRanking.setEnds(result.getEnds()),
+						() -> stageRanking.getEnds().clear());
+
+		computeRanking(stageRanking.getEnds());
+	}
+
+	private void computePerformances(StageRanking stageRanking) {
+		/*
+		 * [{ "$match" : { "$and" : [{ "performances.performanceValue" : { "$exists" :
+		 * true}}, { "performances.performanceValue" : { "$ne" : null}}, { "stage" :
+		 * ...}, { "checked" : true}]}}, { "$unwind" : "$performances"}, { "$match" : {
+		 * "performances.performanceValue" : { "$exists" : true}}}, { "$project" : {
+		 * "stage" : 1, "team" : 1, "name" : "$performances.name", "performanceValue" :
+		 * "$performances.performanceValue"}}, { "$sort" : { "stage" : 1, "name" : 1,
+		 * "performanceValue" : 1, "team" : 1}}, { "$group" : { "_id" : { "stage" :
+		 * "$stage", "name" : "$name"}, "ranking" : { "$push" : { "team" : "$team",
+		 * "value" : "$performanceValue"}}}}, { "$group" : { "_id" : "$_id.stage",
+		 * "performances" : { "$push" : { "k" : "$_id.name", "v" : "$ranking"}}}}, {
+		 * "$project" : { "_id" : 0, "stage" : "$_id", "performances" : {
+		 * "$arrayToObject" : "$performances"}}}]
+		 */
+		Aggregation agg = newAggregation(
+				match(new Criteria().andOperator(Criteria.where("performances.performanceValue").exists(true),
+						Criteria.where("performances.performanceValue").ne(null),
+						Criteria.where("stage").is(stageRanking.getStage()), Criteria.where("checked").is(true))),
+				unwind("performances"), match(Criteria.where("performances.performanceValue").exists(true)),
+				project("stage", "team", "performances.name", "performances.performanceValue"),
+				sort(org.springframework.data.domain.Sort.Direction.ASC, "stage", "name", "performanceValue", "team"),
+				group("stage", "name").push(new BasicDBObject("team", "$team").append("value", "$performanceValue"))
+						.as("ranking"),
+				group("_id.stage").push(new BasicDBObject("k", "$_id.name").append("v", "$ranking")).as("performances"),
+				project().andExclude("_id").and("_id").as("stage").and(ArrayToObject.arrayToObject("$performances"))
+						.as("performances"));
+
+		var results = mongoTemplate.aggregate(agg, StageResult.class, StageRanking.class);
+		results.getMappedResults().stream().filter(o -> o.getStage().equals(stageRanking.getStage())).findFirst()
+				.ifPresentOrElse(result -> stageRanking.setPerformances(result.getPerformances()),
+						() -> stageRanking.getPerformances().clear());
+		stageRanking.getPerformances().values().forEach(StageRankingService::computeRanking);
 	}
 
 	private StageRanking findOrMakeStageRankingByStage(Integer stage) {
