@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -62,7 +63,8 @@ public class TeamPointService {
 				.filter(stageResult -> Boolean.TRUE.equals(stageResult.getChecked())).map(stageResult -> {
 					var stageRanking = stageRankingService.getStageRankingByStage(stageResult.getStage());
 					return computeStagePoint(stageResult, stageRanking);
-				}).collect(Collectors.toMap(StagePoint::getStage, s -> s)));
+				}).filter(Optional<StagePoint>::isPresent).map(stagePoint -> stagePoint.orElse(null))
+				.collect(Collectors.toMap(StagePoint::getStage, s -> s)));
 		computeTeamPointTotal(teamPoint);
 		return save(teamPoint);
 	}
@@ -244,20 +246,23 @@ public class TeamPointService {
 		stagePoint.setTotal(stagePoint.getTotal() + sumQuestionPoint(questions));
 	}
 
-	private StagePoint computeStagePoint(StageResult stageResult, StageRanking stageRanking) {
-		StagePoint stagePoint = new StagePoint(stageResult.getStage(), 0l);
+	private Optional<StagePoint> computeStagePoint(StageResult stageResult, StageRanking stageRanking) {
 		var stageParam = stageParamService.getStageParamByStage(stageResult.getStage());
 		if (Boolean.TRUE.equals(stageResult.getChecked())) {
+			StagePoint stagePoint = new StagePoint(stageResult.getStage(), 0l);
 			var source = stageResult.getResponseSources().stream().filter(s -> s instanceof StageResponseSource)
 					.findFirst().orElse(null);
 			computeStagePoint(stagePoint, stageResult, stageRanking, stageParam, source);
+			return Optional.of(stagePoint);
 		}
-		return stagePoint;
+		return Optional.empty();
 	}
 
 	private TeamPoint computeTeamPointFromStageResult(StageResult stageResult, StageRanking stageRanking) {
 		TeamPoint teamPoint = makeTeamPoint(stageResult.getTeam());
-		teamPoint.getStagePoints().put(stageResult.getStage(), computeStagePoint(stageResult, stageRanking));
+		computeStagePoint(stageResult, stageRanking).ifPresentOrElse(
+				stagePoint -> teamPoint.getStagePoints().put(stageResult.getStage(), stagePoint),
+				() -> teamPoint.getStagePoints().remove(stageResult.getStage()));
 		computeTeamPointTotal(teamPoint);
 		return save(teamPoint);
 	}
