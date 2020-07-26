@@ -43,8 +43,7 @@ import { ResponseFileActionsComponent } from './upload/response-file-actions/res
 import { LogFilesComponent } from './log-file/log-files/log-files.component';
 import { ToggleSwitchComponent } from './toggle-switch/toggle-switch.component';
 
-
-registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
+registerLocaleData(localeFr, 'fr', localeFrExtra);
 
 @NgModule({
   declarations: [
