@@ -438,7 +438,7 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   }
 
   private hasEmptyPerformances(form: FormGroup): boolean {
-    return form.getRawValue().performances?.find(item => !item.performanceValue) ?? false;
+    return form.getRawValue().performances?.find(item => !item.performanceValue && item.performanceValue !== 0) ?? false;
   }
 
   private hasEmptyResults(form: FormGroup): boolean {
