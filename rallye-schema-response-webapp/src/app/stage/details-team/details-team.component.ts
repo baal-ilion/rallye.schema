@@ -83,8 +83,9 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
 
   private async loadStageParams() {
     try {
-      const stageParams = await this.stageParamService.getStageParams().toPromise();
-      this.stageParams = stageParams._embedded.stageParams;
+      const stageParams = (await this.stageParamService.getStageParams().toPromise())?._embedded?.stageParams ?? [];
+      stageParams.sort((a, b) => (a.stage > b.stage) ? 1 : -1);
+      this.stageParams = stageParams;
     } catch (error) {
       this.stageParams = [];
       console.log(error);
