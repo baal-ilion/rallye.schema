@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
+import { HomeComponent } from './home/home.component';
 import { ListStageParamComponent } from './param/list-stage-param/list-stage-param.component';
 import { ListTeamInfoComponent } from './param/list-team-info/list-team-info.component';
 import { ModifyStageParamComponent } from './param/modify-stage-param/modify-stage-param.component';
@@ -14,7 +15,7 @@ import { ListUploadComponent } from './upload/list-upload/list-upload.component'
 
 
 const routes: Routes = [
-  { path: '', component: FormUploadComponent },
+  { path: '', component: HomeComponent },
   { path: 'formUpload', component: FormUploadComponent },
   { path: 'listUpload', component: ListUploadComponent },
   { path: 'listStage', component: ListStageComponent },

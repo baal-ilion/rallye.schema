@@ -12,7 +12,9 @@ import { AppConfigService } from './app-config.service';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { ConfirmationDialogComponent } from './confirmation-dialog/confirmation-dialog.component';
+import { HomeComponent } from './home/home.component';
 import { LocaleService } from './locale.service';
+import { LogFilesComponent } from './log-file/log-files/log-files.component';
 import { MenuComponent } from './menu/menu.component';
 import { ListStageParamComponent } from './param/list-stage-param/list-stage-param.component';
 import { ListTeamInfoComponent } from './param/list-team-info/list-team-info.component';
@@ -33,6 +35,7 @@ import { DetailsStageComponent } from './stage/details-stage/details-stage.compo
 import { DetailsTeamStageComponent } from './stage/details-team-stage/details-team-stage.component';
 import { DetailsTeamComponent } from './stage/details-team/details-team.component';
 import { ListStageComponent } from './stage/list-stage/list-stage.component';
+import { ToggleSwitchComponent } from './toggle-switch/toggle-switch.component';
 import { DetailsResponseFileComponent } from './upload/details-response-file/details-response-file.component';
 import { DetailsUploadComponent } from './upload/details-upload/details-upload.component';
 import { FormUploadComponent } from './upload/form-upload/form-upload.component';
@@ -40,8 +43,6 @@ import { ListResponseFileComponent } from './upload/list-response-file/list-resp
 import { ListUploadComponent } from './upload/list-upload/list-upload.component';
 import { ModifyUploadComponent } from './upload/modify-upload/modify-upload.component';
 import { ResponseFileActionsComponent } from './upload/response-file-actions/response-file-actions.component';
-import { LogFilesComponent } from './log-file/log-files/log-files.component';
-import { ToggleSwitchComponent } from './toggle-switch/toggle-switch.component';
 
 registerLocaleData(localeFr, 'fr', localeFrExtra);
 
@@ -78,6 +79,7 @@ registerLocaleData(localeFr, 'fr', localeFrExtra);
     ModifyPerformanceRangePointParamComponent,
     LogFilesComponent,
     ToggleSwitchComponent,
+    HomeComponent,
   ],
   entryComponents: [
     ModifyUploadComponent,
