@@ -26,6 +26,8 @@ export class ListRankingComponent implements OnInit {
   teamInfos: { [team: number]: TeamInfo } = {};
   stageParams: { [stage: number]: StageParam } = {};
   @ViewChildren(RankingComponent) rankingTables!: QueryList<RankingComponent>;
+  viewPoints = true;
+  viewGeneralPoints = true;
 
   // Order by property key
   keyOrder = (a: KeyValue<string, Ranking[]>, b: KeyValue<string, Ranking[]>): number => {
