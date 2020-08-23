@@ -11,7 +11,7 @@
     </app-ranking>
   </div>
   <div class="row justify-content-center">
-    <app-ranking class="col-12" *ngFor="let stageRank of stageRanking | keyvalue"
+    <app-ranking class="col-12" *ngFor="let stageRank of stageRanking | keyvalue: keyOrder"
       [rankingTitle]="stageParams[stageRank.key]?.name" [teamRanking]="stageRank.value" [teamInfos]="teamInfos">
     </app-ranking>
   </div>
