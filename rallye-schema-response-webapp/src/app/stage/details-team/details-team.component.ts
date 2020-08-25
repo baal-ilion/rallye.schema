@@ -94,8 +94,8 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
 
   onStartStage(stage: number) {
     this.confirmationDialogService.confirm(
-      'Démarrer l\'étape',
-      'Démarrer l\'étape ' + stage + ' ?',
+      'Début d\'une épreuve',
+      'Démarrer l\'épreuve ' + stage + '\u00A0?',
       'Oui', 'Non')
       .then((confirmed) => {
         console.log('User confirmed:', confirmed);
@@ -112,8 +112,8 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
 
   onStopStage(stage: number) {
     this.confirmationDialogService.confirm(
-      'Finir l\'étape',
-      'Finir l\'étape ' + stage + ' ?',
+      'Fin d\'une épreuve',
+      'Terminer l\'épreuve ' + stage + '\u00A0?',
       'Oui', 'Non')
       .then((confirmed) => {
         console.log('User confirmed:', confirmed);
@@ -130,8 +130,8 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
 
   onCancelStage(stage: number) {
     this.confirmationDialogService.confirm(
-      'Annuler l\'étape',
-      'Annuler la participation à l\'étape ' + stage + ' ?',
+      'Annulation d\'une épreuve',
+      'Annuler l\'épreuve ' + stage + '\u00A0?',
       'Oui', 'Non')
       .then((confirmed) => {
         console.log('User confirmed:', confirmed);
@@ -148,8 +148,8 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
 
   onUndoStage(stage: number) {
     this.confirmationDialogService.confirm(
-      'Annuler la fin de l\'étape',
-      'Annuler la fin de l\'étape ' + stage + ' ?',
+      'Reprise d\'une épreuve',
+      'Reprendre l\'épreuve ' + stage + '\u00A0?',
       'Oui', 'Non')
       .then((confirmed) => {
         console.log('User confirmed:', confirmed);
