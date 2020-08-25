@@ -66,8 +66,8 @@ export class DetailsResponseFileParamComponent implements OnInit {
 
   deleteResponseFileParam() {
     this.confirmationDialogService.confirm(
-      'Suppresion de la page',
-      'Supprimer la page n°' + this.param.page + ' de l\'étape ' + this.param.stage + ' ?',
+      'Suppresion d\'une page de formulaire de réponses',
+      'Supprimer la page n°' + this.param.page + ' du formulaire de réponses de l\'épreuve ' + this.param.stage + '\u00A0?',
       'Oui', 'Non')
       .then((confirmed) => {
         console.log('User confirmed:', confirmed);

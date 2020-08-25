@@ -1,5 +1,5 @@
 <div class="modal-header">
-  <h4 class="modal-title">Modifier les informations</h4>
+  <h4 class="modal-title">Modification des informations de l'épreuve</h4>
   <button type="button" class="close" aria-label="Close" (click)="activeModal.dismiss('Cross click')">
     <span aria-hidden="true">&times;</span>
   </button>
@@ -8,7 +8,7 @@
   <div class="modal-body">
     <div class="container">
       <div class="form-group">
-        <label for="stage">Etape</label>
+        <label for="stage">Épreuve</label>
         <input type="number" class="form-control" formControlName="stage" />
       </div>
       <div class="form-group">
@@ -16,14 +16,14 @@
         <input type="number" class="form-control" formControlName="page">
       </div>
       <div class="form-group">
-        <label for="team">Equipe</label>
+        <label for="team">Équipe</label>
         <input type="number" class="form-control" formControlName="team">
       </div>
     </div>
   </div>
   <div class="modal-footer">
     <button class="btn btn-success" [disabled]="!myForm.valid">
-      Submit Form
+      Valider
     </button>
   </div>
 </form>

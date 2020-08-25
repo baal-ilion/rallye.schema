@@ -1,6 +1,6 @@
 <div class="container-fluid">
   <div class="row justify-content-center" *ngIf="param">
-    <h1>Etape : {{param.stage}}, Page : {{param.page}}</h1>
+    <h1>Épreuve {{param.stage}} / Page {{param.page}}</h1>
   </div>
   <div *ngIf="param" class="row justify-content-center">
     <app-details-template-param [param]="param" [modelUrl]="modelUrl"></app-details-template-param>
@@ -12,9 +12,9 @@
           <span>{{question.name}}</span>
         </div>
         <select class="form-group custom-select" [(ngModel)]="question.type" disabled>
-          <option value="STAGE">Etape</option>
+          <option value="STAGE">Épreuve</option>
           <option value="PAGE">Page</option>
-          <option value="TEAM">Equipe</option>
+          <option value="TEAM">Équipe</option>
           <option value="QUESTION">Question</option>
           <option value="PERFORMANCE">Performance</option>
         </select>
