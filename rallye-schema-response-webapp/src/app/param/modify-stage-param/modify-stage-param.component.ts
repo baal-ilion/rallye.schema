@@ -210,8 +210,8 @@ export class ModifyStageParamComponent implements OnInit {
 
   deleteStageParam() {
     this.confirmationDialogService.confirm(
-      'Suppresion de l\'étape',
-      'Supprimer l\'étape ' + this.stageParam.stage + ' ?',
+      'Suppresion d\'une épreuve',
+      'Supprimer l\'épreuve ' + this.stageParam.stage + '\u00A0?',
       'Oui', 'Non')
       .then((confirmed) => {
         console.log('User confirmed:', confirmed);

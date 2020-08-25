@@ -26,8 +26,8 @@ export class SharingParamComponent implements OnInit {
     if (0 < files.length) {
       const file = files[0];
       this.confirmationDialogService.confirm(
-        'Import du parametrage',
-        'Cette opération est irréversible.\nVoulez-vous remplacer le parametrage actuel par celui du fichier : ' + file.name + ' ?',
+        'Import du paramétrage',
+        'Cette opération est irréversible.\nVoulez-vous remplacer le paramétrage actuel par celui du fichier : ' + file.name + '\u00A0?',
         'Oui', 'Non')
         .then((confirmed) => {
           console.log('User confirmed:', confirmed);

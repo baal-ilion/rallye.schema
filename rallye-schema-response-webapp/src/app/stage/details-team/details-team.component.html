@@ -4,7 +4,7 @@
   </div>
   <div class="row mt-4">
     <div class="col-12 py-1 bg-secondary">
-      <h4 class="my-auto text-center text-white">Equipe {{teamInfo.team}} - {{teamInfo.name}}</h4>
+      <h4 class="my-auto text-center text-white">Équipe {{teamInfo.team}} - {{teamInfo.name}}</h4>
     </div>
   </div>
   <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 mt-4 mx-n4">
@@ -16,7 +16,7 @@
           <div class="card-header font-weight-bold text-white bg-primary" *ngIf="stages[stageParam.stage]?.checked">
             {{stageParam.name}}</div>
           <div class="card-body text-primary">
-            <div>Epreuve {{stageParam.stage}} en cours.</div>
+            <div>Épreuve {{stageParam.stage}} en cours.</div>
           </div>
           <div class="card-footer text-center">
             <div class="btn-group">
@@ -35,7 +35,7 @@
           <div class="card-header font-weight-bold text-white bg-success" *ngIf="stages[stageParam.stage]?.checked">
             {{stageParam.name}}</div>
           <div class="card-body text-success">
-            <div>Epreuve {{stageParam.stage}} achevée.</div>
+            <div>Épreuve {{stageParam.stage}} achevée.</div>
           </div>
           <div class="card-footer text-center">
             <div class="btn-group">
@@ -49,7 +49,7 @@
         <div *ngIf="!stages[stageParam.stage] || !stages[stageParam.stage].begin" class="card h-100">
           <div class="card-header font-weight-bold">{{stageParam.name}}</div>
           <div class="card-body">
-            <div>Epreuve {{stageParam.stage}} non réalisée.</div>
+            <div>Épreuve {{stageParam.stage}} non réalisée.</div>
           </div>
           <div class="card-footer text-center">
             <div class="btn-group">

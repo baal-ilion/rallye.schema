@@ -1,5 +1,5 @@
 <div class="modal-header">
-  <h4 class="modal-title">Equipe</h4>
+  <h4 class="modal-title">Équipe</h4>
   <button type="button" class="close" aria-label="Close" (click)="activeModal.dismiss('Cross click')">
   </button>
 </div>
@@ -7,7 +7,7 @@
   <div class="modal-boy">
     <div class="container">
       <div class="form-group">
-        <label for="team">Equipe</label>
+        <label for="team">Équipe</label>
         <input type="number" class="form-control" formControlName="team"
           [ngClass]="{ 'is-invalid': teamInfoForm.controls.team.errors }">
         <div *ngIf="teamInfoForm.controls.team.errors" class="invalid-feedback">
@@ -28,7 +28,7 @@
   </div>
   <div class="modal-footer">
     <button class="btn btn-success" [disabled]="!teamInfoForm.valid">
-      Submit Form
+      Valider
     </button>
   </div>
 </form>
