@@ -350,8 +350,8 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   async onCancelStage() {
     try {
       const confirmed = await this.confirmationDialogService.confirm(
-        'Annuler l\'étape',
-        'Annuler la participation à l\'étape ' + this.stageResult.stage + ' ?',
+        'Annulation d\'une épreuve',
+        'Annuler l\'épreuve ' + this.stageResult.stage + ' de l\'équipe ' + this.stageResult.team + '\u00A0?',
         'Oui', 'Non');
       console.log('User confirmed:', confirmed);
       if (confirmed) {
@@ -373,8 +373,8 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   async onUndoStage() {
     try {
       const confirmed = await this.confirmationDialogService.confirm(
-        'Annuler la fin de l\'étape',
-        'Annuler la fin de l\'étape ' + this.stageResult.stage + ' ?',
+        'Reprise d\'une épreuve',
+        'Reprendre l\'épreuve ' + this.stageResult.stage + ' de l\'équipe ' + this.stageResult.team + '\u00A0?',
         'Oui', 'Non');
       console.log('User confirmed:', confirmed);
       if (confirmed) {
@@ -396,8 +396,8 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   async onStartStage() {
     try {
       const confirmed = await this.confirmationDialogService.confirm(
-        'Démarrer l\'étape',
-        'Démarrer l\'étape ' + this.stageResult.stage + ' ?',
+        'Début d\'une épreuve',
+        'Démarrer l\'épreuve ' + this.stageResult.stage + ' de l\'équipe ' + this.stageResult.team + '\u00A0?',
         'Oui', 'Non');
       if (confirmed) {
         try {
@@ -418,8 +418,8 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   async onStopStage() {
     try {
       const confirmed = await this.confirmationDialogService.confirm(
-        'Finir l\'étape',
-        'Finir l\'étape ' + this.stageResult.stage + ' ?',
+        'Fin d\'une épreuve',
+        'Terminer l\'épreuve ' + this.stageResult.stage + ' de l\'équipe ' + this.stageResult.team + '\u00A0?',
         'Oui', 'Non');
       if (confirmed) {
         try {

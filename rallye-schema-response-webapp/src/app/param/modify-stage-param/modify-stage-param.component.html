@@ -1,7 +1,7 @@
 <div class="mb-5" *ngIf="stageParam">
   <div class="row mt-4 text-center">
     <h1 class="col-12">
-      Epreuve {{ stageParam.stage }} / {{ stageParam.name }}
+      Épreuve {{ stageParam.stage }} / {{ stageParam.name }}
     </h1>
   </div>
   <form [formGroup]="stageParamForm" (ngSubmit)="onSubmit()" class="container">

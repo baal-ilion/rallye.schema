@@ -12,7 +12,7 @@
     <ul class="navbar-nav mr-auto">
       <li *ngIf="teamInfos" ngbDropdown class="nav-item" display="dynamic">
         <a class="nav-link" id="teamsMenu" ngbDropdownToggle role="button" data-toggle="dropdown" aria-haspopup="true"
-          aria-expanded="false">Equipes</a>
+          aria-expanded="false">Équipes</a>
         <div ngbDropdownMenu aria-labelledby="teamsMenu">
           <a *ngFor="let teamInfo of teamInfos" ngbDropdownItem routerLink="/team/{{teamInfo.id}}"
             (click)="collapsed = true">{{teamInfo.team}} - {{teamInfo.name}}</a>
@@ -41,8 +41,8 @@
         <a class="nav-link" id="paramMenu" ngbDropdownToggle role="button" data-toggle="dropdown" aria-haspopup="true"
           aria-expanded="false">Paramétrage</a>
         <div ngbDropdownMenu aria-labelledby="paramMenu">
-          <a ngbDropdownItem routerLink="/listStageParam" (click)="collapsed = true">Epreuves</a>
-          <a ngbDropdownItem routerLink="/listTeamInfo" (click)="collapsed = true">Equipes</a>
+          <a ngbDropdownItem routerLink="/listStageParam" (click)="collapsed = true">Épreuves</a>
+          <a ngbDropdownItem routerLink="/listTeamInfo" (click)="collapsed = true">Équipes</a>
           <a ngbDropdownItem routerLink="/sharingParam" (click)="collapsed = true">Import / Export</a>
         </div>
       </li>
