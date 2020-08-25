@@ -2,7 +2,7 @@
 $env:java_home = "C:\Program Files\AdoptOpenJDK\jdk-11.0.3.7-hotspot\"
 
 ## Pour supprimer l'image docker existante :
-docker rmi rallye-schema-response-service:0.0.1-SNAPSHOT -f
+docker rmi baalilion/rallye-schema-response-service -f
 
 ## Pour créer l'image docker manuellement :
 mvnw.cmd jib:dockerBuild
