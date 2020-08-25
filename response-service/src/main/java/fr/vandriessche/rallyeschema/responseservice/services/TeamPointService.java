@@ -222,9 +222,13 @@ public class TeamPointService {
 				stagePoint.setTotal(Objects.nonNull(stageResponse.getTotal()) ? stageResponse.getTotal()
 						: sumQuestionPoint(stagePoint.getQuestions()));
 				return Stream
-						.concat(stageResponse.getQuestions().stream().map(QuestionPoint::getName),
-								Stream.concat(stageResponse.getPerformances().stream().map(PerformanceResult::getName),
-										stageResponse.getResults().stream().map(ResponseResult::getName)))
+						.concat(Optional.ofNullable(stageResponse.getQuestions()).orElse(new ArrayList<>()).stream()
+								.map(QuestionPoint::getName),
+								Stream.concat(
+										Optional.ofNullable(stageResponse.getPerformances()).orElse(new ArrayList<>())
+												.stream().map(PerformanceResult::getName),
+										Optional.ofNullable(stageResponse.getResults()).orElse(new ArrayList<>())
+												.stream().map(ResponseResult::getName)))
 						.distinct().collect(Collectors.toList());
 			}
 		}
