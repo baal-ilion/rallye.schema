@@ -19,14 +19,14 @@
         </app-toggle-switch>
       </div>
       <div class="form-group mr-4">
-        <label for="critfinished">Epreuve terminée</label>
+        <label for="critfinished">Épreuve terminée</label>
         <app-toggle-switch [checked]="criteria.finished" id="critfinished"
           [light]="criteria.finished !== true && criteria.finished !== false"
           (change)="criteria.finished = nextChecked(criteria.finished); changeCriteria($event);" class="ml-1">
         </app-toggle-switch>
       </div>
       <div class="form-group mr-4">
-        <label for="critteam">Equipe</label>
+        <label for="critteam">Équipe</label>
         <select [(ngModel)]="criteria.team" (change)="changeCriteria($event)" id="critteam"
           class="form-control custom-select ml-1">
           <option value=""></option>
@@ -34,7 +34,7 @@
         </select>
       </div>
       <div class="form-group">
-        <label for="critstage">Epreuve</label>
+        <label for="critstage">Épreuve</label>
         <select [(ngModel)]="criteria.stage" (change)="changeCriteria($event)" id="critstage"
           class="form-control custom-select ml-1">
           <option value=""></option>

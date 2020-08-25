@@ -1,7 +1,7 @@
 <form [formGroup]="form" (ngSubmit)="onSubmit()" class="container mb-3 w-100" *ngIf="param">
   <div class="row mt-4">
     <div class="col-12 py-1 bg-secondary">
-      <h4 class="m-auto text-center text-white">Equipe {{stageResult.team}} / Epreuve {{stageResult.stage}}</h4>
+      <h4 class="m-auto text-center text-white">Équipe {{stageResult.team}} / Épreuve {{stageResult.stage}}</h4>
     </div>
   </div>
   <!-- Begin / end dates -->
@@ -49,7 +49,7 @@
   </div>
   <!-- Questions on response sheets -->
   <!-- TODO formatage si la page n'est pas encore importée -->
-  <!-- TODO Ne pas afficher "Equipe x / Epreuve x / Page x" -->
+  <!-- TODO Ne pas afficher "Équipe x / Épreuve x / Page x" -->
   <!-- TODO Placer les boutons sous les questions en mode petit écran -->
   <div *ngFor="let page of pages.controls" class="row">
     <div class="col-12">

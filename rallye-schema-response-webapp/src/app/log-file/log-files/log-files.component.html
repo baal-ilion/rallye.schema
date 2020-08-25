@@ -6,7 +6,7 @@
       </div>
       <div class="row mt-1 row-cols-1 row-cols-sm-2 row-cols-md-4">
         <a *ngFor="let team of (logFileTeams | async)?.sort()" class="col"
-          [href]="apiUrl + '/logFiles/mobileStage/' + team">Equipe n°{{team}}</a>
+          [href]="apiUrl + '/logFiles/mobileStage/' + team">Équipe n°{{team}}</a>
       </div>
     </div>
   </div>
