@@ -9,7 +9,7 @@
         <th scope="col" class="align-middle">Classement</th>
         <th scope="col" class="align-middle">N° d’équipe</th>
         <th scope="col" class="align-middle">Nom d’équipe</th>
-        <th scope="col" class="align-middle">Points</th>
+        <th *ngIf="viewPoints" scope="col" class="align-middle">Points</th>
       </tr>
     </thead>
     <tbody>
@@ -17,7 +17,7 @@
         <th scope="row" class="align-middle">{{ranking.order}}</th>
         <td class="align-middle">{{ranking.team}}</td>
         <td class="align-middle">{{teamInfos[ranking.team]?.name}}</td>
-        <td class="align-middle">{{ranking.total}}</td>
+        <td *ngIf="viewPoints" class="align-middle">{{ranking.total}}</td>
       </tr>
     </tbody>
   </table>
