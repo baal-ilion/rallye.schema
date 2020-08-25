@@ -44,3 +44,14 @@ docker push baalilion/rallye-schema-response-webapp
 
 ## Install kubernetes :
 kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml apply -f .\rallye-schema-response-webapp-app-persistentvolumeclaim.yaml -f .\rallye-schema-response-webapp-claim2-persistentvolumeclaim.yaml -f .\rallye-schema-response-webapp-config-persistentvolumeclaim.yaml -f .\rallye-schema-response-webapp-service.yaml -f .\rallye-schema-response-webapp-deployment.yaml 
+
+## Modifier le fichier de config dans kubernetes:
+# Obtenir l'adresse externe du service
+kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml get services
+# Obtenir le nom du pod
+kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml get pods
+# Obtient un TTY interactif et exécute /bin/bash depuis le pod <nom-pod>. Par défaut, la sortie se fait depuis le premier conteneur.
+kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml exec -ti rallye-schema-response-webapp-6b5468d5d6-x8dmm -- /bin/sh
+/ # cd usr/share/nginx/html/config/
+/ # vi config.json
+
