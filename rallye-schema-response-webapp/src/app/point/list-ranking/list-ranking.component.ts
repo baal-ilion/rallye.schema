@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, KeyValue } from '@angular/common';
 import { Component, OnInit, QueryList, ViewChildren } from '@angular/core';
 import * as FileSaver from 'file-saver';
 import { StageParam } from 'src/app/param/models/stage-param';
@@ -26,6 +26,15 @@ export class ListRankingComponent implements OnInit {
   teamInfos: { [team: number]: TeamInfo } = {};
   stageParams: { [stage: number]: StageParam } = {};
   @ViewChildren(RankingComponent) rankingTables!: QueryList<RankingComponent>;
+  viewPoints = true;
+  viewGeneralPoints = true;
+
+  // Order by property key
+  keyOrder = (a: KeyValue<string, Ranking[]>, b: KeyValue<string, Ranking[]>): number => {
+    const ak = parseInt(a.key, 10);
+    const bk = parseInt(b.key, 10);
+    return ak > bk ? 1 : (bk > ak ? -1 : 0);
+  }
 
   constructor(
     private pointService: PointService,

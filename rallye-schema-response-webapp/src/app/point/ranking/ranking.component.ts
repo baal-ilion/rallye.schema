@@ -10,6 +10,7 @@ export class RankingComponent implements OnInit {
   @Input() rankingTitle: string;
   @Input() teamRanking: Ranking[];
   @Input() teamInfos: { [team: number]: any };
+  @Input() viewPoints = true;
   @ViewChild('ranking_table') rankingTable: ElementRef;
 
   constructor() { }
