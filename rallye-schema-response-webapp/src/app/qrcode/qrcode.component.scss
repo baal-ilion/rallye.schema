@@ -1,0 +1,14 @@
+@import '~bootstrap/scss/functions';
+@import '~bootstrap/scss/variables';
+@import '~bootstrap/scss/mixins';
+@media print {
+  .rows-print-as-pages .row {
+    page-break-after: always;
+  }
+  /* include this style if you want the first row to be on the same page as whatever precedes it */
+  /*
+  .rows-print-as-pages .row:first-child {
+    page-break-before: avoid;
+  }
+  */
+}

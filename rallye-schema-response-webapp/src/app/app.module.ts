@@ -8,6 +8,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
+import { NgxQRCodeModule } from '@techiediaries/ngx-qrcode';
 import { AppConfigService } from './app-config.service';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -27,6 +28,7 @@ import { DetailsPointComponent } from './point/details-point/details-point.compo
 import { ListPointComponent } from './point/list-point/list-point.component';
 import { ListRankingComponent } from './point/list-ranking/list-ranking.component';
 import { RankingComponent } from './point/ranking/ranking.component';
+import { QrcodeComponent } from './qrcode/qrcode.component';
 import { DetailsTemplateComponent } from './response-file/common/details-template/details-template.component';
 import { DetailsResponseFileParamComponent } from './response-file/param/details-response-file-param/details-response-file-param.component';
 import { DetailsTemplateParamComponent } from './response-file/param/details-template-param/details-template-param.component';
@@ -80,6 +82,7 @@ registerLocaleData(localeFr, 'fr', localeFrExtra);
     LogFilesComponent,
     ToggleSwitchComponent,
     HomeComponent,
+    QrcodeComponent,
   ],
   entryComponents: [
     ModifyUploadComponent,
@@ -98,7 +101,8 @@ registerLocaleData(localeFr, 'fr', localeFrExtra);
     DragDropModule,
     NgbModule,
     FormsModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    NgxQRCodeModule
   ],
   providers: [
     {

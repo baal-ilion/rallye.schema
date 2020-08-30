@@ -1,0 +1,78 @@
+<div class="container mb-5">
+  <div class="row mt-4 text-center">
+    <h1 class="col-12">QR Codes</h1>
+  </div>
+  <div class="row mt-4">
+    <div class="col-12 py-1 bg-secondary">
+      <h4 class="my-auto text-center text-white">Équipes</h4>
+    </div>
+  </div>
+  <div *ngFor="let teaminfos of teamInfoPages | keyvalue" class="rows-print-as-pages">
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 mt-4 mx-n4">
+      <div class="col mb-4" *ngFor="let teaminfo of teaminfos.value">
+        <div class="card h-100">
+          <div class="card-header">{{teaminfo.team}} - {{teaminfo.name}}</div>
+          <div class="card-body p-0">
+            <div>
+              <div style="height:300px;width:300px;margin:auto;">
+                <ngx-qrcode [elementType]="elementType" [errorCorrectionLevel]="correctionLevel"
+                  [value]="'teamnum\{\{'+teaminfo.team+'\}\}'" alt="QR Code {{teaminfo.team}} - {{teaminfo.name}}"
+                  width="300">
+                </ngx-qrcode>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row mt-4">
+    <div class="col-12 py-1 bg-secondary">
+      <h4 class="my-auto text-center text-white">Actions</h4>
+    </div>
+  </div>
+  <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 mt-4 mx-n4">
+    <div class="col mb-4">
+      <div class="card h-100">
+        <div class="card-header">Jouer</div>
+        <div class="card-body p-0">
+          <div>
+            <div style="height:300px;width:300px;margin:auto;">
+              <ngx-qrcode [elementType]="elementType" [errorCorrectionLevel]="correctionLevel" [value]="respcluedisplay"
+                alt="QR Code Jouer" width="300">
+              </ngx-qrcode>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col mb-4">
+      <div class="card h-100">
+        <div class="card-header">Accompagner</div>
+        <div class="card-body p-0">
+          <div>
+            <div style="height:300px;width:300px;margin:auto;">
+              <ngx-qrcode [elementType]="elementType" [errorCorrectionLevel]="correctionLevel" [value]="respcluehidden"
+                alt="QR Code Accompagner" width="300">
+              </ngx-qrcode>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col mb-4">
+      <div class="card h-100">
+        <div class="card-header">Envoyer</div>
+        <div class="card-body p-0">
+          <div>
+            <div style="height:300px;width:300px;margin:auto;">
+              <ngx-qrcode [elementType]="elementType" [errorCorrectionLevel]="correctionLevel" [value]="toserver"
+                alt="QR Code Envoyer" width="300">
+              </ngx-qrcode>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
