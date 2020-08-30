@@ -10,6 +10,7 @@ metadata:
   name: rallye-schema-response-webapp
 spec:
   type: LoadBalancer
+  loadBalancerIP: 54.38.172.139
   ports:
   - name: "80"
     port: 80
@@ -17,4 +18,6 @@ spec:
   selector:
     io.kompose.service: rallye-schema-response-webapp
 status:
-  loadBalancer: {}
+  loadBalancer:
+    ingress:
+      - ip: 54.38.172.139
