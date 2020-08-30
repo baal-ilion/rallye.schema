@@ -7,6 +7,7 @@ import { ModifyStageParamComponent } from './param/modify-stage-param/modify-sta
 import { SharingParamComponent } from './param/sharing-param/sharing-param.component';
 import { ListPointComponent } from './point/list-point/list-point.component';
 import { ListRankingComponent } from './point/list-ranking/list-ranking.component';
+import { QrcodeComponent } from './qrcode/qrcode.component';
 import { DetailsTeamStageComponent } from './stage/details-team-stage/details-team-stage.component';
 import { DetailsTeamComponent } from './stage/details-team/details-team.component';
 import { ListStageComponent } from './stage/list-stage/list-stage.component';
@@ -27,6 +28,7 @@ const routes: Routes = [
   { path: 'team/:id', component: DetailsTeamComponent },
   { path: 'sharingParam', component: SharingParamComponent },
   { path: 'stage/:team/:stage', component: DetailsTeamStageComponent },
+  { path: 'qrcode', component: QrcodeComponent },
 ];
 
 @NgModule({
