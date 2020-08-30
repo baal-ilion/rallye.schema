@@ -26,7 +26,7 @@ kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml apply -f dashboard-cluster-role-
 
 Obtenire la clé
 kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml -n kubernetes-dashboard get secret
-kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml -n kubernetes-dashboard describe secret admin-user-token-wv8lq
+kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml -n kubernetes-dashboard describe secret admin-user-token-mpbnk
 
 lancer le service :
 kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml proxy
