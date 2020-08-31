@@ -39,7 +39,7 @@ export class QrcodeComponent implements OnInit {
     });
   }
 
-  teamnum(team: number) {
-    return btoa('teamnum{{' + team + '}}');
+  teamnum(teaminfo: TeamInfo) {
+    return btoa('teamnum{{' + teaminfo.team + '}}{{' + teaminfo.name + '}}');
   }
 }
