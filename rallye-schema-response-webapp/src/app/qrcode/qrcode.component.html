@@ -27,7 +27,7 @@
   </div>
   <div class="row mt-4">
     <div class="col-12 py-1 bg-secondary">
-      <h4 class="my-auto text-center text-white">Actions</h4>
+      <h4 class="my-auto text-center text-white">Étape 3 - Voyage en Terre de Naheulbeuk</h4>
     </div>
   </div>
   <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 mt-4 mx-n4">
@@ -61,12 +61,33 @@
     </div>
     <div class="col mb-4">
       <div class="card h-100">
-        <div class="card-header">Envoyer</div>
+        <div class="card-header">Envoyer les résultats</div>
         <div class="card-body p-0">
           <div>
             <div style="height:300px;width:300px;margin:auto;">
               <ngx-qrcode [elementType]="elementType" [errorCorrectionLevel]="correctionLevel" [value]="toserver"
                 alt="QR Code Envoyer" width="300">
+              </ngx-qrcode>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row mt-4">
+    <div class="col-12 py-1 bg-secondary">
+      <h4 class="my-auto text-center text-white">Étape 4 - Blair Witch Project - Dénouement</h4>
+    </div>
+  </div>
+  <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 mt-4 mx-n4">
+    <div class="col mb-4">
+      <div class="card h-100">
+        <div class="card-header">Débloquer les vidéos</div>
+        <div class="card-body p-0">
+          <div>
+            <div style="height:300px;width:300px;margin:auto;">
+              <ngx-qrcode [elementType]="elementType" [errorCorrectionLevel]="correctionLevel"
+                [value]="blairWitchProject" alt="QR Code Blair Witch Project" width="300">
               </ngx-qrcode>
             </div>
           </div>

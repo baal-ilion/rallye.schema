@@ -15,6 +15,7 @@ export class QrcodeComponent implements OnInit {
   respcluedisplay = btoa('respcluedisplay{{Voyage en terre de Naheulbeuk}}{{oui}}');
   respcluehidden = btoa('respcluehidden{{Voyage en terre de Naheulbeuk}}{{oui}}');
   toserver = btoa('toserver{{Voyage en terre de Naheulbeuk}}{{Voyage en terre de Naheulbeuk}}{{5}}');
+  blairWitchProject = btoa('respcluehidden{{Blair Witch Project: Denouement}}{{oui}}');
 
   constructor(private teamInfoService: TeamInfoService) { }
 
