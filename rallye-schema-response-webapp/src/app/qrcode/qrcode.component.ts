@@ -12,8 +12,8 @@ export class QrcodeComponent implements OnInit {
   teamInfoPages: { [page: number]: TeamInfo[] } = {};
   elementType = NgxQrcodeElementTypes.CANVAS;
   correctionLevel = NgxQrcodeErrorCorrectionLevels.HIGH;
-  respcluedisplay = btoa('respcluedisplay{{Voyage en terre de Naheulbeuk}}');
-  respcluehidden = btoa('respcluehidden{{Voyage en terre de Naheulbeuk}}');
+  respcluedisplay = btoa('respcluedisplay{{Voyage en terre de Naheulbeuk}}{{oui}}');
+  respcluehidden = btoa('respcluehidden{{Voyage en terre de Naheulbeuk}}{{oui}}');
   toserver = btoa('toserver{{Voyage en terre de Naheulbeuk}}{{Voyage en terre de Naheulbeuk}}{{5}}');
 
   constructor(private teamInfoService: TeamInfoService) { }
