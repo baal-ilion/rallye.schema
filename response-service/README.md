@@ -13,6 +13,15 @@ mvnw.cmd jib:dockerBuild
 ## docker-compose
 docker-compose up -d
 
+## RAZ de la base de donnée
+# Suppimer le server de base de donnée
+docker rm -f mongodb
+# Supprimer les données
+docker volume rm --force response-service_mongodb_db response-service_mongodb_configdb
+# Re-installer la partie api - se mettre dans le repertoire response-service
+docker-compose up -d
+# Ou relacer la procedure de mise a jour
+
 ## Installation de kubernetes/dashboard
 Installation :
 kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml delete ns kubernetes-dashboard
