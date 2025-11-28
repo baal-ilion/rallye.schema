@@ -1,0 +1,17 @@
+.team-card {
+  transition: background-color 0.2s ease-in-out, box-shadow 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.team-present {
+  background-color: #d4edda; /* vert léger */
+  border-color: #28a745;
+}
+
+.team-absent {
+  background-color: #f8f9fa; /* gris par défaut */
+}
+
+.team-card .card-title {
+  font-weight: 600;
+}

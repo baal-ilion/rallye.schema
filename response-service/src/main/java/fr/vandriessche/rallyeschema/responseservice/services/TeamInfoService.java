@@ -10,52 +10,78 @@ import fr.vandriessche.rallyeschema.responseservice.repositories.TeamInfoReposit
 
 @Service
 public class TeamInfoService {
-	public static final String TEAM_INFO_CREATE_EVENT = "teamInfo.create";
-	public static final String TEAM_INFO_UPDATE_EVENT = "teamInfo.update";
-	public static final String TEAM_INFO_DELETE_EVENT = "teamInfo.delete";
 
-	@Autowired
-	private TeamInfoRepository teamInfoRepository;
+    public static final String TEAM_INFO_CREATE_EVENT = "teamInfo.create";
+    public static final String TEAM_INFO_UPDATE_EVENT = "teamInfo.update";
+    public static final String TEAM_INFO_DELETE_EVENT = "teamInfo.delete";
 
-	@Autowired
-	private MessageProducerService messageProducerService;
+    @Autowired
+    private TeamInfoRepository teamInfoRepository;
 
-	public TeamInfo addTeamInfo(TeamInfo teamInfo) {
-		teamInfo = teamInfoRepository.save(teamInfo);
-		messageProducerService.sendMessage(TEAM_INFO_CREATE_EVENT, teamInfo);
-		return teamInfo;
-	}
+    @Autowired
+    private MessageProducerService messageProducerService;
 
-	public long countTeamInfo() {
-		return teamInfoRepository.count();
-	}
+    public TeamInfo addTeamInfo(TeamInfo teamInfo) {
+        teamInfo.setPresent(false);
+        teamInfo = teamInfoRepository.save(teamInfo);
+        messageProducerService.sendMessage(TEAM_INFO_CREATE_EVENT, teamInfo);
+        return teamInfo;
+    }
 
-	public void deleteTeamInfo(String id) {
-		var teamInfo = teamInfoRepository.findById(id).orElseThrow();
-		teamInfoRepository.deleteById(id);
-		messageProducerService.sendMessage(TEAM_INFO_DELETE_EVENT, teamInfo);
-	}
+    public long countTeamInfo() {
+        return teamInfoRepository.count();
+    }
 
-	public TeamInfo getTeamInfo(String id) {
-		return teamInfoRepository.findById(id).orElseThrow();
-	}
+    public void deleteTeamInfo(String id) {
+        var teamInfo = teamInfoRepository.findById(id).orElseThrow();
+        teamInfoRepository.deleteById(id);
+        messageProducerService.sendMessage(TEAM_INFO_DELETE_EVENT, teamInfo);
+    }
 
-	public TeamInfo getTeamInfoByName(String name) {
-		return teamInfoRepository.findByName(name).orElse(null);
-	}
+    public TeamInfo getTeamInfo(String id) {
+        return teamInfoRepository.findById(id).orElseThrow();
+    }
 
-	public TeamInfo getTeamInfoByTeam(Integer team) {
-		return teamInfoRepository.findByTeam(team).orElse(null);
-	}
+    public TeamInfo getTeamInfoByName(String name) {
+        return teamInfoRepository.findByName(name).orElse(null);
+    }
 
-	public List<TeamInfo> getTeamInfos() {
-		return teamInfoRepository.findAll();
-	}
+    public TeamInfo getTeamInfoByTeam(Integer team) {
+        return teamInfoRepository.findByTeam(team).orElse(null);
+    }
 
-	public TeamInfo updateTeamInfo(TeamInfo teamInfo) {
-		teamInfoRepository.findById(teamInfo.getId()).orElseThrow();
-		teamInfo = teamInfoRepository.save(teamInfo);
-		messageProducerService.sendMessage(TEAM_INFO_UPDATE_EVENT, teamInfo);
-		return teamInfo;
-	}
+    public List<TeamInfo> getTeamInfos() {
+        return teamInfoRepository.findAll();
+    }
+
+    public List<TeamInfo> getPresentTeamInfos() {
+        return teamInfoRepository.findByPresentTrue();
+    }
+
+    public List<TeamInfo> getAbsentTeamInfos() {
+        return teamInfoRepository.findByPresentFalse();
+    }
+
+ public TeamInfo setTeamPresence(String id, boolean present) {
+        TeamInfo teamInfo = teamInfoRepository.findById(id).orElseThrow();
+        teamInfo.setPresent(present);
+        teamInfo = teamInfoRepository.save(teamInfo);
+        messageProducerService.sendMessage(TEAM_INFO_UPDATE_EVENT, teamInfo);
+        return teamInfo;
+    }
+
+    public TeamInfo markTeamPresent(String id) {
+        return setTeamPresence(id, true);
+    }
+
+    public TeamInfo markTeamAbsent(String id) {
+        return setTeamPresence(id, false);
+    }
+
+    public TeamInfo updateTeamInfo(TeamInfo teamInfo) {
+        teamInfoRepository.findById(teamInfo.getId()).orElseThrow();
+        teamInfo = teamInfoRepository.save(teamInfo);
+        messageProducerService.sendMessage(TEAM_INFO_UPDATE_EVENT, teamInfo);
+        return teamInfo;
+    }
 }

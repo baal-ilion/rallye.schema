@@ -45,6 +45,8 @@ import { ListResponseFileComponent } from './upload/list-response-file/list-resp
 import { ListUploadComponent } from './upload/list-upload/list-upload.component';
 import { ModifyUploadComponent } from './upload/modify-upload/modify-upload.component';
 import { ResponseFileActionsComponent } from './upload/response-file-actions/response-file-actions.component';
+import { TeamPresenceComponent } from './param/team-presence/team-presence.component';
+import { RouterModule } from '@angular/router';
 
 registerLocaleData(localeFr, 'fr', localeFrExtra);
 
@@ -68,6 +70,7 @@ registerLocaleData(localeFr, 'fr', localeFrExtra);
     DetailsResponseFileComponent,
     ListTeamInfoComponent,
     ModifyTeamInfoComponent,
+    TeamPresenceComponent,
     ModifyStageParamComponent,
     NewStageParamComponent,
     ConfirmationDialogComponent,
@@ -95,6 +98,7 @@ registerLocaleData(localeFr, 'fr', localeFrExtra);
   ],
   imports: [
     BrowserModule,
+    RouterModule,
     AppRoutingModule,
     HttpClientModule,
     BrowserAnimationsModule,
