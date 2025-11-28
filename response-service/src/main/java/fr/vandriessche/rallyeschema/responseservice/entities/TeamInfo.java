@@ -19,4 +19,6 @@ public class TeamInfo {
 
 	@Indexed(unique = true)
 	private String name;
+
+	private boolean present = false; 
 }

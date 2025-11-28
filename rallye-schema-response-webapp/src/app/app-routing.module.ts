@@ -13,6 +13,7 @@ import { DetailsTeamComponent } from './stage/details-team/details-team.componen
 import { ListStageComponent } from './stage/list-stage/list-stage.component';
 import { FormUploadComponent } from './upload/form-upload/form-upload.component';
 import { ListUploadComponent } from './upload/list-upload/list-upload.component';
+import { TeamPresenceComponent } from './param/team-presence/team-presence.component';
 
 
 const routes: Routes = [
@@ -24,6 +25,7 @@ const routes: Routes = [
   { path: 'listRanking', component: ListRankingComponent },
   { path: 'listStageParam', component: ListStageParamComponent },
   { path: 'listTeamInfo', component: ListTeamInfoComponent },
+  { path: 'teams/presence', component: TeamPresenceComponent },
   { path: 'stageParam/:id', component: ModifyStageParamComponent },
   { path: 'team/:id', component: DetailsTeamComponent },
   { path: 'sharingParam', component: SharingParamComponent },

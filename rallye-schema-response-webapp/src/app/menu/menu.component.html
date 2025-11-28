@@ -15,6 +15,7 @@
           aria-expanded="false">Équipes</a>
         <div ngbDropdownMenu aria-labelledby="teamsMenu">
           <a ngbDropdownItem routerLink="/qrcode" (click)="collapsed = true">QR Code</a>
+          <a ngbDropdownItem routerLink="/teams/presence" (click)="collapsed = true">Présence</a>
           <div class="dropdown-divider"></div>
           <a *ngFor="let teamInfo of teamInfos" ngbDropdownItem routerLink="/team/{{teamInfo.id}}"
             (click)="collapsed = true">{{teamInfo.team}} - {{teamInfo.name}}</a>
