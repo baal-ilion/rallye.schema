@@ -10,42 +10,55 @@ import fr.vandriessche.rallyeschema.responseservice.controllers.ResponseFilePara
 import fr.vandriessche.rallyeschema.responseservice.controllers.StageParamController;
 import fr.vandriessche.rallyeschema.responseservice.entities.StageParam;
 
-public class StageParamModelAssemblerSupport extends RepresentationModelAssemblerSupport<StageParam, StageParamModel> {
-	public StageParamModelAssemblerSupport() {
-		super(StageParamController.class, StageParamModel.class);
+public class StageParamModelAssemblerSupport
+        extends RepresentationModelAssemblerSupport<StageParam, StageParamModel> {
 
-	}
+    public StageParamModelAssemblerSupport() {
+        super(StageParamController.class, StageParamModel.class);
+    }
 
-	@Override
-	public CollectionModel<StageParamModel> toCollectionModel(Iterable<? extends StageParam> entities) {
-		var collectionModel = super.toCollectionModel(entities);
-		addLinks(collectionModel);
-		return collectionModel;
-	}
+    @Override
+    public StageParamModel toModel(StageParam entity) {
+        StageParamModel model = instantiateModel(entity);
 
-	@Override
-	public StageParamModel toModel(StageParam entity) {
-		StageParamModel model = super.createModelWithId(entity.getId(), entity);
-		model.setId(entity.getId());
-		model.setName(entity.getName());
-		model.setInactive(entity.getInactive());
-		model.setStage(entity.getStage());
-		model.setQuestionParams(entity.getQuestionParams());
-		model.setQuestionPointParams(entity.getQuestionPointParams());
-		model.setPerformancePointParams(entity.getPerformancePointParams());
-		addLinks(model, entity);
-		return model;
-	}
+        model.setId(entity.getId());
+        model.setStage(entity.getStage());
+        model.setName(entity.getName());
+        model.setInactive(entity.getInactive());
+        model.setGroup(entity.getGroup());
 
-	private void addLinks(CollectionModel<StageParamModel> resources) {
-		// Pas de lien supplémentaire pour la collection
-	}
+        // 🔹 Champs "simples" pour info (optionnels)
+        if (entity.getGroup() != null) {
+            model.setGroupId(entity.getGroup().getId());
+            model.setGroupName(entity.getGroup().getName());
+        }
 
-	private void addLinks(StageParamModel resource, StageParam entity) {
-		resource.add(linkTo(methodOn(StageParamController.class).getStageParam(resource.getId(), null))
-				.withRel("stageParam"));
-		entity.getResponseFileParams().forEach(responceFileParam -> resource.add(linkTo(
-				methodOn(ResponseFileParamController.class).getResponseFileParam(responceFileParam.getId(), null))
-						.withRel("responseFileParams")));
-	}
+        model.setQuestionPointParams(entity.getQuestionPointParams());
+        model.setPerformancePointParams(entity.getPerformancePointParams());
+        model.setQuestionParams(entity.getQuestionParams());
+
+        addLinks(model, entity);
+        return model;
+    }
+
+    @Override
+    public CollectionModel<StageParamModel> toCollectionModel(Iterable<? extends StageParam> entities) {
+        CollectionModel<StageParamModel> resources = super.toCollectionModel(entities);
+        addLinks(resources);
+        return resources;
+    }
+
+    private void addLinks(CollectionModel<StageParamModel> resources) {
+        // Pas de lien supplémentaire pour la collection
+    }
+
+    private void addLinks(StageParamModel resource, StageParam entity) {
+        resource.add(linkTo(methodOn(StageParamController.class)
+                .getStageParam(resource.getId(), null)).withRel("stageParam"));
+
+        entity.getResponseFileParams().forEach(responseFileParam ->
+                resource.add(linkTo(methodOn(ResponseFileParamController.class)
+                        .getResponseFileParam(responseFileParam.getId(), null))
+                        .withRel("responseFileParams")));
+    }
 }

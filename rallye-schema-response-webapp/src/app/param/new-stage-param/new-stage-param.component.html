@@ -24,6 +24,15 @@
           <div *ngIf="stageParamForm.controls.name.errors.required">Le nom de l'épreuve est requis.</div>
         </div>
       </div>
+      <div class="form-group">
+        <label>Groupe d'épreuves</label>
+        <select class="form-control" formControlName="group">
+          <option [ngValue]="null">Aucun groupe</option>
+          <option *ngFor="let group of stageGroups" [ngValue]="group">
+            {{ group.name }}
+          </option>
+        </select>
+      </div>
     </div>
   </div>
   <div class="modal-footer">

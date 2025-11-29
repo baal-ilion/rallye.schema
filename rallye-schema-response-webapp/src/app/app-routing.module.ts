@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { HomeComponent } from './home/home.component';
+import { ListStageGroupComponent } from './param/list-stage-group/list-stage-group.component';
 import { ListStageParamComponent } from './param/list-stage-param/list-stage-param.component';
 import { ListTeamInfoComponent } from './param/list-team-info/list-team-info.component';
 import { ModifyStageParamComponent } from './param/modify-stage-param/modify-stage-param.component';
@@ -31,6 +32,7 @@ const routes: Routes = [
   { path: 'sharingParam', component: SharingParamComponent },
   { path: 'stage/:team/:stage', component: DetailsTeamStageComponent },
   { path: 'qrcode', component: QrcodeComponent },
+  { path: 'listStageGroup', component: ListStageGroupComponent },
 ];
 
 @NgModule({
