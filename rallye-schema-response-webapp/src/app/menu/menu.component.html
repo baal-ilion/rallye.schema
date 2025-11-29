@@ -44,6 +44,7 @@
         <a class="nav-link" id="paramMenu" ngbDropdownToggle role="button" data-toggle="dropdown" aria-haspopup="true"
           aria-expanded="false">Paramétrage</a>
         <div ngbDropdownMenu aria-labelledby="paramMenu">
+          <a ngbDropdownItem routerLink="/listStageGroup" (click)="collapsed = true">Groupes d'épreuves</a>
           <a ngbDropdownItem routerLink="/listStageParam" (click)="collapsed = true">Épreuves</a>
           <a ngbDropdownItem routerLink="/listTeamInfo" (click)="collapsed = true">Équipes</a>
           <a ngbDropdownItem routerLink="/sharingParam" (click)="collapsed = true">Import / Export</a>

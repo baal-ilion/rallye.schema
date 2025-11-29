@@ -1,0 +1,76 @@
+<div class="container mb-5">
+
+  <div class="row mt-4 text-center">
+    <h1 class="col-12">Groupes d'épreuves</h1>
+  </div>
+
+  <div class="row mt-4">
+    <div class="col-12 py-1 bg-secondary">
+      <h4 class="my-auto text-center text-white">
+        Gestion des groupes d'épreuves
+      </h4>
+    </div>
+  </div>
+
+  <!-- Messages chargement / erreur -->
+  <div class="row mt-3" *ngIf="loading || error">
+    <div class="col-12">
+      <div *ngIf="loading" class="alert alert-info">Chargement...</div>
+      <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+    </div>
+  </div>
+
+  <!-- Formulaire de création -->
+  <div class="row mt-4">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header font-weight-bold">
+          Nouveau groupe
+        </div>
+        <div class="card-body">
+          <div class="form-group">
+            <label>Nom</label>
+            <input class="form-control" [(ngModel)]="newGroup.name">
+          </div>
+          <div class="form-group mt-2">
+            <label>Description</label>
+            <input class="form-control" [(ngModel)]="newGroup.description">
+          </div>
+        </div>
+        <div class="card-footer text-right">
+          <button class="btn btn-primary btn-sm" (click)="onCreate()">Créer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Liste des groupes -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <table class="table table-striped table-sm">
+        <thead>
+          <tr>
+            <th>Nom</th>
+            <th>Description</th>
+            <th style="width: 100px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let group of groups">
+            <td>{{ group.name }}</td>
+            <td>{{ group.description }}</td>
+            <td class="text-right">
+              <button
+                class="btn btn-danger btn-sm"
+                (click)="onDelete(group)"
+              >
+                Supprimer
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>

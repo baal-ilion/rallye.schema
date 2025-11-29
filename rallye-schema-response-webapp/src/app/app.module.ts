@@ -47,6 +47,7 @@ import { ModifyUploadComponent } from './upload/modify-upload/modify-upload.comp
 import { ResponseFileActionsComponent } from './upload/response-file-actions/response-file-actions.component';
 import { TeamPresenceComponent } from './param/team-presence/team-presence.component';
 import { RouterModule } from '@angular/router';
+import { ListStageGroupComponent } from './param/list-stage-group/list-stage-group.component';
 
 registerLocaleData(localeFr, 'fr', localeFrExtra);
 
@@ -65,6 +66,7 @@ registerLocaleData(localeFr, 'fr', localeFrExtra);
     DetailsTemplateParamComponent,
     ListPointComponent,
     DetailsPointComponent,
+    ListStageGroupComponent,
     ListStageParamComponent,
     MenuComponent,
     DetailsResponseFileComponent,

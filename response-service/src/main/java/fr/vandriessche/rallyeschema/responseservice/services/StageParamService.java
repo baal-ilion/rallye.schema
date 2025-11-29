@@ -19,12 +19,16 @@ import fr.vandriessche.rallyeschema.responseservice.entities.QuestionPointParam;
 import fr.vandriessche.rallyeschema.responseservice.entities.QuestionType;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileParam;
 import fr.vandriessche.rallyeschema.responseservice.entities.StageParam;
+import fr.vandriessche.rallyeschema.responseservice.repositories.StageGroupRepository;
 import fr.vandriessche.rallyeschema.responseservice.repositories.StageParamRepository;
 
 @Service
 public class StageParamService {
 	@Autowired
 	private StageParamRepository stageParamRepository;
+
+	@Autowired
+	private StageGroupRepository stageGroupRepository;
 
 	@Autowired
 	private ResponseFileParamService responseFileParamService;
@@ -226,9 +230,23 @@ public class StageParamService {
 	}
 
 	private void updateStageParamData(StageParam stageParamToUpdate, StageParam stageParam) {
-		if (Objects.nonNull(stageParam.getName()))
+		if (Objects.nonNull(stageParam.getName())) {
 			stageParamToUpdate.setName(stageParam.getName());
-		if (Objects.nonNull(stageParam.getInactive()))
+		}
+
+		if (Objects.nonNull(stageParam.getInactive())) {
 			stageParamToUpdate.setInactive(stageParam.getInactive());
+		}
+
+		// 🔹 Gestion du groupe
+		if (stageParam.getGroup() == null) {
+			// L'utilisateur a choisi "Aucun groupe" → on détache le groupe
+			stageParamToUpdate.setGroup(null);
+		} else if (stageParam.getGroup().getId() != null) {
+			// L'utilisateur a choisi un groupe → on récupère le vrai StageGroup en base
+			stageGroupRepository.findById(stageParam.getGroup().getId())
+				.ifPresent(stageParamToUpdate::setGroup);
+		}
 	}
+
 }
