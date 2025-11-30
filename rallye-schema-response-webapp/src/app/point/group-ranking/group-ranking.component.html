@@ -1,0 +1,36 @@
+<div class="container mb-5">
+  <div class="row mt-4 text-center">
+    <h1 class="col-12">Classements par groupes d'epreuves</h1>
+  </div>
+
+  <div class="row justify-content-center d-print-none">
+    <label for="viewPoints">Afficher les points</label>
+    <app-toggle-switch [checked]="viewPoints" id="viewPoints" class="ml-2" (change)="viewPoints = !viewPoints">
+    </app-toggle-switch>
+  </div>
+
+  <div class="row justify-content-center d-print-none">
+    <button class="btn-primary" ngbButtonLabel (click)='exportExcel()'>Telecharger</button>
+  </div>
+
+  <div *ngIf="loading" class="alert alert-info mt-3">
+    Chargement des classements par groupes...
+  </div>
+
+  <div *ngIf="error" class="alert alert-danger mt-3">
+    {{ error }}
+  </div>
+
+  <div *ngIf="!loading && !error && (groupRankings | keyvalue).length === 0" class="alert alert-secondary mt-3">
+    Aucun groupe d'epreuves trouve ou aucun score disponible.
+  </div>
+
+  <div class="row justify-content-center" *ngFor="let groupRank of groupRankings | keyvalue: groupOrder">
+    <app-ranking class="col-12"
+      [rankingTitle]="groupRank.key"
+      [teamRanking]="groupRank.value"
+      [teamInfos]="teamInfos"
+      [viewPoints]="viewPoints">
+    </app-ranking>
+  </div>
+</div>

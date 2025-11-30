@@ -1,16 +1,16 @@
 import { DatePipe, KeyValue } from '@angular/common';
 import { Component, OnInit, QueryList, ViewChildren } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import * as FileSaver from 'file-saver';
-import { StageParam } from 'src/app/param/models/stage-param';
-import { TeamInfo } from 'src/app/param/models/team-info';
-import { StageParamService } from 'src/app/param/stage-param.service';
-import { TeamInfoService } from 'src/app/param/team-info.service';
+import { StageParam } from '../../param/models/stage-param';
+import { TeamInfo } from '../../param/models/team-info';
+import { StageParamService } from '../../param/stage-param.service';
+import { TeamInfoService } from '../../param/team-info.service';
 import * as XLSX from 'xlsx';
 import { Ranking } from '../models/ranking';
 import { TeamPoint } from '../models/team-point';
 import { PointService } from '../point.service';
 import { RankingComponent } from '../ranking/ranking.component';
-
 
 const EXCEL_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
 const EXCEL_EXTENSION = '.xlsx';
@@ -27,40 +27,32 @@ export class ListRankingComponent implements OnInit {
   stageParams: { [stage: number]: StageParam } = {};
   @ViewChildren(RankingComponent) rankingTables!: QueryList<RankingComponent>;
   viewPoints = true;
-  viewGeneralPoints = true;
+  isStageMode = false;
 
-  // Order by property key
   keyOrder = (a: KeyValue<string, Ranking[]>, b: KeyValue<string, Ranking[]>): number => {
     const ak = parseInt(a.key, 10);
     const bk = parseInt(b.key, 10);
     return ak > bk ? 1 : (bk > ak ? -1 : 0);
-  }
+  };
 
   constructor(
+    private route: ActivatedRoute,
     private pointService: PointService,
     private teamInfoService: TeamInfoService,
     private stageParamService: StageParamService) { }
 
   ngOnInit() {
     this.LoadTeamInfos();
-    this.LoadStageParam();
-    this.LoadRanking();
-  }
-
-  private FillStagePointsByStage(
-    teamPoint: TeamPoint,
-    stagePointsByStage: { [stage: number]: TeamPoint[]; }) {
-    for (const [stage, stagePoint] of Object.entries(teamPoint.stagePoints)) {
-      const teamStagePoint: TeamPoint = { team: teamPoint.team, total: stagePoint.total, stagePoints: null };
-      if (!stagePointsByStage[stage]) {
-        stagePointsByStage[stage] = [teamStagePoint];
-      } else {
-        stagePointsByStage[stage].push(teamStagePoint);
+    this.route.queryParamMap.subscribe(params => {
+      this.isStageMode = params.get('mode') === 'stage';
+      if (this.isStageMode) {
+        this.LoadStageParam();
       }
-    }
+      this.LoadRanking();
+    });
   }
 
-  private FillStageRanking(teamPoints: TeamPoint[], stageRanking: Ranking[], applyFn?: (a: TeamPoint) => void) {
+  private FillRanking(teamPoints: TeamPoint[], ranking: Ranking[]) {
     let teamRank: Ranking;
     let index = 1;
     for (const teamPoint of teamPoints.sort((left, right) => {
@@ -75,27 +67,43 @@ export class ListRankingComponent implements OnInit {
       } else {
         teamRank = { order: index.toString(), team: teamPoint.team, total: teamPoint.total };
       }
-      stageRanking.push(teamRank);
-      applyFn(teamPoint);
+      ranking.push(teamRank);
       index += 1;
     }
+  }
+
+  private BuildStagePoints(teamPoints: TeamPoint[]): { [stage: number]: TeamPoint[] } {
+    const stagePointsByStage: { [stage: number]: TeamPoint[] } = {};
+    for (const teamPoint of teamPoints) {
+      for (const [stageKey, stagePoint] of Object.entries(teamPoint.stagePoints || {})) {
+        const stage = parseInt(stageKey, 10);
+        const teamStagePoint: TeamPoint = { team: teamPoint.team, total: stagePoint.total, stagePoints: null };
+        if (!stagePointsByStage[stage]) {
+          stagePointsByStage[stage] = [teamStagePoint];
+        } else {
+          stagePointsByStage[stage].push(teamStagePoint);
+        }
+      }
+    }
+    return stagePointsByStage;
   }
 
   private LoadRanking() {
     this.generalRanking = [];
     this.stageRanking = {};
-    this.pointService.getPoints().subscribe(data => {
-      const teamPointsByStage: {
-        [stage: number]: TeamPoint[]
-      } = {};
-      this.FillStageRanking(
-        (data as TeamPoint[]).filter(teamPoint => Object.keys(teamPoint.stagePoints).length !== 0),
-        this.generalRanking,
-        teamPoint => { this.FillStagePointsByStage(teamPoint, teamPointsByStage); });
 
-      for (const [stage, teamPoints] of Object.entries(teamPointsByStage)) {
-        this.stageRanking[stage] = [];
-        this.FillStageRanking(teamPoints, this.stageRanking[stage], () => { });
+    this.pointService.recomputePoints().subscribe(data => {
+      const teamPoints = data as TeamPoint[];
+
+      this.FillRanking(teamPoints, this.generalRanking);
+
+      if (this.isStageMode) {
+        const stagePointsByStage = this.BuildStagePoints(teamPoints);
+        for (const [stage, stagePoints] of Object.entries(stagePointsByStage)) {
+          const stageNumber = parseInt(stage, 10);
+          this.stageRanking[stageNumber] = [];
+          this.FillRanking(stagePoints, this.stageRanking[stageNumber]);
+        }
       }
     }, () => {
       this.generalRanking = [];
@@ -144,5 +152,4 @@ export class ListRankingComponent implements OnInit {
     const datePipe = new DatePipe('fr-FR');
     FileSaver.saveAs(data, fileName + '-ranking-' + datePipe.transform(Date.now(), 'yyyyMMddhhmmss') + EXCEL_EXTENSION);
   }
-
 }

@@ -28,6 +28,8 @@ import { DetailsPointComponent } from './point/details-point/details-point.compo
 import { ListPointComponent } from './point/list-point/list-point.component';
 import { ListRankingComponent } from './point/list-ranking/list-ranking.component';
 import { RankingComponent } from './point/ranking/ranking.component';
+import { GroupRankingComponent } from './point/group-ranking/group-ranking.component';
+import { PrizeDistributionComponent } from './point/prize-distribution/prize-distribution.component';
 import { QrcodeComponent } from './qrcode/qrcode.component';
 import { DetailsTemplateComponent } from './response-file/common/details-template/details-template.component';
 import { DetailsResponseFileParamComponent } from './response-file/param/details-response-file-param/details-response-file-param.component';
@@ -81,6 +83,8 @@ registerLocaleData(localeFr, 'fr', localeFrExtra);
     SharingParamComponent,
     RankingComponent,
     ListRankingComponent,
+    GroupRankingComponent,
+    PrizeDistributionComponent,
     DetailsTeamStageComponent,
     ResponseFileActionsComponent,
     ModifyPerformanceRangePointParamComponent,
