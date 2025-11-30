@@ -3,6 +3,6 @@
       "name":"Exemple"
   },
   "apiUrl" : {
-      "rallyeSchema" :"http://localhost:8080"
+      "rallyeSchema" :"/api"
   }
 }

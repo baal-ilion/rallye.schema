@@ -69,7 +69,8 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "rallye-schema-response-webapp:build"
+            "browserTarget": "rallye-schema-response-webapp:build",
+            "proxyConfig": "proxy.conf.json"
           },
           "configurations": {
             "production": {
