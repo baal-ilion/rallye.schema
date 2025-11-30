@@ -33,10 +33,14 @@
         <a class="nav-link text-nowrap" routerLink="/listStage" (click)="collapsed = true">Validation des épreuves</a>
       </li>
       <li ngbDropdown class="nav-item" display="dynamic">
-        <a class="nav-link" id="pointMenu" ngbDropdownToggle role="button" data-toggle="dropdown" aria-haspopup="true"
-          aria-expanded="false">Points</a>
-        <div ngbDropdownMenu aria-labelledby="pointMenu">
-          <a ngbDropdownItem routerLink="/listRanking" (click)="collapsed = true">Classements</a>
+        <a class="nav-link" id="rankingMenu" ngbDropdownToggle role="button" data-toggle="dropdown" aria-haspopup="true"
+          aria-expanded="false">Classements</a>
+        <div ngbDropdownMenu aria-labelledby="rankingMenu">
+          <a ngbDropdownItem routerLink="/listRanking" (click)="collapsed = true">Classement général</a>
+          <a ngbDropdownItem [routerLink]="['/listRanking']" [queryParams]="{ mode: 'stage' }" (click)="collapsed = true">Classement par épreuves</a>
+          <a ngbDropdownItem routerLink="/groupRanking" (click)="collapsed = true">Classement par groupes d'épreuves</a>
+         <a ngbDropdownItem routerLink="/prizes" (click)="collapsed = true">Distribution des lots</a>
+          <div class="dropdown-divider"></div>
           <a ngbDropdownItem routerLink="/listPoint" (click)="collapsed = true">Détail</a>
         </div>
       </li>
