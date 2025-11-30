@@ -1,5 +1,8 @@
 # Fichier template par défaut
 TemplateFileName: C:\Users\baali\Documents\Rallye Schema\model.xtmpl
+# Port HTTP de l'application (profil par défaut)
+server:
+  port: 8082
 # Parametrage de spring
 spring:
   data:
@@ -23,6 +26,7 @@ spring:
 # Additional RabbitMQ properties
     listener:
       simple:
+        auto-startup: false
         concurrency: 4
         max-concurrency: 8
         retry:
