@@ -23,8 +23,6 @@
     "@angular/platform-browser": "^18.2.14",
     "@angular/platform-browser-dynamic": "^18.2.14",
     "@angular/router": "^18.2.14",
-    "@ng-bootstrap/ng-bootstrap": "^15.0.0",
-    "@popperjs/core": "^2.11.8",
     "angularx-qrcode": "^18.0.0",
     "bootstrap": "^5.3.3",
     "file-saver": "^2.0.2",

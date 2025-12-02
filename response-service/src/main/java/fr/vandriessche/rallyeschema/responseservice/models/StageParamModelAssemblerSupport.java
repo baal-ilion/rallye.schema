@@ -24,7 +24,6 @@ public class StageParamModelAssemblerSupport
         model.setId(entity.getId());
         model.setStage(entity.getStage());
         model.setName(entity.getName());
-        model.setInactive(entity.getInactive());
         model.setGroup(entity.getGroup());
 
         // 🔹 Champs "simples" pour info (optionnels)

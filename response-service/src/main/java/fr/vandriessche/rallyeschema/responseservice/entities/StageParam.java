@@ -27,7 +27,6 @@ public class StageParam {
 	private Integer stage;
 
 	private String name;
-	private Boolean inactive;
 
 	@DBRef
 	private StageGroup group;

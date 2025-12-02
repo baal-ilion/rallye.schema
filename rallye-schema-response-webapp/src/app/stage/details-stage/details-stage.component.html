@@ -10,28 +10,20 @@
     <div class="col-8 col-sm-6 col-md-5 col-lg-4 col-xl-3 col-xxl-2 m-2 p-0 border">
       <label class="raw col-12 m-0 p-1 text-center">Début :</label>
       <div class="raw col-12 m-0 p-1 justify-content-center input-group">
-        <input class="form-control rounded-left text-center" placeholder="yyyy-mm-dd" name="dp" formControlName="begindate"
-          ngbDatepicker #d="ngbDatepicker">
-        <div class="input-group-append">
-          <button class="btn btn-outline-secondary calendar rounded-right" (click)="d.toggle()" type="button"></button>
-        </div>
+        <input class="form-control rounded text-center" type="date" formControlName="begindate" placeholder="yyyy-mm-dd">
       </div>
       <div class="row col-12 m-0 p-1 justify-content-center">
-        <ngb-timepicker class="mx-auto text-center" formControlName="begintime" seconds="true" [spinners]="false"></ngb-timepicker>
+        <input class="form-control text-center w-auto" type="time" formControlName="begintime" step="1">
       </div>
     </div>
     <!-- End date -->
     <div class="col-8 col-sm-6 col-md-5 col-lg-4 col-xl-3 col-xxl-2 m-2 p-0 border">
       <label class="raw col-12 m-0 p-1 text-center">Fin :</label>
       <div class="raw col-12 m-0 p-1 justify-content-center input-group">
-        <input class="form-control rounded-left text-center" placeholder="yyyy-mm-dd" name="dp" formControlName="enddate"
-          ngbDatepicker #e="ngbDatepicker">
-        <div class="input-group-append">
-          <button class="btn btn-outline-secondary calendar rounded-right" (click)="e.toggle()" type="button"></button>
-        </div>
+        <input class="form-control rounded text-center" type="date" formControlName="enddate" placeholder="yyyy-mm-dd">
       </div>
       <div class="row col-12 m-0 p-1 justify-content-center">
-        <ngb-timepicker class="mx-auto text-center" formControlName="endtime" seconds="true" [spinners]="false"></ngb-timepicker>
+        <input class="form-control text-center w-auto" type="time" formControlName="endtime" step="1">
       </div>
     </div>
   </div>

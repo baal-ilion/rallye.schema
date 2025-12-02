@@ -1,10 +1,10 @@
 import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { HalPage } from 'src/app/models/hal-page';
 import { StageParam } from 'src/app/param/models/stage-param';
 import { TeamInfo } from 'src/app/param/models/team-info';
 import { StageParamService } from 'src/app/param/stage-param.service';
 import { TeamInfoService } from 'src/app/param/team-info.service';
+import { DialogService } from 'src/app/shared/dialog/dialog.service';
 import { StageCriteria } from '../models/stage-criteria';
 import { StageResult } from '../models/stage-result';
 import { StageService } from '../stage.service';
@@ -30,7 +30,7 @@ export class ListStageComponent implements OnInit, OnDestroy {
     private stageService: StageService,
     private teamInfoService: TeamInfoService,
     private stageParamService: StageParamService,
-    private modalService: NgbModal) { }
+    private dialogService: DialogService) { }
 
   ngOnDestroy(): void {
     sessionStorage.setItem(this.SelectedId, null);
@@ -98,7 +98,7 @@ export class ListStageComponent implements OnInit, OnDestroy {
   @HostListener('window:keyup', ['$event'])
   keyEvent(event: KeyboardEvent) {
     const element = event.target as HTMLElement;
-    if (!this.modalService.hasOpenModals() && element.tagName !== 'INPUT') {
+    if (!this.dialogService.hasOpenDialogs() && element.tagName !== 'INPUT') {
       if (event.key === 'ArrowRight') {
         this.next();
       }

@@ -1,51 +1,38 @@
-﻿<div class="modal-header">
-  <h4 class="modal-title mx-auto">Modification des informations de l'épreuve</h4>
-  <button type="button" class="btn btn-danger text-white w-auto px-3 py-2 d-flex align-items-center justify-content-center" style="min-width:2.5rem;min-height:2.5rem;line-height:1;padding:0.4rem 0.6rem;" aria-label="Close"
-    (click)="activeModal.dismiss('Cross click')">&times;</button>
-</div>
-<form [formGroup]="myForm" (ngSubmit)="submitForm()">
-  <div class="modal-boy">
-    <div class="container">
-      <div class="form-group mt-3">
+<div class="card">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <h4 class="modal-title mb-0 text-center flex-fill">Formulaire de réponses</h4>
+    <button type="button" class="btn btn-danger text-white w-auto px-3 py-2 d-flex align-items-center justify-content-center ml-4" style="min-width:2.5rem;min-height:2.5rem;line-height:1;padding:0.4rem 0.6rem;" aria-label="Close"
+      (click)="dialogRef.close()">&times;</button>
+  </div>
+  <form [formGroup]="myForm" (ngSubmit)="submitForm()">
+    <div class="card-body">
+      <div class="form-group">
         <label for="stage">Épreuve</label>
-        <input type="number" class="form-control" formControlName="stage" />
+        <input type="number" class="form-control" id="stage" formControlName="stage" readonly>
       </div>
-      <div class="form-group mt-3">
+      <div class="form-group">
         <label for="page">Page</label>
-        <input type="number" class="form-control" formControlName="page" />
+        <input type="number" class="form-control" id="page" formControlName="page">
       </div>
-      <div class="form-group mt-3">
+      <div class="form-group">
         <label for="template">Template</label>
-        <div class="input-group align-items-center">
-          <input type="file" class="d-none" id="importFile" accept=".xtmpl"
-            (change)="selectFile($event.target.files)" formControlName="templateFile">
-          <label class="btn btn-primary text-white w-auto px-3 mb-0 rounded mr-2" #labelImport for="importFile"><i
-              class="fas fa-search"></i> Choisir un fichier</label>
-          <span class="ml-2 text-muted align-middle" #labelImportText>&nbsp;Aucun fichier choisi</span>
-        </div>
-        <div class="input-group mt-2 align-items-center">
-          <input type="file" class="d-none" id="importFileModel" accept="image/*"
-            (change)="selectFileModel($event.target.files)" formControlName="responseFileModel">
-          <label class="btn btn-primary text-white w-auto px-3 mb-0 rounded mr-2" #labelImportModel for="importFileModel"><i
-              class="fas fa-search"></i> Choisir un fichier</label>
-          <span class="ml-2 text-muted align-middle" #labelImportModelText>&nbsp;Aucun fichier choisi</span>
-        </div>
-        <div *ngIf="detailsParam.template" class="row justify-content-center">
-          <app-details-template-param [param]="detailsParam" [modelUrl]="modelUrl"></app-details-template-param>
-        </div>
+        <textarea class="form-control" id="template" formControlName="template" rows="3"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Importer un template</label>
+        <input type="file" class="form-control-file" (change)="selectFile($event.target.files)">
+        <small class="form-text text-muted" #labelImportText></small>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Importer un modèle</label>
+        <input type="file" accept="image/*" class="form-control-file" (change)="selectFileModel($event.target.files)">
+        <small class="form-text text-muted" #labelImportModelText></small>
       </div>
     </div>
-  </div>
-  <div class="modal-footer d-flex justify-content-center">
-    <button class="btn btn-success w-auto" [disabled]="!myForm.valid">
-      Valider
-    </button>
-  </div>
-</form>
-
-
-
-
-
-
-
+    <div class="card-footer d-flex justify-content-center">
+      <div class="d-flex">
+        <button class="btn btn-success" [disabled]="!myForm.valid">Valider</button>
+      </div>
+    </div>
+  </form>
+</div>

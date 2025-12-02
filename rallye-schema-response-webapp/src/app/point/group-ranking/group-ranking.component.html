@@ -1,4 +1,4 @@
-﻿<div class="container mb-5">
+<div class="container mb-5">
   <div class="row mt-4 text-center">
     <h1 class="col-12">Classements par groupes d'épreuves</h1>
   </div>
@@ -12,7 +12,7 @@
   </div>
 
   <div class="row justify-content-center d-print-none">
-    <button class="btn btn-primary w-auto" ngbButtonLabel (click)='exportExcel()'>Télécharger</button>
+    <button class="btn btn-primary w-auto"  (click)='exportExcel()'>Télécharger</button>
   </div>
 
   <div *ngIf="loading" class="alert alert-info mt-3">
