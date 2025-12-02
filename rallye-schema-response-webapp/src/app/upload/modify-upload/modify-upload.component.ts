@@ -1,6 +1,6 @@
 import { Component, OnInit, Input } from '@angular/core';
-import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 import { UntypedFormGroup, UntypedFormBuilder } from '@angular/forms';
+import { MatDialogRef } from '@angular/material/dialog';
 
 @Component({
   selector: 'app-modify-upload',
@@ -12,7 +12,7 @@ export class ModifyUploadComponent implements OnInit {
   @Input() fileUpload: any;
   myForm: UntypedFormGroup;
 
-  constructor(public activeModal: NgbActiveModal,
+  constructor(public dialogRef: MatDialogRef<ModifyUploadComponent>,
               private formBuilder: UntypedFormBuilder) { }
 
   ngOnInit() {
@@ -28,6 +28,6 @@ export class ModifyUploadComponent implements OnInit {
   }
 
   submitForm() {
-    this.activeModal.close(this.myForm.value);
+    this.dialogRef.close(this.myForm.value);
   }
 }

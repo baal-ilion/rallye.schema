@@ -22,7 +22,6 @@ public class StageParamModel extends RepresentationModel<StageParamModel> {
     private String id;
     private Integer stage;
     private String name;
-    private Boolean inactive;
     private StageGroup group;
     private String groupId;
     private String groupName;

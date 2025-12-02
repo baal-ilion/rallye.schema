@@ -1,7 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
 import { UntypedFormArray, UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
-import { NgbDateStruct, NgbTimeStruct } from '@ng-bootstrap/ng-bootstrap';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
 import { HalLink } from 'src/app/models/hal-link';
 import { QuestionParam } from 'src/app/param/models/question-param';
@@ -69,17 +68,15 @@ export class DetailsStageComponent implements OnInit, OnChanges {
 
   private clear() {
     console.log('clear');
-    const ngbDate: NgbDateStruct = { year: 0, month: 0, day: 0 };
-    const ngbTime: NgbTimeStruct = { hour: 0, minute: 0, second: 0 };
     this.form = this.formBuilder.group({
       pages: this.formBuilder.array([]),
       results: this.formBuilder.array([]),
       performances: this.formBuilder.array([]),
       checked: false,
-      begindate: ngbDate,
-      begintime: ngbTime,
-      enddate: ngbDate,
-      endtime: ngbTime,
+      begindate: '',
+      begintime: '',
+      enddate: '',
+      endtime: '',
     });
     this.param = null;
     this.fileParams = null;
@@ -160,10 +157,10 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   private async loadStageValues() {
     this.form.patchValue({
       checked: this.stageResult.checked,
-      begindate: this.buildNgbDate(this.stageResult.begin),
-      begintime: this.buildNgbTime(this.stageResult.begin),
-      enddate: this.buildNgbDate(this.stageResult.end),
-      endtime: this.buildNgbTime(this.stageResult.end),
+      begindate: this.formatDate(this.stageResult.begin),
+      begintime: this.formatTime(this.stageResult.begin),
+      enddate: this.formatDate(this.stageResult.end),
+      endtime: this.formatTime(this.stageResult.end),
     });
   }
 
@@ -252,29 +249,34 @@ export class DetailsStageComponent implements OnInit, OnChanges {
     }
   }
 
-  buildNgbDate(date: Date): NgbDateStruct {
-    return {
-      year: Number(this.datePipe.transform(date, 'yyyy')),
-      month: Number(this.datePipe.transform(date, 'MM')),
-      day: Number(this.datePipe.transform(date, 'dd'))
-    };
+  private formatDate(date: Date): string {
+    return date ? this.datePipe.transform(date, 'yyyy-MM-dd') : '';
   }
 
-  buildNgbTime(date: Date): NgbTimeStruct {
-    return {
-      hour: Number(this.datePipe.transform(date, 'HH')),
-      minute: Number(this.datePipe.transform(date, 'mm')),
-      second: Number(this.datePipe.transform(date, 'ss'))
-    };
+  private formatTime(date: Date): string {
+    return date ? this.datePipe.transform(date, 'HH:mm:ss') : '';
   }
 
-  buildDate(date: NgbDateStruct, time: NgbTimeStruct): Date {
-    // tslint:disable-next-line: triple-equals
-    if (!date?.year || !date?.month || !date?.day || date?.year == 0 || date?.month == 0 || date?.day == 0)
+  buildDate(date: string, time: string): Date {
+    if (!date || !time) {
       return null;
-    if (!time?.hour)
+    }
+    const [year, month, day] = date.split('-').map(d => Number(d));
+    if (!year || !month || !day) {
       return null;
-    return new Date(date?.year, date?.month - 1, date?.day, time?.hour, time?.minute, time?.second);
+    }
+    const timeParts = time.split(':');
+    if (timeParts.length < 2) {
+      return null;
+    }
+    const [hour, minute, second = '0'] = timeParts;
+    const h = Number(hour);
+    const m = Number(minute);
+    const s = Number(second);
+    if (Number.isNaN(h) || Number.isNaN(m) || Number.isNaN(s)) {
+      return null;
+    }
+    return new Date(year, month - 1, day, h, m, s);
   }
 
   private findModifiedResults(form: UntypedFormGroup, modifiedResults: any[]) {

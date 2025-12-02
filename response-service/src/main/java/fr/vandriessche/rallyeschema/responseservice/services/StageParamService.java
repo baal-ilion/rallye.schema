@@ -234,10 +234,6 @@ public class StageParamService {
 			stageParamToUpdate.setName(stageParam.getName());
 		}
 
-		if (Objects.nonNull(stageParam.getInactive())) {
-			stageParamToUpdate.setInactive(stageParam.getInactive());
-		}
-
 		// 🔹 Gestion du groupe
 		if (stageParam.getGroup() == null) {
 			// L'utilisateur a choisi "Aucun groupe" → on détache le groupe

@@ -7,7 +7,7 @@ import { APP_INITIALIZER, LOCALE_ID, NgModule } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { NgbModule, NgbAccordionModule } from '@ng-bootstrap/ng-bootstrap';
+import { MatDialogModule } from '@angular/material/dialog';
 import { QRCodeModule } from 'angularx-qrcode';
 import { AppConfigService } from './app-config.service';
 import { AppRoutingModule } from './app-routing.module';
@@ -50,6 +50,7 @@ import { ResponseFileActionsComponent } from './upload/response-file-actions/res
 import { TeamPresenceComponent } from './param/team-presence/team-presence.component';
 import { RouterModule } from '@angular/router';
 import { ListStageGroupComponent } from './param/list-stage-group/list-stage-group.component';
+import { PaginationComponent } from './shared/pagination/pagination.component';
 
 registerLocaleData(localeFr, 'fr', localeFrExtra);
 
@@ -91,14 +92,14 @@ registerLocaleData(localeFr, 'fr', localeFrExtra);
         ToggleSwitchComponent,
         HomeComponent,
         QrcodeComponent,
+        PaginationComponent,
     ],
     bootstrap: [AppComponent], imports: [BrowserModule,
         RouterModule,
         AppRoutingModule,
         BrowserAnimationsModule,
         DragDropModule,
-        NgbModule,
-        NgbAccordionModule,
+        MatDialogModule,
         FormsModule,
         ReactiveFormsModule,
         QRCodeModule], providers: [

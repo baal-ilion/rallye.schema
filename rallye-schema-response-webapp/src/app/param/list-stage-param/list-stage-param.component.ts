@@ -1,9 +1,9 @@
 import { Component, OnInit } from '@angular/core';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { HalLink } from '../../models/hal-link';
 import { StageParam } from '../models/stage-param';
 import { NewStageParamComponent } from '../new-stage-param/new-stage-param.component';
 import { StageParamService } from '../stage-param.service';
+import { DialogService } from 'src/app/shared/dialog/dialog.service';
 
 interface StageParamDetail {
   param: StageParam;
@@ -28,7 +28,7 @@ export class ListStageParamComponent implements OnInit {
 
   constructor(
     private stageParamService: StageParamService,
-    private modalService: NgbModal) { }
+    private dialogService: DialogService) { }
 
   ngOnInit() {
     this.loadStageParamDetails();
@@ -93,10 +93,11 @@ export class ListStageParamComponent implements OnInit {
   }
 
   async addStageParam() {
-    const modalRef = this.modalService.open(NewStageParamComponent);
+    const modalRef = this.dialogService.open<NewStageParamComponent>(NewStageParamComponent);
     try {
-      const result: StageParam = await modalRef.result;
+      const result = await modalRef.result as StageParam;
       console.log(result);
+      if (!result) { return; }
       try {
         await this.stageParamService.addStageParam(result).toPromise();
         this.loadStageParamDetails();

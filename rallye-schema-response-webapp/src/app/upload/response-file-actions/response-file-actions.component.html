@@ -10,17 +10,18 @@
     <button type="button" *ngIf="responseFileInfo.checked && !isSelected && selecteds.length > 0"
       class="btn btn-success" (click)="replace()">Utiliser cette feuille</button>
     <button type="button" class="btn btn-danger" (click)="delete()">Supprimer</button>
-    <div class="btn-group" ngbDropdown display="dynamic" role="group"
-      *ngIf="displaySelectedResponseFile || displaySelectablesResponseFile || displayKeptResponseFile || responseFileInfo.checked">
-      <button type="button" class="btn btn-primary" ngbDropdownToggle>...</button>
-      <div class="dropdown-menu" ngbDropdownMenu>
-        <button type="button" ngbDropdownItem *ngIf="displaySelectedResponseFile"
-          (click)="showSelectedResponseFile()">Afficher la feuille de réponse actuelle</button>
-        <button type="button" ngbDropdownItem *ngIf="displaySelectablesResponseFile"
-          (click)="showSelectablesResponseFile()">Choisir une autre feuille de réponse</button>
-        <button type="button" ngbDropdownItem *ngIf="displayKeptResponseFile" (click)="check()">Conserver cette
+    <div class="btn-group" role="group"
+      *ngIf="displaySelectedResponseFile || displaySelectablesResponseFile || displayKeptResponseFile || responseFileInfo.checked"
+      [class.show]="actionsMenuOpen">
+      <button type="button" class="btn btn-primary dropdown-toggle" (click)="toggleActionsMenu()">...</button>
+      <div class="dropdown-menu" [class.show]="actionsMenuOpen">
+        <button type="button" class="dropdown-item" *ngIf="displaySelectedResponseFile"
+          (click)="showSelectedResponseFile(); closeActionsMenu();">Afficher la feuille de réponse actuelle</button>
+        <button type="button" class="dropdown-item" *ngIf="displaySelectablesResponseFile"
+          (click)="showSelectablesResponseFile(); closeActionsMenu();">Choisir une autre feuille de réponse</button>
+        <button type="button" class="dropdown-item" *ngIf="displayKeptResponseFile" (click)="check(); closeActionsMenu();">Conserver cette
           feuille</button>
-        <button type="button" ngbDropdownItem *ngIf="responseFileInfo.checked" (click)="uncheck()">Remettre cette
+        <button type="button" class="dropdown-item" *ngIf="responseFileInfo.checked" (click)="uncheck(); closeActionsMenu();">Remettre cette
           feuille à valider</button>
       </div>
     </div>

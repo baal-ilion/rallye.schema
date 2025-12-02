@@ -1,6 +1,6 @@
 import { Component, ElementRef, Input, OnInit, ViewChild } from '@angular/core';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
-import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
+import { MatDialogRef } from '@angular/material/dialog';
 import { ResponseFileParam } from '../models/response-file-param';
 
 @Component({
@@ -11,12 +11,8 @@ import { ResponseFileParam } from '../models/response-file-param';
 export class ModifyResponseFileParamComponent implements OnInit {
 
   @Input() param: ResponseFileParam;
-  @ViewChild('labelImport')
-  labelImport: ElementRef;
   @ViewChild('labelImportText')
   labelImportText: ElementRef;
-  @ViewChild('labelImportModel')
-  labelImportModel: ElementRef;
   @ViewChild('labelImportModelText')
   labelImportModelText: ElementRef;
 
@@ -26,7 +22,7 @@ export class ModifyResponseFileParamComponent implements OnInit {
   detailsParam: ResponseFileParam;
   modelUrl: string;
 
-  constructor(public activeModal: NgbActiveModal, private formBuilder: UntypedFormBuilder) { }
+  constructor(public dialogRef: MatDialogRef<ModifyResponseFileParamComponent>, private formBuilder: UntypedFormBuilder) { }
 
   ngOnInit() {
     this.detailsParam = JSON.parse(JSON.stringify(this.param));
@@ -58,7 +54,7 @@ export class ModifyResponseFileParamComponent implements OnInit {
     };
     formData.append('responseFileParam', JSON.stringify(data));
     formData.append('responseFileModel', this.responseFileModel);
-    this.activeModal.close(formData);
+    this.dialogRef.close(formData);
   }
 
   selectFile(files: FileList) {

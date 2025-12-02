@@ -1,8 +1,8 @@
 import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
 import { HalCollection } from 'src/app/models/hal-collection';
 import { HalLink } from 'src/app/models/hal-link';
+import { AppDialogRef, DialogService } from 'src/app/shared/dialog/dialog.service';
 import { isResponseFileSource } from 'src/app/stage/models/response-file-source';
 import { StageResult } from 'src/app/stage/models/stage-result';
 import { StageService } from 'src/app/stage/stage.service';
@@ -25,11 +25,12 @@ export class ResponseFileActionsComponent implements OnInit, OnChanges {
   isSelected = false;
   selecteds: ResponseFileInfo[] = [];
   selectables: ResponseFileInfo[] = [];
+  actionsMenuOpen = false;
 
   constructor(
     private uploadService: UploadFileService,
     private stageService: StageService,
-    private modalService: NgbModal,
+    private dialogService: DialogService,
     private confirmationDialogService: ConfirmationDialogService) { }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -153,7 +154,7 @@ export class ResponseFileActionsComponent implements OnInit, OnChanges {
 
   showSelectedResponseFile() {
     if (this.selectables.length > 0) {
-      const modalRef = this.modalService.open(ListResponseFileComponent, { size: 'xl' });
+      const modalRef: AppDialogRef<ListResponseFileComponent> = this.dialogService.open(ListResponseFileComponent, { size: 'xl' });
       modalRef.componentInstance.responseFiles = this.selecteds;
       modalRef.result.then((result) => {
         console.log(result);
@@ -169,7 +170,7 @@ export class ResponseFileActionsComponent implements OnInit, OnChanges {
 
   showSelectablesResponseFile() {
     if (this.selectables.length > 0) {
-      const modalRef = this.modalService.open(ListResponseFileComponent, { size: 'xl' });
+      const modalRef: AppDialogRef<ListResponseFileComponent> = this.dialogService.open(ListResponseFileComponent, { size: 'xl' });
       modalRef.componentInstance.responseFiles = this.selectables;
       modalRef.result.then((result) => {
         console.log(result);
@@ -186,4 +187,12 @@ export class ResponseFileActionsComponent implements OnInit, OnChanges {
   get displaySelectedResponseFile(): boolean { return this.viewOtherFiles && !this.isSelected && this.selecteds.length > 0; }
   get displaySelectablesResponseFile(): boolean { return this.viewOtherFiles && this.isSelected && this.selectables.length > 0; }
   get displayKeptResponseFile(): boolean { return !this.responseFileInfo.checked && this.selecteds.length > 0; }
+
+  toggleActionsMenu() {
+    this.actionsMenuOpen = !this.actionsMenuOpen;
+  }
+
+  closeActionsMenu() {
+    this.actionsMenuOpen = false;
+  }
 }

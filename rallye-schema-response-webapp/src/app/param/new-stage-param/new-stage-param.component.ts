@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { AbstractControl, UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
-import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
+import { MatDialogRef } from '@angular/material/dialog';
 
 import { StageParam } from '../models/stage-param';
 import { StageParamService } from '../stage-param.service';
@@ -20,7 +20,7 @@ export class NewStageParamComponent implements OnInit {
   stageGroups: StageGroup[] = [];
 
   constructor(
-    public activeModal: NgbActiveModal,
+    public dialogRef: MatDialogRef<NewStageParamComponent>,
     private formBuilder: UntypedFormBuilder,
     private stageParamService: StageParamService,
     private stageGroupService: StageGroupService,
@@ -71,6 +71,6 @@ export class NewStageParamComponent implements OnInit {
 
   submitForm() {
     // On renvoie { stage, name, group } au composant parent
-    this.activeModal.close(this.stageParamForm.value);
+    this.dialogRef.close(this.stageParamForm.value);
   }
 }

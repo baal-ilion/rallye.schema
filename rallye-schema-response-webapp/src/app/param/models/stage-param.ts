@@ -20,7 +20,6 @@ export interface StageParam {
   id?: string;
   stage: number;
   name: string;
-  inactive: boolean;
   questionPointParams: QuestionPointParams;
   performancePointParams: PerformancePointParams;
   questionParams: QuestionParams;
