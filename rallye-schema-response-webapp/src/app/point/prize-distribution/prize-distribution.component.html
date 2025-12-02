@@ -27,30 +27,26 @@
       <table class="table table-sm align-items-center text-center mb-0">
         <thead class="bg-light">
           <tr>
-            <th scope="col" class="align-middle">Type de lot</th>
             <th scope="col" class="align-middle">Groupe</th>
-            <th scope="col" class="align-middle">Rang</th>
             <th scope="col" class="align-middle">N° équipe</th>
             <th scope="col" class="align-middle">Nom de l'équipe</th>
-            <th scope="col" class="align-middle">Score utilisé</th>
+            <th scope="col" class="align-middle">Rang</th>
+            <th scope="col" class="align-middle">Points</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let prize of prizes">
             <td class="align-middle">
-              {{ getPrizeTypeLabel(prize) }}
-            </td>
-            <td class="align-middle">
               {{ getGroupLabel(prize) }}
-            </td>
-            <td class="align-middle">
-              {{ prize.rank }}
             </td>
             <td class="align-middle">
               {{ prize.team }}
             </td>
             <td class="align-middle">
               {{ prize.teamName }}
+            </td>
+            <td class="align-middle">
+              {{ prize.rank }}
             </td>
             <td class="align-middle">
               {{ prize.score }}
