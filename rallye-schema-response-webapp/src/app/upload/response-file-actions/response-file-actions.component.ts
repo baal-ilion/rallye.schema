@@ -85,12 +85,15 @@ export class ResponseFileActionsComponent implements OnInit, OnChanges {
   }
 
   check() {
-    this.uploadService.updateResponseFileInfoCorners({
-      id: this.responseFileInfo.id,
-      checked: true
-    }).subscribe(data => {
-      this.responseFileInfo = data;
-      this.checkedEvent.emit(data);
+    this.stageService.selectResponseFile(
+      this.responseFileInfo.stage,
+      this.responseFileInfo.team,
+      this.responseFileInfo.id,
+      false
+    ).subscribe(() => {
+      // Marquer la feuille comme acceptée côté UI
+      this.responseFileInfo.checked = true;
+      this.checkedEvent.emit(this.responseFileInfo);
       this.ngOnInit();
     }, err => {
       console.log(err);

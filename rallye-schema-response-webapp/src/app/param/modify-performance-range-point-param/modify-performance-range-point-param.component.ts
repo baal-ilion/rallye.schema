@@ -1,5 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup } from '@angular/forms';
+import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 import { PerformanceRangePointParam } from '../models/performance-range-point-param';
 import { TeamInfoService } from '../team-info.service';
@@ -12,7 +12,7 @@ import { StandardContext, SpelExpressionEvaluator } from 'spel2js';
 })
 export class ModifyPerformanceRangePointParamComponent implements OnInit {
   @Input() range: PerformanceRangePointParam;
-  rangeForm: FormGroup;
+  rangeForm: UntypedFormGroup;
   result: number;
   perfPointAllocationType = {
     VALUE: 'SCORE',
@@ -26,7 +26,7 @@ export class ModifyPerformanceRangePointParamComponent implements OnInit {
 
   constructor(
     public activeModal: NgbActiveModal,
-    private formBuilder: FormBuilder,
+    private formBuilder: UntypedFormBuilder,
     private teamInfoService: TeamInfoService) { }
 
   ngOnInit() {

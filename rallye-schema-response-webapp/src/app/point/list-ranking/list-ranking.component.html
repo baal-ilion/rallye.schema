@@ -1,24 +1,26 @@
-<div class="container mb-5">
+﻿<div class="container mb-5">
   <div class="row mt-4 text-center">
-    <h1 class="col-12">{{ isStageMode ? 'Classements par epreuve' : 'Classement general' }}</h1>
+    <h1 class="col-12">{{ isStageMode ? 'Classements par épreuve' : 'Classement général' }}</h1>
+  </div>
+  <div class="row d-print-none toggle-row">
+    <div class="col-12 d-flex justify-content-end align-items-center">
+      <label for="viewPoints" class="mb-0">Afficher les points</label>
+      <app-toggle-switch [checked]="viewPoints" id="viewPoints" class="ml-2" (change)="viewPoints = !viewPoints">
+      </app-toggle-switch>
+    </div>
   </div>
   <div class="row justify-content-center d-print-none">
-    <label for="viewPoints">{{ isStageMode ? 'Afficher les points des epreuves' : 'Afficher les points' }}</label>
-    <app-toggle-switch [checked]="viewPoints" id="viewPoints" class="ml-2" (change)="viewPoints = !viewPoints">
-    </app-toggle-switch>
-  </div>
-  <div class="row justify-content-center d-print-none">
-    <button class="btn-primary" ngbButtonLabel (click)='exportExcel()'>Telecharger</button>
+    <button class="btn btn-primary w-auto" ngbButtonLabel (click)='exportExcel()'>Télécharger</button>
   </div>
   <div class="row justify-content-center" *ngIf="!isStageMode">
-    <app-ranking class="col-12" rankingTitle="Classement general" [teamRanking]="generalRanking"
+    <app-ranking class="col-12" rankingTitle="Classement général" [teamRanking]="generalRanking"
       [teamInfos]="teamInfos"
       [viewPoints]="viewPoints">
     </app-ranking>
   </div>
   <div class="row justify-content-center" *ngIf="isStageMode">
     <app-ranking class="col-12" *ngFor="let stageRank of stageRanking | keyvalue: keyOrder"
-      [rankingTitle]="stageParams[stageRank.key]?.name || ('Epreuve ' + stageRank.key)"
+      [rankingTitle]="stageParams[stageRank.key]?.name || ('Épreuve ' + stageRank.key)"
       [teamRanking]="stageRank.value"
       [teamInfos]="teamInfos"
       [viewPoints]="viewPoints">

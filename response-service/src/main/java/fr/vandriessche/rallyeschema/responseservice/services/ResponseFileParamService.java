@@ -4,8 +4,11 @@ import java.awt.image.BufferedImage;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -192,14 +195,32 @@ public class ResponseFileParamService {
 			throws IOException, ParserConfigurationException, SAXException {
 		if (Objects.isNull(responseFileParam.getTemplate()))
 			return new com.albertoborsetta.formscanner.api.FormTemplate("");
+		try {
+			return buildFormTemplate(responseFileParam.getTemplate());
+		} catch (SAXException ex) {
+			// Certains anciens fichiers sont encodés en ISO-8859-1 : on retente en recodant
+			String recoded = new String(responseFileParam.getTemplate().getBytes(StandardCharsets.ISO_8859_1),
+					StandardCharsets.UTF_8);
+			if (!recoded.equals(responseFileParam.getTemplate())) {
+				return buildFormTemplate(recoded);
+			}
+			throw ex;
+		}
+	}
+
+	private com.albertoborsetta.formscanner.api.FormTemplate buildFormTemplate(String templateContent)
+			throws IOException, ParserConfigurationException, SAXException {
 		File templateFile = File.createTempFile("rallyeschema-", "-model.xtmpl");
 		templateFile.deleteOnExit();
-		try (BufferedWriter bw = new BufferedWriter(new FileWriter(templateFile))) {
-			bw.write(responseFileParam.getTemplate());
+		try (BufferedWriter bw = new BufferedWriter(
+				new OutputStreamWriter(new FileOutputStream(templateFile), StandardCharsets.UTF_8))) {
+			bw.write(templateContent);
 		}
-		var formTemplate = new com.albertoborsetta.formscanner.api.FormTemplate(templateFile);
-		templateFile.delete();
-		return formTemplate;
+		try {
+			return new com.albertoborsetta.formscanner.api.FormTemplate(templateFile);
+		} finally {
+			templateFile.delete();
+		}
 	}
 
 	private ResponseFileModel makeResponseFileModel(MultipartFile fileModel, ResponseFileModel responseFileModel)

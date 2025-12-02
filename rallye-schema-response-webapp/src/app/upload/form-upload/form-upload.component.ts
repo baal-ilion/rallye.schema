@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { UploadFileService } from '../upload-file.service';
 import { HttpEventType, HttpResponse } from '@angular/common/http';
 
@@ -9,11 +9,12 @@ import { HttpEventType, HttpResponse } from '@angular/common/http';
 })
 export class FormUploadComponent implements OnInit {
 
-  @ViewChild('labelImport')
-  labelImport: ElementRef;
+  @ViewChild('fileInput')
+  fileInput: ElementRef<HTMLInputElement>;
 
   selectedFiles: FileList;
   uploadedFiles: { file: File, progress: { percentage: number } }[] = [];
+  selectedNames: string[] = [];
 
   constructor(private uploadService: UploadFileService) { }
 
@@ -21,24 +22,33 @@ export class FormUploadComponent implements OnInit {
   }
 
   selectFile(files: FileList) {
-    if (files.length > 0)
-      this.labelImport.nativeElement.innerText = Array.from(files)
-        .map(f => f.name)
-        .join(', ');
-    else
-      this.labelImport.nativeElement.innerHTML = '<i class="fas fa-search">Sélectionnez une feuille de réponses corrigée.</i>';
     this.selectedFiles = files;
+    if (files && files.length > 0) {
+      this.selectedNames = Array.from(files).map(f => f.name);
+    } else {
+      this.selectedNames = [];
+      if (this.fileInput) {
+        this.fileInput.nativeElement.value = '';
+      }
+    }
   }
 
   upload() {
     this.uploadedFiles = [];
+    if (!this.selectedFiles || this.selectedFiles.length === 0) {
+      this.selectedNames = [];
+      return;
+    }
     // tslint:disable-next-line: prefer-for-of
     for (let index = 0; index < this.selectedFiles.length; index++) {
       const file = this.selectedFiles[index];
       this.uploadFile(file);
     }
-    this.labelImport.nativeElement.innerHTML = '<i class="fas fa-search">Sélectionnez une feuille de réponses corrigée.</i>';
+    this.selectedNames = [];
     this.selectedFiles = undefined;
+    if (this.fileInput) {
+      this.fileInput.nativeElement.value = '';
+    }
   }
 
   uploadFile(fileToUpload) {
@@ -47,7 +57,7 @@ export class FormUploadComponent implements OnInit {
 
     this.uploadService.pushFileToStorage(uploadedFile.file).subscribe(event => {
       if (event.type === HttpEventType.UploadProgress) {
-        uploadedFile.progress.percentage = Math.round(100 * event.loaded / event.total);
+        uploadedFile.progress.percentage = Math.round(100 * event.loaded / (event.total || 1));
       } else if (event instanceof HttpResponse) {
         console.log('File is completely uploaded!');
       }

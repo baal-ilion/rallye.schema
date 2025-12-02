@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { AbstractControl, FormArray, FormBuilder, FormGroup } from '@angular/forms';
+import { AbstractControl, UntypedFormArray, UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
@@ -42,14 +42,14 @@ export class ModifyStageParamComponent implements OnInit {
     RANK: PerformanceRangeType.PERF_UP_RANK,
   };
 
-  stageParamForm: FormGroup;
+  stageParamForm: UntypedFormGroup;
   responseFileParamUrls: string[] = [];
   removedQuestionParams: string[] = [];
   questionParamNames: string[] = [];
   questionParamName = '';
 
   constructor(
-    private formBuilder: FormBuilder,
+    private formBuilder: UntypedFormBuilder,
     private stageParamService: StageParamService,
     private route: ActivatedRoute,
     private confirmationDialogService: ConfirmationDialogService,
@@ -61,12 +61,12 @@ export class ModifyStageParamComponent implements OnInit {
 
   // convenience getters for easy access to form fields
   get f() { return this.stageParamForm.controls; }
-  get questionPointParams() { return this.f.questionPointParams as FormArray; }
-  get performancePointParams() { return this.f.performancePointParams as FormArray; }
-  get questionParams() { return this.f.questionParams as FormArray; }
+  get questionPointParams() { return this.f.questionPointParams as UntypedFormArray; }
+  get performancePointParams() { return this.f.performancePointParams as UntypedFormArray; }
+  get questionParams() { return this.f.questionParams as UntypedFormArray; }
   getRanges(performancePointParam: AbstractControl) {
-    const f = (performancePointParam as FormGroup).controls;
-    return f.ranges as FormArray;
+    const f = (performancePointParam as UntypedFormGroup).controls;
+    return f.ranges as UntypedFormArray;
   }
 
   ngOnInit() {
@@ -161,7 +161,7 @@ export class ModifyStageParamComponent implements OnInit {
     }
   }
 
-  private buildFormGroup(range: PerformanceRangePointParam): FormGroup {
+  private buildFormGroup(range: PerformanceRangePointParam): UntypedFormGroup {
     return this.formBuilder.group({
       allocationType: range.type ? this.perfPointAllocationType[range.type] : null,
       type: range.type,
@@ -346,13 +346,13 @@ export class ModifyStageParamComponent implements OnInit {
     return modifiedQuestionParams;
   }
 
-  onPerfPointAllocationType(value: string, range: FormGroup) {
+  onPerfPointAllocationType(value: string, range: UntypedFormGroup) {
     if (this.perfPointAllocationType[range.value.type] !== value) {
       range.patchValue({ type: this.perfPointDefaultRangeType[value] });
     }
   }
 
-  onChangePerformanceRangePointParam(value: string, ranges: FormArray, index: number) {
+  onChangePerformanceRangePointParam(value: string, ranges: UntypedFormArray, index: number) {
     console.log('onChangePerformanceRangePointParam : ' + index);
     if (index === ranges.length - 1) {
       if (value) {
@@ -366,7 +366,7 @@ export class ModifyStageParamComponent implements OnInit {
     }
   }
 
-  onClickDetailPoint(range: FormGroup) {
+  onClickDetailPoint(range: UntypedFormGroup) {
     const modalRef = this.modalService.open(ModifyPerformanceRangePointParamComponent, { size: 'xl' });
     modalRef.componentInstance.range = range.value as PerformanceRangePointParam;
     modalRef.result.then((result: PerformanceRangePointParam) => {

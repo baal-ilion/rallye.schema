@@ -1,11 +1,11 @@
-<div class="container mb-5">
+﻿<div class="container mb-5">
 
   <div class="row mt-4">
     <div class="col-9">
       <h1 id="ranking_title" class="text-center">Paramétrage des équipes</h1>
     </div>
     <div class="col-3 m-auto p-0 text-center">
-      <button class="btn-primary" ngbButtonLabel (click)='addTeamInfo()'>Ajouter une équipe</button>
+      <button class="btn btn-success w-auto" ngbButtonLabel (click)='addTeamInfo()'>Ajouter une équipe</button>
     </div>
   </div>
 
@@ -33,10 +33,10 @@
                 <th scope="row" class="align-middle">{{teamInfo.team}}</th>
                 <td class="align-middle">{{teamInfo.name}}</td>
                 <td class="align-middle">
-                  <div class="btn-group">
-                    <button type="button" class="btn-primary" ngbButtonLabel
-                      (click)='modifyTeamInfo(teamInfo)'>Editer</button>
-                    <button type="button" class="btn-danger" ngbButtonLabel
+                  <div class="d-flex justify-content-center align-items-center gap-2">
+                    <button type="button" class="btn btn-primary w-auto" ngbButtonLabel
+                      (click)='modifyTeamInfo(teamInfo)'>Éditer</button>
+                    <button type="button" class="btn btn-danger w-auto" ngbButtonLabel
                       (click)='deleteTeamInfo(teamInfo)'>Supprimer</button>
                   </div>
                 </td>
@@ -49,3 +49,4 @@
     </div>
   </div>
 </div>
+
