@@ -60,7 +60,7 @@ export class PrizeDistributionComponent implements OnInit {
 
   getGroupLabel(prize: PrizeAssignment): string {
     if (prize.type === 'GENERAL') {
-      return '-';
+      return 'Général';
     }
     return prize.groupName || '(groupe inconnu)';
   }
