@@ -1,7 +1,7 @@
-<div class="modal-header">
-  <h4 class="modal-title">Équipe</h4>
-  <button type="button" class="close" aria-label="Close" (click)="activeModal.dismiss('Cross click')">
-  </button>
+﻿<div class="modal-header">
+  <h4 class="modal-title mx-auto">Équipe</h4>
+  <button type="button" class="btn btn-danger text-white w-auto px-3 py-2 d-flex align-items-center justify-content-center ml-auto" style="min-width:2.5rem;min-height:2.5rem;line-height:1;padding:0.4rem 0.6rem;" aria-label="Close"
+    (click)="activeModal.dismiss('Cross click')">&times;</button>
 </div>
 <form [formGroup]="teamInfoForm" (ngSubmit)="submitForm()">
   <div class="modal-boy">
@@ -15,7 +15,7 @@
           <div *ngIf="teamInfoForm.controls.team.errors.uniqueTeam">Ce numéro d'équipe existe déjà</div>
         </div>
       </div>
-      <div class=" form-group">
+      <div class="form-group mt-3">
         <label for="name">Nom</label>
         <input type="text" class="form-control" formControlName="name"
           [ngClass]="{ 'is-invalid': teamInfoForm.controls.name.errors }">

@@ -15,9 +15,9 @@
           <div class="card-body p-0">
             <div>
               <div style="height:300px;width:300px;margin:auto;">
-                <ngx-qrcode [elementType]="elementType" [errorCorrectionLevel]="correctionLevel"
-                  [value]="teamnum(teaminfo)" alt="QR Code {{teaminfo.team}} - {{teaminfo.name}}" width="300">
-                </ngx-qrcode>
+                <qrcode [elementType]="elementType" [errorCorrectionLevel]="correctionLevel"
+                  [qrdata]="teamnum(teaminfo)" alt="QR Code {{teaminfo.team}} - {{teaminfo.name}}" [width]="300">
+                </qrcode>
               </div>
             </div>
           </div>

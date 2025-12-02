@@ -10,41 +10,41 @@
     <div class="col-8 col-sm-6 col-md-5 col-lg-4 col-xl-3 col-xxl-2 m-2 p-0 border">
       <label class="raw col-12 m-0 p-1 text-center">Début :</label>
       <div class="raw col-12 m-0 p-1 justify-content-center input-group">
-        <input class="form-control rounded-left" placeholder="yyyy-mm-dd" name="dp" formControlName="begindate"
+        <input class="form-control rounded-left text-center" placeholder="yyyy-mm-dd" name="dp" formControlName="begindate"
           ngbDatepicker #d="ngbDatepicker">
         <div class="input-group-append">
           <button class="btn btn-outline-secondary calendar rounded-right" (click)="d.toggle()" type="button"></button>
         </div>
       </div>
       <div class="row col-12 m-0 p-1 justify-content-center">
-        <ngb-timepicker formControlName="begintime" seconds="true" [spinners]="false"></ngb-timepicker>
+        <ngb-timepicker class="mx-auto text-center" formControlName="begintime" seconds="true" [spinners]="false"></ngb-timepicker>
       </div>
     </div>
     <!-- End date -->
     <div class="col-8 col-sm-6 col-md-5 col-lg-4 col-xl-3 col-xxl-2 m-2 p-0 border">
       <label class="raw col-12 m-0 p-1 text-center">Fin :</label>
       <div class="raw col-12 m-0 p-1 justify-content-center input-group">
-        <input class="form-control rounded-left" placeholder="yyyy-mm-dd" name="dp" formControlName="enddate"
+        <input class="form-control rounded-left text-center" placeholder="yyyy-mm-dd" name="dp" formControlName="enddate"
           ngbDatepicker #e="ngbDatepicker">
         <div class="input-group-append">
           <button class="btn btn-outline-secondary calendar rounded-right" (click)="e.toggle()" type="button"></button>
         </div>
       </div>
       <div class="row col-12 m-0 p-1 justify-content-center">
-        <ngb-timepicker formControlName="endtime" seconds="true" [spinners]="false"></ngb-timepicker>
+        <ngb-timepicker class="mx-auto text-center" formControlName="endtime" seconds="true" [spinners]="false"></ngb-timepicker>
       </div>
     </div>
   </div>
-  <div class="row col-12 m-0 p-1 justify-content-center">
+  <div class="stage-actions">
     <div class="btn-group" *ngIf="stageResult && stageResult.begin && !stageResult.end">
-      <button class="btn btn-success" type="button" (click)="onStopStage()">Terminer</button>
-      <button class="btn btn-danger" type="button" (click)="onCancelStage()">Annuler</button>
+      <button class="btn btn-success" type="button" (click)="onStopStage()">Terminer</button>
+      <button class="btn btn-danger" type="button" (click)="onCancelStage()">Annuler</button>
     </div>
     <div class="btn-group" *ngIf="stageResult && stageResult.begin && stageResult.end">
-      <button class="btn btn-danger" type="button" (click)="onUndoStage()">Reprendre</button>
+      <button class="btn btn-danger" type="button" (click)="onUndoStage()">Reprendre</button>
     </div>
     <div class="btn-group" *ngIf="!stageResult || !stageResult.begin">
-      <button class="btn btn-success" type="button" (click)="onStartStage()">Commencer</button>
+      <button class="btn btn-success" type="button" (click)="onStartStage()">Commencer</button>
     </div>
   </div>
   <!-- Questions on response sheets -->
@@ -147,15 +147,18 @@
     </div>
   </div>
   <div class="row justify-content-center mt-2">
-    <div *ngIf="stageResult?.checked" class="text-center align-middle mx-2 px-1 py-0">
+    <div *ngIf="stageResult?.checked" class="text-center align-middle mx-2 px-1 py-0 col-auto">
       <button class="btn btn-danger" type="submit" (click)="form.patchValue({checked: false})">Invalider</button>
     </div>
-    <div *ngIf="stageResult && !stageResult.checked" class="text-center align-middle mx-2 px-1 py-0">
+    <div *ngIf="stageResult && !stageResult.checked" class="text-center align-middle mx-2 px-1 py-0 col-auto">
       <button class="btn btn-success" type="submit" [disabled]="!validable"
         (click)="form.patchValue({checked: true})">Valider</button>
     </div>
-    <div class="text-center align-middle mx-2 px-1 py-0">
+    <div class="text-center align-middle mx-2 px-1 py-0 col-auto">
       <button class="btn btn-primary" type="submit">Enregister</button>
     </div>
   </div>
 </form>
+
+
+

@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { AbstractControl, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { AbstractControl, UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 
 import { StageParam } from '../models/stage-param';
@@ -15,13 +15,13 @@ import { StageGroupService } from 'src/app/services/stage-group.service';
 })
 export class NewStageParamComponent implements OnInit {
 
-  stageParamForm: FormGroup;
+  stageParamForm: UntypedFormGroup;
   stageParams: StageParam[] = [];
   stageGroups: StageGroup[] = [];
 
   constructor(
     public activeModal: NgbActiveModal,
-    private formBuilder: FormBuilder,
+    private formBuilder: UntypedFormBuilder,
     private stageParamService: StageParamService,
     private stageGroupService: StageGroupService,
   ) { }

@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
-import { FormArray, FormBuilder, FormGroup } from '@angular/forms';
+import { UntypedFormArray, UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { NgbDateStruct, NgbTimeStruct } from '@ng-bootstrap/ng-bootstrap';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
 import { HalLink } from 'src/app/models/hal-link';
@@ -31,7 +31,7 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   @Output() loadErrorEvent = new EventEmitter<Error>();
 
   stageResult: StageResult;
-  form: FormGroup;
+  form: UntypedFormGroup;
   files: { [page: number]: any } = {};
   param: StageParam;
   fileParams: ResponseFileParam[];
@@ -40,7 +40,7 @@ export class DetailsStageComponent implements OnInit, OnChanges {
 
   constructor(
     private uploadFileService: UploadFileService,
-    private formBuilder: FormBuilder,
+    private formBuilder: UntypedFormBuilder,
     private stageService: StageService,
     private stageParamService: StageParamService,
     private datePipe: DatePipe,
@@ -49,9 +49,9 @@ export class DetailsStageComponent implements OnInit, OnChanges {
 
   // convenience getters for easy access to form fields
   get f() { return this.form.controls; }
-  get pages() { return this.f.pages as FormArray; }
-  getResultForms(formGroup: FormGroup): FormArray { return formGroup.controls.results as FormArray; }
-  getPerformanceForms(formGroup: FormGroup): FormArray { return formGroup.controls.performances as FormArray; }
+  get pages() { return this.f.pages as UntypedFormArray; }
+  getResultForms(formGroup: UntypedFormGroup): UntypedFormArray { return formGroup.controls.results as UntypedFormArray; }
+  getPerformanceForms(formGroup: UntypedFormGroup): UntypedFormArray { return formGroup.controls.performances as UntypedFormArray; }
 
   ngOnChanges(changes: SimpleChanges): void {
     console.log('ngOnChanges');
@@ -206,8 +206,8 @@ export class DetailsStageComponent implements OnInit, OnChanges {
       this.makeQuestionResults(
         Object.values(fileParam.questions),
         questionParams,
-        pageForm.controls.results as FormArray,
-        pageForm.controls.performances as FormArray);
+        pageForm.controls.results as UntypedFormArray,
+        pageForm.controls.performances as UntypedFormArray);
       this.pages.push(pageForm);
     }
     this.makeQuestionResults(
@@ -220,8 +220,8 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   private makeQuestionResults(
     questionPageParams: QuestionPageParam[],
     questionParams: QuestionParam[],
-    results: FormArray,
-    performances: FormArray) {
+    results: UntypedFormArray,
+    performances: UntypedFormArray) {
     for (const questionPageParam of questionPageParams) {
       const index = questionParams.findIndex(q => q.name === questionPageParam.name);
       if (index !== -1) {
@@ -277,7 +277,7 @@ export class DetailsStageComponent implements OnInit, OnChanges {
     return new Date(date?.year, date?.month - 1, date?.day, time?.hour, time?.minute, time?.second);
   }
 
-  private findModifiedResults(form: FormGroup, modifiedResults: any[]) {
+  private findModifiedResults(form: UntypedFormGroup, modifiedResults: any[]) {
     form.getRawValue().results?.forEach((item: any) => {
       const result = this.stageResult.results.find(element => element.name === item.name);
       if (!result || item.resultValue !== result.resultValue) {
@@ -286,7 +286,7 @@ export class DetailsStageComponent implements OnInit, OnChanges {
     });
   }
 
-  private findModifiedperformances(form: FormGroup, modifiedperformances: any[]) {
+  private findModifiedperformances(form: UntypedFormGroup, modifiedperformances: any[]) {
     form.getRawValue().performances.forEach((item: any) => {
       const performance = this.stageResult.performances.find(element => element.name === item.name);
       if (!performance || item.performanceValue !== performance.performanceValue) {
@@ -313,8 +313,8 @@ export class DetailsStageComponent implements OnInit, OnChanges {
       const modifiedperformances = [];
       this.findModifiedperformances(this.form, modifiedperformances);
       this.pages.controls.forEach(page => {
-        this.findModifiedResults(page as FormGroup, modifiedResults);
-        this.findModifiedperformances(page as FormGroup, modifiedperformances);
+        this.findModifiedResults(page as UntypedFormGroup, modifiedResults);
+        this.findModifiedperformances(page as UntypedFormGroup, modifiedperformances);
       });
       const begin = this.buildDate(this.form.value.begindate, this.form.value.begintime);
       const sameBegin = (!begin && !this.stageResult.begin) || new Date(this.stageResult.begin).getTime() === begin?.getTime();
@@ -437,11 +437,11 @@ export class DetailsStageComponent implements OnInit, OnChanges {
     }
   }
 
-  private hasEmptyPerformances(form: FormGroup): boolean {
+  private hasEmptyPerformances(form: UntypedFormGroup): boolean {
     return form.getRawValue().performances?.find(item => !item.performanceValue && item.performanceValue !== 0) ?? false;
   }
 
-  private hasEmptyResults(form: FormGroup): boolean {
+  private hasEmptyResults(form: UntypedFormGroup): boolean {
     return form.getRawValue().results?.find(item => item.resultValue !== true && item.resultValue !== false) ?? false;
   }
 
@@ -458,7 +458,7 @@ export class DetailsStageComponent implements OnInit, OnChanges {
     if (this.hasEmptyResults(this.form)) {
       return false;
     }
-    if (this.pages.controls.find(page => this.hasEmptyResults(page as FormGroup) || this.hasEmptyPerformances(page as FormGroup))) {
+    if (this.pages.controls.find(page => this.hasEmptyResults(page as UntypedFormGroup) || this.hasEmptyPerformances(page as UntypedFormGroup))) {
       return false;
     }
     return true;

@@ -1,14 +1,14 @@
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { registerLocaleData } from '@angular/common';
-import { HttpClientModule } from '@angular/common/http';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import localeFrExtra from '@angular/common/locales/extra/fr';
 import localeFr from '@angular/common/locales/fr';
 import { APP_INITIALIZER, LOCALE_ID, NgModule } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
-import { NgxQRCodeModule } from '@techiediaries/ngx-qrcode';
+import { NgbModule, NgbAccordionModule } from '@ng-bootstrap/ng-bootstrap';
+import { QRCodeModule } from 'angularx-qrcode';
 import { AppConfigService } from './app-config.service';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -53,81 +53,67 @@ import { ListStageGroupComponent } from './param/list-stage-group/list-stage-gro
 
 registerLocaleData(localeFr, 'fr', localeFrExtra);
 
-@NgModule({
-  declarations: [
-    AppComponent,
-    FormUploadComponent,
-    ListUploadComponent,
-    DetailsUploadComponent,
-    DetailsStageComponent,
-    ListStageComponent,
-    ModifyUploadComponent,
-    DetailsResponseFileParamComponent,
-    ModifyResponseFileParamComponent,
-    DetailsTemplateComponent,
-    DetailsTemplateParamComponent,
-    ListPointComponent,
-    DetailsPointComponent,
-    ListStageGroupComponent,
-    ListStageParamComponent,
-    MenuComponent,
-    DetailsResponseFileComponent,
-    ListTeamInfoComponent,
-    ModifyTeamInfoComponent,
-    TeamPresenceComponent,
-    ModifyStageParamComponent,
-    NewStageParamComponent,
-    ConfirmationDialogComponent,
-    DetailsTeamComponent,
-    ListResponseFileComponent,
-    SharingParamComponent,
-    RankingComponent,
-    ListRankingComponent,
-    GroupRankingComponent,
-    PrizeDistributionComponent,
-    DetailsTeamStageComponent,
-    ResponseFileActionsComponent,
-    ModifyPerformanceRangePointParamComponent,
-    LogFilesComponent,
-    ToggleSwitchComponent,
-    HomeComponent,
-    QrcodeComponent,
-  ],
-  entryComponents: [
-    ModifyUploadComponent,
-    ModifyResponseFileParamComponent,
-    ModifyTeamInfoComponent,
-    NewStageParamComponent,
-    ConfirmationDialogComponent,
-    ListResponseFileComponent,
-    ModifyPerformanceRangePointParamComponent,
-  ],
-  imports: [
-    BrowserModule,
-    RouterModule,
-    AppRoutingModule,
-    HttpClientModule,
-    BrowserAnimationsModule,
-    DragDropModule,
-    NgbModule,
-    FormsModule,
-    ReactiveFormsModule,
-    NgxQRCodeModule
-  ],
-  providers: [
-    {
-      provide: LOCALE_ID,
-      useFactory: (localeService: LocaleService) => {
-        console.log('locale ID', localeService.getLanguage());
-        return localeService.getLanguage();
-      },
-      deps: [LocaleService]
-    },
-    AppConfigService,
-    { provide: APP_INITIALIZER, useFactory: initializeApp, deps: [AppConfigService], multi: true }
-  ],
-  bootstrap: [AppComponent]
-})
+@NgModule({ declarations: [
+        AppComponent,
+        FormUploadComponent,
+        ListUploadComponent,
+        DetailsUploadComponent,
+        DetailsStageComponent,
+        ListStageComponent,
+        ModifyUploadComponent,
+        DetailsResponseFileParamComponent,
+        ModifyResponseFileParamComponent,
+        DetailsTemplateComponent,
+        DetailsTemplateParamComponent,
+        ListPointComponent,
+        DetailsPointComponent,
+        ListStageGroupComponent,
+        ListStageParamComponent,
+        MenuComponent,
+        DetailsResponseFileComponent,
+        ListTeamInfoComponent,
+        ModifyTeamInfoComponent,
+        TeamPresenceComponent,
+        ModifyStageParamComponent,
+        NewStageParamComponent,
+        ConfirmationDialogComponent,
+        DetailsTeamComponent,
+        ListResponseFileComponent,
+        SharingParamComponent,
+        RankingComponent,
+        ListRankingComponent,
+        GroupRankingComponent,
+        PrizeDistributionComponent,
+        DetailsTeamStageComponent,
+        ResponseFileActionsComponent,
+        ModifyPerformanceRangePointParamComponent,
+        LogFilesComponent,
+        ToggleSwitchComponent,
+        HomeComponent,
+        QrcodeComponent,
+    ],
+    bootstrap: [AppComponent], imports: [BrowserModule,
+        RouterModule,
+        AppRoutingModule,
+        BrowserAnimationsModule,
+        DragDropModule,
+        NgbModule,
+        NgbAccordionModule,
+        FormsModule,
+        ReactiveFormsModule,
+        QRCodeModule], providers: [
+        {
+            provide: LOCALE_ID,
+            useFactory: (localeService: LocaleService) => {
+                console.log('locale ID', localeService.getLanguage());
+                return localeService.getLanguage();
+            },
+            deps: [LocaleService]
+        },
+        AppConfigService,
+        { provide: APP_INITIALIZER, useFactory: initializeApp, deps: [AppConfigService], multi: true },
+        provideHttpClient(withInterceptorsFromDi())
+    ] })
 export class AppModule { }
 
 export function initializeApp(appConfigService: AppConfigService) {

@@ -1,6 +1,6 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
-import { FormGroup, FormBuilder } from '@angular/forms';
+import { UntypedFormGroup, UntypedFormBuilder } from '@angular/forms';
 
 @Component({
   selector: 'app-modify-upload',
@@ -10,10 +10,10 @@ import { FormGroup, FormBuilder } from '@angular/forms';
 export class ModifyUploadComponent implements OnInit {
 
   @Input() fileUpload: any;
-  myForm: FormGroup;
+  myForm: UntypedFormGroup;
 
   constructor(public activeModal: NgbActiveModal,
-              private formBuilder: FormBuilder) { }
+              private formBuilder: UntypedFormBuilder) { }
 
   ngOnInit() {
     this.createForm();
