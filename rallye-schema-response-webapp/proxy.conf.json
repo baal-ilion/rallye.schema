@@ -7,5 +7,12 @@
     "pathRewrite": {
       "^/api": ""
     }
+  },
+  "/ws-ranking": {
+    "target": "http://localhost:8082",
+    "secure": false,
+    "changeOrigin": true,
+    "ws": true,
+    "logLevel": "debug"
   }
 }

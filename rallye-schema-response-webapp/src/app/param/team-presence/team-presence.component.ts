@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { TeamInfo } from '../models/team-info';
 import { TeamInfoService } from '../team-info.service';
 import { HalCollection } from '../../models/hal-collection';
+import { TeamInfoUpdateService } from '../../services/team-info-update.service';
 
 @Component({
   selector: 'app-team-presence',
@@ -14,10 +15,17 @@ export class TeamPresenceComponent implements OnInit {
   loading = false;
   error?: string;
 
-  constructor(private teamInfoService: TeamInfoService) { }
+  constructor(
+    private teamInfoService: TeamInfoService,
+    private teamInfoUpdateService: TeamInfoUpdateService
+  ) { }
 
   ngOnInit(): void {
     this.loadTeams();
+
+    this.teamInfoUpdateService.updates$.subscribe(() => {
+      this.loadTeams();
+    });
   }
 
   loadTeams(): void {
@@ -33,23 +41,18 @@ export class TeamPresenceComponent implements OnInit {
   }
 
   onPresenceChange(team: TeamInfo, value: boolean): void {
-    const updated: TeamInfo = { ...team, present: value };
-
-    this.teamInfoService.updateTeamInfo(updated).subscribe({
+    this.teamInfoService.setPresence(team.team, value).subscribe({
       next: (saved) => {
         team.present = saved.present;
       },
       error: () => {
         this.error = 'Erreur lors de la mise à jour de la présence';
-        // on remet la valeur précédente en cas d’erreur
         team.present = !value;
       }
     });
   }
 
   isPresent(team: TeamInfo): boolean {
-    // null ou undefined ⇒ considéré comme absent
     return !!team.present;
   }
 }
-

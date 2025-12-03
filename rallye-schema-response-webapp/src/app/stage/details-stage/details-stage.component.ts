@@ -46,7 +46,6 @@ export class DetailsStageComponent implements OnInit, OnChanges {
     private confirmationDialogService: ConfirmationDialogService,
     private responseFileParamService: ResponseFileParamService) { }
 
-  // convenience getters for easy access to form fields
   get f() { return this.form.controls; }
   get pages() { return this.f.pages as UntypedFormArray; }
   getResultForms(formGroup: UntypedFormGroup): UntypedFormArray { return formGroup.controls.results as UntypedFormArray; }

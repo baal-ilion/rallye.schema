@@ -4,6 +4,9 @@ import {
   PrizeDistributionService,
   PrizeAssignment
 } from '../../services/prize-distribution.service';
+import { RankingUpdateService } from '../../services/ranking-update.service';
+import { TeamInfoUpdateService } from '../../services/team-info-update.service';
+import { merge } from 'rxjs';
 
 @Component({
   selector: 'app-prize-distribution',
@@ -17,10 +20,17 @@ export class PrizeDistributionComponent implements OnInit {
 
   prizes: PrizeAssignment[] = [];
 
-  constructor(private prizeService: PrizeDistributionService) { }
+  constructor(
+    private prizeService: PrizeDistributionService,
+    private rankingUpdateService: RankingUpdateService,
+    private teamInfoUpdateService: TeamInfoUpdateService
+  ) { }
 
   ngOnInit(): void {
     this.loadPrizes();
+
+    merge(this.rankingUpdateService.updates$, this.teamInfoUpdateService.updates$)
+      .subscribe(() => this.loadPrizes());
   }
 
   private loadPrizes(): void {

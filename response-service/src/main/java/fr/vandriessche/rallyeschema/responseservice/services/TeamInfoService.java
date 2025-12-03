@@ -21,10 +21,14 @@ public class TeamInfoService {
     @Autowired
     private MessageProducerService messageProducerService;
 
+    @Autowired
+    private TeamInfoUpdatePublisher teamInfoUpdatePublisher;
+
     public TeamInfo addTeamInfo(TeamInfo teamInfo) {
         teamInfo.setPresent(false);
         teamInfo = teamInfoRepository.save(teamInfo);
         messageProducerService.sendMessage(TEAM_INFO_CREATE_EVENT, teamInfo);
+        teamInfoUpdatePublisher.publishTeamInfoUpdate();
         return teamInfo;
     }
 
@@ -36,6 +40,7 @@ public class TeamInfoService {
         var teamInfo = teamInfoRepository.findById(id).orElseThrow();
         teamInfoRepository.deleteById(id);
         messageProducerService.sendMessage(TEAM_INFO_DELETE_EVENT, teamInfo);
+        teamInfoUpdatePublisher.publishTeamInfoUpdate();
     }
 
     public TeamInfo getTeamInfo(String id) {
@@ -63,10 +68,16 @@ public class TeamInfoService {
     }
 
  public TeamInfo setTeamPresence(String id, boolean present) {
-        TeamInfo teamInfo = teamInfoRepository.findById(id).orElseThrow();
+        TeamInfo teamInfo = teamInfoRepository.findById(id)
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "Team not found"));
+        if (teamInfo.isPresent() == present) {
+            return teamInfo;
+        }
         teamInfo.setPresent(present);
         teamInfo = teamInfoRepository.save(teamInfo);
         messageProducerService.sendMessage(TEAM_INFO_UPDATE_EVENT, teamInfo);
+        teamInfoUpdatePublisher.publishTeamInfoUpdate();
         return teamInfo;
     }
 
@@ -78,10 +89,36 @@ public class TeamInfoService {
         return setTeamPresence(id, false);
     }
 
+    public TeamInfo setTeamPresenceByTeam(Integer team, boolean present) {
+        var teamInfo = teamInfoRepository.findByTeam(team)
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "Team not found"));
+        return setTeamPresence(teamInfo.getId(), present);
+    }
+
     public TeamInfo updateTeamInfo(TeamInfo teamInfo) {
-        teamInfoRepository.findById(teamInfo.getId()).orElseThrow();
-        teamInfo = teamInfoRepository.save(teamInfo);
-        messageProducerService.sendMessage(TEAM_INFO_UPDATE_EVENT, teamInfo);
-        return teamInfo;
+        TeamInfo existing = teamInfo.getId() != null
+                ? teamInfoRepository.findById(teamInfo.getId()).orElseGet(() -> teamInfoRepository.findByTeam(teamInfo.getTeam()).orElseThrow())
+                : teamInfoRepository.findByTeam(teamInfo.getTeam()).orElseThrow();
+        boolean changed = false;
+        if (teamInfo.getName() != null && !teamInfo.getName().equals(existing.getName())) {
+            existing.setName(teamInfo.getName());
+            changed = true;
+        }
+        if (teamInfo.getTeam() != null && !teamInfo.getTeam().equals(existing.getTeam())) {
+            existing.setTeam(teamInfo.getTeam());
+            changed = true;
+        }
+        if (teamInfo.isPresent() != existing.isPresent()) {
+            existing.setPresent(teamInfo.isPresent());
+            changed = true;
+        }
+        if (!changed) {
+            return existing;
+        }
+        existing = teamInfoRepository.save(existing);
+        messageProducerService.sendMessage(TEAM_INFO_UPDATE_EVENT, existing);
+        teamInfoUpdatePublisher.publishTeamInfoUpdate();
+        return existing;
     }
 }

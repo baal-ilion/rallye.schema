@@ -51,3 +51,7 @@ import 'zone.js';  // Included with Angular CLI.
  * APPLICATION IMPORTS
  */
 import '@angular/localize/init';
+
+// Some libraries still expect a Node-like global in the browser (e.g. crypto shims)
+// Provide it to avoid "global is not defined" at runtime.
+(window as any).global = window;

@@ -1,10 +1,13 @@
 import { DatePipe, KeyValue } from '@angular/common';
-import { Component, OnInit, QueryList, ViewChildren } from '@angular/core';
+import { Component, OnDestroy, OnInit, QueryList, ViewChildren } from '@angular/core';
+import { forkJoin, of, Subject } from 'rxjs';
+import { auditTime, catchError, finalize, startWith, switchMap, takeUntil, tap } from 'rxjs/operators';
 import * as FileSaver from 'file-saver';
 import * as XLSX from 'xlsx';
 import { TeamInfo } from '../../param/models/team-info';
 import { TeamInfoService } from '../../param/team-info.service';
 import { GroupRankingEntry, GroupRankingService } from '../../services/group-ranking.service';
+import { RankingUpdateService } from '../../services/ranking-update.service';
 import { Ranking } from '../models/ranking';
 import { RankingComponent } from '../ranking/ranking.component';
 
@@ -13,7 +16,7 @@ import { RankingComponent } from '../ranking/ranking.component';
   templateUrl: './group-ranking.component.html',
   styleUrls: ['./group-ranking.component.scss']
 })
-export class GroupRankingComponent implements OnInit {
+export class GroupRankingComponent implements OnInit, OnDestroy {
 
   loading = false;
   error: string | null = null;
@@ -23,17 +26,41 @@ export class GroupRankingComponent implements OnInit {
   teamInfos: { [team: number]: TeamInfo } = {};
   @ViewChildren(RankingComponent) rankingTables!: QueryList<RankingComponent>;
   viewPoints = true;
+  private destroy$ = new Subject<void>();
 
   groupOrder = (a: KeyValue<string, Ranking[]>, b: KeyValue<string, Ranking[]>) =>
     a.key.localeCompare(b.key);
 
   constructor(
     private groupRankingService: GroupRankingService,
-    private teamInfoService: TeamInfoService) { }
+    private teamInfoService: TeamInfoService,
+    private rankingUpdateService: RankingUpdateService) { }
 
   ngOnInit(): void {
-    this.loadTeamInfos();
-    this.loadGroupRankings();
+    this.rankingUpdateService.updates$
+      .pipe(
+        startWith(null),          // initial load
+        auditTime(200),           // regroupe les rafales de messages
+        tap(() => {
+          this.loading = true;
+          this.error = null;
+        }),
+        switchMap(() =>
+          this.loadData()
+        ),
+        catchError(err => {
+          console.error(err);
+          this.error = 'Erreur lors du chargement du classement par groupes.';
+          return of();
+        }),
+        finalize(() => this.loading = false),
+        takeUntil(this.destroy$)
+      ).subscribe();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private toRanking(entries: GroupRankingEntry[]): Ranking[] {
@@ -46,29 +73,22 @@ export class GroupRankingComponent implements OnInit {
       }));
   }
 
-  private loadTeamInfos(): void {
-    this.teamInfos = {};
-    this.teamInfoService.getTeamInfos().subscribe((value) => {
-      const teamInfos = value._embedded.teamInfoes;
-      this.teamInfos = {};
-      teamInfos.forEach(teamInfo => {
-        this.teamInfos[teamInfo.team] = teamInfo;
-      });
-    }, () => {
-      this.teamInfos = {};
-    });
-  }
-
-  private loadGroupRankings(): void {
-    this.loading = true;
-    this.error = null;
+  private loadData() {
     this.groupRankings = {};
+    this.teamInfos = {};
 
-    this.groupRankingService.getGroupRankings().subscribe({
-      next: (entries) => {
-        // Regroupement par nom de groupe
+    return forkJoin([
+      this.teamInfoService.getTeamInfos(),
+      this.groupRankingService.getGroupRankings()
+    ]).pipe(
+      tap(([teamsResponse, entries]) => {
+        const embedded: any = teamsResponse._embedded || {};
+        const teamInfos = embedded.teamInfoes || embedded.teamInfos || [];
+        teamInfos.forEach((teamInfo: TeamInfo) => {
+          this.teamInfos[teamInfo.team] = teamInfo;
+        });
+
         const byGroup: { [groupName: string]: GroupRankingEntry[] } = {};
-
         entries.forEach(entry => {
           const name = entry.groupName || 'Sans groupe';
           if (!byGroup[name]) {
@@ -77,7 +97,6 @@ export class GroupRankingComponent implements OnInit {
           byGroup[name].push(entry);
         });
 
-        // Tri interne par rang dans le groupe
         Object.keys(byGroup).forEach(groupName => {
           byGroup[groupName].sort((a, b) => a.groupRank - b.groupRank);
         });
@@ -88,14 +107,14 @@ export class GroupRankingComponent implements OnInit {
             this.groupRankings[groupName] = ranking;
           }
         });
-        this.loading = false;
-      },
-      error: (err) => {
+      }),
+      catchError(err => {
         console.error(err);
         this.error = 'Erreur lors du chargement du classement par groupes.';
-        this.loading = false;
-      }
-    });
+        return of();
+      }),
+      finalize(() => this.loading = false)
+    );
   }
 
   exportExcel() {
