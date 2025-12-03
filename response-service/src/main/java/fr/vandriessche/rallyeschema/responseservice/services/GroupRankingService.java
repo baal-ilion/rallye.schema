@@ -32,6 +32,9 @@ public class GroupRankingService {
     private TeamPointRepository teamPointRepository;
 
     @Autowired
+    private TeamPointService teamPointService;
+
+    @Autowired
     private StageParamRepository stageParamRepository;
 
     /**
@@ -46,7 +49,8 @@ public class GroupRankingService {
 
         // 1. Récupération des données de base
         List<TeamInfo> teamInfos = teamInfoRepository.findAll();
-        List<TeamPoint> teamPoints = teamPointRepository.findAll();
+        // Recalcule les points pour garantir des valeurs à jour
+        List<TeamPoint> teamPoints = teamPointService.computeTeamPoints();
         List<StageParam> stageParams = stageParamRepository.findAll();
 
         // Map team -> TeamPoint

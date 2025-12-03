@@ -37,6 +37,9 @@ public class PrizeDistributionService {
     private TeamPointRepository teamPointRepository;
 
     @Autowired
+    private TeamPointService teamPointService;
+
+    @Autowired
     private StageParamRepository stageParamRepository;
 
     /**
@@ -148,7 +151,8 @@ public class PrizeDistributionService {
                 .filter(t -> t.getTeam() != null)
                 .collect(Collectors.toMap(TeamInfo::getTeam, t -> t, (a, b) -> a));
 
-        List<TeamPoint> teamPoints = teamPointRepository.findAll();
+        // Recalcule les points pour partir du dernier état
+        List<TeamPoint> teamPoints = teamPointService.computeTeamPoints();
         Map<Integer, TeamPoint> teamPointByTeam = teamPoints.stream()
                 .filter(tp -> tp.getTeam() != null)
                 .collect(Collectors.toMap(TeamPoint::getTeam, tp -> tp, (a, b) -> a));

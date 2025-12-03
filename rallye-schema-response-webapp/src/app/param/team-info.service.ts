@@ -25,6 +25,13 @@ export class TeamInfoService {
     return this.http.put<TeamInfo>(AppConfigService.settings.apiUrl.rallyeSchema + '/teamInfos', teamInfo);
   }
 
+  setPresence(team: number, present: boolean): Observable<TeamInfo> {
+    return this.http.put<TeamInfo>(
+      `${AppConfigService.settings.apiUrl.rallyeSchema}/teamInfos/${team}/presence?present=${present}`,
+      {}
+    );
+  }
+
   findById(id: string): Observable<TeamInfo> {
     return this.http.get<TeamInfo>(AppConfigService.settings.apiUrl.rallyeSchema + '/teamInfos/' + id);
   }

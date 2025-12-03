@@ -17,7 +17,6 @@ export class ToggleSwitchComponent implements OnInit, ControlValueAccessor {
   @Input()
   set checked(v: boolean) {
     this._checked = v;
-    this.onChange(this._checked)
   }
 
   get checked() {
@@ -47,10 +46,16 @@ export class ToggleSwitchComponent implements OnInit, ControlValueAccessor {
   ngOnInit(): void {
   }
 
+  onUserToggle(checked: boolean): void {
+    this._checked = checked;
+    this.onChange(checked);
+    this.onTouched();
+  }
+
   // Allows Angular to update the model (rating).
   // Update the model and changes needed for the view here.
   writeValue(checked: boolean): void {
-    this.checked = checked;
+    this._checked = checked;
   }
   // Allows Angular to register a function to call when the model (rating) changes.
   // Save the function as a property to call later here.

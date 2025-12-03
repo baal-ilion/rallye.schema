@@ -23,6 +23,7 @@ export class GroupRankingService {
   constructor(private http: HttpClient) { }
 
   getGroupRankings(): Observable<GroupRankingEntry[]> {
-    return this.http.get<GroupRankingEntry[]>(this.baseUrl);
+    // Ajoute un timestamp pour éviter tout cache éventuel côté navigateur ou proxy
+    return this.http.get<GroupRankingEntry[]>(this.baseUrl, { params: { t: Date.now().toString() } });
   }
 }

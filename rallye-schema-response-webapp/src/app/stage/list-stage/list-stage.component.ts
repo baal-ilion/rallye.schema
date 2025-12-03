@@ -133,4 +133,8 @@ export class ListStageComponent implements OnInit, OnDestroy {
     sessionStorage.setItem(this.CriteriaId, JSON.stringify(this.criteria));
     this.loadStages();
   }
+
+  onStageUpdated() {
+    this.loadStages();
+  }
 }

@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { interval, Subscription } from 'rxjs';
+import { Subject } from 'rxjs';
+import { auditTime, takeUntil } from 'rxjs/operators';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
 import { StageParam } from 'src/app/param/models/stage-param';
 import { TeamInfo } from 'src/app/param/models/team-info';
@@ -8,6 +9,7 @@ import { StageParamService } from 'src/app/param/stage-param.service';
 import { TeamInfoService } from 'src/app/param/team-info.service';
 import { StageResult } from '../models/stage-result';
 import { StageService } from '../stage.service';
+import { RankingUpdateService } from 'src/app/services/ranking-update.service';
 
 @Component({
   selector: 'app-details-team',
@@ -19,7 +21,7 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
   teamInfo: TeamInfo;
   stageParams: StageParam[] = [];
   stages: { [stage: number]: StageResult } = {};
-  subs: Subscription;
+  private destroy$ = new Subject<void>();
 
   constructor(
     private teamInfoService: TeamInfoService,
@@ -28,10 +30,12 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private confirmationDialogService: ConfirmationDialogService,
     private router: Router,
+    private rankingUpdateService: RankingUpdateService
   ) { }
 
   ngOnDestroy(): void {
-    this.subs.unsubscribe();
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   ngOnInit() {
@@ -45,7 +49,14 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
       this.router.navigateByUrl('/');
     });
     this.loadStageParams();
-    this.subs = interval(1000).subscribe(() => this.loadTeamInfo(this.id));
+
+    // Rafraîchissement event-driven : dès qu'un classement/score change, recharger l'équipe/stages
+    this.rankingUpdateService.updates$
+      .pipe(
+        auditTime(200),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(() => this.loadTeamInfo(this.id));
   }
 
   private async init() {

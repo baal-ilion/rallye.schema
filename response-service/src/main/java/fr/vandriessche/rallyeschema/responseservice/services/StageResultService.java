@@ -64,6 +64,9 @@ public class StageResultService {
 	@Autowired
 	private MessageProducerService messageProducerService;
 
+	@Autowired
+	private RankingUpdatePublisher rankingUpdatePublisher;
+
 	public StageResult beginStageResult(Integer stage, Integer team) {
 		StageResult stageResult = findOrMakeStageResultByStageAndTeam(stage, team);
 		if (Objects.nonNull(stageResult))
@@ -315,6 +318,7 @@ public class StageResultService {
 	private StageResult save(StageResult stageResult) {
 		stageResult = stageResultRepository.save(stageResult);
 		messageProducerService.sendMessage(STAGE_RESULT_UPDATE_EVENT, new StageResultMessage(stageResult));
+		rankingUpdatePublisher.publishRankingUpdate();
 		return stageResult;
 	}
 
