@@ -56,19 +56,25 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
         auditTime(200),
         takeUntil(this.destroy$)
       )
-      .subscribe(() => this.loadTeamInfo(this.id));
+      .subscribe(() => this.refreshTeamData());
   }
 
   private async init() {
-    this.teamInfo = null;
-    this.stages = {};
+    await this.refreshTeamData();
+  }
+
+  private async refreshTeamData() {
     await this.loadTeamInfo(this.id);
   }
 
   private async loadTeamInfo(id: string) {
+    const previousTeam = this.teamInfo?.team;
     try {
       console.log('loadTeamInfo:' + id);
       this.teamInfo = await this.teamInfoService.findById(id).toPromise();
+      if (this.teamInfo?.team !== previousTeam) {
+        this.stages = {};
+      }
     } catch (error) {
       this.teamInfo = null;
       console.log(error);
@@ -112,7 +118,7 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
         console.log('User confirmed:', confirmed);
         if (confirmed) {
           this.stageService.beginStage(stage, this.teamInfo.team).subscribe(() => {
-            this.ngOnInit();
+            this.refreshTeamData();
           });
         }
       })
@@ -130,7 +136,7 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
         console.log('User confirmed:', confirmed);
         if (confirmed) {
           this.stageService.endStage(stage, this.teamInfo.team).subscribe(() => {
-            this.ngOnInit();
+            this.refreshTeamData();
           });
         }
       })
@@ -148,7 +154,7 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
         console.log('User confirmed:', confirmed);
         if (confirmed) {
           this.stageService.cancelStage(stage, this.teamInfo.team).subscribe(() => {
-            this.ngOnInit();
+            this.refreshTeamData();
           });
         }
       })
@@ -166,7 +172,7 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
         console.log('User confirmed:', confirmed);
         if (confirmed) {
           this.stageService.undoStage(stage, this.teamInfo.team).subscribe(() => {
-            this.ngOnInit();
+            this.refreshTeamData();
           });
         }
       })
