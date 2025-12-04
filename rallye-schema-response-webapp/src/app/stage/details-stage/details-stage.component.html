@@ -147,7 +147,7 @@
         (click)="form.patchValue({checked: true})">Valider</button>
     </div>
     <div class="text-center align-middle mx-2 px-1 py-0 col-auto">
-      <button class="btn btn-primary" type="submit">Enregister</button>
+      <button class="btn btn-primary" type="submit" [disabled]="stageResult?.checked">Enregister</button>
     </div>
   </div>
 </form>

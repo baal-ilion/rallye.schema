@@ -76,14 +76,21 @@ public class StageResultService {
 	}
 
 	public StageResult cancelStageResult(int stage, int team) {
-		StageResult stageResult = getStageResultByStageAndTeam(stage, team);
-		if (Objects.nonNull(stageResult)) {
-			stageResult.setBegin(null);
-			stageResult.setEnd(null);
-			return save(stageResult);
-		}
-		return null;
+	// Supprime toutes les donnees liees a cette epreuve/equipe
+	responseFileService.deleteByStageAndTeam(stage, team);
+	stageResponseService.deleteByStageAndTeam(stage, team);
+
+	List<StageResult> stageResults = stageResultRepository.findAllByStageAndTeam(stage, team);
+	if (!stageResults.isEmpty()) {
+		stageResults.forEach(sr -> {
+			stageResultRepository.delete(sr);
+			messageProducerService.sendMessage(STAGE_RESULT_DELETE_EVENT, new StageResultMessage(sr));
+		});
+		rankingUpdatePublisher.publishRankingUpdate();
+		return stageResults.get(0);
 	}
+	return null;
+}
 
 	public void deleteByTeam(Integer team) {
 		stageResultRepository.findByTeam(team).forEach(stageResult -> {
@@ -191,6 +198,7 @@ public class StageResultService {
 		StageResult stageResult = getStageResultByStageAndTeam(stage, team);
 		if (Objects.nonNull(stageResult)) {
 			stageResult.setEnd(null);
+			stageResult.setChecked(false);
 			return save(stageResult);
 		}
 		return null;
@@ -464,3 +472,4 @@ public class StageResultService {
 		return stageResultToUpdate;
 	}
 }
+
