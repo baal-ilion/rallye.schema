@@ -1,3 +1,19 @@
+.custom-file-label {
+  background-color: var(--bs-primary);
+  color: #fff;
+  border-color: var(--bs-primary);
+  padding-right: 1rem;
+}
+
+.custom-file-input:focus ~ .custom-file-label {
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
 .custom-file-input ~ .custom-file-label::after {
-    content: "Sélectionner";
+  content: "";
+  display: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  width: 0;
+  padding: 0;
 }

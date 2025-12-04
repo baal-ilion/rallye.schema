@@ -1,18 +1,22 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { HomeComponent } from './home/home.component';
+import { ListStageGroupComponent } from './param/list-stage-group/list-stage-group.component';
 import { ListStageParamComponent } from './param/list-stage-param/list-stage-param.component';
 import { ListTeamInfoComponent } from './param/list-team-info/list-team-info.component';
 import { ModifyStageParamComponent } from './param/modify-stage-param/modify-stage-param.component';
 import { SharingParamComponent } from './param/sharing-param/sharing-param.component';
 import { ListPointComponent } from './point/list-point/list-point.component';
 import { ListRankingComponent } from './point/list-ranking/list-ranking.component';
+import { GroupRankingComponent } from './point/group-ranking/group-ranking.component';
+import { PrizeDistributionComponent } from './point/prize-distribution/prize-distribution.component';
 import { QrcodeComponent } from './qrcode/qrcode.component';
 import { DetailsTeamStageComponent } from './stage/details-team-stage/details-team-stage.component';
 import { DetailsTeamComponent } from './stage/details-team/details-team.component';
 import { ListStageComponent } from './stage/list-stage/list-stage.component';
 import { FormUploadComponent } from './upload/form-upload/form-upload.component';
 import { ListUploadComponent } from './upload/list-upload/list-upload.component';
+import { TeamPresenceComponent } from './param/team-presence/team-presence.component';
 
 
 const routes: Routes = [
@@ -22,13 +26,17 @@ const routes: Routes = [
   { path: 'listStage', component: ListStageComponent },
   { path: 'listPoint', component: ListPointComponent },
   { path: 'listRanking', component: ListRankingComponent },
+  { path: 'groupRanking', component: GroupRankingComponent },
+  { path: 'prizes', component: PrizeDistributionComponent },
   { path: 'listStageParam', component: ListStageParamComponent },
   { path: 'listTeamInfo', component: ListTeamInfoComponent },
+  { path: 'teams/presence', component: TeamPresenceComponent },
   { path: 'stageParam/:id', component: ModifyStageParamComponent },
   { path: 'team/:id', component: DetailsTeamComponent },
   { path: 'sharingParam', component: SharingParamComponent },
   { path: 'stage/:team/:stage', component: DetailsTeamStageComponent },
   { path: 'qrcode', component: QrcodeComponent },
+  { path: 'listStageGroup', component: ListStageGroupComponent },
 ];
 
 @NgModule({

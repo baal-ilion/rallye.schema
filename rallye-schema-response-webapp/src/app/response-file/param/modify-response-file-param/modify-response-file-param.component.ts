@@ -1,6 +1,6 @@
 import { Component, ElementRef, Input, OnInit, ViewChild } from '@angular/core';
-import { FormBuilder, FormGroup } from '@angular/forms';
-import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
+import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
+import { MatDialogRef } from '@angular/material/dialog';
 import { ResponseFileParam } from '../models/response-file-param';
 
 @Component({
@@ -11,18 +11,18 @@ import { ResponseFileParam } from '../models/response-file-param';
 export class ModifyResponseFileParamComponent implements OnInit {
 
   @Input() param: ResponseFileParam;
-  @ViewChild('labelImport')
-  labelImport: ElementRef;
-  @ViewChild('labelImportModel')
-  labelImportModel: ElementRef;
+  @ViewChild('labelImportText')
+  labelImportText: ElementRef;
+  @ViewChild('labelImportModelText')
+  labelImportModelText: ElementRef;
 
   templateFile: File;
   responseFileModel: File;
-  myForm: FormGroup;
+  myForm: UntypedFormGroup;
   detailsParam: ResponseFileParam;
   modelUrl: string;
 
-  constructor(public activeModal: NgbActiveModal, private formBuilder: FormBuilder) { }
+  constructor(public dialogRef: MatDialogRef<ModifyResponseFileParamComponent>, private formBuilder: UntypedFormBuilder) { }
 
   ngOnInit() {
     this.detailsParam = JSON.parse(JSON.stringify(this.param));
@@ -54,14 +54,13 @@ export class ModifyResponseFileParamComponent implements OnInit {
     };
     formData.append('responseFileParam', JSON.stringify(data));
     formData.append('responseFileModel', this.responseFileModel);
-    this.activeModal.close(formData);
+    this.dialogRef.close(formData);
   }
 
   selectFile(files: FileList) {
     if (files.length > 0) {
-      this.labelImport.nativeElement.innerText = Array.from(files)
-        .map(f => f.name)
-        .join(', ');
+      const names = Array.from(files).map(f => f.name).join(', ');
+      this.labelImportText.nativeElement.innerText = names;
       this.templateFile = files.item(0);
       const myReader = new FileReader();
       myReader.onloadend = (e) => {
@@ -75,9 +74,8 @@ export class ModifyResponseFileParamComponent implements OnInit {
 
   selectFileModel(files: FileList) {
     if (files.length > 0) {
-      this.labelImportModel.nativeElement.innerText = Array.from(files)
-        .map(f => f.name)
-        .join(', ');
+      const names = Array.from(files).map(f => f.name).join(', ');
+      this.labelImportModelText.nativeElement.innerText = names;
       this.responseFileModel = files.item(0);
       const reader = new FileReader();
 

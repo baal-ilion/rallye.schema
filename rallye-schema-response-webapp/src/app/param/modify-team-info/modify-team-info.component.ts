@@ -1,6 +1,6 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { AbstractControl, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
+import { AbstractControl, UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
+import { MatDialogRef } from '@angular/material/dialog';
 import { TeamInfo } from '../models/team-info';
 import { TeamInfoService } from '../team-info.service';
 
@@ -11,12 +11,12 @@ import { TeamInfoService } from '../team-info.service';
 })
 export class ModifyTeamInfoComponent implements OnInit {
   @Input() teamInfo: TeamInfo;
-  teamInfoForm: FormGroup;
+  teamInfoForm: UntypedFormGroup;
   teamInfos: TeamInfo[] = [];
 
   constructor(
-    public activeModal: NgbActiveModal,
-    private formBuilder: FormBuilder,
+    public dialogRef: MatDialogRef<ModifyTeamInfoComponent>,
+    private formBuilder: UntypedFormBuilder,
     private teamInfoService: TeamInfoService) { }
 
   ngOnInit() {
@@ -32,7 +32,8 @@ export class ModifyTeamInfoComponent implements OnInit {
     this.teamInfoForm = this.formBuilder.group({
       id: this.teamInfo.id,
       name: [this.teamInfo.name, [Validators.required, this.uniqueNameValidator.bind(this)]],
-      team: [this.teamInfo.team, [Validators.required, this.uniqueTeamValidator.bind(this)]]
+      team: [this.teamInfo.team, [Validators.required, this.uniqueTeamValidator.bind(this)]],
+      present: this.teamInfo.present ?? false
     });
     if (this.teamInfo.id) {
       this.teamInfoForm.controls.team.disable();
@@ -60,6 +61,6 @@ export class ModifyTeamInfoComponent implements OnInit {
   }
 
   submitForm() {
-    this.activeModal.close(this.teamInfoForm.getRawValue());
+    this.dialogRef.close(this.teamInfoForm.getRawValue());
   }
 }

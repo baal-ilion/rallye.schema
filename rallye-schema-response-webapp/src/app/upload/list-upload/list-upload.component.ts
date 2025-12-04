@@ -1,6 +1,6 @@
 import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { HalPage } from 'src/app/models/hal-page';
+import { DialogService } from 'src/app/shared/dialog/dialog.service';
 import { ResponseFileInfo } from '../models/response-file-info';
 import { UploadFileService } from '../upload-file.service';
 
@@ -18,7 +18,7 @@ export class ListUploadComponent implements OnInit, OnDestroy {
 
   constructor(
     private uploadService: UploadFileService,
-    private modalService: NgbModal) { }
+    private dialogService: DialogService) { }
 
   ngOnDestroy(): void {
     sessionStorage.setItem(this.SelectedId, null);
@@ -71,10 +71,10 @@ export class ListUploadComponent implements OnInit, OnDestroy {
 
   @HostListener('window:keyup', ['$event'])
   keyEvent(event: KeyboardEvent) {
-    if (event.key === 'ArrowRight' && !this.modalService.hasOpenModals()) {
+    if (event.key === 'ArrowRight' && !this.dialogService.hasOpenDialogs()) {
       this.next();
     }
-    if (event.key === 'ArrowLeft' && !this.modalService.hasOpenModals()) {
+    if (event.key === 'ArrowLeft' && !this.dialogService.hasOpenDialogs()) {
       this.previous();
     }
   }

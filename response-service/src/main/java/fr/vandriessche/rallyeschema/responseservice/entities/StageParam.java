@@ -27,7 +27,9 @@ public class StageParam {
 	private Integer stage;
 
 	private String name;
-	private Boolean inactive;
+
+	@DBRef
+	private StageGroup group;
 
 	@DBRef
 	private List<ResponseFileParam> responseFileParams = new ArrayList<>();
@@ -36,5 +38,4 @@ public class StageParam {
 	private LinkedHashMap<String, PerformancePointParam> performancePointParams = new LinkedHashMap<>();
 
 	private LinkedHashMap<String, QuestionParam> questionParams = new LinkedHashMap<>();
-
 }

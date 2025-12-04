@@ -1,9 +1,9 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup } from '@angular/forms';
-import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
+import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
+import { MatDialogRef } from '@angular/material/dialog';
+import { StandardContext, SpelExpressionEvaluator } from 'spel2js';
 import { PerformanceRangePointParam } from '../models/performance-range-point-param';
 import { TeamInfoService } from '../team-info.service';
-import { StandardContext, SpelExpressionEvaluator } from 'spel2js';
 
 @Component({
   selector: 'app-modify-performance-range-point-param',
@@ -12,7 +12,7 @@ import { StandardContext, SpelExpressionEvaluator } from 'spel2js';
 })
 export class ModifyPerformanceRangePointParamComponent implements OnInit {
   @Input() range: PerformanceRangePointParam;
-  rangeForm: FormGroup;
+  rangeForm: UntypedFormGroup;
   result: number;
   perfPointAllocationType = {
     VALUE: 'SCORE',
@@ -25,8 +25,8 @@ export class ModifyPerformanceRangePointParamComponent implements OnInit {
   };
 
   constructor(
-    public activeModal: NgbActiveModal,
-    private formBuilder: FormBuilder,
+    public dialogRef: MatDialogRef<ModifyPerformanceRangePointParamComponent>,
+    private formBuilder: UntypedFormBuilder,
     private teamInfoService: TeamInfoService) { }
 
   ngOnInit() {
@@ -78,6 +78,6 @@ export class ModifyPerformanceRangePointParamComponent implements OnInit {
       currentRange.point = null;
       currentRange.expression = this.rangeForm.value.expression;
     }
-    this.activeModal.close(currentRange);
+    this.dialogRef.close(currentRange);
   }
 }

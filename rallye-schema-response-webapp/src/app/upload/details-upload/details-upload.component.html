@@ -4,7 +4,7 @@
       Équipe {{fileUpload.team}} / Épreuve {{fileUpload.stage}} / Page {{fileUpload.page}}</button>
   </div>
   <!-- On utilise dragable pour savoir dans quel ecran on est. -->
-  <div class="row justify-content-center">
+  <div class="row justify-content-center mb-4">
     <app-details-response-file [fileUpload]="fileUpload" [dragable]="true" (endDragEvent)="endDrag($event)"
       class="col-8 border">
     </app-details-response-file>

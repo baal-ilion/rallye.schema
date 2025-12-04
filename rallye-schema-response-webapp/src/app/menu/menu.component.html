@@ -1,51 +1,62 @@
-<nav class="navbar fixed-top  navbar-expand-lg navbar-light bg-light">
-  <!-- Brand -->
-  <a class="navbar-brand" [routerLink]="'.'" (click)="collapsed = true">{{title}}</a>
+<nav class="navbar fixed-top navbar-expand-lg navbar-light bg-light">
+  <a class="navbar-brand" [routerLink]="'.'" (click)="closeMenu()">{{title}}</a>
   <button class="navbar-toggler" type="button" [attr.aria-expanded]="!collapsed" (click)="collapsed = !collapsed"
     aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
     <span class="navbar-toggler-icon"></span>
   </button>
 
-  <div class="collapse navbar-collapse" [class.collapse]="collapsed" id="navbarSupportedContent">
-
-    <!-- Links -->
+  <div class="navbar-collapse" [class.collapse]="collapsed" id="navbarSupportedContent">
     <ul class="navbar-nav mr-auto">
-      <li *ngIf="teamInfos" ngbDropdown class="nav-item" display="dynamic">
-        <a class="nav-link" id="teamsMenu" ngbDropdownToggle role="button" data-toggle="dropdown" aria-haspopup="true"
-          aria-expanded="false">Équipes</a>
-        <div ngbDropdownMenu aria-labelledby="teamsMenu">
-          <a ngbDropdownItem routerLink="/qrcode" (click)="collapsed = true">QR Code</a>
+      <li *ngIf="teamInfos" class="nav-item dropdown" [class.show]="openMenu === 'teams'">
+        <a class="nav-link dropdown-toggle" href="#" id="teamsMenu" role="button"
+          [attr.aria-expanded]="openMenu === 'teams'" aria-haspopup="true"
+          (click)="toggleMenu('teams'); $event.preventDefault();">Équipes</a>
+        <div class="dropdown-menu" [class.show]="openMenu === 'teams'" aria-labelledby="teamsMenu">
+          <a class="dropdown-item" routerLink="/qrcode" (click)="closeMenu()">QR Code</a>
+          <a class="dropdown-item" routerLink="/teams/presence" (click)="closeMenu()">Présence</a>
           <div class="dropdown-divider"></div>
-          <a *ngFor="let teamInfo of teamInfos" ngbDropdownItem routerLink="/team/{{teamInfo.id}}"
-            (click)="collapsed = true">{{teamInfo.team}} - {{teamInfo.name}}</a>
+          <a *ngFor="let teamInfo of teamInfos" class="dropdown-item" routerLink="/team/{{teamInfo.id}}"
+            (click)="closeMenu()">{{teamInfo.team}} - {{teamInfo.name}}</a>
         </div>
       </li>
-      <li ngbDropdown class="nav-item" display="dynamic">
-        <a class="nav-link" id="responseFilesMenu" ngbDropdownToggle role="button" data-toggle="dropdown"
-          aria-haspopup="true" aria-expanded="false">Formulaires de réponses</a>
-        <div ngbDropdownMenu aria-labelledby="responseFilesMenu">
-          <a ngbDropdownItem routerLink="/formUpload" (click)="collapsed = true">Import</a>
-          <a ngbDropdownItem routerLink="/listUpload" (click)="collapsed = true">Vérification</a>
+
+      <li class="nav-item dropdown" [class.show]="openMenu === 'responses'">
+        <a class="nav-link dropdown-toggle" href="#" id="responseFilesMenu" role="button"
+          [attr.aria-expanded]="openMenu === 'responses'" aria-haspopup="true"
+          (click)="toggleMenu('responses'); $event.preventDefault();">Formulaires de réponses</a>
+        <div class="dropdown-menu" [class.show]="openMenu === 'responses'" aria-labelledby="responseFilesMenu">
+          <a class="dropdown-item" routerLink="/formUpload" (click)="closeMenu()">Import</a>
+          <a class="dropdown-item" routerLink="/listUpload" (click)="closeMenu()">Vérification</a>
         </div>
       </li>
+
       <li class="nav-item">
-        <a class="nav-link text-nowrap" routerLink="/listStage" (click)="collapsed = true">Validation des épreuves</a>
+        <a class="nav-link text-nowrap" routerLink="/listStage" (click)="closeMenu()">Validation des épreuves</a>
       </li>
-      <li ngbDropdown class="nav-item" display="dynamic">
-        <a class="nav-link" id="pointMenu" ngbDropdownToggle role="button" data-toggle="dropdown" aria-haspopup="true"
-          aria-expanded="false">Points</a>
-        <div ngbDropdownMenu aria-labelledby="pointMenu">
-          <a ngbDropdownItem routerLink="/listRanking" (click)="collapsed = true">Classements</a>
-          <a ngbDropdownItem routerLink="/listPoint" (click)="collapsed = true">Détail</a>
+
+      <li class="nav-item dropdown" [class.show]="openMenu === 'ranking'">
+        <a class="nav-link dropdown-toggle" href="#" id="rankingMenu" role="button"
+          [attr.aria-expanded]="openMenu === 'ranking'" aria-haspopup="true"
+          (click)="toggleMenu('ranking'); $event.preventDefault();">Classements</a>
+        <div class="dropdown-menu" [class.show]="openMenu === 'ranking'" aria-labelledby="rankingMenu">
+          <a class="dropdown-item" routerLink="/listRanking" (click)="closeMenu()">Classement général</a>
+          <a class="dropdown-item" [routerLink]="['/listRanking']" [queryParams]="{ mode: 'stage' }" (click)="closeMenu()">Classement par épreuves</a>
+          <a class="dropdown-item" routerLink="/groupRanking" (click)="closeMenu()">Classement par groupes d'épreuves</a>
+          <a class="dropdown-item" routerLink="/prizes" (click)="closeMenu()">Distribution des lots</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" routerLink="/listPoint" (click)="closeMenu()">Détail</a>
         </div>
       </li>
-      <li ngbDropdown class="nav-item" display="dynamic">
-        <a class="nav-link" id="paramMenu" ngbDropdownToggle role="button" data-toggle="dropdown" aria-haspopup="true"
-          aria-expanded="false">Paramétrage</a>
-        <div ngbDropdownMenu aria-labelledby="paramMenu">
-          <a ngbDropdownItem routerLink="/listStageParam" (click)="collapsed = true">Épreuves</a>
-          <a ngbDropdownItem routerLink="/listTeamInfo" (click)="collapsed = true">Équipes</a>
-          <a ngbDropdownItem routerLink="/sharingParam" (click)="collapsed = true">Import / Export</a>
+
+      <li class="nav-item dropdown" [class.show]="openMenu === 'settings'">
+        <a class="nav-link dropdown-toggle" href="#" id="paramMenu" role="button"
+          [attr.aria-expanded]="openMenu === 'settings'" aria-haspopup="true"
+          (click)="toggleMenu('settings'); $event.preventDefault();">Paramétrage</a>
+        <div class="dropdown-menu" [class.show]="openMenu === 'settings'" aria-labelledby="paramMenu">
+          <a class="dropdown-item" routerLink="/listStageGroup" (click)="closeMenu()">Groupes d'épreuves</a>
+          <a class="dropdown-item" routerLink="/listStageParam" (click)="closeMenu()">Épreuves</a>
+          <a class="dropdown-item" routerLink="/listTeamInfo" (click)="closeMenu()">Équipes</a>
+          <a class="dropdown-item" routerLink="/sharingParam" (click)="closeMenu()">Import / Export</a>
         </div>
       </li>
     </ul>

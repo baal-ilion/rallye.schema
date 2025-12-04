@@ -1,18 +1,21 @@
 import { Component, OnInit } from '@angular/core';
-import { AbstractControl, FormArray, FormBuilder, FormGroup } from '@angular/forms';
+import { AbstractControl, UntypedFormArray, UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
 import { HalLink } from 'src/app/models/hal-link';
 import { ModifyResponseFileParamComponent } from 'src/app/response-file/param/modify-response-file-param/modify-response-file-param.component';
+import { ResponseFileParam } from 'src/app/response-file/param/models/response-file-param';
 import { ResponseFileParamService } from 'src/app/response-file/param/response-file-param.service';
+import { AppDialogRef, DialogService } from 'src/app/shared/dialog/dialog.service';
+import { StageGroupService } from 'src/app/services/stage-group.service';
+import { ModifyPerformanceRangePointParamComponent } from '../modify-performance-range-point-param/modify-performance-range-point-param.component';
 import { PerformanceRangePointParam } from '../models/performance-range-point-param';
 import { PerformanceRangeType } from '../models/performance-range-type';
 import { QuestionParam } from '../models/question-param';
 import { QuestionPointParam } from '../models/question-point-param';
 import { QuestionType } from '../models/question-type';
 import { PerformancePointParams, QuestionParams, QuestionPointParams, StageParam } from '../models/stage-param';
-import { ModifyPerformanceRangePointParamComponent } from '../modify-performance-range-point-param/modify-performance-range-point-param.component';
+import { StageGroup } from '../models/stage-group';
 import { StageParamService } from '../stage-param.service';
 
 @Component({
@@ -22,6 +25,7 @@ import { StageParamService } from '../stage-param.service';
 })
 export class ModifyStageParamComponent implements OnInit {
   stageParam: StageParam;
+  stageGroups: StageGroup[] = [];
 
   perfPointAllocationType = {
     VALUE: 'SCORE',
@@ -39,28 +43,34 @@ export class ModifyStageParamComponent implements OnInit {
     RANK: PerformanceRangeType.PERF_UP_RANK,
   };
 
-  stageParamForm: FormGroup;
+  stageParamForm: UntypedFormGroup;
   responseFileParamUrls: string[] = [];
   removedQuestionParams: string[] = [];
   questionParamNames: string[] = [];
   questionParamName = '';
+  showResponseFiles = false;
+  showQuestions = false;
+  showPoints = false;
+
   constructor(
-    private formBuilder: FormBuilder,
+    private formBuilder: UntypedFormBuilder,
     private stageParamService: StageParamService,
     private route: ActivatedRoute,
     private confirmationDialogService: ConfirmationDialogService,
     private router: Router,
-    private modalService: NgbModal,
-    private responseFileParamService: ResponseFileParamService
+    private dialogService: DialogService,
+    private responseFileParamService: ResponseFileParamService,
+    private stageGroupService: StageGroupService
   ) { }
+
   // convenience getters for easy access to form fields
   get f() { return this.stageParamForm.controls; }
-  get questionPointParams() { return this.f.questionPointParams as FormArray; }
-  get performancePointParams() { return this.f.performancePointParams as FormArray; }
-  get questionParams() { return this.f.questionParams as FormArray; }
+  get questionPointParams() { return this.f.questionPointParams as UntypedFormArray; }
+  get performancePointParams() { return this.f.performancePointParams as UntypedFormArray; }
+  get questionParams() { return this.f.questionParams as UntypedFormArray; }
   getRanges(performancePointParam: AbstractControl) {
-    const f = (performancePointParam as FormGroup).controls;
-    return f.ranges as FormArray;
+    const f = (performancePointParam as UntypedFormGroup).controls;
+    return f.ranges as UntypedFormArray;
   }
 
   ngOnInit() {
@@ -69,13 +79,22 @@ export class ModifyStageParamComponent implements OnInit {
     this.removedQuestionParams = [];
     this.questionParamNames = [];
     this.responseFileParamUrls = [];
+
+    // Formulaire réactif : on ajoute groupId
     this.stageParamForm = this.formBuilder.group({
       name: '',
-      inactive: false,
+      groupId: '', // id du groupe ou '' si aucun
       questionPointParams: this.formBuilder.array([]),
       performancePointParams: this.formBuilder.array([]),
       questionParams: this.formBuilder.array([])
     });
+
+    // Charger les groupes d'épreuves pour le <select>
+    this.stageGroupService.getAll().subscribe({
+      next: groups => this.stageGroups = groups,
+      error: () => this.stageGroups = []
+    });
+
     const id = this.route.snapshot.paramMap.get('id');
     this.stageParamService.findById(id).subscribe(stageParam => {
       this.stageParam = stageParam;
@@ -83,7 +102,11 @@ export class ModifyStageParamComponent implements OnInit {
       this.removedQuestionParams = [];
       this.questionParamNames = [];
       this.stageParamForm.controls.name.setValue(this.stageParam.name);
-      this.stageParamForm.controls.inactive.setValue(this.stageParam.inactive);
+
+      // Pré-remplir groupId avec le groupe existant (ou '')
+      const currentGroupId = this.stageParam.group && this.stageParam.group.id ? this.stageParam.group.id : '';
+      this.stageParamForm.controls.groupId.setValue(currentGroupId);
+
       this.questionPointParams.clear();
       this.performancePointParams.clear();
       this.questionParams.clear();
@@ -106,7 +129,7 @@ export class ModifyStageParamComponent implements OnInit {
       this.questionParamNames = [];
       this.responseFileParamUrls = [];
       this.stageParamForm.controls.name.setValue('');
-      this.stageParamForm.controls.inactive.setValue(false);
+      this.stageParamForm.controls.groupId.setValue('');
       this.questionPointParams.clear();
       this.performancePointParams.clear();
       this.questionParams.clear();
@@ -139,7 +162,7 @@ export class ModifyStageParamComponent implements OnInit {
     }
   }
 
-  private buildFormGroup(range: PerformanceRangePointParam): FormGroup {
+  private buildFormGroup(range: PerformanceRangePointParam): UntypedFormGroup {
     return this.formBuilder.group({
       allocationType: range.type ? this.perfPointAllocationType[range.type] : null,
       type: range.type,
@@ -162,15 +185,20 @@ export class ModifyStageParamComponent implements OnInit {
   }
 
   addResponseFileParam() {
-    const modalRef = this.modalService.open(ModifyResponseFileParamComponent);
+    const modalRef: AppDialogRef<ModifyResponseFileParamComponent> = this.dialogService.open(ModifyResponseFileParamComponent);
     modalRef.componentInstance.param = {
       stage: this.stageParam.stage,
       page: 1,
-      template: ''
-    };
+      template: '',
+      height: 0,
+      width: 0,
+      questions: {} as any,
+      _links: {} as any
+    } as ResponseFileParam;
     modalRef.result.then((result) => {
       console.log(result);
-      this.responseFileParamService.createResponseFileParam(result).subscribe(() => {
+      if (!result) { return; }
+      this.responseFileParamService.createResponseFileParam(result as ResponseFileParam).subscribe(() => {
         this.ngOnInit();
       }, err => {
         console.log(err);
@@ -236,14 +264,21 @@ export class ModifyStageParamComponent implements OnInit {
     const modifiedQuestionPointParams = this.getModifiedQuestionPointParams();
     const modifiedPerformancePointParams = this.getModifiedPerformancePointParams();
     const modifiedQuestionParams = this.getModifiedQuestionParams();
+
+    // 🔎 récupérer l'id du groupe choisi dans le formulaire
+    const groupId: string = this.stageParamForm.value.groupId;
+    const selectedGroup = groupId
+      ? (this.stageGroups.find(g => g.id === groupId) || null)
+      : null;
+
     this.stageParamService.updateStageParam({
       id: this.stageParam.id,
       stage: this.stageParam.stage,
       name: this.stageParamForm.value.name,
-      inactive: this.stageParamForm.value.inactive,
       questionPointParams: modifiedQuestionPointParams,
       performancePointParams: modifiedPerformancePointParams,
-      questionParams: modifiedQuestionParams
+      questionParams: modifiedQuestionParams,
+      group: selectedGroup
     }).subscribe(data => {
       console.log(data);
       this.stageParam = data;
@@ -316,13 +351,13 @@ export class ModifyStageParamComponent implements OnInit {
     return modifiedQuestionParams;
   }
 
-  onPerfPointAllocationType(value: string, range: FormGroup) {
+  onPerfPointAllocationType(value: string, range: UntypedFormGroup) {
     if (this.perfPointAllocationType[range.value.type] !== value) {
       range.patchValue({ type: this.perfPointDefaultRangeType[value] });
     }
   }
 
-  onChangePerformanceRangePointParam(value: string, ranges: FormArray, index: number) {
+  onChangePerformanceRangePointParam(value: string, ranges: UntypedFormArray, index: number) {
     console.log('onChangePerformanceRangePointParam : ' + index);
     if (index === ranges.length - 1) {
       if (value) {
@@ -336,8 +371,8 @@ export class ModifyStageParamComponent implements OnInit {
     }
   }
 
-  onClickDetailPoint(range: FormGroup) {
-    const modalRef = this.modalService.open(ModifyPerformanceRangePointParamComponent, { size: 'xl' });
+  onClickDetailPoint(range: UntypedFormGroup) {
+    const modalRef: AppDialogRef<ModifyPerformanceRangePointParamComponent> = this.dialogService.open(ModifyPerformanceRangePointParamComponent, { size: 'xl' });
     modalRef.componentInstance.range = range.value as PerformanceRangePointParam;
     modalRef.result.then((result: PerformanceRangePointParam) => {
       console.log(result);

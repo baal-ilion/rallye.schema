@@ -1,5 +1,6 @@
 package fr.vandriessche.rallyeschema.responseservice.repositories;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -10,4 +11,8 @@ public interface TeamInfoRepository extends MongoRepository<TeamInfo, String> {
 	Optional<TeamInfo> findByTeam(Integer team);
 
 	Optional<TeamInfo> findByName(String name);
+
+	List<TeamInfo> findByPresentTrue();
+
+    List<TeamInfo> findByPresentFalse();
 }

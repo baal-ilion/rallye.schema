@@ -1,0 +1,59 @@
+<div class="container mb-5">
+  <div class="row mt-4 text-center">
+    <h1 class="col-12">Distribution des lots</h1>
+  </div>
+
+  <!-- Messages de statut -->
+  <div *ngIf="loading" class="alert alert-info mt-3">
+    Calcul de la distribution des lots...
+  </div>
+
+  <div *ngIf="error" class="alert alert-danger mt-3">
+    {{ error }}
+  </div>
+
+  <div *ngIf="!loading && !error && prizes.length === 0" class="alert alert-secondary mt-3">
+    Aucun lot ne peut être attribué pour le moment.
+  </div>
+
+  <!-- Une seule section avec un tableau unique -->
+  <div *ngIf="!loading && !error && prizes.length > 0" class="row mt-4">
+    <div class="col-12 px-0 py-1 bg-secondary">
+      <h4 class="my-auto text-center text-white">
+        Lots attribués
+      </h4>
+    </div>
+    <div class="col-12 px-0 table-responsive text-nowrap">
+      <table class="table table-sm align-items-center text-center mb-0">
+        <thead class="bg-light">
+          <tr>
+            <th scope="col" class="align-middle">Groupe</th>
+            <th scope="col" class="align-middle">N° équipe</th>
+            <th scope="col" class="align-middle">Nom de l'équipe</th>
+            <th scope="col" class="align-middle">Rang</th>
+            <th scope="col" class="align-middle">Points</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let prize of prizes">
+            <td class="align-middle">
+              {{ getGroupLabel(prize) }}
+            </td>
+            <td class="align-middle">
+              {{ prize.team }}
+            </td>
+            <td class="align-middle">
+              {{ prize.teamName }}
+            </td>
+            <td class="align-middle">
+              {{ prize.rank }}
+            </td>
+            <td class="align-middle">
+              {{ prize.score }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

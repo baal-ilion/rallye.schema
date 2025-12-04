@@ -1,0 +1,27 @@
+<nav class="d-flex justify-content-center w-100" aria-label="Pagination">
+  <ul class="pagination mb-0">
+    <li class="page-item" *ngIf="boundaryLinks" [class.disabled]="!canGoFirst()">
+      <button type="button" class="page-link" (click)="goTo(1)" [disabled]="!canGoFirst()" aria-label="Première page">
+        «
+      </button>
+    </li>
+    <li class="page-item" [class.disabled]="!canPrev">
+      <button type="button" class="page-link" (click)="previous()" [disabled]="!canPrev" aria-label="Page précédente">
+        ‹
+      </button>
+    </li>
+    <li class="page-item" [class.disabled]="disabled" [class.active]="!disabled">
+      <span class="page-link">{{page}} / {{totalPages}}</span>
+    </li>
+    <li class="page-item" [class.disabled]="!canNext">
+      <button type="button" class="page-link" (click)="next()" [disabled]="!canNext" aria-label="Page suivante">
+        ›
+      </button>
+    </li>
+    <li class="page-item" *ngIf="boundaryLinks" [class.disabled]="!canGoLast()">
+      <button type="button" class="page-link" (click)="goTo(totalPages)" [disabled]="!canGoLast()" aria-label="Dernière page">
+        »
+      </button>
+    </li>
+  </ul>
+</nav>
