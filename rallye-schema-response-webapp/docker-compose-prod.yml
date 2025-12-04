@@ -1,4 +1,3 @@
-version: '3.7'
 services:
   rallye-schema-response-webapp:
     container_name: "rallye-schema-response-webapp"
