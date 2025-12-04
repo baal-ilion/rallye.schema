@@ -14,6 +14,7 @@ export class TeamPresenceComponent implements OnInit {
   teamInfos: TeamInfo[] = [];
   loading = false;
   error?: string;
+  private ignoreNextUpdate = false;
 
   constructor(
     private teamInfoService: TeamInfoService,
@@ -24,6 +25,10 @@ export class TeamPresenceComponent implements OnInit {
     this.loadTeams();
 
     this.teamInfoUpdateService.updates$.subscribe(() => {
+      if (this.ignoreNextUpdate) {
+        this.ignoreNextUpdate = false;
+        return;
+      }
       this.loadTeams();
     });
   }
@@ -44,6 +49,7 @@ export class TeamPresenceComponent implements OnInit {
     this.teamInfoService.setPresence(team.team, value).subscribe({
       next: (saved) => {
         team.present = saved.present;
+        this.ignoreNextUpdate = true;
       },
       error: () => {
         this.error = 'Erreur lors de la mise à jour de la présence';
