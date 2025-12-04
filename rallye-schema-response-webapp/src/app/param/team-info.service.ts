@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { AppConfigService } from '../app-config.service';
@@ -34,6 +34,11 @@ export class TeamInfoService {
 
   findById(id: string): Observable<TeamInfo> {
     return this.http.get<TeamInfo>(AppConfigService.settings.apiUrl.rallyeSchema + '/teamInfos/' + id);
+  }
+
+  findByTeam(team: number): Observable<TeamInfo> {
+    const params = new HttpParams().set('team', team.toString());
+    return this.http.get<TeamInfo>(AppConfigService.settings.apiUrl.rallyeSchema + '/teamInfos/search/findByTeam', { params });
   }
 
   deleteTeamInfo(id: string): Observable<any> {

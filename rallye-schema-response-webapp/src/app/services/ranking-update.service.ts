@@ -31,4 +31,11 @@ export class RankingUpdateService {
 
     this.client.activate();
   }
+
+  /**
+   * Force a local refresh for listeners (used when an action already implies a ranking change).
+   */
+  triggerUpdate(): void {
+    this.updateSubject.next();
+  }
 }

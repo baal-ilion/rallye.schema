@@ -159,6 +159,11 @@ public class ResponseFileService {
 		responseFileInfoRepository.findByTeam(team).forEach(responseFileInfo -> deleteResponseFile(responseFileInfo));
 	}
 
+	public void deleteByStageAndTeam(Integer stage, Integer team) {
+		responseFileInfoRepository.findByStageAndTeam(stage, team)
+				.forEach(responseFileInfo -> deleteResponseFile(responseFileInfo));
+	}
+
 	public void deleteResponseFile(String id) {
 		ResponseFileInfo responseFileInfo = responseFileInfoRepository.findById(id).orElseThrow();
 		deleteResponseFile(responseFileInfo);

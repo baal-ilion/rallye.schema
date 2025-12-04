@@ -11,6 +11,8 @@ import fr.vandriessche.rallyeschema.responseservice.entities.StageResult;
 public interface StageResultRepository extends MongoRepository<StageResult, String> {
 	Optional<StageResult> findByStageAndTeam(Integer stage, Integer team);
 
+	List<StageResult> findAllByStageAndTeam(Integer stage, Integer team);
+
 	List<StageResult> findByTeam(Integer team);
 
 	@Query("{ $or: [" + "  { responseSources: { $elemMatch: { _id: ObjectId('?0'), _class: ?1 } } }"

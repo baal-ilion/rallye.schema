@@ -1,5 +1,6 @@
 import { DatePipe } from '@angular/common';
-import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges } from '@angular/core';
+import { Router } from '@angular/router';
 import { UntypedFormArray, UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
 import { HalLink } from 'src/app/models/hal-link';
@@ -16,6 +17,10 @@ import { StageResponse } from '../models/stage-response';
 import { isStageResponseSource, StageResponseSource } from '../models/stage-response-source';
 import { StageResult } from '../models/stage-result';
 import { StageService } from '../stage.service';
+import { RankingUpdateService } from 'src/app/services/ranking-update.service';
+import { TeamInfoService } from 'src/app/param/team-info.service';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-details-stage',
@@ -23,7 +28,7 @@ import { StageService } from '../stage.service';
   styleUrls: ['./details-stage.component.scss'],
   providers: [DatePipe]
 })
-export class DetailsStageComponent implements OnInit, OnChanges {
+export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
 
   @Input() stage: number;
   @Input() team: number;
@@ -36,6 +41,7 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   fileParams: ResponseFileParam[];
   stageResponse: StageResponse;
   stageResponseNames: string[];
+  private destroy$ = new Subject<void>();
 
   constructor(
     private uploadFileService: UploadFileService,
@@ -44,7 +50,10 @@ export class DetailsStageComponent implements OnInit, OnChanges {
     private stageParamService: StageParamService,
     private datePipe: DatePipe,
     private confirmationDialogService: ConfirmationDialogService,
-    private responseFileParamService: ResponseFileParamService) { }
+    private responseFileParamService: ResponseFileParamService,
+    private router: Router,
+    private rankingUpdateService: RankingUpdateService,
+    private teamInfoService: TeamInfoService) { }
 
   get f() { return this.form.controls; }
   get pages() { return this.f.pages as UntypedFormArray; }
@@ -62,7 +71,15 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   ngOnInit() {
     console.log('ngOnInit');
     this.clear();
+    this.rankingUpdateService.updates$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.checkStageStillExists());
     this.loadStage();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private clear() {
@@ -128,6 +145,7 @@ export class DetailsStageComponent implements OnInit, OnChanges {
     try {
       await loadResponceFilesPromise;
       await loadStageValuesPromise;
+      this.updateFormDisabledState();
     } catch (error) {
       console.log(error);
     }
@@ -151,6 +169,73 @@ export class DetailsStageComponent implements OnInit, OnChanges {
 
   public isReadOnly(name: string): boolean {
     return this.stageResponseNames?.some(v => v === name) ?? false;
+  }
+
+  private checkStageStillExists() {
+    this.stageService.findStage(this.stage, this.team).subscribe({
+      next: (latest) => {
+        if (latest) {
+          this.stageResult = { ...this.stageResult, ...latest };
+          if (this.form) {
+            this.form.patchValue({
+              begindate: this.formatDate(latest.begin),
+              begintime: this.formatTime(latest.begin),
+              enddate: this.formatDate(latest.end),
+              endtime: this.formatTime(latest.end),
+            }, { emitEvent: false });
+            this.updateFormValues(latest);
+            this.updateFormDisabledState();
+          }
+        }
+      },
+      error: () => {
+        // Stage supprime (ex: annule ailleurs) -> revenir a la progression de l'equipe
+        this.navigateToTeamProgression();
+      }
+    });
+  }
+
+  private updateFormValues(latest: StageResult) {
+    const updateResults = (array: UntypedFormArray) => {
+      array.controls.forEach(control => {
+        const name = control.get('name')?.value;
+        const latestResult = latest.results?.find(r => r.name === name);
+        if (latestResult) {
+          control.get('resultValue')?.setValue(latestResult.resultValue, { emitEvent: false });
+          control.get('init')?.setValue(latestResult.resultValue, { emitEvent: false });
+          const fromSource = isStageResponseSource(latestResult.source) || isResponseFileSource(latestResult.source);
+          control.get('light')?.setValue(fromSource, { emitEvent: false });
+        }
+      });
+    };
+    const updatePerformances = (array: UntypedFormArray) => {
+      array.controls.forEach(control => {
+        const name = control.get('name')?.value;
+        const latestPerf = latest.performances?.find(p => p.name === name);
+        if (latestPerf) {
+          control.get('performanceValue')?.setValue(latestPerf.performanceValue, { emitEvent: false });
+        }
+      });
+    };
+
+    updateResults(this.getResultForms(this.form));
+    updatePerformances(this.getPerformanceForms(this.form));
+    this.pages.controls.forEach(page => {
+      const pageGroup = page as UntypedFormGroup;
+      updateResults(this.getResultForms(pageGroup));
+      updatePerformances(this.getPerformanceForms(pageGroup));
+    });
+  }
+
+  private updateFormDisabledState() {
+    if (!this.form) {
+      return;
+    }
+    if (this.stageResult?.checked) {
+      this.form.disable({ emitEvent: false });
+    } else {
+      this.form.enable({ emitEvent: false });
+    }
   }
 
   private async loadStageValues() {
@@ -318,19 +403,22 @@ export class DetailsStageComponent implements OnInit, OnChanges {
         this.findModifiedperformances(page as UntypedFormGroup, modifiedperformances);
       });
       const begin = this.buildDate(this.form.value.begindate, this.form.value.begintime);
-      const sameBegin = (!begin && !this.stageResult.begin) || new Date(this.stageResult.begin).getTime() === begin?.getTime();
       const end = this.buildDate(this.form.value.enddate, this.form.value.endtime);
-      const sameEnd = (!end && !this.stageResult.end) || new Date(this.stageResult.end).getTime() === end?.getTime();
-      if (!sameBegin || !sameEnd ||
-        modifiedResults.length !== 0 || modifiedperformances.length !== 0 ||
-        this.form.value.checked !== this.stageResult.checked) {
+      const hasChanges =
+        modifiedResults.length !== 0 ||
+        modifiedperformances.length !== 0 ||
+        this.form.value.checked !== this.stageResult.checked ||
+        new Date(this.stageResult.begin ?? '').getTime() !== (begin ? begin.getTime() : NaN) ||
+        new Date(this.stageResult.end ?? '').getTime() !== (end ? end.getTime() : NaN);
+
+      if (hasChanges) {
         const stageResult = await this.stageService.updateStage({
           id: this.stageResult.id,
           team: this.stageResult.team,
           stage: this.stageResult.stage,
           checked: this.form.value.checked,
-          begin: sameBegin ? undefined : begin,
-          end: sameEnd ? undefined : end,
+          begin: begin,
+          end: end,
           results: modifiedResults.length !== 0 ? modifiedResults : undefined,
           performances: modifiedperformances.length !== 0 ? modifiedperformances : undefined
         }).toPromise();
@@ -345,24 +433,25 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   }
 
   reload() {
-    this.ngOnInit();
+    // Rafraichissement sans reset de la page : on rejoue une synchro distante
+    this.checkStageStillExists();
   }
 
   async onCancelStage() {
     try {
       const confirmed = await this.confirmationDialogService.confirm(
-        'Annulation d\'une épreuve',
-        'Annuler l\'épreuve ' + this.stageResult.stage + ' de l\'équipe ' + this.stageResult.team + '\u00A0?',
+        'Annulation d\'une epreuve',
+        'Annuler l\'epreuve ' + this.stage + ' de l\'equipe ' + this.team + '\u00A0?',
         'Oui', 'Non');
       console.log('User confirmed:', confirmed);
       if (confirmed) {
         try {
-          await this.modifyStage();
-          await this.stageService.cancelStage(this.stageResult.stage, this.stageResult.team).toPromise();
+          await this.stageService.cancelStage(this.stage, this.team).toPromise();
         } catch (error) {
           console.log(error);
         }
-        this.reload();
+        this.rankingUpdateService.triggerUpdate();
+        await this.navigateToTeamProgression();
       }
     } catch (error) {
       console.log('User dismissed the dialog (e.g., by using ESC, clicking the cross icon, or clicking outside the dialog)');
@@ -374,17 +463,17 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   async onUndoStage() {
     try {
       const confirmed = await this.confirmationDialogService.confirm(
-        'Reprise d\'une épreuve',
-        'Reprendre l\'épreuve ' + this.stageResult.stage + ' de l\'équipe ' + this.stageResult.team + '\u00A0?',
+        'Reprise d\'une epreuve',
+        'Reprendre l\'epreuve ' + this.stage + ' de l\'equipe ' + this.team + '\u00A0?',
         'Oui', 'Non');
       console.log('User confirmed:', confirmed);
       if (confirmed) {
         try {
-          await this.modifyStage();
-          await this.stageService.undoStage(this.stageResult.stage, this.stageResult.team).toPromise();
+          await this.stageService.undoStage(this.stage, this.team).toPromise();
         } catch (error) {
           console.log(error);
         }
+        this.rankingUpdateService.triggerUpdate();
         this.reload();
       }
     } catch (error) {
@@ -397,16 +486,16 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   async onStartStage() {
     try {
       const confirmed = await this.confirmationDialogService.confirm(
-        'Début d\'une épreuve',
-        'Démarrer l\'épreuve ' + this.stageResult.stage + ' de l\'équipe ' + this.stageResult.team + '\u00A0?',
+        'Debut d\'une epreuve',
+        'Demarrer l\'epreuve ' + this.stage + ' de l\'equipe ' + this.team + '\u00A0?',
         'Oui', 'Non');
       if (confirmed) {
         try {
-          await this.modifyStage();
-          await this.stageService.beginStage(this.stageResult.stage, this.stageResult.team).toPromise();
+          await this.stageService.beginStage(this.stage, this.team).toPromise();
         } catch (error) {
           console.log(error);
         }
+        this.rankingUpdateService.triggerUpdate();
         this.reload();
       }
     } catch (error) {
@@ -419,16 +508,16 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   async onStopStage() {
     try {
       const confirmed = await this.confirmationDialogService.confirm(
-        'Fin d\'une épreuve',
-        'Terminer l\'épreuve ' + this.stageResult.stage + ' de l\'équipe ' + this.stageResult.team + '\u00A0?',
+        'Fin d\'une epreuve',
+        'Terminer l\'epreuve ' + this.stage + ' de l\'equipe ' + this.team + '\u00A0?',
         'Oui', 'Non');
       if (confirmed) {
         try {
-          await this.modifyStage();
-          await this.stageService.endStage(this.stageResult.stage, this.stageResult.team).toPromise();
+          await this.stageService.endStage(this.stage, this.team).toPromise();
         } catch (error) {
           console.log(error);
         }
+        this.rankingUpdateService.triggerUpdate();
         this.reload();
       }
     } catch (error) {
@@ -440,6 +529,19 @@ export class DetailsStageComponent implements OnInit, OnChanges {
 
   private hasEmptyPerformances(form: UntypedFormGroup): boolean {
     return form.getRawValue().performances?.find(item => !item.performanceValue && item.performanceValue !== 0) ?? false;
+  }
+
+  private async navigateToTeamProgression() {
+    try {
+      const teamInfo = await this.teamInfoService.findByTeam(this.team).toPromise();
+      if (teamInfo?.id) {
+        await this.router.navigateByUrl('/team/' + teamInfo.id);
+        return;
+      }
+    } catch (error) {
+      console.log(error);
+    }
+    await this.router.navigateByUrl('/');
   }
 
   private hasEmptyResults(form: UntypedFormGroup): boolean {
@@ -465,3 +567,7 @@ export class DetailsStageComponent implements OnInit, OnChanges {
     return true;
   }
 }
+
+
+
+
