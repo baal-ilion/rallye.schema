@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
+import { DialogService } from 'src/app/shared/dialog/dialog.service';
 import { StageGroup } from '../models/stage-group';
 import { StageGroupService } from '../../services/stage-group.service';
+import { ModifyStageGroupComponent } from '../modify-stage-group/modify-stage-group.component';
 
 @Component({
   selector: 'app-list-stage-group',
@@ -9,12 +11,11 @@ import { StageGroupService } from '../../services/stage-group.service';
 export class ListStageGroupComponent implements OnInit {
 
   groups: StageGroup[] = [];
-  newGroup: StageGroup = { name: '', description: '' };
 
   loading = false;
   error?: string;
 
-  constructor(private stageGroupService: StageGroupService) {}
+  constructor(private stageGroupService: StageGroupService, private dialogService: DialogService) {}
 
   ngOnInit(): void {
     this.loadGroups();
@@ -36,25 +37,27 @@ export class ListStageGroupComponent implements OnInit {
   }
 
   onCreate(): void {
-    if (!this.newGroup.name || this.newGroup.name.trim().length === 0) {
-      return;
-    }
-    this.stageGroupService.create(this.newGroup).subscribe({
-      next: () => {
-        this.newGroup = { name: '', description: '' };
-        this.loadGroups();
-      },
-      error: () => {
-        this.error = 'Erreur lors de la création du groupe.';
+    const modalRef = this.dialogService.open(ModifyStageGroupComponent, { size: 'sm' });
+    modalRef.componentInstance.stageGroup = { name: '', description: '' };
+    modalRef.result.then(result => {
+      const newGroup = result as StageGroup;
+      if (!newGroup || !newGroup.name) {
+        return;
       }
-    });
+      this.stageGroupService.create(newGroup).subscribe({
+        next: () => this.loadGroups(),
+        error: () => {
+          this.error = 'Erreur lors de la cr�ation du groupe.';
+        }
+      });
+    }).catch(() => {});
   }
 
   onDelete(group: StageGroup): void {
     if (!group.id) {
       return;
     }
-    if (!confirm(`Supprimer le groupe "${group.name}" ?\nLes épreuves associées seront simplement détachées.`)) {
+    if (!confirm(`Supprimer le groupe "${group.name}" ?\nLes epreuves associees seront simplement detachees.`)) {
       return;
     }
     this.stageGroupService.delete(group.id).subscribe({
@@ -64,4 +67,27 @@ export class ListStageGroupComponent implements OnInit {
       }
     });
   }
+
+  onEdit(group: StageGroup): void {
+    const modalRef = this.dialogService.open(ModifyStageGroupComponent, { size: 'sm' });
+    modalRef.componentInstance.stageGroup = { ...group };
+    modalRef.result.then(result => {
+      const updatedGroup = result as StageGroup;
+      if (!updatedGroup || !updatedGroup.name) {
+        return;
+      }
+      this.stageGroupService.update(updatedGroup).subscribe({
+        next: updated => {
+          const idx = this.groups.findIndex(g => g.id === updated.id);
+          if (idx !== -1) {
+            this.groups[idx] = updated;
+          }
+        },
+        error: () => {
+          this.error = 'Erreur lors de la mise � jour du groupe.';
+        }
+      });
+    }).catch(() => {});
+  }
 }
+

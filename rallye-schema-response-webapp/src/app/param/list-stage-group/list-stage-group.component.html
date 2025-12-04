@@ -1,7 +1,12 @@
 <div class="container mb-5">
 
-  <div class="row mt-4 text-center">
-    <h1 class="col-12">Groupes d'épreuves</h1>
+  <div class="row mt-4 align-items-center">
+    <div class="col-12 d-flex align-items-center">
+      <h1 class="flex-grow-1 mb-0 text-center">Groupes d'épreuves</h1>
+      <button class="btn btn-success btn-sm" (click)="onCreate()">
+        Ajouter un groupe
+      </button>
+    </div>
   </div>
 
   <div class="row mt-4">
@@ -20,39 +25,15 @@
     </div>
   </div>
 
-  <!-- Formulaire de création -->
-  <div class="row mt-4">
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header font-weight-bold">
-          Nouveau groupe
-        </div>
-        <div class="card-body">
-          <div class="form-group">
-            <label>Nom</label>
-            <input class="form-control" [(ngModel)]="newGroup.name">
-          </div>
-          <div class="form-group mt-2">
-            <label>Description</label>
-            <input class="form-control" [(ngModel)]="newGroup.description">
-          </div>
-        </div>
-        <div class="card-footer text-right">
-          <button class="btn btn-primary btn-sm" (click)="onCreate()">Créer</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Liste des groupes -->
-  <div class="row mt-4">
+  <div class="row mt-0">
     <div class="col-12">
-      <table class="table table-striped table-sm">
+      <table class="table table-sm">
         <thead>
           <tr>
             <th>Nom</th>
             <th>Description</th>
-            <th style="width: 100px;"></th>
+            <th style="width: 200px;"></th>
           </tr>
         </thead>
         <tbody>
@@ -60,6 +41,13 @@
             <td>{{ group.name }}</td>
             <td>{{ group.description }}</td>
             <td class="text-right">
+              <button
+                class="btn btn-primary btn-sm"
+                style="margin-right: 0.5rem;"
+                (click)="onEdit(group)"
+              >
+                Modifier
+              </button>
               <button
                 class="btn btn-danger btn-sm"
                 (click)="onDelete(group)"
