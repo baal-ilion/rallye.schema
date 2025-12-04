@@ -1,0 +1,40 @@
+<div class="card">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <h4 class="modal-title mx-auto mb-0 flex-fill text-center">
+      {{ form?.value?.id ? 'Modifier le groupe' : 'Nouveau groupe' }}
+    </h4>
+    <button type="button"
+            class="btn btn-danger text-white w-auto px-3 py-2 d-flex align-items-center justify-content-center ml-4"
+            style="min-width:2.5rem;min-height:2.5rem;line-height:1;padding:0.4rem 0.6rem;"
+            aria-label="Close"
+            (click)="cancel()">&times;</button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <div class="card-body">
+      <div class="container">
+        <div class="form-group">
+          <label>Nom</label>
+          <input type="text" class="form-control" formControlName="name"
+                 [ngClass]="{ 'is-invalid': form.get('name')?.invalid && form.get('name')?.touched }">
+          <div class="invalid-feedback" *ngIf="form.get('name')?.hasError('required') && form.get('name')?.touched">
+            Le nom est requis.
+          </div>
+          <div class="invalid-feedback" *ngIf="form.get('name')?.hasError('uniqueName') && form.get('name')?.touched">
+            Ce nom est déjà utilisé.
+          </div>
+        </div>
+        <div class="form-group mt-3">
+          <label>Description</label>
+          <input type="text" class="form-control" formControlName="description">
+        </div>
+      </div>
+    </div>
+
+    <div class="card-footer d-flex justify-content-center">
+      <button class="btn btn-success" type="submit" [disabled]="form?.invalid">
+        Valider
+      </button>
+    </div>
+  </form>
+</div>

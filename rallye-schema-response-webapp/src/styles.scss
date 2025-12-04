@@ -17,7 +17,7 @@ $container-max-widths: (
 );
 
 // Import BT sources
-@import "~bootstrap/scss/bootstrap";
+@import "bootstrap/scss/bootstrap";
 
 html,
 body {
@@ -27,4 +27,16 @@ body {
   margin: 0;
   font-family: Roboto, "Helvetica Neue", sans-serif;
   padding-top: 60px;
+}
+
+.toggle-row label {
+  margin-right: 0.35rem;
+}
+
+.toggle-row app-toggle-switch {
+  margin-left: 0.35rem;
+}
+
+.btn-group > .btn {
+  flex: 0 0 auto;
 }

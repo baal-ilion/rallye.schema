@@ -1,28 +1,46 @@
-<div class="container  mb-5">
+<div class="container mb-5">
   <div class="row mt-4 text-center">
     <h1 class="col-12">Import de formulaires de réponses</h1>
   </div>
+
   <div class="row justify-content-center mt-4">
-    <div class="col-12">
-      <div class="input-group">
-        <div class="custom-file">
-          <input type="file" class="custom-file-input" multiple id="importFile" accept="image/*"
-            (change)="selectFile($event.target.files)">
-          <label class="custom-file-label text-nowrap overflow-hidden" #labelImport for="importFile"><i
-              class="fas fa-search">Sélectionnez des
-              formulaires de réponses corrigés.</i></label>
-        </div>
-        <div class="input-group-append">
-          <button class="btn-outline-secondary" ngbButtonLabel [disabled]="!selectedFiles"
-            (click)="upload()">Importer</button>
-        </div>
+    <div class="col-12 d-flex flex-column align-items-start">
+      <div>Sélectionnez des formulaires de réponses corrigés.</div>
+
+      <div class="w-auto mt-2">
+        <input
+          #fileInput
+          type="file"
+          class="d-none"
+          multiple
+          id="importFile"
+          accept="image/*"
+          (change)="selectFile($event.target.files)">
+        <button type="button" class="btn btn-primary text-white" (click)="fileInput.click()">
+          <i class="fas fa-search mr-1"></i> Sélectionner
+        </button>
       </div>
-      <div *ngFor="let uploadFile of uploadedFiles">
-        <p>
-          <ngb-progressbar type="info" [value]="uploadFile.progress.percentage" max="100" [striped]="true"
-            [animated]="uploadFile.progress.percentage != 100">
-            {{uploadFile.file.name}} - {{uploadFile.progress.percentage}}%</ngb-progressbar>
-        </p>
+
+      <div class="mt-2 text-left">
+        {{selectedNames?.length || 0}} formulaire(s) sélectionné(s)
+      </div>
+      <div *ngIf="selectedNames?.length" class="mt-1 text-left">
+        <div *ngFor="let name of selectedNames">{{name}}</div>
+      </div>
+
+      <div class="my-4" aria-hidden="true"></div>
+      <div class="mb-1">Importez les fichiers sélectionnés.</div>
+      <button class="btn btn-primary" [disabled]="!selectedFiles" (click)="upload()">Importer</button>
+
+      <div *ngFor="let uploadFile of uploadedFiles" class="mt-3 w-100">
+        <div class="progress">
+          <div class="progress-bar bg-info progress-bar-striped" role="progressbar"
+            [style.width.%]="uploadFile.progress.percentage"
+            [class.progress-bar-animated]="uploadFile.progress.percentage != 100"
+            aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="uploadFile.progress.percentage">
+            {{uploadFile.file.name}} - {{uploadFile.progress.percentage}}%
+          </div>
+        </div>
       </div>
     </div>
   </div>

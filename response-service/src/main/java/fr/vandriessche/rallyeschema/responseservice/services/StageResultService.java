@@ -64,6 +64,9 @@ public class StageResultService {
 	@Autowired
 	private MessageProducerService messageProducerService;
 
+	@Autowired
+	private RankingUpdatePublisher rankingUpdatePublisher;
+
 	public StageResult beginStageResult(Integer stage, Integer team) {
 		StageResult stageResult = findOrMakeStageResultByStageAndTeam(stage, team);
 		if (Objects.nonNull(stageResult))
@@ -73,12 +76,22 @@ public class StageResultService {
 	}
 
 	public StageResult cancelStageResult(int stage, int team) {
-		StageResult stageResult = getStageResultByStageAndTeam(stage, team);
-		if (Objects.nonNull(stageResult)) {
-			stageResult.setBegin(null);
-			stageResult.setEnd(null);
-			return save(stageResult);
+		// Supprime toutes les donnees liees a cette epreuve/equipe
+		responseFileService.deleteByStageAndTeam(stage, team);
+		stageResponseService.deleteByStageAndTeam(stage, team);
+
+		List<StageResult> stageResults = stageResultRepository.findAllByStageAndTeam(stage, team);
+		if (!stageResults.isEmpty()) {
+			stageResults.forEach(sr -> {
+				stageResultRepository.delete(sr);
+				messageProducerService.sendMessage(STAGE_RESULT_DELETE_EVENT, new StageResultMessage(sr));
+			});
+			rankingUpdatePublisher.publishRankingUpdate();
+			return stageResults.get(0);
 		}
+		// Meme si rien n'etait present (ex: annulation juste apres un begin non encore cree),
+		// notifier pour forcer le rafraichissement des autres clients.
+		rankingUpdatePublisher.publishRankingUpdate();
 		return null;
 	}
 
@@ -188,6 +201,7 @@ public class StageResultService {
 		StageResult stageResult = getStageResultByStageAndTeam(stage, team);
 		if (Objects.nonNull(stageResult)) {
 			stageResult.setEnd(null);
+			stageResult.setChecked(false);
 			return save(stageResult);
 		}
 		return null;
@@ -315,6 +329,7 @@ public class StageResultService {
 	private StageResult save(StageResult stageResult) {
 		stageResult = stageResultRepository.save(stageResult);
 		messageProducerService.sendMessage(STAGE_RESULT_UPDATE_EVENT, new StageResultMessage(stageResult));
+		rankingUpdatePublisher.publishRankingUpdate();
 		return stageResult;
 	}
 
@@ -460,3 +475,4 @@ public class StageResultService {
 		return stageResultToUpdate;
 	}
 }
+

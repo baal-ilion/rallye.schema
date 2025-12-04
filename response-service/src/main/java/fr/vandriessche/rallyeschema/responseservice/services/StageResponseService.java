@@ -47,6 +47,13 @@ public class StageResponseService {
 		});
 	}
 
+	public void deleteByStageAndTeam(Integer stage, Integer team) {
+		stageResponseRepository.findAllByStageAndTeam(stage, team).forEach(stageResponse -> {
+			stageResponseRepository.delete(stageResponse);
+			messageProducerService.sendMessage(STAGE_RESPONSE_DELETE_EVENT, new StageResponseMessage(stageResponse));
+		});
+	}
+
 	public void deleteStageResponse(String id) {
 		stageResponseRepository.findById(id).ifPresent(stageResponse -> {
 			stageResponseRepository.delete(stageResponse);

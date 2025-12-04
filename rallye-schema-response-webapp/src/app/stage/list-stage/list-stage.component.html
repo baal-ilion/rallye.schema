@@ -2,58 +2,69 @@
   <div class="row mt-4 text-center">
     <h1 class="col-12">Validation des épreuves</h1>
   </div>
+
   <div class="row mt-2 justify-content-center">
-    <div class="form-inline">
-      <div class="form-group mr-4">
-        <label for="critchecked">Validée</label>
+    <div class="toggle-bar d-flex justify-content-center align-items-center flex-wrap">
+      <div class="form-group mr-4 mb-2 d-flex align-items-center">
+        <label for="critchecked" class="mb-0">Validée</label>
         <app-toggle-switch [checked]="criteria.checked" id="critchecked"
           [light]="criteria.checked !== true && criteria.checked !== false"
-          (change)="criteria.checked = nextChecked(criteria.checked); changeCriteria($event);" class="ml-1">
+          (change)="criteria.checked = nextChecked(criteria.checked); changeCriteria($event);" class="ml-2">
         </app-toggle-switch>
       </div>
-      <div class="form-group mr-4">
-        <label for="critentered">Saisie</label>
+      <div class="form-group mr-4 mb-2 d-flex align-items-center">
+        <label for="critentered" class="mb-0">Saisie</label>
         <app-toggle-switch [checked]="criteria.entered" id="critentered"
           [light]="criteria.entered !== true && criteria.entered !== false"
-          (change)="criteria.entered = nextChecked(criteria.entered); changeCriteria($event);" class="ml-1">
+          (change)="criteria.entered = nextChecked(criteria.entered); changeCriteria($event);" class="ml-2">
         </app-toggle-switch>
       </div>
-      <div class="form-group mr-4">
-        <label for="critfinished">Épreuve terminée</label>
+      <div class="form-group mr-4 mb-2 d-flex align-items-center">
+        <label for="critfinished" class="mb-0">Épreuve terminée</label>
         <app-toggle-switch [checked]="criteria.finished" id="critfinished"
           [light]="criteria.finished !== true && criteria.finished !== false"
-          (change)="criteria.finished = nextChecked(criteria.finished); changeCriteria($event);" class="ml-1">
+          (change)="criteria.finished = nextChecked(criteria.finished); changeCriteria($event);" class="ml-2">
         </app-toggle-switch>
       </div>
+    </div>
+  </div>
+
+  <div class="row mt-2 justify-content-center">
+    <div class="d-flex flex-column align-items-center select-group">
       <div class="form-group mr-4">
         <label for="critteam">Équipe</label>
         <select [(ngModel)]="criteria.team" (change)="changeCriteria($event)" id="critteam"
-          class="form-control custom-select ml-1">
+          class="form-control custom-select select-arrow ml-1">
           <option value=""></option>
           <option *ngFor="let team of teams" [value]="team.team">{{team.name}}</option>
         </select>
       </div>
-      <div class="form-group">
+      <div class="form-group mt-2">
         <label for="critstage">Épreuve</label>
         <select [(ngModel)]="criteria.stage" (change)="changeCriteria($event)" id="critstage"
-          class="form-control custom-select ml-1">
+          class="form-control custom-select select-arrow ml-1">
           <option value=""></option>
           <option *ngFor="let stage of stageParams" [value]="stage.stage">{{stage.name}}</option>
         </select>
       </div>
     </div>
   </div>
-  <ngb-pagination [collectionSize]="pages.totalElements" pageSize=1 maxSize=10 [(page)]="page" [boundaryLinks]="true"
-    [disabled]='pages.totalElements == 0' (pageChange)="loadPage($event)" class="row justify-content-center mt-4">
-  </ngb-pagination>
+
+  <app-pagination [collectionSize]="pages.totalElements" pageSize="1" [(page)]="page" [boundaryLinks]="true"
+    [disabled]="pages.totalElements == 0" (pageChange)="loadPage($event)" class="d-flex justify-content-center mt-4">
+  </app-pagination>
   <div *ngIf='pages.totalElements > 0'>
     <div class="row justify-content-center mt-1">
       <div class="col-12">
-        <app-details-stage [stage]='stages[page-1].stage' [team]='stages[page-1].team'></app-details-stage>
+        <app-details-stage
+          [stage]='stages[page-1].stage'
+          [team]='stages[page-1].team'
+          (stageUpdated)="onStageUpdated()">
+        </app-details-stage>
       </div>
     </div>
   </div>
-  <ngb-pagination [collectionSize]="pages.totalElements" pageSize=1 maxSize=10 [(page)]="page" [boundaryLinks]="true"
-    [disabled]='pages.totalElements == 0' (pageChange)="loadPage($event)" class="row justify-content-center mt-2">
-  </ngb-pagination>
+  <app-pagination [collectionSize]="pages.totalElements" pageSize="1" [(page)]="page" [boundaryLinks]="true"
+    [disabled]="pages.totalElements == 0" (pageChange)="loadPage($event)" class="d-flex justify-content-center mt-2">
+  </app-pagination>
 </div>

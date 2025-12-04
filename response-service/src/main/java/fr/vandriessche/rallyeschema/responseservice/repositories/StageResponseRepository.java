@@ -10,5 +10,7 @@ import fr.vandriessche.rallyeschema.responseservice.entities.StageResponse;
 public interface StageResponseRepository extends MongoRepository<StageResponse, String> {
 	Optional<StageResponse> findByStageAndTeam(Integer stage, Integer team);
 
+	List<StageResponse> findAllByStageAndTeam(Integer stage, Integer team);
+
 	List<StageResponse> findByTeam(Integer team);
 }

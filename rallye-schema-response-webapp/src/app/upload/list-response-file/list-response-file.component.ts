@@ -1,5 +1,5 @@
 import { Component, ElementRef, HostListener, Input, OnInit } from '@angular/core';
-import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
+import { MatDialogRef } from '@angular/material/dialog';
 import { ResponseFileInfo } from '../models/response-file-info';
 
 @Component({
@@ -12,7 +12,7 @@ export class ListResponseFileComponent implements OnInit {
   page = 1;
 
   constructor(
-    public activeModal: NgbActiveModal,
+    public dialogRef: MatDialogRef<ListResponseFileComponent>,
     private elementRef: ElementRef) { }
 
   ngOnInit() {
@@ -25,11 +25,11 @@ export class ListResponseFileComponent implements OnInit {
       this.responseFiles.splice(idx, 1);
     }
     if (this.responseFiles.length === 0)
-      this.activeModal.close(responseFile);
+      this.dialogRef.close(responseFile);
   }
 
   check(event: ResponseFileInfo) {
-    this.activeModal.close(event);
+    this.dialogRef.close(event);
   }
 
 
@@ -45,11 +45,13 @@ export class ListResponseFileComponent implements OnInit {
 
   private contains(event: KeyboardEvent): boolean {
     let target = event.target as HTMLElement;
-    const modalWindow = 'ngb-modal-window'.toUpperCase();
-    while (target && target.tagName !== modalWindow) {
+    while (target) {
+      if (this.elementRef.nativeElement.contains(target)) {
+        return true;
+      }
       target = target.parentElement;
     }
-    return !target || target?.contains(this.elementRef.nativeElement);
+    return false;
   }
 
   next() {

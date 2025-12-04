@@ -1,0 +1,38 @@
+<div class="container mb-5">
+  <div class="row mt-4 text-center">
+    <h1 class="col-12">Classements par groupes d'épreuves</h1>
+  </div>
+
+  <div class="row d-print-none">
+    <div class="col-12 d-flex justify-content-end align-items-center toggle-row">
+      <label for="viewPoints" class="mb-0">Afficher les points</label>
+      <app-toggle-switch [checked]="viewPoints" id="viewPoints" (change)="viewPoints = !viewPoints">
+      </app-toggle-switch>
+    </div>
+  </div>
+
+  <div class="row justify-content-center d-print-none">
+    <button class="btn btn-primary w-auto"  (click)='exportExcel()'>Télécharger</button>
+  </div>
+
+  <div *ngIf="loading" class="alert alert-info mt-3">
+    Chargement des classements par groupes...
+  </div>
+
+  <div *ngIf="error" class="alert alert-danger mt-3">
+    {{ error }}
+  </div>
+
+  <div *ngIf="!loading && !error && (groupRankings | keyvalue).length === 0" class="alert alert-secondary mt-3">
+    Aucun groupe d'épreuves trouvé ou aucun score disponible.
+  </div>
+
+  <div class="row justify-content-center" *ngFor="let groupRank of groupRankings | keyvalue: groupOrder">
+    <app-ranking class="col-12"
+      [rankingTitle]="groupRank.key"
+      [teamRanking]="groupRank.value"
+      [teamInfos]="teamInfos"
+      [viewPoints]="viewPoints">
+    </app-ranking>
+  </div>
+</div>

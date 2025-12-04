@@ -49,6 +49,12 @@ public class TeamInfoController {
 		return assembler.toCollectionModel(teamInfoService.getTeamInfos());
 	}
 
+	@PutMapping(URL + "/{team}/presence")
+	public EntityModel<TeamInfo> setTeamPresenceByTeam(@PathVariable Integer team, @RequestParam boolean present,
+			TeamInfoModelAssembler assembler) {
+		return assembler.toModel(teamInfoService.setTeamPresenceByTeam(team, present));
+	}
+
 	@PutMapping(URL)
 	public EntityModel<TeamInfo> updateTeamInfo(@RequestBody TeamInfo teamInfo, TeamInfoModelAssembler assembler) {
 		return assembler.toModel(teamInfoService.updateTeamInfo(teamInfo));

@@ -87,7 +87,7 @@ export class StageService {
       .set('responseFileId', responseFileId)
       .set('delete', del.toString());
     return this.http.post<StageResult>(AppConfigService.settings.apiUrl.rallyeSchema +
-      '/stageResults/responseFile', params);
+      '/stageResults/responseFile', null, { params });
   }
 
   getResource<T = any>(url: string): Observable<T> {

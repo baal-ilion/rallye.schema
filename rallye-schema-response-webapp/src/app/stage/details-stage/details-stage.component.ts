@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
-import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
-import { FormArray, FormBuilder, FormGroup } from '@angular/forms';
-import { NgbDateStruct, NgbTimeStruct } from '@ng-bootstrap/ng-bootstrap';
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges } from '@angular/core';
+import { Router } from '@angular/router';
+import { UntypedFormArray, UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
 import { HalLink } from 'src/app/models/hal-link';
 import { QuestionParam } from 'src/app/param/models/question-param';
@@ -17,6 +17,10 @@ import { StageResponse } from '../models/stage-response';
 import { isStageResponseSource, StageResponseSource } from '../models/stage-response-source';
 import { StageResult } from '../models/stage-result';
 import { StageService } from '../stage.service';
+import { RankingUpdateService } from 'src/app/services/ranking-update.service';
+import { TeamInfoService } from 'src/app/param/team-info.service';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-details-stage',
@@ -24,34 +28,37 @@ import { StageService } from '../stage.service';
   styleUrls: ['./details-stage.component.scss'],
   providers: [DatePipe]
 })
-export class DetailsStageComponent implements OnInit, OnChanges {
+export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
 
   @Input() stage: number;
   @Input() team: number;
   @Output() loadErrorEvent = new EventEmitter<Error>();
 
   stageResult: StageResult;
-  form: FormGroup;
+  form: UntypedFormGroup;
   files: { [page: number]: any } = {};
   param: StageParam;
   fileParams: ResponseFileParam[];
   stageResponse: StageResponse;
   stageResponseNames: string[];
+  private destroy$ = new Subject<void>();
 
   constructor(
     private uploadFileService: UploadFileService,
-    private formBuilder: FormBuilder,
+    private formBuilder: UntypedFormBuilder,
     private stageService: StageService,
     private stageParamService: StageParamService,
     private datePipe: DatePipe,
     private confirmationDialogService: ConfirmationDialogService,
-    private responseFileParamService: ResponseFileParamService) { }
+    private responseFileParamService: ResponseFileParamService,
+    private router: Router,
+    private rankingUpdateService: RankingUpdateService,
+    private teamInfoService: TeamInfoService) { }
 
-  // convenience getters for easy access to form fields
   get f() { return this.form.controls; }
-  get pages() { return this.f.pages as FormArray; }
-  getResultForms(formGroup: FormGroup): FormArray { return formGroup.controls.results as FormArray; }
-  getPerformanceForms(formGroup: FormGroup): FormArray { return formGroup.controls.performances as FormArray; }
+  get pages() { return this.f.pages as UntypedFormArray; }
+  getResultForms(formGroup: UntypedFormGroup): UntypedFormArray { return formGroup.controls.results as UntypedFormArray; }
+  getPerformanceForms(formGroup: UntypedFormGroup): UntypedFormArray { return formGroup.controls.performances as UntypedFormArray; }
 
   ngOnChanges(changes: SimpleChanges): void {
     console.log('ngOnChanges');
@@ -64,22 +71,28 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   ngOnInit() {
     console.log('ngOnInit');
     this.clear();
+    this.rankingUpdateService.updates$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.checkStageStillExists());
     this.loadStage();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private clear() {
     console.log('clear');
-    const ngbDate: NgbDateStruct = { year: 0, month: 0, day: 0 };
-    const ngbTime: NgbTimeStruct = { hour: 0, minute: 0, second: 0 };
     this.form = this.formBuilder.group({
       pages: this.formBuilder.array([]),
       results: this.formBuilder.array([]),
       performances: this.formBuilder.array([]),
       checked: false,
-      begindate: ngbDate,
-      begintime: ngbTime,
-      enddate: ngbDate,
-      endtime: ngbTime,
+      begindate: '',
+      begintime: '',
+      enddate: '',
+      endtime: '',
     });
     this.param = null;
     this.fileParams = null;
@@ -132,6 +145,7 @@ export class DetailsStageComponent implements OnInit, OnChanges {
     try {
       await loadResponceFilesPromise;
       await loadStageValuesPromise;
+      this.updateFormDisabledState();
     } catch (error) {
       console.log(error);
     }
@@ -157,13 +171,80 @@ export class DetailsStageComponent implements OnInit, OnChanges {
     return this.stageResponseNames?.some(v => v === name) ?? false;
   }
 
+  private checkStageStillExists() {
+    this.stageService.findStage(this.stage, this.team).subscribe({
+      next: (latest) => {
+        if (latest) {
+          this.stageResult = { ...this.stageResult, ...latest };
+          if (this.form) {
+            this.form.patchValue({
+              begindate: this.formatDate(latest.begin),
+              begintime: this.formatTime(latest.begin),
+              enddate: this.formatDate(latest.end),
+              endtime: this.formatTime(latest.end),
+            }, { emitEvent: false });
+            this.updateFormValues(latest);
+            this.updateFormDisabledState();
+          }
+        }
+      },
+      error: () => {
+        // Stage supprime (ex: annule ailleurs) -> revenir a la progression de l'equipe
+        this.navigateToTeamProgression();
+      }
+    });
+  }
+
+  private updateFormValues(latest: StageResult) {
+    const updateResults = (array: UntypedFormArray) => {
+      array.controls.forEach(control => {
+        const name = control.get('name')?.value;
+        const latestResult = latest.results?.find(r => r.name === name);
+        if (latestResult) {
+          control.get('resultValue')?.setValue(latestResult.resultValue, { emitEvent: false });
+          control.get('init')?.setValue(latestResult.resultValue, { emitEvent: false });
+          const fromSource = isStageResponseSource(latestResult.source) || isResponseFileSource(latestResult.source);
+          control.get('light')?.setValue(fromSource, { emitEvent: false });
+        }
+      });
+    };
+    const updatePerformances = (array: UntypedFormArray) => {
+      array.controls.forEach(control => {
+        const name = control.get('name')?.value;
+        const latestPerf = latest.performances?.find(p => p.name === name);
+        if (latestPerf) {
+          control.get('performanceValue')?.setValue(latestPerf.performanceValue, { emitEvent: false });
+        }
+      });
+    };
+
+    updateResults(this.getResultForms(this.form));
+    updatePerformances(this.getPerformanceForms(this.form));
+    this.pages.controls.forEach(page => {
+      const pageGroup = page as UntypedFormGroup;
+      updateResults(this.getResultForms(pageGroup));
+      updatePerformances(this.getPerformanceForms(pageGroup));
+    });
+  }
+
+  private updateFormDisabledState() {
+    if (!this.form) {
+      return;
+    }
+    if (this.stageResult?.checked) {
+      this.form.disable({ emitEvent: false });
+    } else {
+      this.form.enable({ emitEvent: false });
+    }
+  }
+
   private async loadStageValues() {
     this.form.patchValue({
       checked: this.stageResult.checked,
-      begindate: this.buildNgbDate(this.stageResult.begin),
-      begintime: this.buildNgbTime(this.stageResult.begin),
-      enddate: this.buildNgbDate(this.stageResult.end),
-      endtime: this.buildNgbTime(this.stageResult.end),
+      begindate: this.formatDate(this.stageResult.begin),
+      begintime: this.formatTime(this.stageResult.begin),
+      enddate: this.formatDate(this.stageResult.end),
+      endtime: this.formatTime(this.stageResult.end),
     });
   }
 
@@ -206,8 +287,8 @@ export class DetailsStageComponent implements OnInit, OnChanges {
       this.makeQuestionResults(
         Object.values(fileParam.questions),
         questionParams,
-        pageForm.controls.results as FormArray,
-        pageForm.controls.performances as FormArray);
+        pageForm.controls.results as UntypedFormArray,
+        pageForm.controls.performances as UntypedFormArray);
       this.pages.push(pageForm);
     }
     this.makeQuestionResults(
@@ -220,8 +301,8 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   private makeQuestionResults(
     questionPageParams: QuestionPageParam[],
     questionParams: QuestionParam[],
-    results: FormArray,
-    performances: FormArray) {
+    results: UntypedFormArray,
+    performances: UntypedFormArray) {
     for (const questionPageParam of questionPageParams) {
       const index = questionParams.findIndex(q => q.name === questionPageParam.name);
       if (index !== -1) {
@@ -252,32 +333,37 @@ export class DetailsStageComponent implements OnInit, OnChanges {
     }
   }
 
-  buildNgbDate(date: Date): NgbDateStruct {
-    return {
-      year: Number(this.datePipe.transform(date, 'yyyy')),
-      month: Number(this.datePipe.transform(date, 'MM')),
-      day: Number(this.datePipe.transform(date, 'dd'))
-    };
+  private formatDate(date: Date): string {
+    return date ? this.datePipe.transform(date, 'yyyy-MM-dd') : '';
   }
 
-  buildNgbTime(date: Date): NgbTimeStruct {
-    return {
-      hour: Number(this.datePipe.transform(date, 'HH')),
-      minute: Number(this.datePipe.transform(date, 'mm')),
-      second: Number(this.datePipe.transform(date, 'ss'))
-    };
+  private formatTime(date: Date): string {
+    return date ? this.datePipe.transform(date, 'HH:mm:ss') : '';
   }
 
-  buildDate(date: NgbDateStruct, time: NgbTimeStruct): Date {
-    // tslint:disable-next-line: triple-equals
-    if (!date?.year || !date?.month || !date?.day || date?.year == 0 || date?.month == 0 || date?.day == 0)
+  buildDate(date: string, time: string): Date {
+    if (!date || !time) {
       return null;
-    if (!time?.hour)
+    }
+    const [year, month, day] = date.split('-').map(d => Number(d));
+    if (!year || !month || !day) {
       return null;
-    return new Date(date?.year, date?.month - 1, date?.day, time?.hour, time?.minute, time?.second);
+    }
+    const timeParts = time.split(':');
+    if (timeParts.length < 2) {
+      return null;
+    }
+    const [hour, minute, second = '0'] = timeParts;
+    const h = Number(hour);
+    const m = Number(minute);
+    const s = Number(second);
+    if (Number.isNaN(h) || Number.isNaN(m) || Number.isNaN(s)) {
+      return null;
+    }
+    return new Date(year, month - 1, day, h, m, s);
   }
 
-  private findModifiedResults(form: FormGroup, modifiedResults: any[]) {
+  private findModifiedResults(form: UntypedFormGroup, modifiedResults: any[]) {
     form.getRawValue().results?.forEach((item: any) => {
       const result = this.stageResult.results.find(element => element.name === item.name);
       if (!result || item.resultValue !== result.resultValue) {
@@ -286,7 +372,7 @@ export class DetailsStageComponent implements OnInit, OnChanges {
     });
   }
 
-  private findModifiedperformances(form: FormGroup, modifiedperformances: any[]) {
+  private findModifiedperformances(form: UntypedFormGroup, modifiedperformances: any[]) {
     form.getRawValue().performances.forEach((item: any) => {
       const performance = this.stageResult.performances.find(element => element.name === item.name);
       if (!performance || item.performanceValue !== performance.performanceValue) {
@@ -313,23 +399,26 @@ export class DetailsStageComponent implements OnInit, OnChanges {
       const modifiedperformances = [];
       this.findModifiedperformances(this.form, modifiedperformances);
       this.pages.controls.forEach(page => {
-        this.findModifiedResults(page as FormGroup, modifiedResults);
-        this.findModifiedperformances(page as FormGroup, modifiedperformances);
+        this.findModifiedResults(page as UntypedFormGroup, modifiedResults);
+        this.findModifiedperformances(page as UntypedFormGroup, modifiedperformances);
       });
       const begin = this.buildDate(this.form.value.begindate, this.form.value.begintime);
-      const sameBegin = (!begin && !this.stageResult.begin) || new Date(this.stageResult.begin).getTime() === begin?.getTime();
       const end = this.buildDate(this.form.value.enddate, this.form.value.endtime);
-      const sameEnd = (!end && !this.stageResult.end) || new Date(this.stageResult.end).getTime() === end?.getTime();
-      if (!sameBegin || !sameEnd ||
-        modifiedResults.length !== 0 || modifiedperformances.length !== 0 ||
-        this.form.value.checked !== this.stageResult.checked) {
+      const hasChanges =
+        modifiedResults.length !== 0 ||
+        modifiedperformances.length !== 0 ||
+        this.form.value.checked !== this.stageResult.checked ||
+        new Date(this.stageResult.begin ?? '').getTime() !== (begin ? begin.getTime() : NaN) ||
+        new Date(this.stageResult.end ?? '').getTime() !== (end ? end.getTime() : NaN);
+
+      if (hasChanges) {
         const stageResult = await this.stageService.updateStage({
           id: this.stageResult.id,
           team: this.stageResult.team,
           stage: this.stageResult.stage,
           checked: this.form.value.checked,
-          begin: sameBegin ? undefined : begin,
-          end: sameEnd ? undefined : end,
+          begin: begin,
+          end: end,
           results: modifiedResults.length !== 0 ? modifiedResults : undefined,
           performances: modifiedperformances.length !== 0 ? modifiedperformances : undefined
         }).toPromise();
@@ -344,24 +433,25 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   }
 
   reload() {
-    this.ngOnInit();
+    // Rafraichissement sans reset de la page : on rejoue une synchro distante
+    this.checkStageStillExists();
   }
 
   async onCancelStage() {
     try {
       const confirmed = await this.confirmationDialogService.confirm(
-        'Annulation d\'une épreuve',
-        'Annuler l\'épreuve ' + this.stageResult.stage + ' de l\'équipe ' + this.stageResult.team + '\u00A0?',
+        'Annulation d\'une epreuve',
+        'Annuler l\'epreuve ' + this.stage + ' de l\'equipe ' + this.team + '\u00A0?',
         'Oui', 'Non');
       console.log('User confirmed:', confirmed);
       if (confirmed) {
         try {
-          await this.modifyStage();
-          await this.stageService.cancelStage(this.stageResult.stage, this.stageResult.team).toPromise();
+          await this.stageService.cancelStage(this.stage, this.team).toPromise();
         } catch (error) {
           console.log(error);
         }
-        this.reload();
+        this.rankingUpdateService.triggerUpdate();
+        await this.navigateToTeamProgression();
       }
     } catch (error) {
       console.log('User dismissed the dialog (e.g., by using ESC, clicking the cross icon, or clicking outside the dialog)');
@@ -373,17 +463,17 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   async onUndoStage() {
     try {
       const confirmed = await this.confirmationDialogService.confirm(
-        'Reprise d\'une épreuve',
-        'Reprendre l\'épreuve ' + this.stageResult.stage + ' de l\'équipe ' + this.stageResult.team + '\u00A0?',
+        'Reprise d\'une epreuve',
+        'Reprendre l\'epreuve ' + this.stage + ' de l\'equipe ' + this.team + '\u00A0?',
         'Oui', 'Non');
       console.log('User confirmed:', confirmed);
       if (confirmed) {
         try {
-          await this.modifyStage();
-          await this.stageService.undoStage(this.stageResult.stage, this.stageResult.team).toPromise();
+          await this.stageService.undoStage(this.stage, this.team).toPromise();
         } catch (error) {
           console.log(error);
         }
+        this.rankingUpdateService.triggerUpdate();
         this.reload();
       }
     } catch (error) {
@@ -396,16 +486,16 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   async onStartStage() {
     try {
       const confirmed = await this.confirmationDialogService.confirm(
-        'Début d\'une épreuve',
-        'Démarrer l\'épreuve ' + this.stageResult.stage + ' de l\'équipe ' + this.stageResult.team + '\u00A0?',
+        'Debut d\'une epreuve',
+        'Demarrer l\'epreuve ' + this.stage + ' de l\'equipe ' + this.team + '\u00A0?',
         'Oui', 'Non');
       if (confirmed) {
         try {
-          await this.modifyStage();
-          await this.stageService.beginStage(this.stageResult.stage, this.stageResult.team).toPromise();
+          await this.stageService.beginStage(this.stage, this.team).toPromise();
         } catch (error) {
           console.log(error);
         }
+        this.rankingUpdateService.triggerUpdate();
         this.reload();
       }
     } catch (error) {
@@ -418,16 +508,16 @@ export class DetailsStageComponent implements OnInit, OnChanges {
   async onStopStage() {
     try {
       const confirmed = await this.confirmationDialogService.confirm(
-        'Fin d\'une épreuve',
-        'Terminer l\'épreuve ' + this.stageResult.stage + ' de l\'équipe ' + this.stageResult.team + '\u00A0?',
+        'Fin d\'une epreuve',
+        'Terminer l\'epreuve ' + this.stage + ' de l\'equipe ' + this.team + '\u00A0?',
         'Oui', 'Non');
       if (confirmed) {
         try {
-          await this.modifyStage();
-          await this.stageService.endStage(this.stageResult.stage, this.stageResult.team).toPromise();
+          await this.stageService.endStage(this.stage, this.team).toPromise();
         } catch (error) {
           console.log(error);
         }
+        this.rankingUpdateService.triggerUpdate();
         this.reload();
       }
     } catch (error) {
@@ -437,11 +527,24 @@ export class DetailsStageComponent implements OnInit, OnChanges {
     }
   }
 
-  private hasEmptyPerformances(form: FormGroup): boolean {
+  private hasEmptyPerformances(form: UntypedFormGroup): boolean {
     return form.getRawValue().performances?.find(item => !item.performanceValue && item.performanceValue !== 0) ?? false;
   }
 
-  private hasEmptyResults(form: FormGroup): boolean {
+  private async navigateToTeamProgression() {
+    try {
+      const teamInfo = await this.teamInfoService.findByTeam(this.team).toPromise();
+      if (teamInfo?.id) {
+        await this.router.navigateByUrl('/team/' + teamInfo.id);
+        return;
+      }
+    } catch (error) {
+      console.log(error);
+    }
+    await this.router.navigateByUrl('/');
+  }
+
+  private hasEmptyResults(form: UntypedFormGroup): boolean {
     return form.getRawValue().results?.find(item => item.resultValue !== true && item.resultValue !== false) ?? false;
   }
 
@@ -458,9 +561,13 @@ export class DetailsStageComponent implements OnInit, OnChanges {
     if (this.hasEmptyResults(this.form)) {
       return false;
     }
-    if (this.pages.controls.find(page => this.hasEmptyResults(page as FormGroup) || this.hasEmptyPerformances(page as FormGroup))) {
+    if (this.pages.controls.find(page => this.hasEmptyResults(page as UntypedFormGroup) || this.hasEmptyPerformances(page as UntypedFormGroup))) {
       return false;
     }
     return true;
   }
 }
+
+
+
+

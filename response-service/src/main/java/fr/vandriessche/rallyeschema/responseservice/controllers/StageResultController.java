@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import org.xml.sax.SAXException;
 
 import com.albertoborsetta.formscanner.api.exceptions.FormScannerException;
@@ -62,7 +63,11 @@ public class StageResultController {
 	@GetMapping(URL + "/search/findByStageAndTeam")
 	public EntityModel<StageResult> getStageResultByStageAndTeam(@RequestParam Integer stage,
 			@RequestParam Integer team, StageResultModelAssembler assembler) {
-		return assembler.toModel(stageResultService.getStageResultByStageAndTeam(stage, team));
+		var stageResult = stageResultService.getStageResultByStageAndTeam(stage, team);
+		if (Objects.isNull(stageResult)) {
+			throw new ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "StageResult not found");
+		}
+		return assembler.toModel(stageResult);
 	}
 
 	@GetMapping(URL)

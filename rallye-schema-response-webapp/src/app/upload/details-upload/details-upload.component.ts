@@ -1,9 +1,9 @@
 import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { Corners } from 'src/app/response-file/common/details-template/models/corners';
 import { ResponseFileInfo } from '../models/response-file-info';
 import { ModifyUploadComponent } from '../modify-upload/modify-upload.component';
 import { UploadFileService } from '../upload-file.service';
+import { AppDialogRef, DialogService } from 'src/app/shared/dialog/dialog.service';
 
 @Component({
   selector: 'app-details-upload',
@@ -19,7 +19,7 @@ export class DetailsUploadComponent implements OnInit, OnChanges {
 
   constructor(
     private uploadService: UploadFileService,
-    private modalService: NgbModal) { }
+    private dialogService: DialogService) { }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!changes.fileUpload.isFirstChange()) {
@@ -45,15 +45,18 @@ export class DetailsUploadComponent implements OnInit, OnChanges {
   }
 
   openModifyUpload() {
-    const modalRef = this.modalService.open(ModifyUploadComponent);
+    const modalRef = this.dialogService.open<ModifyUploadComponent>(ModifyUploadComponent);
     modalRef.componentInstance.fileUpload = this.fileUpload;
     modalRef.result.then((result) => {
       console.log(result);
+      if (!result) {
+        return;
+      }
       this.uploadService.updateResponseFileInfoCorners({
         id: this.fileUpload.id,
-        stage: result.stage,
-        page: result.page,
-        team: result.team
+        stage: (result as any).stage,
+        page: (result as any).page,
+        team: (result as any).team
       }).subscribe(data => {
         this.fileUpload = data;
         this.ngOnInit();

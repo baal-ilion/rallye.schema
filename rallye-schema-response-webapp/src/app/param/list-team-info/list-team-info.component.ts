@@ -1,9 +1,9 @@
 import { Component, OnInit } from '@angular/core';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
+import { DialogService } from 'src/app/shared/dialog/dialog.service';
 import { TeamInfo } from '../models/team-info';
 import { ModifyTeamInfoComponent } from '../modify-team-info/modify-team-info.component';
 import { TeamInfoService } from '../team-info.service';
-import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
 
 @Component({
   selector: 'app-list-team-info',
@@ -16,7 +16,7 @@ export class ListTeamInfoComponent implements OnInit {
 
   constructor(
     private teamInfoService: TeamInfoService,
-    private modalService: NgbModal,
+    private dialogService: DialogService,
     private confirmationDialogService: ConfirmationDialogService
   ) { }
 
@@ -30,14 +30,16 @@ export class ListTeamInfoComponent implements OnInit {
   }
 
   addTeamInfo() {
-    const modalRef = this.modalService.open(ModifyTeamInfoComponent);
+    const modalRef = this.dialogService.open(ModifyTeamInfoComponent);
     modalRef.componentInstance.teamInfo = {
-      team: '',
-      name: ''
+      team: null as any,
+      name: '',
+      present: false
     };
     modalRef.result.then((result) => {
       console.log(result);
-      this.teamInfoService.addTeamInfo(result).subscribe(data => {
+      if (!result) { return; }
+      this.teamInfoService.addTeamInfo(result as TeamInfo).subscribe(data => {
         this.ngOnInit();
       }, err => {
         console.log(err);
@@ -49,15 +51,17 @@ export class ListTeamInfoComponent implements OnInit {
   }
 
   modifyTeamInfo(teamInfo: TeamInfo) {
-    const modalRef = this.modalService.open(ModifyTeamInfoComponent);
+    const modalRef = this.dialogService.open(ModifyTeamInfoComponent);
     modalRef.componentInstance.teamInfo = {
       id: teamInfo.id,
       team: teamInfo.team,
-      name: teamInfo.name
+      name: teamInfo.name,
+      present: teamInfo.present
     };
     modalRef.result.then((result) => {
       console.log(result);
-      this.teamInfoService.updateTeamInfo(result).subscribe(data => {
+      if (!result) { return; }
+      this.teamInfoService.updateTeamInfo(result as TeamInfo).subscribe(data => {
         teamInfo.name = data.name;
       }, err => {
         console.log(err);

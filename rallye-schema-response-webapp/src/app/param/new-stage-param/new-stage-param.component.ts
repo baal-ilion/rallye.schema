@@ -1,8 +1,12 @@
 import { Component, OnInit } from '@angular/core';
-import { AbstractControl, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
+import { AbstractControl, UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
+import { MatDialogRef } from '@angular/material/dialog';
+
 import { StageParam } from '../models/stage-param';
 import { StageParamService } from '../stage-param.service';
+
+import { StageGroup } from '../models/stage-group';
+import { StageGroupService } from 'src/app/services/stage-group.service';
 
 @Component({
   selector: 'app-new-stage-param',
@@ -10,19 +14,33 @@ import { StageParamService } from '../stage-param.service';
   styleUrls: ['./new-stage-param.component.scss']
 })
 export class NewStageParamComponent implements OnInit {
-  stageParamForm: FormGroup;
+
+  stageParamForm: UntypedFormGroup;
   stageParams: StageParam[] = [];
+  stageGroups: StageGroup[] = [];
 
   constructor(
-    public activeModal: NgbActiveModal,
-    private formBuilder: FormBuilder,
-    private stageParamService: StageParamService) { }
+    public dialogRef: MatDialogRef<NewStageParamComponent>,
+    private formBuilder: UntypedFormBuilder,
+    private stageParamService: StageParamService,
+    private stageGroupService: StageGroupService,
+  ) { }
 
   ngOnInit() {
     this.createForm();
+
+    // Charger les groupes pour le <select>
+    this.stageGroupService.getAll().subscribe({
+      next: groups => this.stageGroups = groups,
+      error: () => this.stageGroups = []
+    });
+
+    // Charger les épreuves existantes pour calculer le prochain numéro de stage
     this.stageParamService.getStageParams().toPromise().then((value) => {
       this.stageParams = value._embedded.stageParams;
-      const stage = this.stageParams.length > 0 ? Math.max.apply(Math, this.stageParams.map(stageParam => stageParam.stage)) + 1 : 1;
+      const stage = this.stageParams.length > 0
+        ? Math.max.apply(Math, this.stageParams.map(stageParam => stageParam.stage)) + 1
+        : 1;
       this.stageParamForm.controls.stage.setValue(stage);
     }, (error) => {
       this.stageParams = [];
@@ -32,7 +50,8 @@ export class NewStageParamComponent implements OnInit {
   private createForm() {
     this.stageParamForm = this.formBuilder.group({
       stage: [1, [Validators.required, this.uniqueStageValidator.bind(this)]],
-      name: ['', Validators.required]
+      name: ['', Validators.required],
+      group: [null]
     });
   }
 
@@ -51,6 +70,7 @@ export class NewStageParamComponent implements OnInit {
   }
 
   submitForm() {
-    this.activeModal.close(this.stageParamForm.value);
+    // On renvoie { stage, name, group } au composant parent
+    this.dialogRef.close(this.stageParamForm.value);
   }
 }

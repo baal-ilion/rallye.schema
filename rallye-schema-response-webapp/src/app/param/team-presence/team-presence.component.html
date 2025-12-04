@@ -1,0 +1,78 @@
+<div class="container mb-5">
+
+  <!-- TITRE PRINCIPAL -->
+  <div class="row mt-4 text-center">
+    <h1 class="col-12">Présence des équipes</h1>
+  </div>
+
+  <!-- BANDEAU GRIS -->
+  <div class="row mt-4">
+    <div class="col-12 py-1 bg-secondary">
+      <h4 class="my-auto text-center text-white">
+        Liste des équipes et statut de présence
+      </h4>
+    </div>
+  </div>
+
+  <!-- CHARGEMENT / ERREUR -->
+  <div class="row mt-3" *ngIf="loading || error">
+    <div class="col-12">
+      <div *ngIf="loading" class="alert alert-info mt-3">
+        Chargement des équipes...
+      </div>
+
+      <div *ngIf="error" class="alert alert-danger mt-3">
+        {{ error }}
+      </div>
+    </div>
+  </div>
+
+  <!-- GRILLE DE CARTES -->
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 mt-4 mx-n4">
+    <ng-template ngFor let-team [ngForOf]="teamInfos">
+
+      <div class="col mb-4">
+        <div
+          class="card h-100"
+          [ngClass]="{
+            'border-success': isPresent(team),
+            'border-secondary': !isPresent(team)
+          }"
+        >
+
+          <!-- ENTÊTE -->
+          <div
+            class="card-header font-weight-bold"
+            [ngClass]="{
+              'text-white bg-success': isPresent(team)
+            }"
+          >
+            Équipe {{ team.team }} - {{ team.name }}
+          </div>
+
+          <!-- CORPS : non centré, pas en gras, texte simple -->
+          <div
+            class="card-body"
+            [ngClass]="isPresent(team) ? 'text-success' : ''"
+          >
+            <div class="text-left">
+              {{ isPresent(team) ? 'Équipe présente.' : 'Équipe absente.' }}
+            </div>
+          </div>
+
+          <!-- FOOTER -->
+          <div class="card-footer text-center">
+            <app-toggle-switch
+              [(ngModel)]="team.present"
+              (ngModelChange)="onPresenceChange(team, $event)"
+            >
+            </app-toggle-switch>
+          </div>
+
+        </div>
+      </div>
+
+    </ng-template>
+  </div>
+
+</div>

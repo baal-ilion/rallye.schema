@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
+import { DialogService } from 'src/app/shared/dialog/dialog.service';
 import { QuestionType } from 'src/app/param/models/question-type';
 import { QuestionPageParam } from '../models/question-page-param';
 import { ResponseFileParam } from '../models/response-file-param';
@@ -22,7 +22,7 @@ export class DetailsResponseFileParamComponent implements OnInit {
   questions: QuestionPageParam[];
   constructor(
     private responseFileParamService: ResponseFileParamService,
-    private modalService: NgbModal,
+    private dialogService: DialogService,
     private confirmationDialogService: ConfirmationDialogService
   ) { }
 
@@ -48,11 +48,12 @@ export class DetailsResponseFileParamComponent implements OnInit {
   }
 
   openModifyResponseFileParam() {
-    const modalRef = this.modalService.open(ModifyResponseFileParamComponent);
+    const modalRef = this.dialogService.open(ModifyResponseFileParamComponent);
     modalRef.componentInstance.param = this.param;
     modalRef.result.then((result) => {
       console.log(result);
-      this.responseFileParamService.updateResponseFileParam(result).subscribe(data => {
+      if (!result) { return; }
+      this.responseFileParamService.updateResponseFileParam(result as ResponseFileParam).subscribe(data => {
         this.param = data;
         this.loadQuestions(this.param.questions);
       }, err => {

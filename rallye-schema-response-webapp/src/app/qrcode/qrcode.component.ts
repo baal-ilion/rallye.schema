@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { TeamInfo } from '../param/models/team-info';
 import { TeamInfoService } from '../param/team-info.service';
-import { NgxQrcodeElementTypes, NgxQrcodeErrorCorrectionLevels } from '@techiediaries/ngx-qrcode';
+import { QRCodeElementType, QRCodeErrorCorrectionLevel } from 'angularx-qrcode';
 
 @Component({
   selector: 'app-qrcode',
@@ -10,8 +10,8 @@ import { NgxQrcodeElementTypes, NgxQrcodeErrorCorrectionLevels } from '@techiedi
 })
 export class QrcodeComponent implements OnInit {
   teamInfoPages: { [page: number]: TeamInfo[] } = {};
-  elementType = NgxQrcodeElementTypes.CANVAS;
-  correctionLevel = NgxQrcodeErrorCorrectionLevels.HIGH;
+  elementType: QRCodeElementType = 'canvas';
+  correctionLevel: QRCodeErrorCorrectionLevel = 'H';
   respcluedisplay = btoa('respcluedisplay{{Voyage en terre de Naheulbeuk}}{{oui}}');
   respcluehidden = btoa('respcluehidden{{Voyage en terre de Naheulbeuk}}{{oui}}');
   toserver = btoa('toserver{{Voyage en terre de Naheulbeuk}}{{Voyage en terre de Naheulbeuk}}{{5}}');
