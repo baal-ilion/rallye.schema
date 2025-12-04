@@ -50,6 +50,7 @@ import { ResponseFileActionsComponent } from './upload/response-file-actions/res
 import { TeamPresenceComponent } from './param/team-presence/team-presence.component';
 import { RouterModule } from '@angular/router';
 import { ListStageGroupComponent } from './param/list-stage-group/list-stage-group.component';
+import { ModifyStageGroupComponent } from './param/modify-stage-group/modify-stage-group.component';
 import { PaginationComponent } from './shared/pagination/pagination.component';
 
 registerLocaleData(localeFr, 'fr', localeFrExtra);
@@ -69,6 +70,7 @@ registerLocaleData(localeFr, 'fr', localeFrExtra);
         ListPointComponent,
         DetailsPointComponent,
         ListStageGroupComponent,
+        ModifyStageGroupComponent,
         ListStageParamComponent,
         MenuComponent,
         DetailsResponseFileComponent,
