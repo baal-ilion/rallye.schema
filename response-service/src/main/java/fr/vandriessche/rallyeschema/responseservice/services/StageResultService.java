@@ -76,21 +76,24 @@ public class StageResultService {
 	}
 
 	public StageResult cancelStageResult(int stage, int team) {
-	// Supprime toutes les donnees liees a cette epreuve/equipe
-	responseFileService.deleteByStageAndTeam(stage, team);
-	stageResponseService.deleteByStageAndTeam(stage, team);
+		// Supprime toutes les donnees liees a cette epreuve/equipe
+		responseFileService.deleteByStageAndTeam(stage, team);
+		stageResponseService.deleteByStageAndTeam(stage, team);
 
-	List<StageResult> stageResults = stageResultRepository.findAllByStageAndTeam(stage, team);
-	if (!stageResults.isEmpty()) {
-		stageResults.forEach(sr -> {
-			stageResultRepository.delete(sr);
-			messageProducerService.sendMessage(STAGE_RESULT_DELETE_EVENT, new StageResultMessage(sr));
-		});
+		List<StageResult> stageResults = stageResultRepository.findAllByStageAndTeam(stage, team);
+		if (!stageResults.isEmpty()) {
+			stageResults.forEach(sr -> {
+				stageResultRepository.delete(sr);
+				messageProducerService.sendMessage(STAGE_RESULT_DELETE_EVENT, new StageResultMessage(sr));
+			});
+			rankingUpdatePublisher.publishRankingUpdate();
+			return stageResults.get(0);
+		}
+		// Meme si rien n'etait present (ex: annulation juste apres un begin non encore cree),
+		// notifier pour forcer le rafraichissement des autres clients.
 		rankingUpdatePublisher.publishRankingUpdate();
-		return stageResults.get(0);
+		return null;
 	}
-	return null;
-}
 
 	public void deleteByTeam(Integer team) {
 		stageResultRepository.findByTeam(team).forEach(stageResult -> {

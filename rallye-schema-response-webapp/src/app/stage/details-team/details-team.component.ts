@@ -22,6 +22,7 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
   stageParams: StageParam[] = [];
   stages: { [stage: number]: StageResult } = {};
   private destroy$ = new Subject<void>();
+  private ignoreNextUpdate = false;
 
   constructor(
     private teamInfoService: TeamInfoService,
@@ -56,7 +57,13 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
         auditTime(200),
         takeUntil(this.destroy$)
       )
-      .subscribe(() => this.refreshTeamData());
+      .subscribe(() => {
+        if (this.ignoreNextUpdate) {
+          this.ignoreNextUpdate = false;
+          return;
+        }
+        this.refreshTeamData();
+      });
   }
 
   private async init() {
@@ -87,10 +94,20 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
     try {
       const stages = await this.stageService.getStagesByTeam(team).toPromise();
       const stageResults = stages._embedded.stageResults;
-      if (stageResults) {
-        for (const stage of stageResults) {
-          this.stages[stage.stage] = stage;
+      const incomingStages = stageResults ?? [];
+
+      // Supprimer les cartes qui n'existent plus
+      const incomingKeys = new Set(incomingStages.map(s => s.stage));
+      Object.keys(this.stages).forEach(k => {
+        const key = Number(k);
+        if (!incomingKeys.has(key)) {
+          delete this.stages[key];
         }
+      });
+
+      // Mettre à jour / ajouter les cartes reçues
+      for (const stage of incomingStages) {
+        this.stages[stage.stage] = stage;
       }
     } catch (error) {
       this.stages = {};
@@ -117,9 +134,7 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
       .then((confirmed) => {
         console.log('User confirmed:', confirmed);
         if (confirmed) {
-          this.stageService.beginStage(stage, this.teamInfo.team).subscribe(() => {
-            this.refreshTeamData();
-          });
+          this.stageService.beginStage(stage, this.teamInfo.team).subscribe(result => { if (result) { this.stages[stage] = result; } this.ignoreNextUpdate = true; this.rankingUpdateService.triggerUpdate(); });
         }
       })
       .catch(() => {
@@ -135,9 +150,7 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
       .then((confirmed) => {
         console.log('User confirmed:', confirmed);
         if (confirmed) {
-          this.stageService.endStage(stage, this.teamInfo.team).subscribe(() => {
-            this.refreshTeamData();
-          });
+          this.stageService.endStage(stage, this.teamInfo.team).subscribe(result => { if (result) { this.stages[stage] = result; } this.ignoreNextUpdate = true; this.rankingUpdateService.triggerUpdate(); });
         }
       })
       .catch(() => {
@@ -153,9 +166,7 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
       .then((confirmed) => {
         console.log('User confirmed:', confirmed);
         if (confirmed) {
-          this.stageService.cancelStage(stage, this.teamInfo.team).subscribe(() => {
-            this.refreshTeamData();
-          });
+          this.stageService.cancelStage(stage, this.teamInfo.team).subscribe(result => { if (result) { delete this.stages[stage]; } this.ignoreNextUpdate = true; this.rankingUpdateService.triggerUpdate(); });
         }
       })
       .catch(() => {
@@ -171,9 +182,7 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
       .then((confirmed) => {
         console.log('User confirmed:', confirmed);
         if (confirmed) {
-          this.stageService.undoStage(stage, this.teamInfo.team).subscribe(() => {
-            this.refreshTeamData();
-          });
+          this.stageService.undoStage(stage, this.teamInfo.team).subscribe(result => { if (result) { this.stages[stage] = result; } this.ignoreNextUpdate = true; this.rankingUpdateService.triggerUpdate(); });
         }
       })
       .catch(() => {
@@ -181,3 +190,9 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
       });
   }
 }
+
+
+
+
+
+
