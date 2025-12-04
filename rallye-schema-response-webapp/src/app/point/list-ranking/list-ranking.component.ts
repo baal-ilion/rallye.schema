@@ -2,7 +2,7 @@ import { DatePipe, KeyValue } from '@angular/common';
 import { Component, OnDestroy, OnInit, QueryList, ViewChildren } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { forkJoin, merge, of, Subject } from 'rxjs';
-import { auditTime, catchError, finalize, switchMap, takeUntil, tap, startWith } from 'rxjs/operators';
+import { auditTime, catchError, finalize, switchMap, takeUntil, tap, startWith, map } from 'rxjs/operators';
 import * as FileSaver from 'file-saver';
 import { StageParam } from '../../param/models/stage-param';
 import { TeamInfo } from '../../param/models/team-info';
@@ -53,7 +53,12 @@ export class ListRankingComponent implements OnInit, OnDestroy {
     merge(
       this.route.queryParamMap.pipe(
         tap(params => {
-          this.isStageMode = params.get('mode') === 'stage';
+          const newMode = params.get('mode') === 'stage';
+          this.isStageMode = newMode;
+          if (!newMode) {
+            this.stageParams = {};
+            this.stageRanking = {};
+          }
         })
       ),
       this.rankingUpdateService.updates$
@@ -61,19 +66,8 @@ export class ListRankingComponent implements OnInit, OnDestroy {
       .pipe(
         startWith(null),
         auditTime(200),
-        tap(() => {
-          this.loading = true;
-          this.error = null;
-        }),
-        switchMap(() =>
-          this.loadData().pipe(
-            catchError(() => {
-              this.error = 'Erreur lors du chargement du classement';
-              return of();
-            }),
-            finalize(() => this.loading = false)
-          )
-        ),
+        tap(() => { this.loading = true; this.error = null; }),
+        switchMap(() => this.refreshData()),
         takeUntil(this.destroy$)
       )
       .subscribe();
@@ -120,23 +114,33 @@ export class ListRankingComponent implements OnInit, OnDestroy {
     return stagePointsByStage;
   }
 
-  private loadData() {
-    this.generalRanking = [];
-    this.stageRanking = {};
-    this.teamInfos = {};
-    this.stageParams = {};
+  private refreshData() {
+    return this.loadStaticData().pipe(
+      switchMap(() => this.refreshPoints()),
+      catchError(() => {
+        this.error = 'Erreur lors du chargement du classement';
+        return of();
+      }),
+      finalize(() => this.loading = false)
+    );
+  }
 
-    const teamInfos$ = this.teamInfoService.getTeamInfos();
-    const stageParams$ = this.isStageMode ? this.stageParamService.getStageParams() : of(null);
-    const points$ = this.pointService.recomputePoints();
+  private loadStaticData() {
+    const needTeams = Object.keys(this.teamInfos).length === 0;
+    const needStageParams = this.isStageMode && Object.keys(this.stageParams).length === 0;
 
-    return forkJoin([teamInfos$, stageParams$, points$]).pipe(
-      tap(([teamInfosResponse, stageParamsResponse, teamPoints]) => {
-        const embeddedTeams: any = teamInfosResponse?._embedded || {};
-        const teams = embeddedTeams.teamInfoes || embeddedTeams.teamInfos || [];
-        teams.forEach((teamInfo: TeamInfo) => {
-          this.teamInfos[teamInfo.team] = teamInfo;
-        });
+    const teamInfos$ = needTeams ? this.teamInfoService.getTeamInfos() : of(null);
+    const stageParams$ = needStageParams ? this.stageParamService.getStageParams() : of(null);
+
+    return forkJoin([teamInfos$, stageParams$]).pipe(
+      tap(([teamInfosResponse, stageParamsResponse]) => {
+        if (teamInfosResponse) {
+          const embeddedTeams: any = teamInfosResponse?._embedded || {};
+          const teams = embeddedTeams.teamInfoes || embeddedTeams.teamInfos || [];
+          teams.forEach((teamInfo: TeamInfo) => {
+            this.teamInfos[teamInfo.team] = teamInfo;
+          });
+        }
 
         if (stageParamsResponse) {
           const embeddedStage: any = stageParamsResponse._embedded || {};
@@ -145,6 +149,16 @@ export class ListRankingComponent implements OnInit, OnDestroy {
             this.stageParams[stageParam.stage] = stageParam;
           });
         }
+      }),
+      map(() => void 0)
+    );
+  }
+
+  private refreshPoints() {
+    return this.pointService.recomputePoints().pipe(
+      tap((teamPoints) => {
+        this.generalRanking = [];
+        this.stageRanking = {};
 
         this.FillRanking(teamPoints as TeamPoint[], this.generalRanking);
 

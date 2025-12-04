@@ -1,7 +1,7 @@
 import { DatePipe, KeyValue } from '@angular/common';
 import { Component, OnDestroy, OnInit, QueryList, ViewChildren } from '@angular/core';
 import { forkJoin, of, Subject } from 'rxjs';
-import { auditTime, catchError, finalize, startWith, switchMap, takeUntil, tap } from 'rxjs/operators';
+import { auditTime, catchError, finalize, startWith, switchMap, takeUntil, tap, map } from 'rxjs/operators';
 import * as FileSaver from 'file-saver';
 import * as XLSX from 'xlsx';
 import { TeamInfo } from '../../param/models/team-info';
@@ -45,15 +45,7 @@ export class GroupRankingComponent implements OnInit, OnDestroy {
           this.loading = true;
           this.error = null;
         }),
-        switchMap(() =>
-          this.loadData()
-        ),
-        catchError(err => {
-          console.error(err);
-          this.error = 'Erreur lors du chargement du classement par groupes.';
-          return of();
-        }),
-        finalize(() => this.loading = false),
+        switchMap(() => this.refreshData()),
         takeUntil(this.destroy$)
       ).subscribe();
   }
@@ -73,21 +65,38 @@ export class GroupRankingComponent implements OnInit, OnDestroy {
       }));
   }
 
-  private loadData() {
-    this.groupRankings = {};
-    this.teamInfos = {};
+  private refreshData() {
+    return this.ensureTeamInfos().pipe(
+      switchMap(() => this.refreshGroupRankings()),
+      catchError(err => {
+        console.error(err);
+        this.error = 'Erreur lors du chargement du classement par groupes.';
+        return of();
+      }),
+      finalize(() => this.loading = false)
+    );
+  }
 
-    return forkJoin([
-      this.teamInfoService.getTeamInfos(),
-      this.groupRankingService.getGroupRankings()
-    ]).pipe(
-      tap(([teamsResponse, entries]) => {
-        const embedded: any = teamsResponse._embedded || {};
+  private ensureTeamInfos() {
+    if (Object.keys(this.teamInfos).length > 0) {
+      return of(void 0);
+    }
+    return this.teamInfoService.getTeamInfos().pipe(
+      tap(teamsResponse => {
+        const embedded: any = teamsResponse?._embedded || {};
         const teamInfos = embedded.teamInfoes || embedded.teamInfos || [];
         teamInfos.forEach((teamInfo: TeamInfo) => {
           this.teamInfos[teamInfo.team] = teamInfo;
         });
+      }),
+      map(() => void 0)
+    );
+  }
 
+  private refreshGroupRankings() {
+    this.groupRankings = {};
+    return this.groupRankingService.getGroupRankings().pipe(
+      tap(entries => {
         const byGroup: { [groupName: string]: GroupRankingEntry[] } = {};
         entries.forEach(entry => {
           const name = entry.groupName || 'Sans groupe';
@@ -107,13 +116,7 @@ export class GroupRankingComponent implements OnInit, OnDestroy {
             this.groupRankings[groupName] = ranking;
           }
         });
-      }),
-      catchError(err => {
-        console.error(err);
-        this.error = 'Erreur lors du chargement du classement par groupes.';
-        return of();
-      }),
-      finalize(() => this.loading = false)
+      })
     );
   }
 
