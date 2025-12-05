@@ -177,9 +177,10 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
         if (latest) {
           this.stageResult = { ...this.stageResult, ...latest };
           if (this.form) {
+            const beginControlsDirty = this.f.begindate.dirty || this.f.begintime.dirty;
             this.form.patchValue({
-              begindate: this.formatDate(latest.begin),
-              begintime: this.formatTime(latest.begin),
+              begindate: beginControlsDirty ? this.form.getRawValue().begindate : this.formatDate(latest.begin),
+              begintime: beginControlsDirty ? this.form.getRawValue().begintime : this.formatTime(latest.begin),
               enddate: this.formatDate(latest.end),
               endtime: this.formatTime(latest.end),
             }, { emitEvent: false });
