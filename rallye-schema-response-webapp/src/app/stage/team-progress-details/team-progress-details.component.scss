@@ -1,0 +1,13 @@
+.row + .row {
+  margin-top: 1rem;
+}
+
+.card .btn-group {
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.card .btn-group .btn {
+  border-radius: 8px;
+}

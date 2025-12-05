@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, ElementRef, HostListener, Input, OnInit } from '@angular/core';
 import { TeamInfo } from '../param/models/team-info';
 import { TeamInfoService } from '../param/team-info.service';
 
@@ -13,7 +13,10 @@ export class MenuComponent implements OnInit {
   teamInfos: TeamInfo[] = [];
   openMenu: string | null = null;
 
-  constructor(private teamInfoService: TeamInfoService) { }
+  constructor(
+    private teamInfoService: TeamInfoService,
+    private elementRef: ElementRef<HTMLElement>
+  ) { }
 
   ngOnInit() {
     this.teamInfoService.getTeamInfos().subscribe((value) => {
@@ -32,5 +35,13 @@ export class MenuComponent implements OnInit {
   closeMenu() {
     this.openMenu = null;
     this.collapsed = true;
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    const target = event.target as Node;
+    if (!this.elementRef.nativeElement.contains(target)) {
+      this.closeMenu();
+    }
   }
 }

@@ -1,5 +1,4 @@
-import { Component, OnDestroy, OnInit, Input, OnChanges, SimpleChanges } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges } from '@angular/core';
 import { Subject } from 'rxjs';
 import { auditTime, takeUntil } from 'rxjs/operators';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
@@ -7,21 +6,23 @@ import { StageParam } from 'src/app/param/models/stage-param';
 import { TeamInfo } from 'src/app/param/models/team-info';
 import { StageParamService } from 'src/app/param/stage-param.service';
 import { TeamInfoService } from 'src/app/param/team-info.service';
+import { RankingUpdateService } from 'src/app/services/ranking-update.service';
 import { StageResult } from '../models/stage-result';
 import { StageService } from '../stage.service';
-import { RankingUpdateService } from 'src/app/services/ranking-update.service';
 
 @Component({
-  selector: 'app-details-team',
-  templateUrl: './details-team.component.html',
-  styleUrls: ['./details-team.component.scss']
+  selector: 'app-team-progress-details',
+  templateUrl: './team-progress-details.component.html',
+  styleUrls: ['./team-progress-details.component.scss']
 })
-export class DetailsTeamComponent implements OnInit, OnDestroy, OnChanges {
+export class TeamProgressDetailsComponent implements OnInit, OnDestroy, OnChanges {
   @Input() teamId?: string;
-  id: string;
+
   teamInfo: TeamInfo;
   stageParams: StageParam[] = [];
   stages: { [stage: number]: StageResult } = {};
+  loading = false;
+  error?: string;
   private destroy$ = new Subject<void>();
   private ignoreNextUpdate = false;
 
@@ -29,35 +30,14 @@ export class DetailsTeamComponent implements OnInit, OnDestroy, OnChanges {
     private teamInfoService: TeamInfoService,
     private stageParamService: StageParamService,
     private stageService: StageService,
-    private route: ActivatedRoute,
     private confirmationDialogService: ConfirmationDialogService,
-    private router: Router,
     private rankingUpdateService: RankingUpdateService
   ) { }
 
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
-
-  ngOnInit() {
-    console.log('ngOnInit');
-    if (this.teamId) {
-      this.id = this.teamId;
-      this.init();
-    } else {
-      this.route.paramMap.subscribe(params => {
-        this.id = params.get('id');
-        this.init();
-      }, error => {
-        this.teamInfo = null;
-        console.log(error);
-        this.router.navigateByUrl('/');
-      });
-    }
+  ngOnInit(): void {
+    this.init();
     this.loadStageParams();
 
-    // Rafraîchissement event-driven : dès qu'un classement/score change, recharger l'équipe/stages
     this.rankingUpdateService.updates$
       .pipe(
         auditTime(200),
@@ -74,9 +54,13 @@ export class DetailsTeamComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes.teamId && !changes.teamId.isFirstChange()) {
-      this.id = this.teamId;
       this.init();
     }
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private async init() {
@@ -84,23 +68,29 @@ export class DetailsTeamComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   private async refreshTeamData() {
-    await this.loadTeamInfo(this.id);
+    if (!this.teamId) {
+      this.teamInfo = null;
+      this.stages = {};
+      return;
+    }
+    await this.loadTeamInfo(this.teamId);
   }
 
   private async loadTeamInfo(id: string) {
     const previousTeam = this.teamInfo?.team;
     try {
-      console.log('loadTeamInfo:' + id);
       this.teamInfo = await this.teamInfoService.findById(id).toPromise();
       if (this.teamInfo?.team !== previousTeam) {
         this.stages = {};
       }
     } catch (error) {
       this.teamInfo = null;
-      console.log(error);
-      this.router.navigateByUrl('/');
+      this.stages = {};
+      this.error = 'Erreur lors du chargement de l\'équipe.';
     }
-    await this.loadStages(this.teamInfo?.team);
+    if (this.teamInfo?.team) {
+      await this.loadStages(this.teamInfo.team);
+    }
   }
 
   private async loadStages(team: number) {
@@ -109,7 +99,6 @@ export class DetailsTeamComponent implements OnInit, OnDestroy, OnChanges {
       const stageResults = stages._embedded.stageResults;
       const incomingStages = stageResults ?? [];
 
-      // Supprimer les cartes qui n'existent plus
       const incomingKeys = new Set(incomingStages.map(s => s.stage));
       Object.keys(this.stages).forEach(k => {
         const key = Number(k);
@@ -118,13 +107,11 @@ export class DetailsTeamComponent implements OnInit, OnDestroy, OnChanges {
         }
       });
 
-      // Mettre à jour / ajouter les cartes reçues
       for (const stage of incomingStages) {
         this.stages[stage.stage] = stage;
       }
     } catch (error) {
       this.stages = {};
-      console.log(error);
     }
   }
 
@@ -135,7 +122,6 @@ export class DetailsTeamComponent implements OnInit, OnDestroy, OnChanges {
       this.stageParams = stageParams;
     } catch (error) {
       this.stageParams = [];
-      console.log(error);
     }
   }
 
@@ -145,14 +131,15 @@ export class DetailsTeamComponent implements OnInit, OnDestroy, OnChanges {
       'Démarrer l\'épreuve ' + stage + '\u00A0?',
       'Oui', 'Non')
       .then((confirmed) => {
-        console.log('User confirmed:', confirmed);
         if (confirmed) {
-          this.stageService.beginStage(stage, this.teamInfo.team).subscribe(result => { if (result) { this.stages[stage] = result; } this.ignoreNextUpdate = true; this.rankingUpdateService.triggerUpdate(); });
+          this.stageService.beginStage(stage, this.teamInfo.team).subscribe(result => {
+            if (result) { this.stages[stage] = result; }
+            this.ignoreNextUpdate = true;
+            this.rankingUpdateService.triggerUpdate();
+          });
         }
       })
-      .catch(() => {
-        console.log('User dismissed the dialog (e.g., by using ESC, clicking the cross icon, or clicking outside the dialog)');
-      });
+      .catch(() => { });
   }
 
   onStopStage(stage: number) {
@@ -161,14 +148,15 @@ export class DetailsTeamComponent implements OnInit, OnDestroy, OnChanges {
       'Terminer l\'épreuve ' + stage + '\u00A0?',
       'Oui', 'Non')
       .then((confirmed) => {
-        console.log('User confirmed:', confirmed);
         if (confirmed) {
-          this.stageService.endStage(stage, this.teamInfo.team).subscribe(result => { if (result) { this.stages[stage] = result; } this.ignoreNextUpdate = true; this.rankingUpdateService.triggerUpdate(); });
+          this.stageService.endStage(stage, this.teamInfo.team).subscribe(result => {
+            if (result) { this.stages[stage] = result; }
+            this.ignoreNextUpdate = true;
+            this.rankingUpdateService.triggerUpdate();
+          });
         }
       })
-      .catch(() => {
-        console.log('User dismissed the dialog (e.g., by using ESC, clicking the cross icon, or clicking outside the dialog)');
-      });
+      .catch(() => { });
   }
 
   onCancelStage(stage: number) {
@@ -177,14 +165,15 @@ export class DetailsTeamComponent implements OnInit, OnDestroy, OnChanges {
       'Annuler l\'épreuve ' + stage + '\u00A0?',
       'Oui', 'Non')
       .then((confirmed) => {
-        console.log('User confirmed:', confirmed);
         if (confirmed) {
-          this.stageService.cancelStage(stage, this.teamInfo.team).subscribe(result => { if (result) { delete this.stages[stage]; } this.ignoreNextUpdate = true; this.rankingUpdateService.triggerUpdate(); });
+          this.stageService.cancelStage(stage, this.teamInfo.team).subscribe(() => {
+            delete this.stages[stage];
+            this.ignoreNextUpdate = true;
+            this.rankingUpdateService.triggerUpdate();
+          });
         }
       })
-      .catch(() => {
-        console.log('User dismissed the dialog (e.g., by using ESC, clicking the cross icon, or clicking outside the dialog)');
-      });
+      .catch(() => { });
   }
 
   onUndoStage(stage: number) {
@@ -193,19 +182,14 @@ export class DetailsTeamComponent implements OnInit, OnDestroy, OnChanges {
       'Reprendre l\'épreuve ' + stage + '\u00A0?',
       'Oui', 'Non')
       .then((confirmed) => {
-        console.log('User confirmed:', confirmed);
         if (confirmed) {
-          this.stageService.undoStage(stage, this.teamInfo.team).subscribe(result => { if (result) { this.stages[stage] = result; } this.ignoreNextUpdate = true; this.rankingUpdateService.triggerUpdate(); });
+          this.stageService.undoStage(stage, this.teamInfo.team).subscribe(result => {
+            if (result) { this.stages[stage] = result; }
+            this.ignoreNextUpdate = true;
+            this.rankingUpdateService.triggerUpdate();
+          });
         }
       })
-      .catch(() => {
-        console.log('User dismissed the dialog (e.g., by using ESC, clicking the cross icon, or clicking outside the dialog)');
-      });
+      .catch(() => { });
   }
 }
-
-
-
-
-
-

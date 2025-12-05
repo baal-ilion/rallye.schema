@@ -17,6 +17,9 @@ import { ListStageComponent } from './stage/list-stage/list-stage.component';
 import { FormUploadComponent } from './upload/form-upload/form-upload.component';
 import { ListUploadComponent } from './upload/list-upload/list-upload.component';
 import { TeamPresenceComponent } from './param/team-presence/team-presence.component';
+import { StageParticipationComponent } from './stage/stage-participation/stage-participation.component';
+import { TeamProgressComponent } from './stage/team-progress/team-progress.component';
+import { TeamActiveStagesComponent } from './stage/team-active-stages/team-active-stages.component';
 
 
 const routes: Routes = [
@@ -31,6 +34,9 @@ const routes: Routes = [
   { path: 'listStageParam', component: ListStageParamComponent },
   { path: 'listTeamInfo', component: ListTeamInfoComponent },
   { path: 'teams/presence', component: TeamPresenceComponent },
+  { path: 'teams/progression', component: TeamProgressComponent },
+  { path: 'teams/active-stages', component: TeamActiveStagesComponent },
+  { path: 'stages/participation', component: StageParticipationComponent },
   { path: 'stageParam/:id', component: ModifyStageParamComponent },
   { path: 'team/:id', component: DetailsTeamComponent },
   { path: 'sharingParam', component: SharingParamComponent },

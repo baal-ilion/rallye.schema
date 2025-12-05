@@ -40,3 +40,29 @@ body {
 .btn-group > .btn {
   flex: 0 0 auto;
 }
+
+/* Espacement uniforme dans toutes les modales */
+.modal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  padding-bottom: 1rem;
+}
+
+.modal-footer .btn {
+  margin: 0;
+}
+
+/* Appliquer la même règle aux footers de cartes utilisées en modale (sans classe modal-footer explicite) */
+.modal .card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  padding-bottom: 1rem;
+}
+
+.modal .card-footer .btn {
+  margin: 0;
+}

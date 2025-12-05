@@ -17,12 +17,14 @@
           </div>
           <div class="card-footer text-center">
             <div class="btn-group">
-              <button class="btn btn-sm btn-success" type="button"
+              <button class="btn btn-sm btn-success" type="button"
                 (click)="onStopStage(stageParam.stage)">Terminer</button>
-              <button class="btn btn-sm btn-danger" type="button"
+              <button class="btn btn-sm btn-danger" type="button"
                 (click)="onCancelStage(stageParam.stage)">Annuler</button>
-              <button class="btn btn-sm btn-primary" type="button"
-                routerLink="/stage/{{teamInfo.team}}/{{stageParam.stage}}">Détails</button>
+              <button class="btn btn-sm btn-primary" type="button"
+                [routerLink]="['/stage', teamInfo.team, stageParam.stage]">
+                Détails
+              </button>
             </div>
           </div>
         </div>
@@ -36,10 +38,12 @@
           </div>
           <div class="card-footer text-center">
             <div class="btn-group">
-              <button class="btn btn-sm btn-danger" type="button"
+              <button class="btn btn-sm btn-danger" type="button"
                 (click)="onUndoStage(stageParam.stage)">Reprendre</button>
-              <button class="btn btn-sm btn-primary" type="button"
-                routerLink="/stage/{{teamInfo.team}}/{{stageParam.stage}}">Détails</button>
+              <button class="btn btn-sm btn-primary" type="button"
+                [routerLink]="['/stage', teamInfo.team, stageParam.stage]">
+                Détails
+              </button>
             </div>
           </div>
         </div>
@@ -50,10 +54,12 @@
           </div>
           <div class="card-footer text-center">
             <div class="btn-group">
-              <button class="btn btn-sm btn-success" type="button"
+              <button class="btn btn-sm btn-success" type="button"
                 (click)="onStartStage(stageParam.stage)">Commencer</button>
-              <button class="btn btn-sm btn-primary" type="button" *ngIf="stages[stageParam.stage]"
-                routerLink="/stage/{{teamInfo.team}}/{{stageParam.stage}}">Détails</button>
+              <button class="btn btn-sm btn-primary" type="button" *ngIf="stages[stageParam.stage]"
+                [routerLink]="['/stage', teamInfo.team, stageParam.stage]">
+                Détails
+              </button>
             </div>
           </div>
         </div>

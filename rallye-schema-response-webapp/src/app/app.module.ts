@@ -29,6 +29,10 @@ import { ListPointComponent } from './point/list-point/list-point.component';
 import { ListRankingComponent } from './point/list-ranking/list-ranking.component';
 import { RankingComponent } from './point/ranking/ranking.component';
 import { GroupRankingComponent } from './point/group-ranking/group-ranking.component';
+import { StageParticipationComponent } from './stage/stage-participation/stage-participation.component';
+import { TeamProgressComponent } from './stage/team-progress/team-progress.component';
+import { TeamProgressDetailsComponent } from './stage/team-progress-details/team-progress-details.component';
+import { TeamActiveStagesComponent } from './stage/team-active-stages/team-active-stages.component';
 import { PrizeDistributionComponent } from './point/prize-distribution/prize-distribution.component';
 import { QrcodeComponent } from './qrcode/qrcode.component';
 import { DetailsTemplateComponent } from './response-file/common/details-template/details-template.component';
@@ -75,6 +79,7 @@ registerLocaleData(localeFr, 'fr', localeFrExtra);
         MenuComponent,
         DetailsResponseFileComponent,
         ListTeamInfoComponent,
+        StageParticipationComponent,
         ModifyTeamInfoComponent,
         TeamPresenceComponent,
         ModifyStageParamComponent,
@@ -87,6 +92,9 @@ registerLocaleData(localeFr, 'fr', localeFrExtra);
         ListRankingComponent,
         GroupRankingComponent,
         PrizeDistributionComponent,
+        TeamProgressComponent,
+        TeamProgressDetailsComponent,
+        TeamActiveStagesComponent,
         DetailsTeamStageComponent,
         ResponseFileActionsComponent,
         ModifyPerformanceRangePointParamComponent,
