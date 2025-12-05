@@ -2,7 +2,7 @@
 TemplateFileName: C:\Users\baali\Documents\Rallye Schema\model.xtmpl
 # Port HTTP de l'application (profil par défaut)
 server:
-  port: 8082
+  port: 8080
 # Parametrage de spring
 spring:
   data:
