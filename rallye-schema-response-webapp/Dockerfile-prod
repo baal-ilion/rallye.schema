@@ -26,7 +26,8 @@ RUN npm run build -- --configuration production
 FROM nginx:alpine
 
 # copy artifact build from the 'build environment'
-COPY --from=build /app/dist /usr/share/nginx/html
+# Copie le build Angular vers nginx (adapté au outputPath défini dans angular.json)
+COPY --from=build /app/dist/rallye-schema-response-webapp/ /usr/share/nginx/html
 
 # Copy the default nginx.conf
 COPY ./nginx.conf /etc/nginx/conf.d/default.conf
