@@ -1,0 +1,162 @@
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.overview-card {
+  border-radius: 0.4rem;
+}
+
+.overview-card.wide {
+  grid-column: span 2;
+}
+
+@media (max-width: 768px) {
+  .overview-card.wide {
+    grid-column: span 1;
+  }
+}
+
+.chart-group {
+  margin: 1rem 0;
+  padding: 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 0.4rem;
+  background: #fff;
+}
+
+.participants-group .chart-fill {
+  background: #0d6efd !important; /* blue */
+}
+
+.duration-group .chart-fill:nth-child(1) {
+  background: #6c757d !important; /* gray for min */
+}
+.duration-group .chart-fill:nth-child(2) {
+  background: #28a745 !important; /* green for avg */
+}
+.duration-group .chart-fill:nth-child(3) {
+  background: #dc3545 !important; /* red for max */
+}
+
+.score-group .chart-fill:nth-child(1) {
+  background: #6f42c1 !important; /* purple for min */
+}
+.score-group .chart-fill:nth-child(2) {
+  background: #17a2b8 !important; /* cyan for avg */
+}
+.score-group .chart-fill:nth-child(3) {
+  background: #e83e8c !important; /* pink/red for max */
+}
+
+.questions-group .chart-fill:nth-child(1) {
+  background: #6c757d !important; /* gray min */
+}
+.questions-group .chart-fill:nth-child(2) {
+  background: #0dcaf0 !important; /* blue avg */
+}
+.questions-group .chart-fill:nth-child(3) {
+  background: #20c997 !important; /* green max */
+}
+
+.performance-group .chart-fill:nth-child(1) {
+  background: #343a40 !important; /* dark min */
+}
+.performance-group .chart-fill:nth-child(2) {
+  background: #fd7e14 !important; /* orange avg */
+}
+.performance-group .chart-fill:nth-child(3) {
+  background: #dc3545 !important; /* red max */
+}
+
+.peak-group .chart-fill {
+  background: #17a2b8 !important; /* cyan */
+}
+
+.popularity-group .chart-fill {
+  background: #28a745 !important; /* green */
+}
+
+.group-popularity-group .chart-fill {
+  background: #ff9800 !important; /* orange */
+}
+
+.questions-detail-group .chart-fill {
+  background: #0dcaf0 !important; /* light blue */
+}
+
+.activity-group .chart-fill {
+  background: #6c757d !important; /* gray */
+}
+
+.framed-table {
+  border: 1px solid #dee2e6;
+  border-radius: 0.4rem;
+  overflow: hidden;
+}
+
+.list-framed {
+  border: 1px solid #dee2e6;
+  border-radius: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  background: #fff;
+}
+
+.chart-title {
+  font-weight: 700;
+  margin: 0.35rem 0 0.5rem 0;
+}
+
+.chart-row {
+  display: grid;
+  grid-template-columns: 2fr 5fr 2fr;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  width: 100%;
+}
+
+.chart-label {
+  font-weight: 600;
+}
+
+.chart-bar {
+  background: #f1f3f5;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  height: 18px;
+  display: flex;
+}
+
+.chart-bar.stacked {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  height: auto;
+  padding: 4px 0;
+}
+
+.chart-bar.stacked .chart-fill {
+  height: 8px;
+}
+
+.chart-bar.dual {
+  display: flex;
+}
+
+.chart-fill {
+  height: 100%;
+}
+
+.chart-value {
+  min-width: 3rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  justify-self: end;
+}
+
+.chart-legend {
+  margin-top: 0.25rem;
+}

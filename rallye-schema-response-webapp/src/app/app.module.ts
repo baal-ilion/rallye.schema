@@ -33,6 +33,7 @@ import { StageParticipationComponent } from './stage/stage-participation/stage-p
 import { TeamProgressComponent } from './stage/team-progress/team-progress.component';
 import { TeamProgressDetailsComponent } from './stage/team-progress-details/team-progress-details.component';
 import { TeamActiveStagesComponent } from './stage/team-active-stages/team-active-stages.component';
+import { StatsComponent } from './stats/stats.component';
 import { PrizeDistributionComponent } from './point/prize-distribution/prize-distribution.component';
 import { QrcodeComponent } from './qrcode/qrcode.component';
 import { DetailsTemplateComponent } from './response-file/common/details-template/details-template.component';
@@ -95,6 +96,7 @@ registerLocaleData(localeFr, 'fr', localeFrExtra);
         TeamProgressComponent,
         TeamProgressDetailsComponent,
         TeamActiveStagesComponent,
+        StatsComponent,
         DetailsTeamStageComponent,
         ResponseFileActionsComponent,
         ModifyPerformanceRangePointParamComponent,
