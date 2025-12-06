@@ -33,7 +33,18 @@ export class DetailsResponseFileComponent implements OnInit, OnChanges {
 
   loadTemplate(fileUpload) {
     this.template = new FormTemplate();
-    this.template.fileUrl = fileUpload._links.responseFile.href;
+    const href = fileUpload?._links?.responseFile?.href;
+    if (href) {
+      // Force un src relatif via le proxy /api pour éviter le mixed-content et rester https
+      let path = href;
+      try {
+        const url = new URL(href, window.location.origin);
+        path = `${url.pathname}${url.search}`;
+      } catch {
+        // href peut déjà être relatif ; on le garde
+      }
+      this.template.fileUrl = `/api${path}`;
+    }
     this.template.square = fileUpload.filledForm.size;
     this.template.height = fileUpload.filledForm.height;
     this.template.width = fileUpload.filledForm.width;

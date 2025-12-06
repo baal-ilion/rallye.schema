@@ -25,16 +25,22 @@ services:
     restart: always
 
   rallye-schema-response-service:
-    image: baalilion/rallye-schema-response-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rallye-schema-response-service:local
     container_name: "rallye-schema-response-service"
     ports:
-      - 8080:8080
-    links:
+      - 8443:8443
+    depends_on:
       - mongodb
       - rabbitmq
     restart: always
     environment:
       - "SPRING_PROFILES_ACTIVE=docker"
+      - "SSL_KEYSTORE_PASSWORD=changeit"
+    volumes:
+      - ./certs:/app/certs:ro
 
 volumes:
   mongodb_db:

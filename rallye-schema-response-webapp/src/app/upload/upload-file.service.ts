@@ -34,6 +34,13 @@ export class UploadFileService {
   }
 
   getResource<T = any>(url: string): Observable<T> {
-    return this.http.get<T>(url);
+    // Route les URLs absolues HAL via le proxy /api pour éviter le mixed-content en HTTPS.
+    try {
+      const parsed = new URL(url, window.location.origin);
+      const proxied = `/api${parsed.pathname}${parsed.search}`;
+      return this.http.get<T>(proxied);
+    } catch {
+      return this.http.get<T>(url);
+    }
   }
 }

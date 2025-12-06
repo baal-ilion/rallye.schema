@@ -27,7 +27,13 @@ export class ModifyResponseFileParamComponent implements OnInit {
   ngOnInit() {
     this.detailsParam = JSON.parse(JSON.stringify(this.param));
     if (this.param._links) {
-      this.modelUrl = this.param._links.responseFileModel.href;
+      const href = this.param._links.responseFileModel.href;
+      try {
+        const url = new URL(href, window.location.origin);
+        this.modelUrl = `/api${url.pathname}${url.search}`;
+      } catch {
+        this.modelUrl = href;
+      }
     } else {
       this.modelUrl = null;
     }

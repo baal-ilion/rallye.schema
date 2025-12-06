@@ -17,8 +17,8 @@ WORKDIR /app
 # Copy the fat jar from the build stage
 COPY --from=build /app/target/*.jar /app/app.jar
 
-# Expose HTTP port
-EXPOSE 8080
+# Expose HTTPS port
+EXPOSE 8443
 
 # Default profile for containers
 ENV SPRING_PROFILES_ACTIVE=docker

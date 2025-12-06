@@ -32,8 +32,8 @@ COPY --from=build /app/dist/rallye-schema-response-webapp/ /usr/share/nginx/html
 # Copy the default nginx.conf
 COPY ./nginx.conf /etc/nginx/conf.d/default.conf
 
-# expose port 80
-EXPOSE 80
+# expose ports 80 (redirect) et 443 (TLS)
+EXPOSE 80 443
 
 # run nginx
 CMD ["nginx", "-g", "daemon off;"]

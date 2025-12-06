@@ -16,7 +16,12 @@ export class ResponseFileParamService {
   }
 
   getResponseFileParamByResource(url: string): Observable<ResponseFileParam> {
-    return this.http.get<ResponseFileParam>(url);
+    try {
+      const parsed = new URL(url, window.location.origin);
+      return this.http.get<ResponseFileParam>(`/api${parsed.pathname}${parsed.search}`);
+    } catch {
+      return this.http.get<ResponseFileParam>(url);
+    }
   }
 
   createResponseFileParam(param: ResponseFileParam): Observable<ResponseFileParam> {

@@ -91,6 +91,11 @@ export class StageService {
   }
 
   getResource<T = any>(url: string): Observable<T> {
-    return this.http.get<T>(url);
+    try {
+      const parsed = new URL(url, window.location.origin);
+      return this.http.get<T>(`/api${parsed.pathname}${parsed.search}`);
+    } catch {
+      return this.http.get<T>(url);
+    }
   }
 }

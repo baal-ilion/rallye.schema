@@ -36,7 +36,16 @@ export class DetailsTemplateParamComponent implements OnInit, OnChanges {
     this.template = new FormTemplate();
     this.template.height = param.height;
     this.template.width = param.width;
-    this.template.fileUrl = modelUrl;
+    if (modelUrl) {
+      let path = modelUrl;
+      try {
+        const url = new URL(modelUrl, window.location.origin);
+        path = `${url.pathname}${url.search}`;
+      } catch {
+        // modelUrl peut déjà être relatif
+      }
+      this.template.fileUrl = `/api${path}`;
+    }
     //this.template.fileAlt = this.alt;
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(param.template, 'text/xml');
