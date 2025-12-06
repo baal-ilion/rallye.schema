@@ -312,3 +312,5 @@ export class StageParticipationComponent implements OnInit, OnDestroy {
     }
   }
 }
+
+

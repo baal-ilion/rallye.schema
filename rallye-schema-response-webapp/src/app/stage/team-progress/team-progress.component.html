@@ -13,7 +13,7 @@
           [ngModel]="selectedTeamId"
           (ngModelChange)="onTeamChange($event)">
           <option *ngFor="let team of teams" [value]="team.id">
-            {{ team.team }} - {{ team.name }}
+            {{ team.team | number:'2.0-0' }} - {{ team.name }}
           </option>
         </select>
         <span class="team-select-arrow" aria-hidden="true">&#9662;</span>

@@ -15,7 +15,7 @@
           (ngModelChange)="onStageChange($event)"
         >
           <option *ngFor="let stage of stageParams" [value]="stage.stage">
-            {{ stage.stage }} - {{ stage.name }}
+            {{ stage.stage | number:'2.0-0' }} - {{ stage.name }}
           </option>
         </select>
         <span class="stage-select-arrow" aria-hidden="true">&#9662;</span>

@@ -36,7 +36,7 @@
         <select [(ngModel)]="criteria.team" (change)="changeCriteria($event)" id="critteam"
           class="form-control custom-select select-arrow ml-1">
           <option value=""></option>
-          <option *ngFor="let team of teams" [value]="team.team">{{team.name}}</option>
+          <option *ngFor="let team of teams" [value]="team.team">{{team.team | number:'2.0-0'}} - {{team.name}}</option>
         </select>
       </div>
       <div class="form-group mt-2">
@@ -44,7 +44,7 @@
         <select [(ngModel)]="criteria.stage" (change)="changeCriteria($event)" id="critstage"
           class="form-control custom-select select-arrow ml-1">
           <option value=""></option>
-          <option *ngFor="let stage of stageParams" [value]="stage.stage">{{stage.name}}</option>
+          <option *ngFor="let stage of stageParams" [value]="stage.stage">{{stage.stage | number:'2.0-0'}} - {{stage.name}}</option>
         </select>
       </div>
     </div>
@@ -57,9 +57,8 @@
     <div class="row justify-content-center mt-1">
       <div class="col-12">
         <app-details-stage
-          [stage]='stages[page-1].stage'
-          [team]='stages[page-1].team'
-          (stageUpdated)="onStageUpdated()">
+          [stage]="stages[page-1].stage"
+          [team]="stages[page-1].team">
         </app-details-stage>
       </div>
     </div>
@@ -68,3 +67,5 @@
     [disabled]="pages.totalElements == 0" (pageChange)="loadPage($event)" class="d-flex justify-content-center mt-2">
   </app-pagination>
 </div>
+
+

@@ -8,6 +8,9 @@ import { DialogService } from 'src/app/shared/dialog/dialog.service';
 import { StageCriteria } from '../models/stage-criteria';
 import { StageResult } from '../models/stage-result';
 import { StageService } from '../stage.service';
+import { RankingUpdateService } from 'src/app/services/ranking-update.service';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-list-stage',
@@ -22,6 +25,7 @@ export class ListStageComponent implements OnInit, OnDestroy {
   teams: TeamInfo[] = [];
   stageParams: StageParam[] = [];
   private loadedParam = false;
+  private destroy$ = new Subject<void>();
 
   private readonly SelectedId = 'ListStageComponent.selected';
   private readonly CriteriaId = 'ListStageComponent.criteria';
@@ -30,11 +34,14 @@ export class ListStageComponent implements OnInit, OnDestroy {
     private stageService: StageService,
     private teamInfoService: TeamInfoService,
     private stageParamService: StageParamService,
-    private dialogService: DialogService) { }
+    private dialogService: DialogService,
+    private rankingUpdateService: RankingUpdateService) { }
 
   ngOnDestroy(): void {
     sessionStorage.setItem(this.SelectedId, null);
     sessionStorage.setItem(this.CriteriaId, null);
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   ngOnInit() {
@@ -43,6 +50,9 @@ export class ListStageComponent implements OnInit, OnDestroy {
     this.loadStages()
       .then(() => { })
       .catch(error => console.error(error));
+    this.rankingUpdateService.updates$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.refreshCurrentPage());
   }
 
   async loadParam() {
@@ -136,5 +146,29 @@ export class ListStageComponent implements OnInit, OnDestroy {
 
   onStageUpdated() {
     this.loadStages();
+  }
+
+  private async refreshCurrentPage(): Promise<void> {
+    const currentId = this.stages?.[this.page - 1]?.id || sessionStorage.getItem(this.SelectedId);
+    await this.loadParam();
+    try {
+      const stages = await this.stageService.getStages(this.criteria).toPromise();
+      const results = stages._embedded?.stageResults ?? [];
+      this.pages = stages.page ?
+        stages.page :
+        { size: results.length, number: 0, totalElements: results.length, totalPages: 1 };
+      this.stages = results;
+      const index = currentId ? this.stages.findIndex(s => s.id === currentId) : -1;
+      if (index !== -1) {
+        this.page = index + 1;
+      } else if (this.page > this.stages.length) {
+        this.page = this.stages.length > 0 ? this.stages.length : 0;
+      }
+      if (this.page > 0 && this.stages[this.page - 1]) {
+        sessionStorage.setItem(this.SelectedId, this.stages[this.page - 1].id);
+      }
+    } catch (error) {
+      console.log(error);
+    }
   }
 }

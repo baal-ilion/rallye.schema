@@ -9,6 +9,7 @@ import { TeamInfoService } from 'src/app/param/team-info.service';
 import { RankingUpdateService } from 'src/app/services/ranking-update.service';
 import { StageResult } from '../models/stage-result';
 import { StageService } from '../stage.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-team-progress-details',
@@ -17,6 +18,8 @@ import { StageService } from '../stage.service';
 })
 export class TeamProgressDetailsComponent implements OnInit, OnDestroy, OnChanges {
   @Input() teamId?: string;
+  @Input() navigateOnStart = false;
+  @Input() stageFilter?: number;
 
   teamInfo: TeamInfo;
   stageParams: StageParam[] = [];
@@ -31,7 +34,8 @@ export class TeamProgressDetailsComponent implements OnInit, OnDestroy, OnChange
     private stageParamService: StageParamService,
     private stageService: StageService,
     private confirmationDialogService: ConfirmationDialogService,
-    private rankingUpdateService: RankingUpdateService
+    private rankingUpdateService: RankingUpdateService,
+    private router: Router
   ) { }
 
   ngOnInit(): void {
@@ -125,6 +129,17 @@ export class TeamProgressDetailsComponent implements OnInit, OnDestroy, OnChange
     }
   }
 
+  get stageParamsToDisplay(): StageParam[] {
+    if (this.stageFilter === undefined) {
+      return this.stageParams;
+    }
+    const filter = Number(this.stageFilter);
+    if (!Number.isFinite(filter)) {
+      return this.stageParams;
+    }
+    return this.stageParams.filter(s => s.stage === filter);
+  }
+
   onStartStage(stage: number) {
     this.confirmationDialogService.confirm(
       'Début d\'une épreuve',
@@ -136,6 +151,9 @@ export class TeamProgressDetailsComponent implements OnInit, OnDestroy, OnChange
             if (result) { this.stages[stage] = result; }
             this.ignoreNextUpdate = true;
             this.rankingUpdateService.triggerUpdate();
+            if (this.navigateOnStart) {
+              this.router.navigate(["/stage", this.teamInfo.team, stage]).catch(() => { });
+            }
           });
         }
       })
@@ -153,6 +171,9 @@ export class TeamProgressDetailsComponent implements OnInit, OnDestroy, OnChange
             if (result) { this.stages[stage] = result; }
             this.ignoreNextUpdate = true;
             this.rankingUpdateService.triggerUpdate();
+            if (this.navigateOnStart) {
+              this.router.navigate(["/stage", this.teamInfo.team, stage]).catch(() => { });
+            }
           });
         }
       })
@@ -187,9 +208,14 @@ export class TeamProgressDetailsComponent implements OnInit, OnDestroy, OnChange
             if (result) { this.stages[stage] = result; }
             this.ignoreNextUpdate = true;
             this.rankingUpdateService.triggerUpdate();
+            if (this.navigateOnStart) {
+              this.router.navigate(["/stage", this.teamInfo.team, stage]).catch(() => { });
+            }
           });
         }
       })
       .catch(() => { });
   }
 }
+
+

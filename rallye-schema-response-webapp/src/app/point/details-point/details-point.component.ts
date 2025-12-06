@@ -8,6 +8,7 @@ import { Component, OnInit, Input } from '@angular/core';
 export class DetailsPointComponent implements OnInit {
 
   @Input() point: any;
+  readonly stageOrder = (a: { key: string }, b: { key: string }) => Number(a.key) - Number(b.key);
 
   constructor() { }
 

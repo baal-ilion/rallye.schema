@@ -4,8 +4,15 @@
       <h4 class="my-auto text-center text-white">Équipe sélectionnée : Équipe {{teamInfo.team}} - {{teamInfo.name}}</h4>
     </div>
   </div>
+  <div class="row mt-3" *ngIf="stageFilter !== undefined && stageParamsToDisplay.length === 0">
+    <div class="col-12">
+      <div class="alert alert-danger mb-0">
+        Aucune épreuve trouvée pour ce numéro.
+      </div>
+    </div>
+  </div>
   <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 mt-4 mx-n4">
-    <ng-template ngFor let-stageParam [ngForOf]="stageParams">
+    <ng-template ngFor let-stageParam [ngForOf]="stageParamsToDisplay">
       <div class="col mb-4">
         <div *ngIf="stages[stageParam.stage] && stages[stageParam.stage].begin && !stages[stageParam.stage].end"
           class="card border-primary h-100">
@@ -67,3 +74,6 @@
     </ng-template>
   </div>
 </div>
+
+
+

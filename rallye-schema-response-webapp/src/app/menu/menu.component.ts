@@ -1,6 +1,6 @@
 import { Component, ElementRef, HostListener, Input, OnInit } from '@angular/core';
-import { TeamInfo } from '../param/models/team-info';
-import { TeamInfoService } from '../param/team-info.service';
+import { Router } from '@angular/router';
+import { NavigationMemoryService } from '../services/navigation-memory.service';
 
 @Component({
   selector: 'app-menu',
@@ -10,22 +10,15 @@ import { TeamInfoService } from '../param/team-info.service';
 export class MenuComponent implements OnInit {
   @Input() title: string;
   public collapsed = true;
-  teamInfos: TeamInfo[] = [];
   openMenu: string | null = null;
 
   constructor(
-    private teamInfoService: TeamInfoService,
-    private elementRef: ElementRef<HTMLElement>
+    private elementRef: ElementRef<HTMLElement>,
+    private router: Router,
+    private navigationMemoryService: NavigationMemoryService
   ) { }
 
   ngOnInit() {
-    this.teamInfoService.getTeamInfos().subscribe((value) => {
-      const teamInfos = value._embedded.teamInfoes;
-      teamInfos.sort((a, b) => (a.team > b.team) ? 1 : -1);
-      this.teamInfos = teamInfos;
-    }, (error) => {
-      this.teamInfos = [];
-    });
   }
 
   toggleMenu(menu: string) {
@@ -43,5 +36,24 @@ export class MenuComponent implements OnInit {
     if (!this.elementRef.nativeElement.contains(target)) {
       this.closeMenu();
     }
+  }
+
+  rememberUrl(event?: Event, url?: string) {
+    const target = url || this.extractHref(event) || this.router.url;
+    this.navigationMemoryService.setLastMenuUrl(target);
+    this.closeMenu();
+  }
+
+  private extractHref(event?: Event): string | undefined {
+    const anchor = event?.currentTarget as HTMLAnchorElement | null;
+    if (anchor?.href) {
+      try {
+        const parsed = new URL(anchor.href);
+        return parsed.pathname + parsed.search + parsed.hash;
+      } catch {
+        return anchor.getAttribute('href') || undefined;
+      }
+    }
+    return undefined;
   }
 }

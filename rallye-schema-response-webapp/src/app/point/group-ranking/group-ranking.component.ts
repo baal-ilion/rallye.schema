@@ -39,13 +39,9 @@ export class GroupRankingComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.rankingUpdateService.updates$
       .pipe(
-        startWith(null),          // initial load
+        startWith('__initial__' as const),          // initial load flag
         auditTime(200),           // regroupe les rafales de messages
-        tap(() => {
-          this.loading = true;
-          this.error = null;
-        }),
-        switchMap(() => this.refreshData()),
+        switchMap((flag) => this.refreshData(flag !== '__initial__')),
         takeUntil(this.destroy$)
       ).subscribe();
   }
@@ -65,7 +61,12 @@ export class GroupRankingComponent implements OnInit, OnDestroy {
       }));
   }
 
-  private refreshData() {
+  private refreshData(silentRefresh = false) {
+    if (!silentRefresh) {
+      this.loading = true;
+      this.error = null;
+    }
+
     return this.ensureTeamInfos().pipe(
       switchMap(() => this.refreshGroupRankings()),
       catchError(err => {
@@ -73,7 +74,11 @@ export class GroupRankingComponent implements OnInit, OnDestroy {
         this.error = 'Erreur lors du chargement du classement par groupes.';
         return of();
       }),
-      finalize(() => this.loading = false)
+      finalize(() => {
+        if (!silentRefresh) {
+          this.loading = false;
+        }
+      })
     );
   }
 
@@ -94,7 +99,6 @@ export class GroupRankingComponent implements OnInit, OnDestroy {
   }
 
   private refreshGroupRankings() {
-    this.groupRankings = {};
     return this.groupRankingService.getGroupRankings().pipe(
       tap(entries => {
         const byGroup: { [groupName: string]: GroupRankingEntry[] } = {};
@@ -110,12 +114,14 @@ export class GroupRankingComponent implements OnInit, OnDestroy {
           byGroup[groupName].sort((a, b) => a.groupRank - b.groupRank);
         });
 
+        const newRankings: { [groupName: string]: Ranking[] } = {};
         Object.keys(byGroup).forEach(groupName => {
           const ranking = this.toRanking(byGroup[groupName]);
           if (ranking.length > 0) {
-            this.groupRankings[groupName] = ranking;
+            newRankings[groupName] = ranking;
           }
         });
+        this.groupRankings = newRankings;
       })
     );
   }

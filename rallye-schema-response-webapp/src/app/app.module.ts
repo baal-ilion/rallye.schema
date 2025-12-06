@@ -42,7 +42,6 @@ import { DetailsTemplateParamComponent } from './response-file/param/details-tem
 import { ModifyResponseFileParamComponent } from './response-file/param/modify-response-file-param/modify-response-file-param.component';
 import { DetailsStageComponent } from './stage/details-stage/details-stage.component';
 import { DetailsTeamStageComponent } from './stage/details-team-stage/details-team-stage.component';
-import { DetailsTeamComponent } from './stage/details-team/details-team.component';
 import { ListStageComponent } from './stage/list-stage/list-stage.component';
 import { ToggleSwitchComponent } from './toggle-switch/toggle-switch.component';
 import { DetailsResponseFileComponent } from './upload/details-response-file/details-response-file.component';
@@ -57,6 +56,7 @@ import { RouterModule } from '@angular/router';
 import { ListStageGroupComponent } from './param/list-stage-group/list-stage-group.component';
 import { ModifyStageGroupComponent } from './param/modify-stage-group/modify-stage-group.component';
 import { PaginationComponent } from './shared/pagination/pagination.component';
+import { ArbitrageComponent } from './arbitrage/arbitrage.component';
 
 registerLocaleData(localeFr, 'fr', localeFrExtra);
 
@@ -86,7 +86,6 @@ registerLocaleData(localeFr, 'fr', localeFrExtra);
         ModifyStageParamComponent,
         NewStageParamComponent,
         ConfirmationDialogComponent,
-        DetailsTeamComponent,
         ListResponseFileComponent,
         SharingParamComponent,
         RankingComponent,
@@ -100,6 +99,7 @@ registerLocaleData(localeFr, 'fr', localeFrExtra);
         DetailsTeamStageComponent,
         ResponseFileActionsComponent,
         ModifyPerformanceRangePointParamComponent,
+        ArbitrageComponent,
         LogFilesComponent,
         ToggleSwitchComponent,
         HomeComponent,

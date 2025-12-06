@@ -32,12 +32,12 @@
               <tbody>
                 <tr *ngFor="let row of rows">
                   <td class="text-left">
-                    {{ row.team.team }} - {{ row.team.name }}
+                    {{ row.team.team | number:'2.0-0' }} - {{ row.team.name }}
                   </td>
                   <td>
                     <ng-container *ngIf="row.stageResults.length > 0; else noStage">
                       <div *ngFor="let stage of row.stageResults; let i = index" class="active-stage-line">
-                        Épreuve {{ stage.stage }} : {{ row.stageNames[i] }}
+                        Épreuve {{ stage.stage | number:'2.0-0' }} : {{ row.stageNames[i] }}
                       </div>
                     </ng-container>
                     <ng-template #noStage>
@@ -53,3 +53,7 @@
     </div>
   </div>
 </div>
+
+
+
+
