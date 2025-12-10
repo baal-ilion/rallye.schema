@@ -10,7 +10,10 @@ public class StatsResponseDto {
     private List<TimelinePointDto> timeline;
     private List<StageQuestionsStatsDto> questions;
     private List<ActivityPointDto> activity;
+    private List<StageHeatmapDto> stageHeatmap;
+    private List<StageHeatmapBucketDto> stageHeatmapTimeline;
     private List<GroupPopularityDto> groupPopularity;
+    private List<StageGroupStatsDto> stageGroups;
 
     public StatsOverviewDto getOverview() {
         return overview;
@@ -68,11 +71,35 @@ public class StatsResponseDto {
         this.activity = activity;
     }
 
+    public List<StageHeatmapDto> getStageHeatmap() {
+        return stageHeatmap;
+    }
+
+    public void setStageHeatmap(List<StageHeatmapDto> stageHeatmap) {
+        this.stageHeatmap = stageHeatmap;
+    }
+
+    public List<StageHeatmapBucketDto> getStageHeatmapTimeline() {
+        return stageHeatmapTimeline;
+    }
+
+    public void setStageHeatmapTimeline(List<StageHeatmapBucketDto> stageHeatmapTimeline) {
+        this.stageHeatmapTimeline = stageHeatmapTimeline;
+    }
+
     public List<GroupPopularityDto> getGroupPopularity() {
         return groupPopularity;
     }
 
     public void setGroupPopularity(List<GroupPopularityDto> groupPopularity) {
         this.groupPopularity = groupPopularity;
+    }
+
+    public List<StageGroupStatsDto> getStageGroups() {
+        return stageGroups;
+    }
+
+    public void setStageGroups(List<StageGroupStatsDto> stageGroups) {
+        this.stageGroups = stageGroups;
     }
 }

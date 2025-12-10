@@ -56,112 +56,180 @@
 
   <div class="row mt-4" *ngIf="data?.stages?.length && !loading && !error">
     <div class="col-12">
-      <h4 class="px-0 py-1 bg-secondary my-auto text-center text-white">Par épreuve</h4>
+      <h4 class="px-0 py-1 bg-secondary my-auto text-center text-white">Statistiques par épreuve</h4>
 
-      <div class="chart-title">Participants par épreuve</div>
-      <div class="chart-group participants-group list-framed">
-        <div class="chart-row" *ngFor="let stage of data.stages">
-          <div class="chart-label">{{ stage.stage }} - {{ stage.name }}</div>
-          <div class="chart-bar">
-            <div class="chart-fill bg-primary" [style.width]="barWidth(stage.participants, stageMaxValue)"></div>
+      <div class="chart-title">Participations par épreuve</div>
+      <ng-container *ngIf="data?.stageGroups?.length; else plainPopularity">
+        <div class="chart-group popularity-group list-framed">
+      <ng-container *ngFor="let group of data.stageGroups">
+        <div class="stage-group-block">
+          <div class="stage-group-label">{{ group.name }}</div>
+            <div class="chart-row" *ngFor="let stage of group.stages">
+              <div class="chart-label">{{ formatStageNumber(stage.stage) }} - {{ stage.name }}</div>
+            <div class="chart-bar">
+              <div class="chart-fill bg-success" [style.width]="barWidth(stage.participants, popularityMaxValue)">
+                <span class="chart-fill-value">{{ stage.participants }}</span>
+              </div>
+            </div>
           </div>
-          <div class="chart-value">{{ stage.participants }}</div>
         </div>
-        <div class="chart-legend small text-muted">Barres proportionnelles au nombre de participants</div>
+      </ng-container>
+          <div class="chart-legend small text-muted">Barres proportionnelles aux participations</div>
+        </div>
+      </ng-container>
+      <ng-template #plainPopularity>
+        <div class="chart-group popularity-group list-framed" *ngIf="data?.popularity?.length">
+          <div class="chart-row" *ngFor="let pop of data.popularity">
+            <div class="chart-label">{{ formatStageNumber(pop.stage) }} - {{ pop.name }}</div>
+            <div class="chart-bar">
+              <div class="chart-fill bg-success" [style.width]="barWidth(pop.participations, popularityMaxValue)">
+                <span class="chart-fill-value">{{ pop.participations }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="chart-legend small text-muted">Barres proportionnelles aux participations</div>
+        </div>
+      </ng-template>
+
+      <div class="chart-title">Participations par groupe d'épreuves</div>
+      <div class="chart-group group-popularity-group list-framed" *ngIf="data?.groupPopularity?.length">
+        <div class="chart-row" *ngFor="let gp of data.groupPopularity">
+          <div class="chart-label">{{ gp.name }}</div>
+          <div class="chart-bar">
+            <div class="chart-fill bg-success" [style.width]="barWidth(gp.participations, groupPopularityMaxValue)">
+              <span class="chart-fill-value">{{ gp.participations }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="chart-legend small text-muted">Barres proportionnelles aux participations par groupe</div>
       </div>
 
       <div class="chart-title">Durée (min / moy / max)</div>
-      <div class="chart-group duration-group list-framed">
-        <div class="chart-row" *ngFor="let stage of data.stages">
-          <div class="chart-label">{{ stage.stage }} - {{ stage.name }}</div>
-          <div class="chart-bar stacked">
-            <div class="chart-fill bg-secondary" [style.width]="barWidth(stage.minDurationMinutes, durationMaxValue)"></div>
-            <div class="chart-fill bg-success" [style.width]="barWidth(stage.averageDurationMinutes, durationMaxValue)"></div>
-            <div class="chart-fill bg-danger" [style.width]="barWidth(stage.maxDurationMinutes, durationMaxValue)"></div>
+      <div class="chart-group duration-group list-framed" *ngIf="data?.stageGroups?.length">
+        <ng-container *ngFor="let group of data.stageGroups">
+          <div class="stage-group-block">
+            <div class="stage-group-label">{{ group.name }}</div>
+            <div class="chart-row" *ngFor="let stage of group.stages">
+              <div class="chart-label">{{ formatStageNumber(stage.stage) }} - {{ stage.name }}</div>
+              <div class="chart-bar stacked">
+              <div class="chart-fill bg-secondary"
+                   [style.width]="barWidth(stage.minDurationMinutes || 0, groupDurationMax(group))">
+                <span class="chart-fill-value">{{ formatMinutes(stage.minDurationMinutes) }}</span>
+              </div>
+              <div class="chart-fill bg-success"
+                   [style.width]="barWidth(segmentWidth(stage.averageDurationMinutes, stage.minDurationMinutes), groupDurationMax(group))">
+                <span class="chart-fill-value">{{ formatMinutes(stage.averageDurationMinutes) }}</span>
+              </div>
+              <div class="chart-fill bg-danger"
+                   [style.width]="barWidth(segmentWidth(stage.maxDurationMinutes, stage.averageDurationMinutes), groupDurationMax(group))">
+                <span class="chart-fill-value">{{ formatMinutes(stage.maxDurationMinutes) }}</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="chart-value">
-            {{ formatMinutes(stage.minDurationMinutes) }} / {{ formatMinutes(stage.averageDurationMinutes) }} / {{ formatMinutes(stage.maxDurationMinutes) }}
-          </div>
-        </div>
+        </ng-container>
         <div class="chart-legend small text-muted">Barres : min (gris), moy (vert), max (rouge)</div>
       </div>
 
-      <div class="chart-title">Score (min / moy / max)</div>
-      <div class="chart-group score-group list-framed">
-        <div class="chart-row" *ngFor="let stage of data.stages">
-          <div class="chart-label">{{ stage.stage }} - {{ stage.name }}</div>
-          <div class="chart-bar stacked">
-            <div class="chart-fill bg-secondary" [style.width]="barWidth(stage.minScorePercent, scoreMaxValue)"></div>
-            <div class="chart-fill bg-info" [style.width]="barWidth(stage.averageScorePercent, scoreMaxValue)"></div>
-            <div class="chart-fill bg-danger" [style.width]="barWidth(stage.maxScorePercent, scoreMaxValue)"></div>
-          </div>
-          <div class="chart-value">
-            {{ stage.minScorePercent | number:'1.0-0' }}% / {{ stage.averageScorePercent | number:'1.0-0' }}% / {{ stage.maxScorePercent | number:'1.0-0' }}%
-          </div>
-        </div>
-        <div class="chart-legend small text-muted">Barres : min (gris), moy (bleu), max (rouge)</div>
-      </div>
-
       <div class="chart-title" *ngIf="hasQuestions">Questions correctes (min / moy / max)</div>
-      <div class="chart-group questions-group list-framed" *ngIf="hasQuestions">
-        <ng-container *ngFor="let stage of data.stages">
-          <div class="chart-row" *ngIf="hasQuestionsForStage(stage)">
-            <div class="chart-label">{{ stage.stage }} - {{ stage.name }}</div>
-            <div class="chart-bar stacked">
-              <div class="chart-fill bg-secondary" [style.width]="barWidth(stage.minQuestionSuccess || 0, questionSuccessMaxValue)"></div>
-              <div class="chart-fill bg-info" [style.width]="barWidth(stage.averageQuestionSuccess || 0, questionSuccessMaxValue)"></div>
-              <div class="chart-fill bg-success" [style.width]="barWidth(stage.maxQuestionSuccess || 0, questionSuccessMaxValue)"></div>
+      <div class="chart-group questions-group list-framed" *ngIf="hasQuestions && data?.stageGroups?.length">
+        <ng-container *ngFor="let group of data.stageGroups">
+          <ng-container *ngIf="hasQuestionsForGroup(group)">
+            <div class="stage-group-block">
+              <div class="stage-group-label">{{ group.name }}</div>
+              <ng-container *ngFor="let stage of group.stages">
+              <div class="chart-row" *ngIf="hasQuestionsForStage(stage)">
+                <div class="chart-label">{{ formatStageNumber(stage.stage) }} - {{ stage.name }}</div>
+                <div class="chart-bar overlay">
+                  <ng-container *ngFor="let segment of questionSegments(stage)">
+                    <div class="chart-fill overlay-fill" [ngClass]="segment.bgClass"
+                         [style.width]="barWidth(segment.value, stageQuestionMax(stage))">
+                      <span class="chart-fill-value">
+                        {{ (segment.value || 0) | number:'1.0-2' }}
+                      </span>
+                    </div>
+                  </ng-container>
+                </div>
+                </div>
+              </ng-container>
             </div>
-            <div class="chart-value">
-              {{ stage.minQuestionSuccess || 0 }} / {{ (stage.averageQuestionSuccess || 0) | number:'1.0-1' }} / {{ stage.maxQuestionSuccess || 0 }}
-            </div>
-          </div>
+          </ng-container>
         </ng-container>
         <div class="chart-legend small text-muted">Barres : min (gris), moy (bleu), max (vert)</div>
       </div>
 
       <div class="chart-title" *ngIf="hasPerformance">Performances (min / moy / max)</div>
-      <div class="chart-group performance-group list-framed" *ngIf="hasPerformance">
-        <ng-container *ngFor="let stage of data.stages">
-          <div class="chart-row" *ngIf="hasPerformanceForStage(stage)">
-            <div class="chart-label">{{ stage.stage }} - {{ stage.name }}</div>
-            <div class="chart-bar stacked">
-              <div class="chart-fill bg-secondary" [style.width]="barWidth(stage.minPerformanceValue || 0, performanceMaxValue)"></div>
-              <div class="chart-fill bg-warning" [style.width]="barWidth(stage.averagePerformanceValue || 0, performanceMaxValue)"></div>
-              <div class="chart-fill bg-danger" [style.width]="barWidth(stage.maxPerformanceValue || 0, performanceMaxValue)"></div>
+      <div class="chart-group performance-group list-framed" *ngIf="hasPerformance && data?.stageGroups?.length">
+        <ng-container *ngFor="let group of data.stageGroups">
+          <ng-container *ngIf="hasPerformanceForGroup(group)">
+            <div class="stage-group-block">
+              <div class="stage-group-label">{{ group.name }}</div>
+              <ng-container *ngFor="let stage of group.stages">
+              <div class="chart-row" *ngIf="hasPerformanceForStage(stage)">
+                <div class="chart-label">{{ formatStageNumber(stage.stage) }} - {{ stage.name }}</div>
+                  <div class="chart-bar overlay">
+                    <div class="chart-fill overlay-fill bg-danger"
+                         [style.width]="barWidth(stage.maxPerformanceValue || 0, stagePerformanceMax(stage))">
+                      <span class="chart-fill-value">{{ (stage.maxPerformanceValue || 0) | number:'1.0-2' }}</span>
+                    </div>
+                    <div class="chart-fill overlay-fill bg-warning"
+                         [style.width]="barWidth(stage.averagePerformanceValue || 0, stagePerformanceMax(stage))">
+                      <span class="chart-fill-value">{{ (stage.averagePerformanceValue || 0) | number:'1.0-2' }}</span>
+                    </div>
+                    <div class="chart-fill overlay-fill bg-secondary"
+                         [style.width]="barWidth(stage.minPerformanceValue || 0, stagePerformanceMax(stage))">
+                      <span class="chart-fill-value">{{ (stage.minPerformanceValue || 0) | number:'1.0-2' }}</span>
+                    </div>
+                  </div>
+                </div>
+              </ng-container>
             </div>
-            <div class="chart-value">
-              {{ (stage.minPerformanceValue || 0) | number:'1.0-2' }} / {{ (stage.averagePerformanceValue || 0) | number:'1.0-2' }} / {{ (stage.maxPerformanceValue || 0) | number:'1.0-2' }}
-            </div>
-          </div>
+          </ng-container>
         </ng-container>
         <div class="chart-legend small text-muted">Barres : min (gris), moy (orange), max (rouge)</div>
       </div>
 
-      <div class="chart-title" *ngIf="hasPeakActivity">Créneau le plus joué</div>
-      <div class="chart-group peak-group list-framed" *ngIf="hasPeakActivity">
-        <ng-container *ngFor="let stage of data.stages">
-          <div class="chart-row">
-            <div class="chart-label">{{ stage.stage }} - {{ stage.name }}</div>
-            <div class="chart-bar">
-              <div class="chart-fill bg-warning" [style.width]="barWidth(stage.peakActivityCount || 0, peakMaxValue)"></div>
-            </div>
-            <div class="chart-value">
-              {{ stage.peakActivityBucket || '-' }} ({{ stage.peakActivityCount || 0 }})
+      <div class="chart-title" *ngIf="data?.stageHeatmap?.length">Affluence par épreuve</div>
+      <div class="chart-group stage-heatmap-group list-framed" *ngIf="data?.stageHeatmap?.length">
+        <div class="stage-heatmap-row heatmap-header"
+             *ngIf="data.stageHeatmapTimeline?.length"
+             [style.--heatmap-columns]="data.stageHeatmapTimeline?.length">
+          <div class="chart-label header-label">Heures</div>
+          <div class="heatmap-grid header-grid"
+               [style.--heatmap-columns]="data.stageHeatmapTimeline?.length">
+            <div class="heatmap-cell header-cell"
+                 *ngFor="let bucket of data.stageHeatmapTimeline">
+              {{ bucket.label }}
             </div>
           </div>
-        </ng-container>
-        <div class="chart-legend small text-muted">Créneau horaire avec le plus d'épreuves simultanées</div>
+        </div>
+        <div class="stage-heatmap-row" *ngFor="let heat of data.stageHeatmap">
+          <div class="chart-label">{{ formatStageNumber(heat.stage) }} - {{ heat.name }}</div>
+          <div class="heatmap-grid" [style.--heatmap-columns]="data.stageHeatmapTimeline?.length || heat.buckets?.length">
+            <div class="heatmap-cell"
+                 *ngFor="let bucket of heat.buckets"
+                 [style.background]="heatmapColor(bucket.active, stageHeatmapMax(heat.buckets))"
+                 [style.color]="heatmapTextColor(bucket.active, stageHeatmapMax(heat.buckets))"
+                 [attr.title]="'Créneau ' + bucket.label + ' – ' + bucket.start + ' à ' + bucket.end">
+              {{ bucket.active }}
+            </div>
+          </div>
+        </div>
+        <div class="chart-legend small text-muted">
+          Chaque colonne représente un intervalle de 15 minutes, même si aucune équipe n’est active.
+        </div>
       </div>
+
     </div>
   </div>
 
   <div class="row mt-4" *ngIf="data?.teams?.length && !loading && !error">
     <div class="col-12">
-      <h4 class="px-0 py-1 bg-secondary my-auto text-center text-white">Par équipe</h4>
-      <div class="chart-title">Durée cumulée par équipe</div>
-      <div class="table-responsive list-framed">
-        <table class="table table-sm align-middle mb-0 framed-table">
+      <h4 class="px-0 py-1 bg-secondary my-auto text-center text-white">Statistiques par équipe</h4>
+      <div class="chart-title">Durée de jeu cumulée par équipe</div>
+      <div class="chart-group list-framed teams-duration-group">
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0 framed-table">
           <thead class="bg-light">
             <tr>
               <th scope="col">Équipe</th>
@@ -171,46 +239,13 @@
           </thead>
           <tbody>
             <tr *ngFor="let team of data.teams">
-              <td>{{ team.team }} - {{ team.name }}</td>
+              <td>{{ formatTeamNumber(team.team) }} - {{ team.name }}</td>
               <td>{{ team.finished }}</td>
               <td>{{ formatMinutes(team.totalDurationMinutes) }}</td>
             </tr>
           </tbody>
         </table>
       </div>
-    </div>
-  </div>
-
-  <div class="row mt-4" *ngIf="data?.popularity?.length && !loading && !error">
-    <div class="col-12">
-      <h4 class="px-0 py-1 bg-secondary my-auto text-center text-white">Popularité des épreuves</h4>
-      <div class="chart-title">Participations par épreuve</div>
-      <div class="chart-group popularity-group list-framed">
-        <div class="chart-row" *ngFor="let pop of data.popularity">
-          <div class="chart-label">{{ pop.stage }} - {{ pop.name }}</div>
-          <div class="chart-bar">
-            <div class="chart-fill bg-success" [style.width]="barWidth(pop.participations, popularityMaxValue)"></div>
-          </div>
-          <div class="chart-value">{{ pop.participations }}</div>
-        </div>
-        <div class="chart-legend small text-muted">Barres proportionnelles aux participations</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row mt-4" *ngIf="data?.groupPopularity?.length && !loading && !error">
-    <div class="col-12">
-      <h4 class="px-0 py-1 bg-secondary my-auto text-center text-white">Popularité par groupe d'épreuves</h4>
-      <div class="chart-title">Participations par groupe</div>
-      <div class="chart-group group-popularity-group list-framed">
-        <div class="chart-row" *ngFor="let gp of data.groupPopularity">
-          <div class="chart-label">{{ gp.name }}</div>
-          <div class="chart-bar">
-            <div class="chart-fill bg-success" [style.width]="barWidth(gp.participations, groupPopularityMaxValue)"></div>
-          </div>
-          <div class="chart-value">{{ gp.participations }}</div>
-        </div>
-        <div class="chart-legend small text-muted">Barres proportionnelles aux participations par groupe</div>
       </div>
     </div>
   </div>
@@ -218,36 +253,22 @@
   <div class="row mt-4" *ngIf="data?.questions?.length && !loading && !error">
     <div class="col-12">
       <h4 class="px-0 py-1 bg-secondary my-auto text-center text-white">Taux de réussite par question</h4>
-      <div class="table-responsive" *ngFor="let stage of data.questions">
-        <h5 class="mt-3 mb-2">{{ stage.stage }} - {{ stage.name }}</h5>
-        <div class="chart-title">Réussite par question</div>
+      <ng-container *ngFor="let stage of data.questions">
+        <div class="chart-title">{{ formatStageNumber(stage.stage) }} - {{ stage.name }} - Réussite par question</div>
         <div class="chart-group questions-detail-group list-framed">
           <div class="chart-row" *ngFor="let q of stage.questions">
             <div class="chart-label">{{ q.question }}</div>
             <div class="chart-bar">
-              <div class="chart-fill bg-info" [style.width]="barWidth(q.successRate, questionMaxValue)"></div>
+              <div class="chart-fill bg-info" [style.width]="barWidth(q.successRate, questionMaxValue)">
+                <span class="chart-fill-value">
+                  {{ (q.successRate * 100) | number:'1.0-2' }}%
+                </span>
+              </div>
             </div>
-            <div class="chart-value">{{ (q.successRate * 100) | number:'1.0-0' }}% ({{ q.successCount }}/{{ q.totalAnswers }})</div>
           </div>
         </div>
-      </div>
+      </ng-container>
     </div>
   </div>
 
-  <div class="row mt-4" *ngIf="data?.activity?.length && !loading && !error">
-    <div class="col-12">
-      <h4 class="px-0 py-1 bg-secondary my-auto text-center text-white">Moments les plus joués (heures avec épreuves en cours)</h4>
-      <div class="chart-title">Nombre d'épreuves en cours par heure</div>
-      <div class="chart-group activity-group list-framed">
-        <div class="chart-row" *ngFor="let a of data.activity">
-          <div class="chart-label">{{ a.bucket }}</div>
-          <div class="chart-bar">
-            <div class="chart-fill bg-warning" [style.width]="barWidth(a.active, activityMaxValue)"></div>
-          </div>
-          <div class="chart-value">{{ a.active }}</div>
-        </div>
-        <div class="chart-legend small text-muted">Nombre d'épreuves en cours sur le créneau</div>
-      </div>
-    </div>
-  </div>
 </div>

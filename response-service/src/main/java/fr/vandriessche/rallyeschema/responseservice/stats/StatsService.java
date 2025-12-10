@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -25,6 +26,10 @@ public class StatsService {
     private final TeamInfoRepository teamInfoRepository;
 
     private static final DateTimeFormatter BUCKET_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final DateTimeFormatter HEATMAP_LABEL_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+    private static final ZoneId DISPLAY_ZONE = ZoneId.of("Europe/Paris");
+    private static final String UNGROUPED_KEY = "__ungrouped__";
+    private static final String UNGROUPED_LABEL = "Sans groupe";
 
     public StatsService(StageResultRepository stageResultRepository,
                         StageParamRepository stageParamRepository,
@@ -36,7 +41,7 @@ public class StatsService {
 
     public StatsResponseDto computeStats() {
         List<StageResult> results = stageResultRepository.findAll();
-        // Après rallye : on ne considère que les participations terminées
+        // Apres rallye : on ne considere que les participations terminees
         List<StageResult> finishedResults = results.stream()
                 .filter(r -> r.getBegin() != null && r.getEnd() != null && r.getStage() != null && r.getTeam() != null)
                 .collect(Collectors.toList());
@@ -51,16 +56,23 @@ public class StatsService {
         Map<String, String> groupNameById = stageParams.stream()
                 .filter(p -> p.getGroup() != null)
                 .collect(Collectors.toMap(p -> p.getGroup().getId(), p -> p.getGroup().getName(), (a, b) -> a));
+        Map<Integer, StageParam> stageParamByStage = stageParams.stream()
+                .collect(Collectors.toMap(StageParam::getStage, p -> p));
         Map<Integer, TeamInfo> teamByNumber = teams.stream()
                 .collect(Collectors.toMap(TeamInfo::getTeam, t -> t));
 
         StatsResponseDto response = new StatsResponseDto();
         response.setOverview(buildOverview(finishedResults, stageParams.size(), teams.size()));
-        response.setStages(buildStageStats(finishedResults, stageNameById));
+        List<StageStatDto> stageStats = buildStageStats(finishedResults, stageNameById, stageParamByStage, groupIdByStage, groupNameById);
+        response.setStages(stageStats);
+        response.setStageGroups(buildStageGroupStats(stageStats));
         response.setTeams(buildTeamStats(finishedResults, teamByNumber));
         response.setPopularity(buildPopularity(finishedResults, stageNameById));
         response.setGroupPopularity(buildGroupPopularity(finishedResults, groupIdByStage, groupNameById));
         response.setTimeline(buildTimeline(finishedResults));
+        StageHeatmapResult heatmapResult = buildStageHeatmaps(finishedResults, stageNameById);
+        response.setStageHeatmap(heatmapResult.getHeatmaps());
+        response.setStageHeatmapTimeline(mapIntervalsToBuckets(heatmapResult.getIntervals()));
         response.setQuestions(buildQuestionStats(finishedResults, stageNameById));
         response.setActivity(buildActivity(finishedResults));
         return response;
@@ -87,7 +99,11 @@ public class StatsService {
         return dto;
     }
 
-    private List<StageStatDto> buildStageStats(List<StageResult> results, Map<Integer, String> stageNameById) {
+    private List<StageStatDto> buildStageStats(List<StageResult> results,
+                                               Map<Integer, String> stageNameById,
+                                               Map<Integer, StageParam> stageParamByStage,
+                                               Map<Integer, String> groupIdByStage,
+                                               Map<String, String> groupNameById) {
         Map<Integer, List<StageResult>> byStage = results.stream()
                 .collect(Collectors.groupingBy(StageResult::getStage));
         List<StageStatDto> stageStats = new ArrayList<>();
@@ -96,7 +112,16 @@ public class StatsService {
             List<StageResult> stageResults = entry.getValue();
             StageStatDto dto = new StageStatDto();
             dto.setStage(stageId);
-            dto.setName(stageNameById.getOrDefault(stageId, "Épreuve " + stageId));
+            dto.setName(stageNameById.getOrDefault(stageId, "Epreuve " + stageId));
+            String groupId = groupIdByStage.get(stageId);
+            dto.setGroupId(groupId);
+            dto.setGroupName(groupId != null ? groupNameById.get(groupId) : null);
+            StageParam stageParam = stageParamByStage.get(stageId);
+            int questionCount = Optional.ofNullable(stageParam)
+                    .map(StageParam::getQuestionParams)
+                    .map(Map::size)
+                    .orElse(0);
+            dto.setQuestionCount(questionCount);
             dto.setParticipants(stageResults.size());
             dto.setFinished(stageResults.size());
             dto.setInProgress(0);
@@ -139,8 +164,8 @@ public class StatsService {
                         return success;
                     })
                     .collect(Collectors.toList());
-            long questionCount = questionSuccessCounts.size();
-            if (questionCount > 0) {
+            long questionSuccessCount = questionSuccessCounts.size();
+            if (questionSuccessCount > 0) {
                 long minQ = questionSuccessCounts.stream().mapToLong(Long::longValue).min().orElse(0);
                 long maxQ = questionSuccessCounts.stream().mapToLong(Long::longValue).max().orElse(0);
                 double avgQ = questionSuccessCounts.stream().mapToLong(Long::longValue).average().orElse(0);
@@ -191,6 +216,22 @@ public class StatsService {
         return stageStats;
     }
 
+    private List<StageGroupStatsDto> buildStageGroupStats(List<StageStatDto> stageStats) {
+        Map<String, StageGroupStatsDto> grouped = new LinkedHashMap<>();
+        for (StageStatDto stage : stageStats) {
+            String groupKey = stage.getGroupId() != null ? stage.getGroupId() : UNGROUPED_KEY;
+            StageGroupStatsDto group = grouped.computeIfAbsent(groupKey, key -> {
+                StageGroupStatsDto dto = new StageGroupStatsDto();
+                dto.setGroupId(stage.getGroupId());
+                dto.setName(stage.getGroupName() != null ? stage.getGroupName() : UNGROUPED_LABEL);
+                dto.setStages(new ArrayList<>());
+                return dto;
+            });
+            group.getStages().add(stage);
+        }
+        return new ArrayList<>(grouped.values());
+    }
+
     private List<TeamStatDto> buildTeamStats(List<StageResult> results, Map<Integer, TeamInfo> teamByNumber) {
         Map<Integer, List<StageResult>> byTeam = results.stream()
                 .collect(Collectors.groupingBy(StageResult::getTeam));
@@ -222,7 +263,7 @@ public class StatsService {
                 .map(e -> {
                     PopularityDto dto = new PopularityDto();
                     dto.setStage(e.getKey());
-                    dto.setName(stageNameById.getOrDefault(e.getKey(), "Épreuve " + e.getKey()));
+                    dto.setName(stageNameById.getOrDefault(e.getKey(), "Epreuve " + e.getKey()));
                     dto.setParticipations(e.getValue());
                     return dto;
                 })
@@ -292,7 +333,7 @@ public class StatsService {
 
             StageQuestionsStatsDto stageDto = new StageQuestionsStatsDto();
             stageDto.setStage(stageId);
-            stageDto.setName(stageNameById.getOrDefault(stageId, "Épreuve " + stageId));
+            stageDto.setName(stageNameById.getOrDefault(stageId, "Epreuve " + stageId));
             stageDto.setQuestions(questions);
             stats.add(stageDto);
         }
@@ -320,11 +361,137 @@ public class StatsService {
             dto.setAverageDurationMinutes(avg);
             list.add(dto);
         });
-        list.sort(Comparator.comparing(TimelinePointDto::getBucket));
-        return list;
+    list.sort(Comparator.comparing(TimelinePointDto::getBucket));
+    return list;
+  }
+
+  private StageHeatmapResult buildStageHeatmaps(List<StageResult> results, Map<Integer, String> stageNameById) {
+    List<StageResult> validResults = results.stream()
+            .filter(r -> r.getBegin() != null && r.getEnd() != null && stageNameById.containsKey(r.getStage()))
+            .collect(Collectors.toList());
+    if (validResults.isEmpty()) {
+      return new StageHeatmapResult(Collections.emptyList(), Collections.emptyList());
+    }
+    ZonedDateTime globalStart = validResults.stream()
+            .map(r -> r.getBegin().atZone(DISPLAY_ZONE))
+            .min(Comparator.naturalOrder())
+            .orElse(null);
+    ZonedDateTime globalEnd = validResults.stream()
+            .map(r -> r.getEnd().atZone(DISPLAY_ZONE))
+            .max(Comparator.naturalOrder())
+            .orElse(null);
+    if (globalStart == null || globalEnd == null || !globalStart.isBefore(globalEnd)) {
+      return new StageHeatmapResult(Collections.emptyList(), Collections.emptyList());
+    }
+    List<HeatmapInterval> intervals = buildHeatmapIntervals(globalStart, globalEnd);
+    if (intervals.isEmpty()) {
+      return new StageHeatmapResult(Collections.emptyList(), Collections.emptyList());
+    }
+    Map<Integer, List<StageResult>> byStage = validResults.stream()
+            .collect(Collectors.groupingBy(StageResult::getStage));
+    List<StageHeatmapDto> heatmaps = new ArrayList<>();
+    for (Map.Entry<Integer, List<StageResult>> entry : byStage.entrySet()) {
+      List<StageResult> stageResults = entry.getValue();
+      List<StageHeatmapBucketDto> buckets = intervals.stream()
+              .map(interval -> toBucket(interval, countActiveResults(stageResults, interval.getStartInstant(), interval.getEndInstant())))
+              .collect(Collectors.toList());
+      StageHeatmapDto dto = new StageHeatmapDto();
+      dto.setStage(entry.getKey());
+      dto.setName(stageNameById.getOrDefault(entry.getKey(), "Epreuve " + entry.getKey()));
+      dto.setBuckets(buckets);
+      heatmaps.add(dto);
+    }
+    heatmaps.sort(Comparator.comparingInt(StageHeatmapDto::getStage));
+    return new StageHeatmapResult(heatmaps, intervals);
+  }
+
+  private List<HeatmapInterval> buildHeatmapIntervals(ZonedDateTime start, ZonedDateTime end) {
+    List<HeatmapInterval> intervals = new ArrayList<>();
+    ZonedDateTime cursor = start;
+    while (cursor.isBefore(end)) {
+      ZonedDateTime bucketEnd = cursor.plus(15, ChronoUnit.MINUTES);
+      if (bucketEnd.isAfter(end)) {
+        bucketEnd = end;
+      }
+      String label = cursor.format(HEATMAP_LABEL_FORMATTER);
+      intervals.add(new HeatmapInterval(cursor, bucketEnd, label));
+      cursor = bucketEnd;
+    }
+    return intervals;
+  }
+
+  private StageHeatmapBucketDto toBucket(HeatmapInterval interval, long active) {
+    StageHeatmapBucketDto bucket = new StageHeatmapBucketDto();
+    bucket.setStart(interval.getStartInstant().toString());
+    bucket.setEnd(interval.getEndInstant().toString());
+    bucket.setLabel(interval.getLabel());
+    bucket.setActive(active);
+    return bucket;
+  }
+
+  private List<StageHeatmapBucketDto> mapIntervalsToBuckets(List<HeatmapInterval> intervals) {
+    return intervals.stream()
+            .map(interval -> toBucket(interval, 0))
+            .collect(Collectors.toList());
+  }
+
+  private static class StageHeatmapResult {
+    private final List<StageHeatmapDto> heatmaps;
+    private final List<HeatmapInterval> intervals;
+
+    StageHeatmapResult(List<StageHeatmapDto> heatmaps, List<HeatmapInterval> intervals) {
+      this.heatmaps = heatmaps;
+      this.intervals = intervals;
     }
 
-    private List<ActivityPointDto> buildActivity(List<StageResult> results) {
+    List<StageHeatmapDto> getHeatmaps() {
+      return heatmaps;
+    }
+
+    List<HeatmapInterval> getIntervals() {
+      return intervals;
+    }
+  }
+
+  private static class HeatmapInterval {
+    private final ZonedDateTime start;
+    private final ZonedDateTime end;
+    private final String label;
+
+    HeatmapInterval(ZonedDateTime start, ZonedDateTime end, String label) {
+      this.start = start;
+      this.end = end;
+      this.label = label;
+    }
+
+    ZonedDateTime getStart() {
+      return start;
+    }
+
+    ZonedDateTime getEnd() {
+      return end;
+    }
+
+    Instant getStartInstant() {
+      return start.toInstant();
+    }
+
+    Instant getEndInstant() {
+      return end.toInstant();
+    }
+
+    String getLabel() {
+      return label;
+    }
+  }
+  
+  private long countActiveResults(List<StageResult> results, Instant start, Instant end) {
+    return results.stream()
+            .filter(r -> r.getBegin().isBefore(end) && r.getEnd().isAfter(start))
+            .count();
+  }
+
+  private List<ActivityPointDto> buildActivity(List<StageResult> results) {
         Map<String, Long> buckets = new HashMap<>();
         results.forEach(result -> {
             Instant begin = result.getBegin();
@@ -332,12 +499,12 @@ public class StatsService {
             if (begin == null || end == null) {
                 return;
             }
-            Instant cursor = begin.truncatedTo(ChronoUnit.HOURS);
-            Instant endBucket = end.truncatedTo(ChronoUnit.HOURS);
+            ZonedDateTime cursor = begin.atZone(DISPLAY_ZONE).truncatedTo(ChronoUnit.HOURS);
+            ZonedDateTime endBucket = end.atZone(DISPLAY_ZONE).truncatedTo(ChronoUnit.HOURS);
             while (!cursor.isAfter(endBucket)) {
-                String bucket = bucketKey(cursor);
+                String bucket = cursor.format(BUCKET_FORMATTER);
                 buckets.put(bucket, buckets.getOrDefault(bucket, 0L) + 1);
-                cursor = cursor.plus(1, ChronoUnit.HOURS);
+                cursor = cursor.plusHours(1);
             }
         });
         return buckets.entrySet().stream()
@@ -358,12 +525,12 @@ public class StatsService {
             return 0;
         }
         return ChronoUnit.MINUTES.between(
-                begin.atZone(ZoneId.systemDefault()).toLocalDateTime(),
-                end.atZone(ZoneId.systemDefault()).toLocalDateTime());
+                begin.atZone(DISPLAY_ZONE).toLocalDateTime(),
+                end.atZone(DISPLAY_ZONE).toLocalDateTime());
     }
 
     private String bucketKey(Instant instant) {
-        return instant.atZone(ZoneId.systemDefault())
+        return instant.atZone(DISPLAY_ZONE)
                 .truncatedTo(ChronoUnit.HOURS)
                 .format(BUCKET_FORMATTER);
     }
@@ -384,3 +551,4 @@ public class StatsService {
         return (double) success * 100d / (double) total;
     }
 }
+

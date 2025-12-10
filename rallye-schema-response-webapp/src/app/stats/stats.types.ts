@@ -12,6 +12,8 @@ export interface StatsOverview {
 export interface StageStat {
   stage: number;
   name: string;
+  groupId?: string;
+  groupName?: string;
   participants: number;
   finished: number;
   inProgress: number;
@@ -29,6 +31,7 @@ export interface StageStat {
   minQuestionSuccess?: number;
   averageQuestionSuccess?: number;
   maxQuestionSuccess?: number;
+  questionCount?: number;
   peakActivityBucket?: string;
   peakActivityCount?: number;
 }
@@ -65,6 +68,25 @@ export interface ActivityPoint {
   active: number;
 }
 
+export interface StageHeatmapBucket {
+  label: string;
+  start: string;
+  end: string;
+  active: number;
+}
+
+export interface StageHeatmap {
+  stage: number;
+  name: string;
+  buckets: StageHeatmapBucket[];
+}
+
+export interface StageGroupStats {
+  groupId?: string;
+  name: string;
+  stages: StageStat[];
+}
+
 export interface StageQuestionRate {
   question: string;
   totalAnswers: number;
@@ -87,4 +109,7 @@ export interface StatsResponse {
   timeline: TimelinePoint[];
   questions: StageQuestionsStats[];
   activity: ActivityPoint[];
+  stageHeatmap: StageHeatmap[];
+  stageHeatmapTimeline: StageHeatmapBucket[];
+  stageGroups: StageGroupStats[];
 }

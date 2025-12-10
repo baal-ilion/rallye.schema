@@ -3,6 +3,8 @@ package fr.vandriessche.rallyeschema.responseservice.stats.dto;
 public class StageStatDto {
     private int stage;
     private String name;
+    private String groupId;
+    private String groupName;
     private long participants;
     private long finished;
     private long inProgress;
@@ -20,6 +22,7 @@ public class StageStatDto {
     private Long minQuestionSuccess;
     private Double averageQuestionSuccess;
     private Long maxQuestionSuccess;
+    private int questionCount;
     private String peakActivityBucket;
     private Long peakActivityCount;
 
@@ -61,6 +64,22 @@ public class StageStatDto {
 
     public void setInProgress(long inProgress) {
         this.inProgress = inProgress;
+    }
+
+    public String getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
+    }
+
+    public String getGroupName() {
+        return groupName;
+    }
+
+    public void setGroupName(String groupName) {
+        this.groupName = groupName;
     }
 
     public double getAverageDurationMinutes() {
@@ -173,6 +192,14 @@ public class StageStatDto {
 
     public void setMaxQuestionSuccess(Long maxQuestionSuccess) {
         this.maxQuestionSuccess = maxQuestionSuccess;
+    }
+
+    public int getQuestionCount() {
+        return questionCount;
+    }
+
+    public void setQuestionCount(int questionCount) {
+        this.questionCount = questionCount;
     }
 
     public String getPeakActivityBucket() {
