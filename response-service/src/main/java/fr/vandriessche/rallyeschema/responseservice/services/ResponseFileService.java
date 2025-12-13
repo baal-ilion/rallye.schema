@@ -15,19 +15,12 @@ import javax.imageio.ImageIO;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.io.FilenameUtils;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDDocumentCatalog;
-import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.bson.BsonBinarySubType;
 import org.bson.types.Binary;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.expression.ExpressionParser;
-import org.springframework.expression.spel.SpelParserConfiguration;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.xml.sax.SAXException;
@@ -98,61 +91,35 @@ public class ResponseFileService {
 
 	public ResponseFile addResponseFile(MultipartFile file)
 			throws IOException, ParserConfigurationException, SAXException, FormScannerException {
-		// TODO refuser si ce n'est pas une image
-
-		if ("pdf".equalsIgnoreCase(FilenameUtils.getExtension(file.getOriginalFilename()))) {
-
-			PDDocument pdfDocument = PDDocument.load(file.getBytes());
-
-			PDDocumentCatalog docCatalog = pdfDocument.getDocumentCatalog();
-			PDAcroForm acroForm = docCatalog.getAcroForm();
-			acroForm.getFields().stream().forEach(field -> {
-				log.info(field.getFullyQualifiedName());
-				log.info(field.getValueAsString());
-			});
-
-			/*
-			 * ResponseFileInfo responseFileInfo = new ResponseFileInfo();
-			 * 
-			 * // fillResponseFileInfo(filledForm, responseFileInfo);
-			 * 
-			 * activeResponseFile(responseFileInfo);
-			 * 
-			 * responseFileInfo = responseFileInfoRepository.save(responseFileInfo);
-			 * ResponseFile responseFile = new ResponseFile();
-			 * responseFile.setId(responseFileInfo.getId());
-			 * responseFile.setInfo(responseFileInfo); responseFile.setFile(new
-			 * Binary(BsonBinarySubType.BINARY, file.getBytes()));
-			 * responseFile.setFileExtension(FilenameUtils.getExtension(file.
-			 * getOriginalFilename())); responseFile.setFileType(file.getContentType());
-			 * responseFile = responseFileRepository.insert(responseFile);
-			 * 
-			 * return responseFile.getId();
-			 */
-			return null;
-		} else {
-			BufferedImage image = ImageIO.read(new ByteArrayInputStream(file.getBytes()));
-			String name = FilenameUtils.getBaseName(file.getOriginalFilename());
-
-			FormTemplate filledForm = makeFormTemplate(image, name, null, null, null);
-
-			ResponseFileInfo responseFileInfo = new ResponseFileInfo();
-			fillResponseFileInfo(filledForm, responseFileInfo);
-			filledForm = makeFormTemplate(image, name, responseFileInfo.getStage(), responseFileInfo.getPage(), null);
-			logFormTemplate(filledForm);
-			responseFileInfo.setFilledForm(filledForm);
-
-			responseFileInfo = responseFileInfoRepository.save(responseFileInfo);
-			ResponseFile responseFile = new ResponseFile();
-			responseFile.setId(responseFileInfo.getId());
-			responseFile.setInfo(responseFileInfo);
-			responseFile.setFile(new Binary(BsonBinarySubType.BINARY, file.getBytes()));
-			responseFile.setFileExtension(FilenameUtils.getExtension(file.getOriginalFilename()));
-			responseFile.setFileType(file.getContentType());
-			responseFile = responseFileRepository.insert(responseFile);
-			messageProducerService.sendMessage(RESPONSE_FILE_CREATE_EVENT, responseFileInfo);
-			return responseFile;
+		String contentType = file.getContentType();
+		if (contentType == null || !contentType.toLowerCase().startsWith("image/")) {
+			throw new IllegalArgumentException("Only image files are supported");
 		}
+
+		BufferedImage image = ImageIO.read(new ByteArrayInputStream(file.getBytes()));
+		if (image == null) {
+			throw new IllegalArgumentException("Only image files are supported");
+		}
+		String name = FilenameUtils.getBaseName(file.getOriginalFilename());
+
+		FormTemplate filledForm = makeFormTemplate(image, name, null, null, null);
+
+		ResponseFileInfo responseFileInfo = new ResponseFileInfo();
+		fillResponseFileInfo(filledForm, responseFileInfo);
+		filledForm = makeFormTemplate(image, name, responseFileInfo.getStage(), responseFileInfo.getPage(), null);
+		logFormTemplate(filledForm);
+		responseFileInfo.setFilledForm(filledForm);
+
+		responseFileInfo = responseFileInfoRepository.save(responseFileInfo);
+		ResponseFile responseFile = new ResponseFile();
+		responseFile.setId(responseFileInfo.getId());
+		responseFile.setInfo(responseFileInfo);
+		responseFile.setFile(new Binary(BsonBinarySubType.BINARY, file.getBytes()));
+		responseFile.setFileExtension(FilenameUtils.getExtension(file.getOriginalFilename()));
+		responseFile.setFileType(file.getContentType());
+		responseFile = responseFileRepository.insert(responseFile);
+		messageProducerService.sendMessage(RESPONSE_FILE_CREATE_EVENT, responseFileInfo);
+		return responseFile;
 	}
 
 	public void deleteByTeam(Integer team) {
@@ -253,7 +220,7 @@ public class ResponseFileService {
 			throws ParserConfigurationException, SAXException, IOException, FormScannerException {
 		ResponseFileInfo updatedResponseFileInfo = responseFileInfoRepository.findById(responseFileInfo.getId())
 				.orElseThrow();
-		// TODO : ajouter un test si l'etapa est reseigné la page doit aussi l'etre
+		// NOTE : si l'etapa est renseignée, la page doit aussi l'etre
 		if (Objects.nonNull(responseFileInfo.getPage()) && Objects.isNull(responseFileInfo.getStage()))
 			// si on n'a que le n° de page on considere que l'etape ne change pas
 			responseFileInfo.setStage(updatedResponseFileInfo.getStage());
@@ -385,33 +352,6 @@ public class ResponseFileService {
 			filledForm2.getParentTemplate().setWidth(responseFileParam.getWidth());
 		});
 		return filledForm2;
-	}
-
-	private void test() {
-		/*
-		 * Map<String, Boolean> context = new HashMap<>(); context.put("question001",
-		 * true); context.put("question002", false);
-		 */
-		StandardEvaluationContext context = new StandardEvaluationContext();
-		context.setVariable("question001", true);
-		context.setVariable("question002", false);
-
-		context.setConstructorResolvers(new ArrayList<>());
-		context.setMethodResolvers(new ArrayList<>());
-		context.setPropertyAccessors(new ArrayList<>());
-
-		SpelParserConfiguration config = new SpelParserConfiguration();
-
-		ExpressionParser parser = new SpelExpressionParser(config);
-
-		log.info("question001="
-				+ (parser.parseExpression("#question001").getValue(context, Boolean.class) ? "true" : "false"));
-		log.info("question002="
-				+ (parser.parseExpression("#question002").getValue(context, Boolean.class) ? "true" : "false"));
-		log.info("question003=" + (parser
-				.parseExpression("null != new fr.vandriessche.rallyeschema.responseservice.entities.FormTemplate()")
-				.getValue(context, Boolean.class) ? "true" : "false"));
-
 	}
 
 	private FormTemplate updateFormTemplate(ResponseFileInfo responseFileInfo, ResponseFileInfo updatedResponseFileInfo)

@@ -77,6 +77,7 @@ public class ResponseFileParamController {
 	@GetMapping(URL + "/{id}/template")
 	public ResponseEntity<Resource> downloadResponseFileTemplate(@PathVariable String id) {
 		ResponseFileParam responseFileParam = responseFileParamService.getResponseFileParam(id);
+		String template = Objects.requireNonNullElse(responseFileParam.getTemplate(), "");
 		Path path = new File("toto.xml").toPath();
 		String contentType = null;
 		try {
@@ -84,12 +85,10 @@ public class ResponseFileParamController {
 		} catch (IOException e) {
 			log.log(Level.WARNING, "downloadResponseFileTemplate", e);
 		}
-		if (Objects.isNull(contentType)) {
-			contentType = "application/octet-stream";
-		}
+		contentType = Objects.requireNonNullElse(contentType, "application/octet-stream");
 		return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType))
 				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + id + ".xtmpl\"")
-				.body(new ByteArrayResource(responseFileParam.getTemplate().getBytes()));
+				.body(new ByteArrayResource(template.getBytes()));
 	}
 
 	@GetMapping(URL + "/{id}")

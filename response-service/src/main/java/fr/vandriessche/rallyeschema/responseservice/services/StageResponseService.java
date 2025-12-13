@@ -77,7 +77,6 @@ public class StageResponseService {
 			return stageResponse.getResults();
 		}
 		List<ResponseResult> results = new ArrayList<>();
-		// TODO calcul des résultats à partir des réponses
 		return results;
 	}
 

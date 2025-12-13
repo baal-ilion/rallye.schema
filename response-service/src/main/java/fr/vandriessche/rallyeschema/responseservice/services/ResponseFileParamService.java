@@ -5,7 +5,6 @@ import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
@@ -23,7 +22,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.bson.BsonBinarySubType;
 import org.bson.types.Binary;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -49,9 +47,6 @@ public class ResponseFileParamService {
 	private static final String STAGE = "Etape";
 
 	private static final String TEAM = "Equipe";
-
-	@Value("${TemplateFileName:unknown}")
-	private String templateFileName;
 
 	@Autowired
 	private ResponseFileParamRepository responseFileParamRepository;
@@ -183,12 +178,6 @@ public class ResponseFileParamService {
 			return QuestionType.TEAM;
 		}
 		return defaultType;
-	}
-
-	private com.albertoborsetta.formscanner.api.FormTemplate makeFormTemplate()
-			throws ParserConfigurationException, SAXException, IOException {
-		File templateFile = new File(templateFileName);
-		return new com.albertoborsetta.formscanner.api.FormTemplate(templateFile);
 	}
 
 	private com.albertoborsetta.formscanner.api.FormTemplate makeFormTemplate(ResponseFileParam responseFileParam)

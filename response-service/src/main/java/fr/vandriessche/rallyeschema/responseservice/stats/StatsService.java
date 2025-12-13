@@ -464,10 +464,12 @@ public class StatsService {
       this.label = label;
     }
 
+    @SuppressWarnings("unused")
     ZonedDateTime getStart() {
       return start;
     }
 
+    @SuppressWarnings("unused")
     ZonedDateTime getEnd() {
       return end;
     }
@@ -551,4 +553,3 @@ public class StatsService {
         return (double) success * 100d / (double) total;
     }
 }
-

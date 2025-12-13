@@ -6,6 +6,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.SimpleRepresentationModelAssembler;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 import fr.vandriessche.rallyeschema.responseservice.controllers.TeamInfoController;
@@ -15,15 +16,17 @@ import fr.vandriessche.rallyeschema.responseservice.entities.TeamInfo;
 public class TeamInfoModelAssembler implements SimpleRepresentationModelAssembler<TeamInfo> {
 
 	@Override
-	public void addLinks(EntityModel<TeamInfo> resource) {
-		resource.add(linkTo(methodOn(TeamInfoController.class).getTeamInfo(resource.getContent().getId(), null))
-				.withSelfRel());
-		resource.add(linkTo(methodOn(TeamInfoController.class).getTeamInfo(resource.getContent().getId(), null))
-				.withRel("teamInfo"));
+	public void addLinks(@NonNull EntityModel<TeamInfo> resource) {
+		TeamInfo content = resource.getContent();
+		if (content == null) {
+			return;
+		}
+		resource.add(linkTo(methodOn(TeamInfoController.class).getTeamInfo(content.getId(), null)).withSelfRel());
+		resource.add(linkTo(methodOn(TeamInfoController.class).getTeamInfo(content.getId(), null)).withRel("teamInfo"));
 	}
 
 	@Override
-	public void addLinks(CollectionModel<EntityModel<TeamInfo>> resources) {
-		// Pas de lien supplémentaire pour la collection
+	public void addLinks(@NonNull CollectionModel<EntityModel<TeamInfo>> resources) {
+		// Pas de lien supplementaire pour la collection
 	}
 }

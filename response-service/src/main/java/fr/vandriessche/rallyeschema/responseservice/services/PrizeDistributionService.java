@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -25,16 +24,12 @@ import fr.vandriessche.rallyeschema.responseservice.models.PrizeDistributionResu
 import fr.vandriessche.rallyeschema.responseservice.models.PrizeType;
 import fr.vandriessche.rallyeschema.responseservice.repositories.StageParamRepository;
 import fr.vandriessche.rallyeschema.responseservice.repositories.TeamInfoRepository;
-import fr.vandriessche.rallyeschema.responseservice.repositories.TeamPointRepository;
 
 @Service
 public class PrizeDistributionService {
 
     @Autowired
     private TeamInfoRepository teamInfoRepository;
-
-    @Autowired
-    private TeamPointRepository teamPointRepository;
 
     @Autowired
     private TeamPointService teamPointService;
@@ -147,9 +142,6 @@ public class PrizeDistributionService {
 
         // 1. Récupération des données de base
         List<TeamInfo> teamInfos = teamInfoRepository.findAll();
-        Map<Integer, TeamInfo> teamInfoByTeam = teamInfos.stream()
-                .filter(t -> t.getTeam() != null)
-                .collect(Collectors.toMap(TeamInfo::getTeam, t -> t, (a, b) -> a));
 
         // Recalcule les points pour partir du dernier état
         List<TeamPoint> teamPoints = teamPointService.computeTeamPoints();
