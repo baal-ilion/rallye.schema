@@ -1,5 +1,5 @@
 import { DatePipe, KeyValue } from '@angular/common';
-import { Component, OnDestroy, OnInit, QueryList, ViewChildren } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, QueryList, ViewChild, ViewChildren } from '@angular/core';
 import { forkJoin, of, Subject } from 'rxjs';
 import { auditTime, catchError, finalize, startWith, switchMap, takeUntil, tap, map } from 'rxjs/operators';
 import * as FileSaver from 'file-saver';
@@ -10,6 +10,7 @@ import { GroupRankingEntry, GroupRankingService } from '../../services/group-ran
 import { RankingUpdateService } from '../../services/ranking-update.service';
 import { Ranking } from '../models/ranking';
 import { RankingComponent } from '../ranking/ranking.component';
+import { AutoScrollService } from '../../services/auto-scroll.service';
 
 @Component({
   selector: 'app-group-ranking',
@@ -25,7 +26,9 @@ export class GroupRankingComponent implements OnInit, OnDestroy {
   groupRankings: { [groupName: string]: Ranking[] } = {};
   teamInfos: { [team: number]: TeamInfo } = {};
   @ViewChildren(RankingComponent) rankingTables!: QueryList<RankingComponent>;
+  @ViewChild('scrollContainer', { static: true }) scrollContainer?: ElementRef<HTMLElement>;
   viewPoints = true;
+  autoScrollEnabled = false;
   private destroy$ = new Subject<void>();
 
   groupOrder = (a: KeyValue<string, Ranking[]>, b: KeyValue<string, Ranking[]>) =>
@@ -34,7 +37,8 @@ export class GroupRankingComponent implements OnInit, OnDestroy {
   constructor(
     private groupRankingService: GroupRankingService,
     private teamInfoService: TeamInfoService,
-    private rankingUpdateService: RankingUpdateService) { }
+    private rankingUpdateService: RankingUpdateService,
+    private autoScrollService: AutoScrollService) { }
 
   ngOnInit(): void {
     this.rankingUpdateService.updates$
@@ -47,8 +51,19 @@ export class GroupRankingComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.autoScrollService.stop();
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  onToggleAutoScroll(): void {
+    this.autoScrollEnabled = !this.autoScrollEnabled;
+    if (this.autoScrollEnabled) {
+      const target = this.scrollContainer?.nativeElement;
+      this.autoScrollService.start(target);
+    } else {
+      this.autoScrollService.stop();
+    }
   }
 
   private toRanking(entries: GroupRankingEntry[]): Ranking[] {
