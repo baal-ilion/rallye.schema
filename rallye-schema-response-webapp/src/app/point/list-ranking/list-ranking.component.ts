@@ -15,6 +15,8 @@ import { PointService } from '../point.service';
 import { RankingComponent } from '../ranking/ranking.component';
 import { RankingUpdateService } from '../../services/ranking-update.service';
 import { AutoScrollService } from '../../services/auto-scroll.service';
+import { StageService } from '../../stage/stage.service';
+import { StageResult } from '../../stage/models/stage-result';
 
 const EXCEL_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
 const EXCEL_EXTENSION = '.xlsx';
@@ -37,6 +39,7 @@ export class ListRankingComponent implements OnInit, OnDestroy {
   loading = false;
   error: string | null = null;
   private destroy$ = new Subject<void>();
+  stagePerformanceValues: { [stage: number]: { name: string, values: { [team: number]: number | null } } } = {};
 
   keyOrder = (a: KeyValue<string, Ranking[]>, b: KeyValue<string, Ranking[]>): number => {
     const ak = parseInt(a.key, 10);
@@ -50,7 +53,8 @@ export class ListRankingComponent implements OnInit, OnDestroy {
     private teamInfoService: TeamInfoService,
     private stageParamService: StageParamService,
     private rankingUpdateService: RankingUpdateService,
-    private autoScrollService: AutoScrollService
+    private autoScrollService: AutoScrollService,
+    private stageService: StageService
   ) { }
 
   ngOnInit() {
@@ -174,6 +178,7 @@ export class ListRankingComponent implements OnInit, OnDestroy {
       tap((teamPoints) => {
         this.generalRanking = [];
         this.stageRanking = {};
+        this.stagePerformanceValues = {};
 
         this.FillRanking(teamPoints as TeamPoint[], this.generalRanking);
 
@@ -185,7 +190,8 @@ export class ListRankingComponent implements OnInit, OnDestroy {
             this.FillRanking(stagePoints, this.stageRanking[stageNumber]);
           }
         }
-      })
+      }),
+      switchMap(() => this.isStageMode ? this.loadStagePerformances() : of(void 0))
     );
   }
 
@@ -203,5 +209,57 @@ export class ListRankingComponent implements OnInit, OnDestroy {
     const data: Blob = new Blob([buffer], { type: EXCEL_TYPE });
     const datePipe = new DatePipe('fr-FR');
     FileSaver.saveAs(data, fileName + '-ranking-' + datePipe.transform(Date.now(), 'yyyyMMddhhmmss') + EXCEL_EXTENSION);
+  }
+
+  private loadStagePerformances() {
+    const stages = Object.keys(this.stageRanking).map(v => parseInt(v, 10)).filter(stage => {
+      const params = this.stageParams[stage];
+      const perfKeys = Object.keys(params?.performancePointParams || {});
+      return perfKeys.length === 1;
+    });
+
+    if (stages.length === 0) {
+      this.stagePerformanceValues = {};
+      return of(void 0);
+    }
+
+    const requests = stages.map(stage =>
+      this.stageService.getStages({ stage }).pipe(
+        map(results => ({ stage, results }))
+      )
+    );
+
+    return forkJoin(requests).pipe(
+      tap(responses => {
+        this.stagePerformanceValues = {};
+        responses.forEach(({ stage, results }) => {
+          const params = this.stageParams[stage];
+          const perfKeys = Object.keys(params?.performancePointParams || {});
+          if (perfKeys.length !== 1) {
+            return;
+          }
+          const perfName = perfKeys[0];
+          const values: { [team: number]: number | null } = {};
+          const embedded: any = results?._embedded || {};
+          const stageResults: StageResult[] = embedded.stageResults || embedded.stageResult || embedded.stageResponses || [];
+          stageResults.forEach(sr => {
+            const perf = sr.performances?.find(p => p.name === perfName);
+            values[sr.team] = perf?.performanceValue ?? null;
+          });
+          this.stagePerformanceValues[stage] = { name: perfName, values };
+        });
+      }),
+      map(() => void 0)
+    );
+  }
+
+  singlePerformanceLabel(stageKey: number | string): string | null {
+    const stage = Number(stageKey);
+    return this.stagePerformanceValues[stage]?.name || null;
+  }
+
+  singlePerformanceValues(stageKey: number | string): { [team: number]: number | null } | null {
+    const stage = Number(stageKey);
+    return this.stagePerformanceValues[stage]?.values || null;
   }
 }

@@ -11,6 +11,8 @@ export class RankingComponent implements OnInit {
   @Input() teamRanking: Ranking[];
   @Input() teamInfos: { [team: number]: any };
   @Input() viewPoints = true;
+  @Input() performanceLabel?: string | null;
+  @Input() performanceValues?: { [team: number]: number | null } | null;
   @ViewChild('ranking_table') rankingTable: ElementRef;
 
   constructor() { }

@@ -9,6 +9,7 @@
         <th scope="col" class="align-middle">Classement</th>
         <th scope="col" class="align-middle">N° d'équipe</th>
         <th scope="col" class="align-middle">Nom d'équipe</th>
+        <th *ngIf="performanceLabel" scope="col" class="align-middle">{{ performanceLabel }}</th>
         <th *ngIf="viewPoints" scope="col" class="align-middle">Points</th>
       </tr>
     </thead>
@@ -17,6 +18,11 @@
         <th scope="row" class="align-middle">{{ranking.order}}</th>
         <td class="align-middle">{{ranking.team}}</td>
         <td class="align-middle">{{teamInfos[ranking.team]?.name}}</td>
+        <td *ngIf="performanceLabel" class="align-middle">
+          {{ performanceValues?.[ranking.team] !== null && performanceValues?.[ranking.team] !== undefined
+            ? (performanceValues?.[ranking.team] | number:'1.0-2')
+            : '-' }}
+        </td>
         <td *ngIf="viewPoints" class="align-middle">{{ranking.total}}</td>
       </tr>
     </tbody>

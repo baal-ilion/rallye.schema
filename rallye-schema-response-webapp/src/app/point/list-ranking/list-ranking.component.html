@@ -28,7 +28,9 @@
       [rankingTitle]="stageParams[stageRank.key]?.name || ('Épreuve ' + stageRank.key)"
       [teamRanking]="stageRank.value"
       [teamInfos]="teamInfos"
-      [viewPoints]="viewPoints">
+      [viewPoints]="viewPoints"
+      [performanceLabel]="singlePerformanceLabel(stageRank.key)"
+      [performanceValues]="singlePerformanceValues(stageRank.key)">
     </app-ranking>
   </div>
 </div>
