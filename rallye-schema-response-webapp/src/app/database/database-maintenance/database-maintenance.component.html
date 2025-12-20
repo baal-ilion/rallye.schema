@@ -1,7 +1,7 @@
 <div class="container database-maintenance">
   <div class="row mt-4 text-center">
-    <h1 class="col-12">Gestion de la base de donn&eacute;es</h1>
-    <p class="col-12 text-muted mb-0">Sauvegardez, restaurez ou videz compl&egrave;tement la base.</p>
+    <h1 class="col-12">Gestion de la base de données</h1>
+    <p class="col-12 text-muted mb-0">Sauvegardez, restaurez ou videz complètement la base.</p>
   </div>
 
   <div class="row mt-3">
@@ -23,11 +23,13 @@
         <div class="card-body d-flex flex-column">
           <h5 class="card-title">Sauvegarde</h5>
           <p class="card-text flex-grow-1">
-            T&eacute;l&eacute;charge un ZIP contenant toutes les collections MongoDB. Choisissez l&rsquo;emplacement d&rsquo;enregistrement depuis votre navigateur.
+            Télécharge un ZIP contenant toutes les collections MongoDB. Choisissez l’emplacement d’enregistrement depuis votre navigateur.
           </p>
-          <a [href]="backupLink" class="btn btn-primary text-white w-auto px-3">
-            <i class="fas fa-download mr-1"></i> Exporter la base
-          </a>
+          <div class="text-center mt-auto">
+            <a [href]="backupLink" class="btn btn-sm btn-primary text-white w-auto px-3">
+              <i class="fas fa-download mr-1"></i> Exporter la base
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -37,12 +39,12 @@
         <div class="card-body d-flex flex-column">
           <h5 class="card-title">Restauration</h5>
           <p class="card-text">
-            Remplace tout le contenu actuel par une sauvegarde ZIP pr&eacute;alablement export&eacute;e.
+            Remplace tout le contenu actuel par une sauvegarde ZIP préalablement exportée.
           </p>
-          <div class="mb-3">
+          <div class="mt-auto text-center">
             <input #restoreFileInput type="file" class="d-none" id="restoreFile" accept=".zip,application/zip"
               (change)="onRestoreSelection($event.target.files)">
-            <label class="btn btn-outline-primary mb-2" for="restoreFile" [class.disabled]="uploading">
+            <label class="btn btn-sm btn-primary text-white mb-2" for="restoreFile" [class.disabled]="uploading">
               <i class="fas fa-search mr-1"></i> Choisir un ZIP
             </label>
             <div class="progress" *ngIf="uploading">
@@ -56,7 +58,6 @@
               </div>
             </div>
           </div>
-          <p class="text-muted small mb-0">Temps estim&eacute; selon la taille du fichier et la connexion locale.</p>
         </div>
       </div>
     </div>
@@ -66,13 +67,15 @@
         <div class="card-body d-flex flex-column">
           <h5 class="card-title text-danger">Effacement complet</h5>
           <p class="card-text flex-grow-1">
-            Vide toutes les collections (sauf syst&egrave;me). Aucune sauvegarde n&rsquo;est conserv&eacute;e.
+            Vide toutes les collections (sauf système). Aucune sauvegarde n’est conservée.
           </p>
-          <button class="btn btn-outline-danger w-auto px-3"
-            (click)="confirmErase()"
-            [disabled]="erasing">
-            <i class="fas fa-trash-alt mr-1"></i> Effacer la base
-          </button>
+          <div class="text-center mt-auto">
+            <button class="btn btn-sm btn-danger w-auto px-3"
+              (click)="confirmErase()"
+              [disabled]="erasing">
+              <i class="fas fa-trash-alt mr-1"></i> Effacer la base
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -85,15 +88,13 @@
             Détecte les doublons ou références manquantes (équipes, scores, formulaires). La correction supprime les
             entrées incohérentes.
           </p>
-          <div class="btn-group mb-2">
-            <button class="btn btn-outline-secondary" (click)="analyzeConsistency()" [disabled]="analyzing || fixing">
+          <div class="d-flex justify-content-center mb-2 mt-auto">
+            <button class="btn btn-sm btn-primary text-white mr-3" style="margin-right: 1rem !important;"
+              (click)="analyzeConsistency()" [disabled]="analyzing || fixing">
               <i class="fas fa-search mr-1"></i> Analyser
             </button>
-            <button class="btn btn-outline-primary" (click)="fixConsistency()" [disabled]="fixing">
+            <button class="btn btn-sm btn-success" (click)="fixConsistency()" [disabled]="fixing">
               <i class="fas fa-tools mr-1"></i> Corriger automatiquement
-            </button>
-            <button class="btn btn-outline-success" (click)="fixSelected()" [disabled]="fixing">
-              <i class="fas fa-check mr-1"></i> Corriger la sélection
             </button>
           </div>
           <div *ngIf="analyzing" class="text-muted small">Analyse en cours...</div>
@@ -113,7 +114,6 @@
             <table class="table table-sm mb-0">
               <thead>
                 <tr>
-                  <th style="width: 40px;"></th>
                   <th>Type</th>
                   <th>Description</th>
                   <th class="text-right">Nombre</th>
@@ -121,12 +121,6 @@
               </thead>
               <tbody>
                 <tr *ngFor="let issue of consistencyIssues">
-                  <td class="text-center">
-                    <input type="checkbox"
-                           [checked]="selectedCodes.has(issue.code)"
-                           [disabled]="!issue.autoFixable"
-                           (change)="toggleIssueSelection(issue.code, $event.target.checked)">
-                  </td>
                   <td><code>{{ issue.code }}</code></td>
                   <td>
                     {{ issue.description }}

@@ -15,6 +15,8 @@ public interface StageResultRepository extends MongoRepository<StageResult, Stri
 
 	List<StageResult> findByTeam(Integer team);
 
+	List<StageResult> findByStage(Integer stage);
+
 	@Query("{ $or: [" + "  { responseSources: { $elemMatch: { _id: ObjectId('?0'), _class: ?1 } } }"
 			+ ", { results: { $elemMatch: { source: { _id: ObjectId('?0'), _class: ?1 } } } }"
 			+ ", { performances: { $elemMatch: { source: { _id: ObjectId('?0'), _class: ?1 } } } }" + " ] }")

@@ -126,6 +126,10 @@ public class ResponseFileService {
 		responseFileInfoRepository.findByTeam(team).forEach(responseFileInfo -> deleteResponseFile(responseFileInfo));
 	}
 
+	public void deleteByStage(Integer stage) {
+		responseFileInfoRepository.findByStage(stage).forEach(this::deleteResponseFile);
+	}
+
 	public void deleteByStageAndTeam(Integer stage, Integer team) {
 		responseFileInfoRepository.findByStageAndTeam(stage, team)
 				.forEach(responseFileInfo -> deleteResponseFile(responseFileInfo));

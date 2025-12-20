@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import fr.vandriessche.rallyeschema.responseservice.entities.PerformancePointParam;
@@ -21,8 +22,10 @@ import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileParam;
 import fr.vandriessche.rallyeschema.responseservice.entities.StageParam;
 import fr.vandriessche.rallyeschema.responseservice.repositories.StageGroupRepository;
 import fr.vandriessche.rallyeschema.responseservice.repositories.StageParamRepository;
+import lombok.extern.java.Log;
 
 @Service
+@Log
 public class StageParamService {
 	@Autowired
 	private StageParamRepository stageParamRepository;
@@ -33,14 +36,63 @@ public class StageParamService {
 	@Autowired
 	private ResponseFileParamService responseFileParamService;
 
+	@Autowired
+	@Lazy
+	private ResponseFileService responseFileService;
+
+	@Autowired
+	private StageResponseService stageResponseService;
+
+	@Autowired
+	@Lazy
+	private StageResultService stageResultService;
+
+	@Autowired
+	@Lazy
+	private StageRankingService stageRankingService;
+
+	@Autowired
+	@Lazy
+	private TeamPointService teamPointService;
+
 	public StageParam addStageParam(StageParam stageParam) {
 		return updateStageParam(stageParam, new StageParam());
 	}
 
 	public void deleteStageParam(String id) {
 		var stageParam = stageParamRepository.findById(id).orElseThrow();
+		Integer stage = stageParam.getStage();
+
 		stageParam.getResponseFileParams().forEach(
 				responseFileParam -> responseFileParamService.deleteResponseFileParam(responseFileParam.getId()));
+
+		// Nettoyage des données liées à l'épreuve
+		try {
+			responseFileService.deleteByStage(stage);
+		} catch (Exception e) {
+			log.warning("Erreur lors de la suppression des feuilles de réponses de l'épreuve " + stage + " : " + e.getMessage());
+		}
+		try {
+			stageResponseService.deleteByStage(stage);
+		} catch (Exception e) {
+			log.warning("Erreur lors de la suppression des réponses saisies de l'épreuve " + stage + " : " + e.getMessage());
+		}
+		try {
+			stageResultService.deleteByStage(stage);
+		} catch (Exception e) {
+			log.warning("Erreur lors de la suppression des résultats de l'épreuve " + stage + " : " + e.getMessage());
+		}
+		try {
+			stageRankingService.deleteByStage(stage);
+		} catch (Exception e) {
+			log.warning("Erreur lors de la suppression du classement de l'épreuve " + stage + " : " + e.getMessage());
+		}
+		try {
+			teamPointService.removeStage(stage);
+		} catch (Exception e) {
+			log.warning("Erreur lors du nettoyage des points d'équipe pour l'épreuve " + stage + " : " + e.getMessage());
+		}
+
 		stageParamRepository.deleteById(id);
 	}
 

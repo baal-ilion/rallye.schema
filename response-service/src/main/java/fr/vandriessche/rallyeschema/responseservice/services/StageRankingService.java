@@ -87,6 +87,13 @@ public class StageRankingService {
 		return findOrMakeStageRankingByStage(stage);
 	}
 
+	public void deleteByStage(Integer stage) {
+		stageRankingRepository.findByStage(stage).ifPresent(stageRanking -> {
+			stageRankingRepository.delete(stageRanking);
+			messageProducerService.sendMessage(STAGE_RANKING_DELETE_EVENT, new StageRankingMessage(stageRanking));
+		});
+	}
+
 	private void computeBegins(StageRanking stageRanking) {
 		/*
 		 * [{ "$match" : { "$and" : [{ "begin" : { "$exists" : true}}, { "begin" : {

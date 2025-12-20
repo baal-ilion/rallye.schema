@@ -1,9 +1,11 @@
 package fr.vandriessche.rallyeschema.responseservice.services;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -16,7 +18,11 @@ import org.springframework.stereotype.Service;
 
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFile;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileInfo;
+import fr.vandriessche.rallyeschema.responseservice.entities.StageParam;
+import fr.vandriessche.rallyeschema.responseservice.entities.StagePoint;
 import fr.vandriessche.rallyeschema.responseservice.entities.StageResult;
+import fr.vandriessche.rallyeschema.responseservice.entities.StageResponse;
+import fr.vandriessche.rallyeschema.responseservice.entities.StageRanking;
 import fr.vandriessche.rallyeschema.responseservice.entities.TeamInfo;
 import fr.vandriessche.rallyeschema.responseservice.entities.TeamPoint;
 import fr.vandriessche.rallyeschema.responseservice.models.ConsistencyIssue;
@@ -31,6 +37,12 @@ public class DatabaseConsistencyService {
     private static final String ISSUE_DUP_TEAM_NAME = "TEAM_DUP_NAME";
     private static final String ISSUE_ORPHAN_STAGE_RESULT = "STAGE_RESULT_ORPHAN_TEAM";
     private static final String ISSUE_ORPHAN_TEAM_POINT = "TEAM_POINT_ORPHAN_TEAM";
+    private static final String ISSUE_ORPHAN_STAGE_RESULT_STAGE = "STAGE_RESULT_ORPHAN_STAGE";
+    private static final String ISSUE_ORPHAN_STAGE_RESPONSE_STAGE = "STAGE_RESPONSE_ORPHAN_STAGE";
+    private static final String ISSUE_ORPHAN_STAGE_RESPONSE_TEAM = "STAGE_RESPONSE_ORPHAN_TEAM";
+    private static final String ISSUE_ORPHAN_RESPONSE_FILE_INFO_STAGE = "RESPONSE_FILE_INFO_ORPHAN_STAGE";
+    private static final String ISSUE_ORPHAN_STAGE_RANKING = "STAGE_RANKING_ORPHAN_STAGE";
+    private static final String ISSUE_TEAM_POINT_ORPHAN_STAGE = "TEAM_POINT_ORPHAN_STAGE";
     private static final String ISSUE_ORPHAN_RESPONSE_FILE_INFO = "RESPONSE_FILE_INFO_ORPHAN_TEAM";
     private static final String ISSUE_RESPONSE_FILE_MISSING_INFO = "RESPONSE_FILE_MISSING_INFO";
     private static final String ISSUE_RESPONSE_FILE_MISSING_FILE = "RESPONSE_FILE_MISSING_FILE";
@@ -49,6 +61,7 @@ public class DatabaseConsistencyService {
                 .filter(t -> t.getName() != null)
                 .collect(Collectors.groupingBy(TeamInfo::getName));
         Set<Integer> knownTeams = new HashSet<>(teamsByNumber.keySet());
+        Set<Integer> knownStages = getKnownStages();
 
         addDuplicates(issues, ISSUE_DUP_TEAM_NUMBER, "Équipes avec le même numéro", teamsByNumber);
         addDuplicates(issues, ISSUE_DUP_TEAM_NAME, "Équipes avec le même nom", teamsByName);
@@ -76,6 +89,41 @@ public class DatabaseConsistencyService {
                         Criteria.where("team").nin(knownTeams)
                 )), ResponseFileInfo.class)
                         .stream().map(ResponseFileInfo::getId).collect(Collectors.toList()));
+
+        addOrphans(issues, ISSUE_ORPHAN_STAGE_RESULT_STAGE, "Scores rattachés à une épreuve inexistante",
+                mongoTemplate.find(Query.query(new Criteria().orOperator(
+                        Criteria.where("stage").exists(false),
+                        Criteria.where("stage").is(null),
+                        Criteria.where("stage").nin(knownStages)
+                )), StageResult.class).stream().map(StageResult::getId).collect(Collectors.toList()));
+
+        addOrphans(issues, ISSUE_ORPHAN_STAGE_RESPONSE_STAGE, "Réponses saisies rattachées à une épreuve inexistante",
+                mongoTemplate.find(Query.query(new Criteria().orOperator(
+                        Criteria.where("stage").exists(false),
+                        Criteria.where("stage").is(null),
+                        Criteria.where("stage").nin(knownStages)
+                )), StageResponse.class).stream().map(StageResponse::getId).collect(Collectors.toList()));
+
+        addOrphans(issues, ISSUE_ORPHAN_STAGE_RESPONSE_TEAM, "Réponses saisies rattachées à une équipe inexistante",
+                mongoTemplate.find(Query.query(new Criteria().orOperator(
+                        Criteria.where("team").exists(false),
+                        Criteria.where("team").is(null),
+                        Criteria.where("team").nin(knownTeams)
+                )), StageResponse.class).stream().map(StageResponse::getId).collect(Collectors.toList()));
+
+        addOrphans(issues, ISSUE_ORPHAN_RESPONSE_FILE_INFO_STAGE, "Formulaires liés à une épreuve inexistante",
+                mongoTemplate.find(Query.query(new Criteria().orOperator(
+                        Criteria.where("stage").exists(false),
+                        Criteria.where("stage").is(null),
+                        Criteria.where("stage").nin(knownStages)
+                )), ResponseFileInfo.class).stream().map(ResponseFileInfo::getId).collect(Collectors.toList()));
+
+        addOrphans(issues, ISSUE_ORPHAN_STAGE_RANKING, "Classements d'épreuve inexistante",
+                mongoTemplate.find(Query.query(new Criteria().orOperator(
+                        Criteria.where("stage").exists(false),
+                        Criteria.where("stage").is(null),
+                        Criteria.where("stage").nin(knownStages)
+                )), StageRanking.class).stream().map(StageRanking::getId).collect(Collectors.toList()));
 
         Set<String> responseFileInfoIds = mongoTemplate.findAll(ResponseFileInfo.class).stream()
                 .map(ResponseFileInfo::getId).collect(Collectors.toSet());
@@ -108,6 +156,9 @@ public class DatabaseConsistencyService {
         addOrphans(issues, ISSUE_RESPONSE_FILE_MISSING_FILE, "Fichiers sans binaire (JPEG manquant)",
                 missingFileData);
 
+        addOrphans(issues, ISSUE_TEAM_POINT_ORPHAN_STAGE, "Points d'équipe liés à une épreuve inexistante",
+                findTeamPointsWithUnknownStages(knownStages));
+
         report.setIssues(issues);
         report.setRemaining(issues.stream().mapToLong(ConsistencyIssue::getCount).sum());
         return report;
@@ -119,6 +170,12 @@ public class DatabaseConsistencyService {
                 ISSUE_DUP_TEAM_NAME,
                 ISSUE_ORPHAN_STAGE_RESULT,
                 ISSUE_ORPHAN_TEAM_POINT,
+                ISSUE_ORPHAN_STAGE_RESULT_STAGE,
+                ISSUE_ORPHAN_STAGE_RESPONSE_STAGE,
+                ISSUE_ORPHAN_STAGE_RESPONSE_TEAM,
+                ISSUE_ORPHAN_RESPONSE_FILE_INFO_STAGE,
+                ISSUE_ORPHAN_STAGE_RANKING,
+                ISSUE_TEAM_POINT_ORPHAN_STAGE,
                 ISSUE_ORPHAN_RESPONSE_FILE_INFO,
                 ISSUE_RESPONSE_FILE_MISSING_INFO,
                 ISSUE_RESPONSE_FILE_MISSING_FILE
@@ -128,6 +185,7 @@ public class DatabaseConsistencyService {
     public ConsistencyReport fixSelected(Set<String> codes) {
         ConsistencyReport report = analyze();
         long fixed = 0;
+        Set<Integer> knownStages = getKnownStages();
         for (ConsistencyIssue issue : report.getIssues()) {
             if (!issue.isAutoFixable() || issue.getCount() == 0 || !codes.contains(issue.getCode())) {
                 continue;
@@ -147,6 +205,24 @@ public class DatabaseConsistencyService {
                     break;
                 case ISSUE_ORPHAN_RESPONSE_FILE_INFO:
                     fixed += deleteByIds(mongoTemplate.getCollectionName(ResponseFileInfo.class), issue.getIds());
+                    break;
+                case ISSUE_ORPHAN_STAGE_RESULT_STAGE:
+                    fixed += deleteByIds(mongoTemplate.getCollectionName(StageResult.class), issue.getIds());
+                    break;
+                case ISSUE_ORPHAN_STAGE_RESPONSE_STAGE:
+                    fixed += deleteByIds(mongoTemplate.getCollectionName(StageResponse.class), issue.getIds());
+                    break;
+                case ISSUE_ORPHAN_STAGE_RESPONSE_TEAM:
+                    fixed += deleteByIds(mongoTemplate.getCollectionName(StageResponse.class), issue.getIds());
+                    break;
+                case ISSUE_ORPHAN_RESPONSE_FILE_INFO_STAGE:
+                    fixed += deleteByIds(mongoTemplate.getCollectionName(ResponseFileInfo.class), issue.getIds());
+                    break;
+                case ISSUE_ORPHAN_STAGE_RANKING:
+                    fixed += deleteByIds(mongoTemplate.getCollectionName(StageRanking.class), issue.getIds());
+                    break;
+                case ISSUE_TEAM_POINT_ORPHAN_STAGE:
+                    fixed += cleanTeamPointsWithUnknownStages(knownStages);
                     break;
                 case ISSUE_RESPONSE_FILE_MISSING_INFO:
                 case ISSUE_RESPONSE_FILE_MISSING_FILE:
@@ -201,7 +277,6 @@ public class DatabaseConsistencyService {
                 continue;
             }
             List<String> ids = list.stream().map(TeamInfo::getId).collect(Collectors.toList());
-            // keep first, delete rest
             List<String> toDelete = ids.subList(1, ids.size());
             deleted += deleteByIds(mongoTemplate.getCollectionName(TeamInfo.class), toDelete);
         }
@@ -222,5 +297,58 @@ public class DatabaseConsistencyService {
         } catch (IllegalArgumentException ex) {
             return id;
         }
+    }
+
+    private Set<Integer> getKnownStages() {
+        return mongoTemplate.findAll(StageParam.class).stream()
+                .map(StageParam::getStage)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+    }
+
+    private List<String> findTeamPointsWithUnknownStages(Set<Integer> knownStages) {
+        List<String> ids = new ArrayList<>();
+        Query query = new Query();
+        query.fields().include("_id").include("stagePoints");
+        List<Document> docs = mongoTemplate.find(query, Document.class, mongoTemplate.getCollectionName(TeamPoint.class));
+        for (Document doc : docs) {
+            Document stagePoints = doc.get("stagePoints", Document.class);
+            if (stagePoints == null) {
+                continue;
+            }
+            boolean hasUnknownStage = stagePoints.keySet().stream().anyMatch(k -> {
+                try {
+                    return !knownStages.contains(Integer.valueOf(k));
+                } catch (NumberFormatException e) {
+                    return true;
+                }
+            });
+            if (hasUnknownStage) {
+                ids.add(String.valueOf(doc.get("_id")));
+            }
+        }
+        return ids;
+    }
+
+    private long cleanTeamPointsWithUnknownStages(Set<Integer> knownStages) {
+        List<TeamPoint> teamPoints = mongoTemplate.findAll(TeamPoint.class);
+        long removed = 0;
+        for (TeamPoint tp : teamPoints) {
+            if (tp.getStagePoints() == null) {
+                continue;
+            }
+            Map<Integer, StagePoint> cleaned = new HashMap<>(tp.getStagePoints());
+            List<Integer> toRemove = cleaned.keySet().stream()
+                    .filter(stage -> stage == null || !knownStages.contains(stage))
+                    .collect(Collectors.toList());
+            if (!toRemove.isEmpty()) {
+                toRemove.forEach(cleaned::remove);
+                tp.setStagePoints(cleaned);
+                tp.setTotal(cleaned.values().stream().map(StagePoint::getTotal).reduce(0L, Long::sum));
+                mongoTemplate.save(tp);
+                removed += toRemove.size();
+            }
+        }
+        return removed;
     }
 }

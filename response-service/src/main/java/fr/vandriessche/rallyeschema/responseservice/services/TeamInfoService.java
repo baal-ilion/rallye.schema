@@ -24,6 +24,18 @@ public class TeamInfoService {
     @Autowired
     private TeamInfoUpdatePublisher teamInfoUpdatePublisher;
 
+    @Autowired
+    private ResponseFileService responseFileService;
+
+    @Autowired
+    private StageResponseService stageResponseService;
+
+    @Autowired
+    private StageResultService stageResultService;
+
+    @Autowired
+    private TeamPointService teamPointService;
+
     public TeamInfo addTeamInfo(TeamInfo teamInfo) {
         teamInfo.setPresent(false);
         teamInfo = teamInfoRepository.save(teamInfo);
@@ -38,6 +50,28 @@ public class TeamInfoService {
 
     public void deleteTeamInfo(String id) {
         var teamInfo = teamInfoRepository.findById(id).orElseThrow();
+
+        // nettoyage immédiat des données liées à l'équipe
+        Integer teamNumber = teamInfo.getTeam();
+        if (teamNumber != null) {
+            try {
+                responseFileService.deleteByTeam(teamNumber);
+            } catch (Exception ignored) {
+            }
+            try {
+                stageResponseService.deleteByTeam(teamNumber);
+            } catch (Exception ignored) {
+            }
+            try {
+                stageResultService.deleteByTeam(teamNumber);
+            } catch (Exception ignored) {
+            }
+            try {
+                teamPointService.deleteByTeam(teamNumber);
+            } catch (Exception ignored) {
+            }
+        }
+
         teamInfoRepository.deleteById(id);
         messageProducerService.sendMessage(TEAM_INFO_DELETE_EVENT, teamInfo);
         teamInfoUpdatePublisher.publishTeamInfoUpdate();

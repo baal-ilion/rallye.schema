@@ -13,4 +13,6 @@ public interface StageResponseRepository extends MongoRepository<StageResponse, 
 	List<StageResponse> findAllByStageAndTeam(Integer stage, Integer team);
 
 	List<StageResponse> findByTeam(Integer team);
+
+	List<StageResponse> findByStage(Integer stage);
 }
