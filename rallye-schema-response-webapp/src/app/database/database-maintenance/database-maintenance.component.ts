@@ -3,7 +3,7 @@ import { HttpEventType, HttpResponse } from '@angular/common/http';
 import { finalize } from 'rxjs/operators';
 import { AppConfigService } from 'src/app/app-config.service';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
-import { DatabaseMaintenanceService } from './database-maintenance.service';
+import { DatabaseMaintenanceService, ConsistencyIssue, ConsistencyReport } from './database-maintenance.service';
 
 @Component({
   selector: 'app-database-maintenance',
@@ -19,6 +19,11 @@ export class DatabaseMaintenanceComponent {
   statusMessage: string | null = null;
   errorMessage: string | null = null;
   erasing = false;
+  analyzing = false;
+  fixing = false;
+  consistencyIssues: ConsistencyIssue[] = [];
+  consistencyInfo: string | null = null;
+  selectedCodes = new Set<string>();
 
   constructor(
     private databaseMaintenanceService: DatabaseMaintenanceService,
@@ -28,6 +33,7 @@ export class DatabaseMaintenanceComponent {
   clearMessages() {
     this.statusMessage = null;
     this.errorMessage = null;
+    this.consistencyInfo = null;
   }
 
   onRestoreSelection(files: FileList | null) {
@@ -103,6 +109,79 @@ export class DatabaseMaintenanceComponent {
         this.errorMessage = 'Echec de la suppression compl\u00e8te de la base.';
       }
     });
+  }
+
+  analyzeConsistency() {
+    this.analyzing = true;
+    this.consistencyInfo = null;
+    this.selectedCodes.clear();
+    this.databaseMaintenanceService.getConsistencyReport().pipe(
+      finalize(() => this.analyzing = false)
+    ).subscribe({
+      next: (report: ConsistencyReport) => {
+        this.consistencyIssues = report.issues || [];
+        // pré-sélectionner tout ce qui est auto-fixable
+        this.consistencyIssues.filter(i => i.autoFixable).forEach(i => this.selectedCodes.add(i.code));
+        this.consistencyInfo = this.consistencyIssues.length === 0
+          ? 'Aucune incohérence détectée.'
+          : `${report.remaining ?? this.consistencyIssues.reduce((acc, i) => acc + i.count, 0)} incohérence(s) trouvée(s).`;
+      },
+      error: () => {
+        this.errorMessage = 'Analyse impossible pour le moment.';
+      }
+    });
+  }
+
+  fixConsistency() {
+    this.fixing = true;
+    this.consistencyInfo = null;
+    this.databaseMaintenanceService.fixConsistency().pipe(
+      finalize(() => this.fixing = false)
+    ).subscribe({
+      next: (report: ConsistencyReport) => {
+        this.consistencyIssues = report.issues || [];
+        const fixed = report.autoFixApplied || 0;
+        const remaining = report.remaining ?? this.consistencyIssues.reduce((acc, i) => acc + i.count, 0);
+        this.consistencyInfo = `Corrections appliquées : ${fixed}. Restant : ${remaining}.`;
+      },
+      error: () => {
+        this.errorMessage = 'Echec de la correction automatique.';
+      }
+    });
+  }
+
+  fixSelected() {
+    if (this.selectedCodes.size === 0) {
+      this.consistencyInfo = 'Sélectionnez au moins un type d’incohérence à corriger.';
+      return;
+    }
+    this.fixing = true;
+    this.consistencyInfo = null;
+    const codes = Array.from(this.selectedCodes);
+    this.databaseMaintenanceService.fixConsistencySelected(codes).pipe(
+      finalize(() => this.fixing = false)
+    ).subscribe({
+      next: (report: ConsistencyReport) => {
+        this.consistencyIssues = report.issues || [];
+        const fixed = report.autoFixApplied || 0;
+        const remaining = report.remaining ?? this.consistencyIssues.reduce((acc, i) => acc + i.count, 0);
+        this.consistencyInfo = `Corrections appliquées (sélection) : ${fixed}. Restant : ${remaining}.`;
+        // mettre à jour la sélection sur les issues restantes auto-fixables
+        this.selectedCodes.clear();
+        this.consistencyIssues.filter(i => i.autoFixable).forEach(i => this.selectedCodes.add(i.code));
+      },
+      error: () => {
+        this.errorMessage = 'Echec de la correction (sélection).';
+      }
+    });
+  }
+
+  toggleIssueSelection(code: string, checked: boolean) {
+    if (checked) {
+      this.selectedCodes.add(code);
+    } else {
+      this.selectedCodes.delete(code);
+    }
   }
 
   private resetFileInput() {

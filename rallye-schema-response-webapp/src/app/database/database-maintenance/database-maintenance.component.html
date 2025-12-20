@@ -76,5 +76,69 @@
         </div>
       </div>
     </div>
+
+    <div class="col-lg-4 mb-3">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title">Analyse des incohérences</h5>
+          <p class="card-text flex-grow-1">
+            Détecte les doublons ou références manquantes (équipes, scores, formulaires). La correction supprime les
+            entrées incohérentes.
+          </p>
+          <div class="btn-group mb-2">
+            <button class="btn btn-outline-secondary" (click)="analyzeConsistency()" [disabled]="analyzing || fixing">
+              <i class="fas fa-search mr-1"></i> Analyser
+            </button>
+            <button class="btn btn-outline-primary" (click)="fixConsistency()" [disabled]="fixing">
+              <i class="fas fa-tools mr-1"></i> Corriger automatiquement
+            </button>
+            <button class="btn btn-outline-success" (click)="fixSelected()" [disabled]="fixing">
+              <i class="fas fa-check mr-1"></i> Corriger la sélection
+            </button>
+          </div>
+          <div *ngIf="analyzing" class="text-muted small">Analyse en cours...</div>
+          <div *ngIf="fixing" class="text-muted small">Correction en cours...</div>
+          <div *ngIf="consistencyInfo" class="alert alert-info py-2">{{ consistencyInfo }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row" *ngIf="consistencyIssues.length">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Incohérences détectées</h5>
+          <div class="table-responsive">
+            <table class="table table-sm mb-0">
+              <thead>
+                <tr>
+                  <th style="width: 40px;"></th>
+                  <th>Type</th>
+                  <th>Description</th>
+                  <th class="text-right">Nombre</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let issue of consistencyIssues">
+                  <td class="text-center">
+                    <input type="checkbox"
+                           [checked]="selectedCodes.has(issue.code)"
+                           [disabled]="!issue.autoFixable"
+                           (change)="toggleIssueSelection(issue.code, $event.target.checked)">
+                  </td>
+                  <td><code>{{ issue.code }}</code></td>
+                  <td>
+                    {{ issue.description }}
+                    <div *ngIf="issue.details" class="text-muted small">{{ issue.details }}</div>
+                  </td>
+                  <td class="text-right">{{ issue.count }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
