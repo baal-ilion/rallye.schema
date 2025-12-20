@@ -21,6 +21,7 @@ import { TeamProgressComponent } from './stage/team-progress/team-progress.compo
 import { TeamActiveStagesComponent } from './stage/team-active-stages/team-active-stages.component';
 import { StatsComponent } from './stats/stats.component';
 import { ArbitrageComponent } from './arbitrage/arbitrage.component';
+import { DatabaseMaintenanceComponent } from './database/database-maintenance/database-maintenance.component';
 
 
 const routes: Routes = [
@@ -45,6 +46,7 @@ const routes: Routes = [
   { path: 'stage/:team/:stage', component: DetailsTeamStageComponent },
   { path: 'qrcode', component: QrcodeComponent },
   { path: 'listStageGroup', component: ListStageGroupComponent },
+  { path: 'database', component: DatabaseMaintenanceComponent },
 ];
 
 @NgModule({

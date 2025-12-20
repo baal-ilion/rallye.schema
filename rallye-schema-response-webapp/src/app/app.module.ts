@@ -57,6 +57,7 @@ import { ListStageGroupComponent } from './param/list-stage-group/list-stage-gro
 import { ModifyStageGroupComponent } from './param/modify-stage-group/modify-stage-group.component';
 import { PaginationComponent } from './shared/pagination/pagination.component';
 import { ArbitrageComponent } from './arbitrage/arbitrage.component';
+import { DatabaseMaintenanceComponent } from './database/database-maintenance/database-maintenance.component';
 
 registerLocaleData(localeFr, 'fr', localeFrExtra);
 
@@ -92,6 +93,7 @@ registerLocaleData(localeFr, 'fr', localeFrExtra);
         ListRankingComponent,
         GroupRankingComponent,
         PrizeDistributionComponent,
+        DatabaseMaintenanceComponent,
         TeamProgressComponent,
         TeamProgressDetailsComponent,
         TeamActiveStagesComponent,
