@@ -6,6 +6,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.SimpleRepresentationModelAssembler;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 import fr.vandriessche.rallyeschema.responseservice.controllers.ResponseFileParamController;
@@ -15,23 +16,23 @@ import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileParam;
 public class ResponseFileParamModelAssembler implements SimpleRepresentationModelAssembler<ResponseFileParam> {
 
 	@Override
-	public void addLinks(EntityModel<ResponseFileParam> resource) {
-		resource.add(linkTo(
-				methodOn(ResponseFileParamController.class).getResponseFileParam(resource.getContent().getId(), null))
-						.withSelfRel());
-		resource.add(linkTo(
-				methodOn(ResponseFileParamController.class).getResponseFileParam(resource.getContent().getId(), null))
-						.withRel("responseFileParam"));
-		resource.add(linkTo(
-				methodOn(ResponseFileParamController.class).downloadResponseFileTemplate(resource.getContent().getId()))
-						.withRel("responseFileTemplate"));
-		resource.add(linkTo(
-				methodOn(ResponseFileParamController.class).downloadResponseFileModel(resource.getContent().getId()))
-						.withRel("responseFileModel"));
+	public void addLinks(@NonNull EntityModel<ResponseFileParam> resource) {
+		ResponseFileParam content = resource.getContent();
+		if (content == null) {
+			return;
+		}
+		resource.add(linkTo(methodOn(ResponseFileParamController.class).getResponseFileParam(content.getId(), null))
+				.withSelfRel());
+		resource.add(linkTo(methodOn(ResponseFileParamController.class).getResponseFileParam(content.getId(), null))
+				.withRel("responseFileParam"));
+		resource.add(linkTo(methodOn(ResponseFileParamController.class).downloadResponseFileTemplate(content.getId()))
+				.withRel("responseFileTemplate"));
+		resource.add(linkTo(methodOn(ResponseFileParamController.class).downloadResponseFileModel(content.getId()))
+				.withRel("responseFileModel"));
 	}
 
 	@Override
-	public void addLinks(CollectionModel<EntityModel<ResponseFileParam>> resources) {
-		// Pas de lien supplémentaire pour la collection
+	public void addLinks(@NonNull CollectionModel<EntityModel<ResponseFileParam>> resources) {
+		// Pas de lien supplementaire pour la collection
 	}
 }

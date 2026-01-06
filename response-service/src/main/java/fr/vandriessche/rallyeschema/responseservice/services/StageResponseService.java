@@ -77,7 +77,6 @@ public class StageResponseService {
 			return stageResponse.getResults();
 		}
 		List<ResponseResult> results = new ArrayList<>();
-		// TODO calcul des résultats à partir des réponses
 		return results;
 	}
 
@@ -91,5 +90,12 @@ public class StageResponseService {
 
 	public List<StageResponse> getStageResponses() {
 		return stageResponseRepository.findAll();
+	}
+
+	public void deleteByStage(Integer stage) {
+		stageResponseRepository.findByStage(stage).forEach(stageResponse -> {
+			stageResponseRepository.delete(stageResponse);
+			messageProducerService.sendMessage(STAGE_RESPONSE_DELETE_EVENT, new StageResponseMessage(stageResponse));
+		});
 	}
 }

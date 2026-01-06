@@ -5,6 +5,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
+import org.springframework.lang.NonNull;
 
 import fr.vandriessche.rallyeschema.responseservice.controllers.ResponseFileParamController;
 import fr.vandriessche.rallyeschema.responseservice.controllers.StageParamController;
@@ -18,7 +19,7 @@ public class StageParamModelAssemblerSupport
     }
 
     @Override
-    public StageParamModel toModel(StageParam entity) {
+    public @NonNull StageParamModel toModel(@NonNull StageParam entity) {
         StageParamModel model = instantiateModel(entity);
 
         model.setId(entity.getId());
@@ -41,7 +42,7 @@ public class StageParamModelAssemblerSupport
     }
 
     @Override
-    public CollectionModel<StageParamModel> toCollectionModel(Iterable<? extends StageParam> entities) {
+    public @NonNull CollectionModel<StageParamModel> toCollectionModel(@NonNull Iterable<? extends StageParam> entities) {
         CollectionModel<StageParamModel> resources = super.toCollectionModel(entities);
         addLinks(resources);
         return resources;

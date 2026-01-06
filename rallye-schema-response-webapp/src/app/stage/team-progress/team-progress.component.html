@@ -1,0 +1,36 @@
+<div class="container mb-5">
+  <div class="row mt-4 text-center">
+    <h1 class="col-12">Suivi des équipes</h1>
+  </div>
+
+  <div class="row mt-4 align-items-center">
+    <div class="col-12 d-flex align-items-center flex-wrap">
+      <label for="teamSelect" class="me-2 font-weight-bold mb-2">Équipe :</label>
+      <div class="team-select-wrapper">
+        <select
+          id="teamSelect"
+          class="form-control w-auto"
+          [ngModel]="selectedTeamId"
+          (ngModelChange)="onTeamChange($event)">
+          <option *ngFor="let team of teams" [value]="team.id">
+            {{ team.team | number:'2.0-0' }} - {{ team.name }}
+          </option>
+        </select>
+        <span class="team-select-arrow" aria-hidden="true">&#9662;</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mt-3" *ngIf="loading || error">
+    <div class="col-12">
+      <div *ngIf="loading" class="alert alert-info mb-0">Chargement des équipes...</div>
+      <div *ngIf="error" class="alert alert-danger mb-0">{{ error }}</div>
+    </div>
+  </div>
+
+  <div class="row mt-4">
+    <div class="col-12">
+      <app-team-progress-details *ngIf="selectedTeamId" [teamId]="selectedTeamId"></app-team-progress-details>
+    </div>
+  </div>
+</div>

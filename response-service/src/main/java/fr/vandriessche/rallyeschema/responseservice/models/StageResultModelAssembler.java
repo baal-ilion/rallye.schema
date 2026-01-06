@@ -3,9 +3,12 @@ package fr.vandriessche.rallyeschema.responseservice.models;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
+import java.util.Objects;
+
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.SimpleRepresentationModelAssembler;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 import fr.vandriessche.rallyeschema.responseservice.controllers.ResponseFileController;
@@ -17,21 +20,27 @@ import fr.vandriessche.rallyeschema.responseservice.entities.StageResult;
 public class StageResultModelAssembler implements SimpleRepresentationModelAssembler<StageResult> {
 
 	@Override
-	public void addLinks(EntityModel<StageResult> resource) {
-		resource.add(linkTo(methodOn(StageResultController.class).getStageResult(resource.getContent().getId(), null))
+	public void addLinks(@NonNull EntityModel<StageResult> resource) {
+		StageResult content = resource.getContent();
+		if (content == null) {
+			return;
+		}
+		resource.add(linkTo(methodOn(StageResultController.class).getStageResult(content.getId(), null))
 				.withSelfRel());
-		resource.add(linkTo(methodOn(StageResultController.class).getStageResult(resource.getContent().getId(), null))
+		resource.add(linkTo(methodOn(StageResultController.class).getStageResult(content.getId(), null))
 				.withRel("stageResult"));
-		resource.getContent().getResponseSources().forEach(source -> {
-			if (source.getClass() == ResponseFileSource.class) {
-				resource.add(linkTo(methodOn(ResponseFileController.class).getResponseFileInfo(source.getId(), null))
-						.withRel("responseFiles"));
-			}
-		});
+		if (Objects.nonNull(content.getResponseSources())) {
+			content.getResponseSources().forEach(source -> {
+				if (source.getClass() == ResponseFileSource.class) {
+					resource.add(linkTo(methodOn(ResponseFileController.class).getResponseFileInfo(source.getId(), null))
+							.withRel("responseFiles"));
+				}
+			});
+		}
 	}
 
 	@Override
-	public void addLinks(CollectionModel<EntityModel<StageResult>> resources) {
-		// Pas de lien supplémentaire pour la collection
+	public void addLinks(@NonNull CollectionModel<EntityModel<StageResult>> resources) {
+		// Pas de lien supplementaire pour la collection
 	}
 }

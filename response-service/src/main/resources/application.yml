@@ -1,8 +1,14 @@
 # Fichier template par défaut
 TemplateFileName: C:\Users\baali\Documents\Rallye Schema\model.xtmpl
-# Port HTTP de l'application (profil par défaut)
+# Port HTTPS de l'application (profil par défaut)
 server:
-  port: 8080
+  port: 8443
+  ssl:
+    enabled: true
+    key-store: classpath:keystore-local.p12
+    key-store-password: changeit
+    key-store-type: PKCS12
+    key-alias: rallye-schema
 # Paramétrage de spring
 spring:
   data:
@@ -15,8 +21,8 @@ spring:
     multipart:
       enabled: true
       file-size-threshold: 2KB
-      max-file-size: 200MB
-      max-request-size: 215MB
+      max-file-size: -1
+      max-request-size: -1
 # AMQP RabbitMQ configuration
   rabbitmq:
     host: localhost
@@ -31,6 +37,15 @@ spring:
         max-concurrency: 8
         retry:
           initial-interval: 5000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
 
 ---
 spring:
@@ -54,3 +69,25 @@ spring:
     port: 5672
     username: rallyeschema
     password: rallyeschema
+  servlet:
+    multipart:
+      enabled: true
+      file-size-threshold: 2KB
+      max-file-size: -1
+      max-request-size: -1
+server:
+  port: 8443
+  ssl:
+    enabled: true
+    key-store: file:/app/certs/keystore.p12
+    key-store-password: ${SSL_KEYSTORE_PASSWORD}
+    key-store-type: PKCS12
+    key-alias: rallye-schema
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized

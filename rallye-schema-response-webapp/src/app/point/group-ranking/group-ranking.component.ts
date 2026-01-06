@@ -1,5 +1,5 @@
 import { DatePipe, KeyValue } from '@angular/common';
-import { Component, OnDestroy, OnInit, QueryList, ViewChildren } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, QueryList, ViewChild, ViewChildren } from '@angular/core';
 import { forkJoin, of, Subject } from 'rxjs';
 import { auditTime, catchError, finalize, startWith, switchMap, takeUntil, tap, map } from 'rxjs/operators';
 import * as FileSaver from 'file-saver';
@@ -10,6 +10,7 @@ import { GroupRankingEntry, GroupRankingService } from '../../services/group-ran
 import { RankingUpdateService } from '../../services/ranking-update.service';
 import { Ranking } from '../models/ranking';
 import { RankingComponent } from '../ranking/ranking.component';
+import { AutoScrollService } from '../../services/auto-scroll.service';
 
 @Component({
   selector: 'app-group-ranking',
@@ -25,7 +26,9 @@ export class GroupRankingComponent implements OnInit, OnDestroy {
   groupRankings: { [groupName: string]: Ranking[] } = {};
   teamInfos: { [team: number]: TeamInfo } = {};
   @ViewChildren(RankingComponent) rankingTables!: QueryList<RankingComponent>;
+  @ViewChild('scrollContainer', { static: true }) scrollContainer?: ElementRef<HTMLElement>;
   viewPoints = true;
+  autoScrollEnabled = false;
   private destroy$ = new Subject<void>();
 
   groupOrder = (a: KeyValue<string, Ranking[]>, b: KeyValue<string, Ranking[]>) =>
@@ -34,25 +37,33 @@ export class GroupRankingComponent implements OnInit, OnDestroy {
   constructor(
     private groupRankingService: GroupRankingService,
     private teamInfoService: TeamInfoService,
-    private rankingUpdateService: RankingUpdateService) { }
+    private rankingUpdateService: RankingUpdateService,
+    private autoScrollService: AutoScrollService) { }
 
   ngOnInit(): void {
     this.rankingUpdateService.updates$
       .pipe(
-        startWith(null),          // initial load
+        startWith('__initial__' as const),          // initial load flag
         auditTime(200),           // regroupe les rafales de messages
-        tap(() => {
-          this.loading = true;
-          this.error = null;
-        }),
-        switchMap(() => this.refreshData()),
+        switchMap((flag) => this.refreshData(flag !== '__initial__')),
         takeUntil(this.destroy$)
       ).subscribe();
   }
 
   ngOnDestroy(): void {
+    this.autoScrollService.stop();
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  onToggleAutoScroll(): void {
+    this.autoScrollEnabled = !this.autoScrollEnabled;
+    if (this.autoScrollEnabled) {
+      const target = this.scrollContainer?.nativeElement;
+      this.autoScrollService.start(target);
+    } else {
+      this.autoScrollService.stop();
+    }
   }
 
   private toRanking(entries: GroupRankingEntry[]): Ranking[] {
@@ -65,7 +76,12 @@ export class GroupRankingComponent implements OnInit, OnDestroy {
       }));
   }
 
-  private refreshData() {
+  private refreshData(silentRefresh = false) {
+    if (!silentRefresh) {
+      this.loading = true;
+      this.error = null;
+    }
+
     return this.ensureTeamInfos().pipe(
       switchMap(() => this.refreshGroupRankings()),
       catchError(err => {
@@ -73,7 +89,11 @@ export class GroupRankingComponent implements OnInit, OnDestroy {
         this.error = 'Erreur lors du chargement du classement par groupes.';
         return of();
       }),
-      finalize(() => this.loading = false)
+      finalize(() => {
+        if (!silentRefresh) {
+          this.loading = false;
+        }
+      })
     );
   }
 
@@ -94,7 +114,6 @@ export class GroupRankingComponent implements OnInit, OnDestroy {
   }
 
   private refreshGroupRankings() {
-    this.groupRankings = {};
     return this.groupRankingService.getGroupRankings().pipe(
       tap(entries => {
         const byGroup: { [groupName: string]: GroupRankingEntry[] } = {};
@@ -110,12 +129,14 @@ export class GroupRankingComponent implements OnInit, OnDestroy {
           byGroup[groupName].sort((a, b) => a.groupRank - b.groupRank);
         });
 
+        const newRankings: { [groupName: string]: Ranking[] } = {};
         Object.keys(byGroup).forEach(groupName => {
           const ranking = this.toRanking(byGroup[groupName]);
           if (ranking.length > 0) {
-            this.groupRankings[groupName] = ranking;
+            newRankings[groupName] = ranking;
           }
         });
+        this.groupRankings = newRankings;
       })
     );
   }

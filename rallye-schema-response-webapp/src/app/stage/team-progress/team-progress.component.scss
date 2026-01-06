@@ -1,0 +1,29 @@
+.row + .row {
+  margin-top: 1rem;
+}
+
+#teamSelect {
+  min-width: 220px;
+}
+
+.team-select-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.team-select-wrapper select {
+  padding-right: 2rem;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.team-select-arrow {
+  position: absolute;
+  right: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #495057;
+  font-size: 0.85rem;
+}

@@ -1,1 +1,11 @@
-<app-details-stage *ngIf="team && stage" [team]="team" [stage]="stage" (loadErrorEvent)="onLoadError($event)"></app-details-stage>
+<div class="container mb-5">
+  <div class="row mt-4 text-center">
+    <h1 class="col-12">Détails d'une épreuve d'une équipe</h1>
+  </div>
+  <div class="row mt-4">
+    <div class="col-12">
+      <app-details-stage *ngIf="team && stage" [team]="team" [stage]="stage"
+        (loadErrorEvent)="onLoadError($event)"></app-details-stage>
+    </div>
+  </div>
+</div>

@@ -1,6 +1,6 @@
 {
   "/api": {
-    "target": "http://localhost:8080",
+    "target": "https://localhost:8443",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug",
@@ -9,7 +9,7 @@
     }
   },
   "/ws-ranking": {
-    "target": "http://localhost:8080",
+    "target": "https://localhost:8443",
     "secure": false,
     "changeOrigin": true,
     "ws": true,

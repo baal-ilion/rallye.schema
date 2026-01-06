@@ -1,0 +1,243 @@
+<div class="container mb-5">
+
+  <div class="row mt-4 text-center">
+    <h1 class="col-12">Suivi des épreuves</h1>
+  </div>
+
+  <div class="controls-row mt-4 d-flex flex-wrap align-items-center">
+    <div class="d-flex align-items-center flex-wrap flex-grow-1 select-container">
+      <label for="stageSelect" class="me-2 font-weight-bold mb-2">Épreuve :</label>
+      <div class="stage-select-wrapper flex-grow-1">
+        <select
+          id="stageSelect"
+          class="form-control w-100"
+          [ngModel]="selectedStage"
+          (ngModelChange)="onStageChange($event)"
+        >
+          <option *ngFor="let stage of stageParams" [value]="stage.stage">
+            {{ stage.stage | number:'2.0-0' }} - {{ stage.name }}
+          </option>
+        </select>
+        <span class="stage-select-arrow" aria-hidden="true">&#9662;</span>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-2 flex-wrap controls-actions">
+      <button
+        type="button"
+        class="btn btn-success btn-sm"
+        (click)="startAllNotStarted()"
+        [disabled]="!selectedStage || statuses.notStarted.length === 0"
+      >
+        Tout commencer
+      </button>
+      <button
+        type="button"
+        class="btn btn-success btn-sm"
+        (click)="stopAllInProgress()"
+        [disabled]="!selectedStage || statuses.inProgress.length === 0"
+      >
+        Tout terminer
+      </button>
+    </div>
+  </div>
+
+  <div class="row mt-4 mb-0" *ngIf="selectedStageLabel">
+    <h4 class="col-12 px-0 py-1 bg-secondary my-auto text-center text-white">
+      Épreuve sélectionnée : {{ selectedStageLabel }}
+    </h4>
+  </div>
+
+  <div class="row mt-3" *ngIf="loading || error">
+    <div class="col-12">
+      <div *ngIf="loading" class="alert alert-info mb-0">
+        Chargement des participations...
+      </div>
+      <div *ngIf="error" class="alert alert-danger mb-0">
+        {{ error }}
+      </div>
+    </div>
+  </div>
+
+  <div class="row mt-4" *ngIf="!loading && !error">
+    <div class="col-12 col-md-4 mb-4">
+      <div class="card h-100 border-secondary">
+        <div class="card-header font-weight-bold text-secondary">Non démarrée</div>
+        <div class="card-body">
+          <div *ngIf="statuses.notStarted.length === 0" class="text-muted">Toutes les équipes ont commencé.</div>
+          <ul class="list-unstyled mb-0">
+            <li *ngFor="let row of statuses.notStarted" class="mb-3">
+              <div class="card h-100"
+                [ngClass]="{
+                  'border-primary': row.result?.begin && !row.result?.end,
+                  'border-success': row.result?.end
+                }">
+                <div class="card-header font-weight-bold"
+                  [ngClass]="{
+                    'text-white bg-primary': row.result?.checked && row.result?.begin && !row.result?.end,
+                    'text-white bg-success': row.result?.checked && row.result?.end
+                  }">
+                  Équipe {{ row.team.team }}
+                </div>
+                <div class="card-body"
+                  [ngClass]="{
+                    'text-primary': row.result?.begin && !row.result?.end,
+                    'text-success': row.result?.end
+                  }">
+                  <div>{{ row.team.name }}</div>
+                </div>
+                <div class="card-footer text-center">
+                  <ng-container *ngIf="row.result?.id; else startOnly">
+                    <div class="btn-group">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-success"
+                        (click)="startStage(row, false)"
+                        [attr.aria-label]="'Démarrer l\'épreuve ' + selectedStage + ' pour l\'équipe ' + row.team.team"
+                      >
+                        Commencer
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-primary"
+                        (click)="openStage(row)"
+                        [attr.aria-label]="'Détails de l\'épreuve ' + selectedStage + ' pour l\'équipe ' + row.team.team"
+                      >
+                        Détails
+                      </button>
+                    </div>
+                  </ng-container>
+                  <ng-template #startOnly>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-success"
+                      (click)="startStage(row, false)"
+                      [attr.aria-label]="'Démarrer l\'épreuve ' + selectedStage + ' pour l\'équipe ' + row.team.team"
+                    >
+                      Commencer
+                    </button>
+                  </ng-template>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-4 mb-4">
+      <div class="card h-100 border-primary">
+        <div class="card-header font-weight-bold text-primary">En cours</div>
+        <div class="card-body">
+          <div *ngIf="statuses.inProgress.length === 0" class="text-muted">Aucune équipe en cours.</div>
+          <ul class="list-unstyled mb-0">
+            <li *ngFor="let row of statuses.inProgress" class="mb-3">
+              <div class="card h-100"
+                [ngClass]="{
+                  'border-primary': row.result?.begin && !row.result?.end,
+                  'border-success': row.result?.end
+                }">
+                <div class="card-header font-weight-bold"
+                  [ngClass]="{
+                    'text-white bg-primary': row.result?.checked && row.result?.begin && !row.result?.end,
+                    'text-white bg-success': row.result?.checked && row.result?.end
+                  }">
+                  Équipe {{ row.team.team }}
+                </div>
+                <div class="card-body"
+                  [ngClass]="{
+                    'text-primary': row.result?.begin && !row.result?.end,
+                    'text-success': row.result?.end
+                  }">
+                  <div>{{ row.team.name }}</div>
+                </div>
+                <div class="card-footer text-center">
+                  <div class="btn-group">
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-success"
+                      (click)="stopStage(row)"
+                      [attr.aria-label]="'Terminer l\'épreuve ' + selectedStage + ' pour l\'équipe ' + row.team.team"
+                    >
+                      Terminer
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-danger"
+                      (click)="cancelStage(row)"
+                      [attr.aria-label]="'Annuler l\'épreuve ' + selectedStage + ' pour l\'équipe ' + row.team.team"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      *ngIf="row.result?.id"
+                      type="button"
+                      class="btn btn-sm btn-primary"
+                      (click)="openStage(row)"
+                      [attr.aria-label]="'Détails de l\'épreuve ' + selectedStage + ' pour l\'équipe ' + row.team.team"
+                    >
+                      Détails
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-4 mb-4">
+      <div class="card h-100 border-success">
+        <div class="card-header font-weight-bold text-success">Terminée</div>
+        <div class="card-body">
+          <div *ngIf="statuses.finished.length === 0" class="text-muted">Aucune équipe terminée.</div>
+          <ul class="list-unstyled mb-0">
+            <li *ngFor="let row of statuses.finished" class="mb-3">
+              <div class="card h-100"
+                [ngClass]="{
+                  'border-primary': row.result?.begin && !row.result?.end,
+                  'border-success': row.result?.end
+                }">
+                <div class="card-header font-weight-bold"
+                  [ngClass]="{
+                    'text-white bg-primary': row.result?.checked && row.result?.begin && !row.result?.end,
+                    'text-white bg-success': row.result?.checked && row.result?.end
+                  }">
+                  Équipe {{ row.team.team }}
+                </div>
+                <div class="card-body"
+                  [ngClass]="{
+                    'text-primary': row.result?.begin && !row.result?.end,
+                    'text-success': row.result?.end
+                  }">
+                  <div>{{ row.team.name }}</div>
+                </div>
+                <div class="card-footer text-center">
+                  <div class="btn-group">
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-danger"
+                      (click)="undoStage(row)"
+                      [attr.aria-label]="'Reprendre l\'épreuve ' + selectedStage + ' pour l\'équipe ' + row.team.team"
+                    >
+                      Reprendre
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-primary"
+                      *ngIf="row.result?.id"
+                      (click)="openStage(row)"
+                      [attr.aria-label]="'Détails de l\'épreuve ' + selectedStage + ' pour l\'équipe ' + row.team.team"
+                    >
+                      Détails
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

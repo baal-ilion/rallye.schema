@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { auditTime, takeUntil } from 'rxjs/operators';
@@ -16,7 +16,8 @@ import { RankingUpdateService } from 'src/app/services/ranking-update.service';
   templateUrl: './details-team.component.html',
   styleUrls: ['./details-team.component.scss']
 })
-export class DetailsTeamComponent implements OnInit, OnDestroy {
+export class DetailsTeamComponent implements OnInit, OnDestroy, OnChanges {
+  @Input() teamId?: string;
   id: string;
   teamInfo: TeamInfo;
   stageParams: StageParam[] = [];
@@ -41,14 +42,19 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     console.log('ngOnInit');
-    this.route.paramMap.subscribe(params => {
-      this.id = params.get('id');
+    if (this.teamId) {
+      this.id = this.teamId;
       this.init();
-    }, error => {
-      this.teamInfo = null;
-      console.log(error);
-      this.router.navigateByUrl('/');
-    });
+    } else {
+      this.route.paramMap.subscribe(params => {
+        this.id = params.get('id');
+        this.init();
+      }, error => {
+        this.teamInfo = null;
+        console.log(error);
+        this.router.navigateByUrl('/');
+      });
+    }
     this.loadStageParams();
 
     // Rafraîchissement event-driven : dès qu'un classement/score change, recharger l'équipe/stages
@@ -64,6 +70,13 @@ export class DetailsTeamComponent implements OnInit, OnDestroy {
         }
         this.refreshTeamData();
       });
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes.teamId && !changes.teamId.isFirstChange()) {
+      this.id = this.teamId;
+      this.init();
+    }
   }
 
   private async init() {

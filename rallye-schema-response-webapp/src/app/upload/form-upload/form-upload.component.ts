@@ -13,8 +13,12 @@ export class FormUploadComponent implements OnInit {
   fileInput: ElementRef<HTMLInputElement>;
 
   selectedFiles: FileList;
-  uploadedFiles: { file: File, progress: { percentage: number } }[] = [];
+  uploadedFiles: UploadedFile[] = [];
   selectedNames: string[] = [];
+
+  private static createUploadedFile(file: File): UploadedFile {
+    return { file, progress: { percentage: 0 }, status: 'uploading' };
+  }
 
   constructor(private uploadService: UploadFileService) { }
 
@@ -39,28 +43,48 @@ export class FormUploadComponent implements OnInit {
       this.selectedNames = [];
       return;
     }
-    // tslint:disable-next-line: prefer-for-of
-    for (let index = 0; index < this.selectedFiles.length; index++) {
-      const file = this.selectedFiles[index];
-      this.uploadFile(file);
-    }
+    const files = Array.from(this.selectedFiles);
     this.selectedNames = [];
     this.selectedFiles = undefined;
+    files.forEach(file => this.uploadFile(file));
     if (this.fileInput) {
       this.fileInput.nativeElement.value = '';
     }
   }
 
-  uploadFile(fileToUpload) {
-    const uploadedFile = { file: fileToUpload, progress: { percentage: 0 } };
+  private uploadFile(fileToUpload: File) {
+    const uploadedFile = FormUploadComponent.createUploadedFile(fileToUpload);
     this.uploadedFiles.push(uploadedFile);
+    this.performUpload(uploadedFile, 0);
+  }
 
-    this.uploadService.pushFileToStorage(uploadedFile.file).subscribe(event => {
-      if (event.type === HttpEventType.UploadProgress) {
-        uploadedFile.progress.percentage = Math.round(100 * event.loaded / (event.total || 1));
-      } else if (event instanceof HttpResponse) {
-        console.log('File is completely uploaded!');
+  private performUpload(uploadedFile: UploadedFile, attempt: number) {
+    this.uploadService.pushFileToStorage(uploadedFile.file).subscribe({
+      next: event => {
+        if (event.type === HttpEventType.UploadProgress) {
+          uploadedFile.progress.percentage = Math.round(100 * event.loaded / (event.total || 1));
+        } else if (event instanceof HttpResponse) {
+          uploadedFile.progress.percentage = 100;
+          uploadedFile.status = 'done';
+        }
+      },
+      error: err => {
+        if (attempt < 2) {
+          uploadedFile.progress.percentage = 0;
+          this.performUpload(uploadedFile, attempt + 1);
+          return;
+        }
+        uploadedFile.progress.percentage = 100;
+        uploadedFile.status = 'error';
+        uploadedFile.errorMessage = err?.message || "Echec de l'import";
       }
     });
   }
+}
+
+interface UploadedFile {
+  file: File;
+  progress: { percentage: number };
+  status: 'uploading' | 'done' | 'error';
+  errorMessage?: string;
 }

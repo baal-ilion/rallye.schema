@@ -1,4 +1,4 @@
-<div class="container mb-5">
+<div class="container mb-5" #scrollContainer>
   <div class="row mt-4 text-center">
     <h1 class="col-12">{{ isStageMode ? 'Classements par épreuve' : 'Classement général' }}</h1>
   </div>
@@ -6,6 +6,11 @@
     <div class="col-12 d-flex justify-content-end align-items-center">
       <label for="viewPoints" class="mb-0">Afficher les points</label>
       <app-toggle-switch [checked]="viewPoints" id="viewPoints" class="ml-2" (change)="viewPoints = !viewPoints">
+      </app-toggle-switch>
+    </div>
+    <div class="col-12 d-flex justify-content-end align-items-center mt-2">
+      <label for="autoScroll" class="mb-0">Défilement automatique</label>
+      <app-toggle-switch [checked]="autoScrollEnabled" id="autoScroll" class="ml-2" (change)="onToggleAutoScroll()">
       </app-toggle-switch>
     </div>
   </div>
@@ -23,7 +28,9 @@
       [rankingTitle]="stageParams[stageRank.key]?.name || ('Épreuve ' + stageRank.key)"
       [teamRanking]="stageRank.value"
       [teamInfos]="teamInfos"
-      [viewPoints]="viewPoints">
+      [viewPoints]="viewPoints"
+      [performanceLabel]="singlePerformanceLabel(stageRank.key)"
+      [performanceValues]="singlePerformanceValues(stageRank.key)">
     </app-ranking>
   </div>
 </div>

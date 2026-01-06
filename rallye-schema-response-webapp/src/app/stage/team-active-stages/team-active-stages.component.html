@@ -1,0 +1,59 @@
+<div class="container mb-5">
+  <div class="row mt-4 text-center">
+    <h1 class="col-12">Épreuves en cours par équipe</h1>
+  </div>
+
+  <div class="row mt-3" *ngIf="loading || error">
+    <div class="col-12">
+      <div *ngIf="loading" class="alert alert-info">Chargement des épreuves en cours...</div>
+      <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+    </div>
+  </div>
+
+  <div class="row mt-4" *ngIf="!loading && !error">
+    <div class="col-12" *ngIf="rows.length === 0">
+      <div class="alert alert-secondary mb-0">Aucune équipe n'est actuellement en cours d'épreuve.</div>
+    </div>
+
+    <div class="col-12" *ngIf="rows.length > 0">
+      <div class="row mt-0 justify-content-center">
+        <div class="active-table-wrapper">
+          <h4 class="active-table-title px-0 py-1 bg-secondary text-center text-white mb-0">
+            Épreuves en cours
+          </h4>
+          <div class="active-table-body">
+            <table class="table table-sm align-middle active-table mb-0">
+              <thead class="bg-light">
+                <tr class="bg-secondary text-white">
+                  <th scope="col" class="text-left">Équipe</th>
+                  <th scope="col" class="text-left">Épreuves en cours</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of rows">
+                  <td class="text-left">
+                    {{ row.team.team | number:'2.0-0' }} - {{ row.team.name }}
+                  </td>
+                  <td>
+                    <ng-container *ngIf="row.stageResults.length > 0; else noStage">
+                      <div *ngFor="let stage of row.stageResults; let i = index" class="active-stage-line">
+                        Épreuve {{ stage.stage | number:'2.0-0' }} : {{ row.stageNames[i] }}
+                      </div>
+                    </ng-container>
+                    <ng-template #noStage>
+                      <span class="text-muted">Aucune épreuve en cours.</span>
+                    </ng-template>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+

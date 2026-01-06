@@ -9,8 +9,10 @@ services:
       - 'rallye-schema-response-webapp-app:/app'
       - 'rallye-schema-response-webapp-config:/usr/share/nginx/html/config'
       - '/app/node_modules'
+      - './certs:/etc/nginx/certs:ro'
     ports:
       - '80:80'
+      - '443:443'
     restart: always
 volumes:
   rallye-schema-response-webapp-app:

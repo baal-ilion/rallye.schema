@@ -20,16 +20,12 @@ import fr.vandriessche.rallyeschema.responseservice.entities.TeamPoint;
 import fr.vandriessche.rallyeschema.responseservice.models.GroupRankingEntry;
 import fr.vandriessche.rallyeschema.responseservice.repositories.StageParamRepository;
 import fr.vandriessche.rallyeschema.responseservice.repositories.TeamInfoRepository;
-import fr.vandriessche.rallyeschema.responseservice.repositories.TeamPointRepository;
 
 @Service
 public class GroupRankingService {
 
     @Autowired
     private TeamInfoRepository teamInfoRepository;
-
-    @Autowired
-    private TeamPointRepository teamPointRepository;
 
     @Autowired
     private TeamPointService teamPointService;

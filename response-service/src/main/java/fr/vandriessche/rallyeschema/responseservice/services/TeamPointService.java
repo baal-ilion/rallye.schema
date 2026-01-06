@@ -81,6 +81,9 @@ public class TeamPointService {
 
 	public List<TeamPoint> computeTeamPointFromStageRanking(@NonNull Integer stage) {
 		var stageRanking = stageRankingService.getStageRankingByStage(stage);
+		if (stageRanking == null) {
+			return new ArrayList<>();
+		}
 		return Stream.concat(
 				Stream.concat(stageRanking.getBegins().stream().map(TeamRank<Instant>::getTeam),
 						stageRanking.getEnds().stream().map(TeamRank<Instant>::getTeam)),
@@ -106,6 +109,15 @@ public class TeamPointService {
 
 	public void deleteByTeam(Integer team) {
 		teamPointRepository.findByTeam(team).ifPresent(teamPoint -> teamPointRepository.delete(teamPoint));
+	}
+
+	public void removeStage(Integer stage) {
+		teamPointRepository.findAll().forEach(teamPoint -> {
+			if (teamPoint.getStagePoints().remove(stage) != null) {
+				computeTeamPointTotal(teamPoint);
+				save(teamPoint);
+			}
+		});
 	}
 
 	public TeamPoint getTeamPoint(String id) {
@@ -139,7 +151,8 @@ public class TeamPointService {
 				context.setVariable("nbEqParticipantes", stageRanking.getEnds().size());
 				context.registerFunction("arrondi",
 						TeamPointService.class.getDeclaredMethod("toLongHelper", new Class[] { Double.class }));
-				return parser.parseExpression(range.getExpression()).getValue(context, Long.class);
+				Long expressionValue = parser.parseExpression(range.getExpression()).getValue(context, Long.class);
+				return expressionValue != null ? expressionValue : 0L;
 			} catch (Exception e) {
 				log.log(Level.WARNING, "Expression : " + range.getExpression() + " [#valeur=" + value
 						+ ", #nbEqInscrites=" + nbTeam + ", #nbEqParticipantes=" + stageRanking.getEnds().size() + "] ",
@@ -251,7 +264,13 @@ public class TeamPointService {
 	}
 
 	private Optional<StagePoint> computeStagePoint(StageResult stageResult, StageRanking stageRanking) {
+		if (stageRanking == null) {
+			return Optional.empty();
+		}
 		var stageParam = stageParamService.getStageParamByStage(stageResult.getStage());
+		if (stageParam == null) {
+			return Optional.empty();
+		}
 		if (Boolean.TRUE.equals(stageResult.getChecked())) {
 			StagePoint stagePoint = new StagePoint(stageResult.getStage(), 0l);
 			var source = stageResult.getResponseSources().stream().filter(s -> s instanceof StageResponseSource)

@@ -1,0 +1,32 @@
+.row + .row {
+  margin-top: 1rem;
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem 1rem;
+  align-items: end;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.team-input {
+  width: 100%;
+  text-align: center;
+}
+
+/* Supprime les flèches des champs number sur mobile/desktop */
+.team-input::-webkit-outer-spin-button,
+.team-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.team-input[type=number] {
+  -moz-appearance: textfield;
+}

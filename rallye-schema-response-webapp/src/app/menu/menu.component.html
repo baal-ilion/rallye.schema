@@ -1,62 +1,97 @@
-<nav class="navbar fixed-top navbar-expand-lg navbar-light bg-light">
-  <a class="navbar-brand" [routerLink]="'.'" (click)="closeMenu()">{{title}}</a>
-  <button class="navbar-toggler" type="button" [attr.aria-expanded]="!collapsed" (click)="collapsed = !collapsed"
-    aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+﻿<nav class="navbar fixed-top navbar-expand-lg navbar-light bg-light">
+  <a class="navbar-brand" [routerLink]="'.'" (click)="rememberUrl($event, '/')">{{ title }}</a>
+  <button
+    class="navbar-toggler"
+    type="button"
+    [attr.aria-expanded]="!collapsed"
+    (click)="collapsed = !collapsed"
+    aria-controls="navbarSupportedContent"
+    aria-expanded="false"
+    aria-label="Toggle navigation">
     <span class="navbar-toggler-icon"></span>
   </button>
 
   <div class="navbar-collapse" [class.collapse]="collapsed" id="navbarSupportedContent">
     <ul class="navbar-nav mr-auto">
-      <li *ngIf="teamInfos" class="nav-item dropdown" [class.show]="openMenu === 'teams'">
-        <a class="nav-link dropdown-toggle" href="#" id="teamsMenu" role="button"
-          [attr.aria-expanded]="openMenu === 'teams'" aria-haspopup="true"
-          (click)="toggleMenu('teams'); $event.preventDefault();">Équipes</a>
-        <div class="dropdown-menu" [class.show]="openMenu === 'teams'" aria-labelledby="teamsMenu">
-          <a class="dropdown-item" routerLink="/qrcode" (click)="closeMenu()">QR Code</a>
-          <a class="dropdown-item" routerLink="/teams/presence" (click)="closeMenu()">Présence</a>
+      <li class="nav-item">
+        <a class="nav-link" routerLink="/arbitrage" (click)="rememberUrl($event, '/arbitrage')">Gestion des jeux</a>
+      </li>
+
+      <li class="nav-item dropdown" [class.show]="openMenu === 'rallye'">
+        <a
+          class="nav-link dropdown-toggle"
+          href="#"
+          id="rallyeMenu"
+          role="button"
+          [attr.aria-expanded]="openMenu === 'rallye'"
+          aria-haspopup="true"
+          (click)="toggleMenu('rallye'); $event.preventDefault();">Gestion du Rallye</a>
+        <div class="dropdown-menu" [class.show]="openMenu === 'rallye'" aria-labelledby="rallyeMenu">
+          <a class="dropdown-item" routerLink="/stages/participation" (click)="rememberUrl($event, '/stages/participation')">Suivi des &eacute;preuves</a>
+          <a class="dropdown-item" routerLink="/teams/progression" (click)="rememberUrl($event, '/teams/progression')">Suivi des &eacute;quipes</a>
+          <a class="dropdown-item" routerLink="/teams/presence" (click)="rememberUrl($event, '/teams/presence')">Suivi de pr&eacute;sence des &eacute;quipes</a>
           <div class="dropdown-divider"></div>
-          <a *ngFor="let teamInfo of teamInfos" class="dropdown-item" routerLink="/team/{{teamInfo.id}}"
-            (click)="closeMenu()">{{teamInfo.team}} - {{teamInfo.name}}</a>
+          <a class="dropdown-item" routerLink="/teams/active-stages" (click)="rememberUrl($event, '/teams/active-stages')">&Eacute;preuves en cours</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" routerLink="/qrcode" (click)="rememberUrl($event, '/qrcode')">QR Codes des &eacute;quipes</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" routerLink="/stats" (click)="rememberUrl($event, '/stats')">Statistiques</a>
         </div>
       </li>
 
       <li class="nav-item dropdown" [class.show]="openMenu === 'responses'">
-        <a class="nav-link dropdown-toggle" href="#" id="responseFilesMenu" role="button"
-          [attr.aria-expanded]="openMenu === 'responses'" aria-haspopup="true"
-          (click)="toggleMenu('responses'); $event.preventDefault();">Formulaires de réponses</a>
+        <a
+          class="nav-link dropdown-toggle"
+          href="#"
+          id="responseFilesMenu"
+          role="button"
+          [attr.aria-expanded]="openMenu === 'responses'"
+          aria-haspopup="true"
+          (click)="toggleMenu('responses'); $event.preventDefault();">Gestion des corrections</a>
         <div class="dropdown-menu" [class.show]="openMenu === 'responses'" aria-labelledby="responseFilesMenu">
-          <a class="dropdown-item" routerLink="/formUpload" (click)="closeMenu()">Import</a>
-          <a class="dropdown-item" routerLink="/listUpload" (click)="closeMenu()">Vérification</a>
+          <a class="dropdown-item" routerLink="/formUpload" (click)="rememberUrl($event, '/formUpload')">Import des formulaires</a>
+          <a class="dropdown-item" routerLink="/listUpload" (click)="rememberUrl($event, '/listUpload')">V&eacute;rification des formulaires</a>
+          <a class="dropdown-item" routerLink="/listStage" (click)="rememberUrl($event, '/listStage')">Validation des &eacute;preuves</a>
         </div>
       </li>
 
-      <li class="nav-item">
-        <a class="nav-link text-nowrap" routerLink="/listStage" (click)="closeMenu()">Validation des épreuves</a>
-      </li>
-
       <li class="nav-item dropdown" [class.show]="openMenu === 'ranking'">
-        <a class="nav-link dropdown-toggle" href="#" id="rankingMenu" role="button"
-          [attr.aria-expanded]="openMenu === 'ranking'" aria-haspopup="true"
+        <a
+          class="nav-link dropdown-toggle"
+          href="#"
+          id="rankingMenu"
+          role="button"
+          [attr.aria-expanded]="openMenu === 'ranking'"
+          aria-haspopup="true"
           (click)="toggleMenu('ranking'); $event.preventDefault();">Classements</a>
         <div class="dropdown-menu" [class.show]="openMenu === 'ranking'" aria-labelledby="rankingMenu">
-          <a class="dropdown-item" routerLink="/listRanking" (click)="closeMenu()">Classement général</a>
-          <a class="dropdown-item" [routerLink]="['/listRanking']" [queryParams]="{ mode: 'stage' }" (click)="closeMenu()">Classement par épreuves</a>
-          <a class="dropdown-item" routerLink="/groupRanking" (click)="closeMenu()">Classement par groupes d'épreuves</a>
-          <a class="dropdown-item" routerLink="/prizes" (click)="closeMenu()">Distribution des lots</a>
+          <a class="dropdown-item" routerLink="/listRanking" (click)="rememberUrl($event, '/listRanking')">Classement g&eacute;n&eacute;ral</a>
+          <a class="dropdown-item" [routerLink]="['/listRanking']" [queryParams]="{ mode: 'stage' }" (click)="rememberUrl($event, '/listRanking?mode=stage')">Classement par &eacute;preuves</a>
+          <a class="dropdown-item" routerLink="/groupRanking" (click)="rememberUrl($event, '/groupRanking')">Classement par groupes d'&eacute;preuves</a>
           <div class="dropdown-divider"></div>
-          <a class="dropdown-item" routerLink="/listPoint" (click)="closeMenu()">Détail</a>
+          <a class="dropdown-item" routerLink="/prizes" (click)="rememberUrl($event, '/prizes')">Distribution des lots</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" routerLink="/listPoint" (click)="rememberUrl($event, '/listPoint')">D&eacute;tails des points</a>
         </div>
       </li>
 
       <li class="nav-item dropdown" [class.show]="openMenu === 'settings'">
-        <a class="nav-link dropdown-toggle" href="#" id="paramMenu" role="button"
-          [attr.aria-expanded]="openMenu === 'settings'" aria-haspopup="true"
-          (click)="toggleMenu('settings'); $event.preventDefault();">Paramétrage</a>
+        <a
+          class="nav-link dropdown-toggle"
+          href="#"
+          id="paramMenu"
+          role="button"
+          [attr.aria-expanded]="openMenu === 'settings'"
+          aria-haspopup="true"
+          (click)="toggleMenu('settings'); $event.preventDefault();">Param&eacute;trage</a>
         <div class="dropdown-menu" [class.show]="openMenu === 'settings'" aria-labelledby="paramMenu">
-          <a class="dropdown-item" routerLink="/listStageGroup" (click)="closeMenu()">Groupes d'épreuves</a>
-          <a class="dropdown-item" routerLink="/listStageParam" (click)="closeMenu()">Épreuves</a>
-          <a class="dropdown-item" routerLink="/listTeamInfo" (click)="closeMenu()">Équipes</a>
-          <a class="dropdown-item" routerLink="/sharingParam" (click)="closeMenu()">Import / Export</a>
+          <a class="dropdown-item" routerLink="/listStageGroup" (click)="rememberUrl($event, '/listStageGroup')">Groupes d'&eacute;preuves</a>
+          <a class="dropdown-item" routerLink="/listStageParam" (click)="rememberUrl($event, '/listStageParam')">&Eacute;preuves</a>
+          <a class="dropdown-item" routerLink="/listTeamInfo" (click)="rememberUrl($event, '/listTeamInfo')">&Eacute;quipes</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" routerLink="/sharingParam" (click)="rememberUrl($event, '/sharingParam')">Paramétrage</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" routerLink="/database" (click)="rememberUrl($event, '/database')">Base de donn&eacute;es</a>
         </div>
       </li>
     </ul>

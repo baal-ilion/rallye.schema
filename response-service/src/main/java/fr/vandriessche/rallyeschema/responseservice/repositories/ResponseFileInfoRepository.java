@@ -18,4 +18,6 @@ public interface ResponseFileInfoRepository extends MongoRepository<ResponseFile
 	Page<ResponseFileInfo> findByCheckedFalseOrCheckedNull(Pageable pageable);
 
 	List<ResponseFileInfo> findByTeam(Integer team);
+
+	List<ResponseFileInfo> findByStage(Integer stage);
 }

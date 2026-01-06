@@ -11,6 +11,7 @@ import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.lang.NonNull;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.context.request.async.CallableProcessingInterceptor;
 import org.springframework.web.context.request.async.TimeoutCallableProcessingInterceptor;
@@ -58,7 +59,7 @@ public class AsyncConfiguration implements AsyncConfigurer {
 			CallableProcessingInterceptor callableProcessingInterceptor) {
 		return new WebMvcConfigurer() {
 			@Override
-			public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
+			public void configureAsyncSupport(@NonNull AsyncSupportConfigurer configurer) {
 				configurer.setDefaultTimeout(360000).setTaskExecutor(taskExecutor);
 				configurer.registerCallableInterceptors(callableProcessingInterceptor);
 				WebMvcConfigurer.super.configureAsyncSupport(configurer);

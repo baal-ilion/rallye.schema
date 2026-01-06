@@ -17,7 +17,6 @@ export class PrizeDistributionComponent implements OnInit {
 
   loading = false;
   error: string | null = null;
-
   prizes: PrizeAssignment[] = [];
 
   constructor(
@@ -30,13 +29,15 @@ export class PrizeDistributionComponent implements OnInit {
     this.loadPrizes();
 
     merge(this.rankingUpdateService.updates$, this.teamInfoUpdateService.updates$)
-      .subscribe(() => this.loadPrizes());
+      .subscribe(() => this.loadPrizes(true));
   }
 
-  private loadPrizes(): void {
-    this.loading = true;
-    this.error = null;
-    this.prizes = [];
+  private loadPrizes(silentRefresh = false): void {
+    if (!silentRefresh) {
+      this.loading = true;
+      this.error = null;
+      this.prizes = [];
+    }
 
     this.prizeService.getPrizes().subscribe({
       next: (result: PrizeDistributionResult) => {
@@ -50,6 +51,7 @@ export class PrizeDistributionComponent implements OnInit {
           all.push(...result.groupPrizes);
         }
 
+        this.error = null;
         this.prizes = all;
         this.loading = false;
       },

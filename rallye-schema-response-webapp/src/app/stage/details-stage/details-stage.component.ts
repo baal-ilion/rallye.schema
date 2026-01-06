@@ -18,9 +18,9 @@ import { isStageResponseSource, StageResponseSource } from '../models/stage-resp
 import { StageResult } from '../models/stage-result';
 import { StageService } from '../stage.service';
 import { RankingUpdateService } from 'src/app/services/ranking-update.service';
-import { TeamInfoService } from 'src/app/param/team-info.service';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import { NavigationMemoryService } from 'src/app/services/navigation-memory.service';
 
 @Component({
   selector: 'app-details-stage',
@@ -53,7 +53,7 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
     private responseFileParamService: ResponseFileParamService,
     private router: Router,
     private rankingUpdateService: RankingUpdateService,
-    private teamInfoService: TeamInfoService) { }
+    private navigationMemoryService: NavigationMemoryService) { }
 
   get f() { return this.form.controls; }
   get pages() { return this.f.pages as UntypedFormArray; }
@@ -177,9 +177,10 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
         if (latest) {
           this.stageResult = { ...this.stageResult, ...latest };
           if (this.form) {
+            const beginControlsDirty = this.f.begindate.dirty || this.f.begintime.dirty;
             this.form.patchValue({
-              begindate: this.formatDate(latest.begin),
-              begintime: this.formatTime(latest.begin),
+              begindate: beginControlsDirty ? this.form.getRawValue().begindate : this.formatDate(latest.begin),
+              begintime: beginControlsDirty ? this.form.getRawValue().begintime : this.formatTime(latest.begin),
               enddate: this.formatDate(latest.end),
               endtime: this.formatTime(latest.end),
             }, { emitEvent: false });
@@ -189,8 +190,8 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
         }
       },
       error: () => {
-        // Stage supprime (ex: annule ailleurs) -> revenir a la progression de l'equipe
-        this.navigateToTeamProgression();
+        // Stage supprimé ou annulé ailleurs -> revenir vers l'URL mémorisée ou accueil
+        this.navigateToMemorizedOrProgression();
       }
     });
   }
@@ -451,7 +452,7 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
           console.log(error);
         }
         this.rankingUpdateService.triggerUpdate();
-        await this.navigateToTeamProgression();
+        await this.navigateToMemorizedOrProgression();
       }
     } catch (error) {
       console.log('User dismissed the dialog (e.g., by using ESC, clicking the cross icon, or clicking outside the dialog)');
@@ -531,15 +532,15 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
     return form.getRawValue().performances?.find(item => !item.performanceValue && item.performanceValue !== 0) ?? false;
   }
 
-  private async navigateToTeamProgression() {
-    try {
-      const teamInfo = await this.teamInfoService.findByTeam(this.team).toPromise();
-      if (teamInfo?.id) {
-        await this.router.navigateByUrl('/team/' + teamInfo.id);
+  private async navigateToMemorizedOrProgression() {
+    const last = this.navigationMemoryService.getLastMenuUrl();
+    if (last) {
+      try {
+        await this.router.navigateByUrl(last);
         return;
+      } catch (error) {
+        console.log(error);
       }
-    } catch (error) {
-      console.log(error);
     }
     await this.router.navigateByUrl('/');
   }

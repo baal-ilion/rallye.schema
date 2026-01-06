@@ -12,11 +12,16 @@ import { GroupRankingComponent } from './point/group-ranking/group-ranking.compo
 import { PrizeDistributionComponent } from './point/prize-distribution/prize-distribution.component';
 import { QrcodeComponent } from './qrcode/qrcode.component';
 import { DetailsTeamStageComponent } from './stage/details-team-stage/details-team-stage.component';
-import { DetailsTeamComponent } from './stage/details-team/details-team.component';
 import { ListStageComponent } from './stage/list-stage/list-stage.component';
 import { FormUploadComponent } from './upload/form-upload/form-upload.component';
 import { ListUploadComponent } from './upload/list-upload/list-upload.component';
 import { TeamPresenceComponent } from './param/team-presence/team-presence.component';
+import { StageParticipationComponent } from './stage/stage-participation/stage-participation.component';
+import { TeamProgressComponent } from './stage/team-progress/team-progress.component';
+import { TeamActiveStagesComponent } from './stage/team-active-stages/team-active-stages.component';
+import { StatsComponent } from './stats/stats.component';
+import { ArbitrageComponent } from './arbitrage/arbitrage.component';
+import { DatabaseMaintenanceComponent } from './database/database-maintenance/database-maintenance.component';
 
 
 const routes: Routes = [
@@ -31,12 +36,17 @@ const routes: Routes = [
   { path: 'listStageParam', component: ListStageParamComponent },
   { path: 'listTeamInfo', component: ListTeamInfoComponent },
   { path: 'teams/presence', component: TeamPresenceComponent },
+  { path: 'teams/progression', component: TeamProgressComponent },
+  { path: 'teams/active-stages', component: TeamActiveStagesComponent },
+  { path: 'stages/participation', component: StageParticipationComponent },
+  { path: 'stats', component: StatsComponent },
+  { path: 'arbitrage', component: ArbitrageComponent },
   { path: 'stageParam/:id', component: ModifyStageParamComponent },
-  { path: 'team/:id', component: DetailsTeamComponent },
   { path: 'sharingParam', component: SharingParamComponent },
   { path: 'stage/:team/:stage', component: DetailsTeamStageComponent },
   { path: 'qrcode', component: QrcodeComponent },
   { path: 'listStageGroup', component: ListStageGroupComponent },
+  { path: 'database', component: DatabaseMaintenanceComponent },
 ];
 
 @NgModule({

@@ -100,6 +100,18 @@ public class StageResultService {
 			stageResultRepository.delete(stageResult);
 			messageProducerService.sendMessage(STAGE_RESULT_DELETE_EVENT, new StageResultMessage(stageResult));
 		});
+		rankingUpdatePublisher.publishRankingUpdate();
+	}
+
+	public void deleteByStage(Integer stage) {
+		var stageResults = stageResultRepository.findByStage(stage);
+		stageResults.forEach(stageResult -> {
+			stageResultRepository.delete(stageResult);
+			messageProducerService.sendMessage(STAGE_RESULT_DELETE_EVENT, new StageResultMessage(stageResult));
+		});
+		if (!stageResults.isEmpty()) {
+			rankingUpdatePublisher.publishRankingUpdate();
+		}
 	}
 
 	public StageResult endStageResult(Integer stage, Integer team) {

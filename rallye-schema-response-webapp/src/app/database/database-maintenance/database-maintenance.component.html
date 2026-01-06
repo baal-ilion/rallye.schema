@@ -1,0 +1,138 @@
+<div class="container database-maintenance">
+  <div class="row mt-4 text-center">
+    <h1 class="col-12">Gestion de la base de données</h1>
+    <p class="col-12 text-muted mb-0">Sauvegardez, restaurez ou videz complètement la base.</p>
+  </div>
+
+  <div class="row mt-3">
+    <div class="col-12" *ngIf="statusMessage">
+      <div class="alert alert-success mb-2" role="alert">
+        {{ statusMessage }}
+      </div>
+    </div>
+    <div class="col-12" *ngIf="errorMessage">
+      <div class="alert alert-danger mb-2" role="alert">
+        {{ errorMessage }}
+      </div>
+    </div>
+  </div>
+
+  <div class="row mt-4">
+    <div class="col-lg-4 mb-3">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title">Sauvegarde</h5>
+          <p class="card-text flex-grow-1">
+            Télécharge un ZIP contenant toutes les collections MongoDB. Choisissez l’emplacement d’enregistrement depuis votre navigateur.
+          </p>
+          <div class="text-center mt-auto">
+            <a [href]="backupLink" class="btn btn-sm btn-primary text-white w-auto px-3">
+              <i class="fas fa-download mr-1"></i> Exporter la base
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4 mb-3">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title">Restauration</h5>
+          <p class="card-text">
+            Remplace tout le contenu actuel par une sauvegarde ZIP préalablement exportée.
+          </p>
+          <div class="mt-auto text-center">
+            <input #restoreFileInput type="file" class="d-none" id="restoreFile" accept=".zip,application/zip"
+              (change)="onRestoreSelection($event.target.files)">
+            <label class="btn btn-sm btn-primary text-white mb-2" for="restoreFile" [class.disabled]="uploading">
+              <i class="fas fa-search mr-1"></i> Choisir un ZIP
+            </label>
+            <div class="progress" *ngIf="uploading">
+              <div class="progress-bar bg-info progress-bar-striped"
+                role="progressbar"
+                [style.width.%]="uploadProgress"
+                [class.progress-bar-animated]="uploadProgress < 100"
+                aria-valuemin="0" aria-valuemax="100"
+                [attr.aria-valuenow]="uploadProgress">
+                {{ uploadProgress }}%
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4 mb-3">
+      <div class="card h-100 shadow-sm border-danger">
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title text-danger">Effacement complet</h5>
+          <p class="card-text flex-grow-1">
+            Vide toutes les collections (sauf système). Aucune sauvegarde n’est conservée.
+          </p>
+          <div class="text-center mt-auto">
+            <button class="btn btn-sm btn-danger w-auto px-3"
+              (click)="confirmErase()"
+              [disabled]="erasing">
+              <i class="fas fa-trash-alt mr-1"></i> Effacer la base
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4 mb-3">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title">Analyse des incohérences</h5>
+          <p class="card-text flex-grow-1">
+            Détecte les doublons ou références manquantes (équipes, scores, formulaires). La correction supprime les
+            entrées incohérentes.
+          </p>
+          <div class="d-flex justify-content-center mb-2 mt-auto">
+            <button class="btn btn-sm btn-primary text-white mr-3" style="margin-right: 1rem !important;"
+              (click)="analyzeConsistency()" [disabled]="analyzing || fixing">
+              <i class="fas fa-search mr-1"></i> Analyser
+            </button>
+            <button class="btn btn-sm btn-success" (click)="fixConsistency()" [disabled]="fixing">
+              <i class="fas fa-tools mr-1"></i> Corriger automatiquement
+            </button>
+          </div>
+          <div *ngIf="analyzing" class="text-muted small">Analyse en cours...</div>
+          <div *ngIf="fixing" class="text-muted small">Correction en cours...</div>
+          <div *ngIf="consistencyInfo" class="alert alert-info py-2">{{ consistencyInfo }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row" *ngIf="consistencyIssues.length">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Incohérences détectées</h5>
+          <div class="table-responsive">
+            <table class="table table-sm mb-0">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Description</th>
+                  <th class="text-right">Nombre</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let issue of consistencyIssues">
+                  <td><code>{{ issue.code }}</code></td>
+                  <td>
+                    {{ issue.description }}
+                    <div *ngIf="issue.details" class="text-muted small">{{ issue.details }}</div>
+                  </td>
+                  <td class="text-right">{{ issue.count }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

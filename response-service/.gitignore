@@ -4,6 +4,9 @@ target/
 !**/src/main/**
 !**/src/test/**
 
+# Keep keystore ignored even though src/main is re-included
+src/main/resources/keystore-local.p12
+
 ### STS ###
 .apt_generated
 .classpath

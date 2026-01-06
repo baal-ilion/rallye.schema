@@ -1,17 +1,34 @@
-.team-card {
-  transition: background-color 0.2s ease-in-out, box-shadow 0.2s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+.presence-list {
+  padding: 0;
 }
 
-.team-present {
-  background-color: #d4edda; /* vert léger */
-  border-color: #28a745;
+.presence-column {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: auto;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
-.team-absent {
-  background-color: #f8f9fa; /* gris par défaut */
+.presence-list li {
+  margin: 0;
 }
 
-.team-card .card-title {
-  font-weight: 600;
+.presence-card {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.presence-card .card-footer app-toggle-switch {
+  white-space: nowrap;
+}
+
+.presence-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
 }

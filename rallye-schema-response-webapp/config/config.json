@@ -1,0 +1,4 @@
+{
+  "env": { "name": "docker" },
+  "apiUrl": { "rallyeSchema": "/api" }
+}
