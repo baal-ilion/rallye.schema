@@ -22,6 +22,8 @@ export class ModifyTeamInfoComponent implements OnInit {
   ngOnInit() {
     this.teamInfoService.getTeamInfos().toPromise().then((value) => {
       this.teamInfos = value._embedded.teamInfoes;
+      this.teamInfoForm?.controls.team.updateValueAndValidity();
+      this.teamInfoForm?.controls.name.updateValueAndValidity();
     }, (error) => {
       this.teamInfos = [];
     });
@@ -32,12 +34,12 @@ export class ModifyTeamInfoComponent implements OnInit {
     this.teamInfoForm = this.formBuilder.group({
       id: this.teamInfo.id,
       name: [this.teamInfo.name, [Validators.required, this.uniqueNameValidator.bind(this)]],
-      team: [this.teamInfo.team, [Validators.required, this.uniqueTeamValidator.bind(this)]],
+      team: [this.teamInfo.team, [Validators.required, Validators.min(1), this.uniqueTeamValidator.bind(this)]],
       present: this.teamInfo.present ?? false
     });
-    if (this.teamInfo.id) {
-      this.teamInfoForm.controls.team.disable();
-    }
+
+    // Revalider le numéro après chargement des données existantes
+    this.teamInfoForm.controls.team.updateValueAndValidity();
   }
 
   uniqueNameValidator(control: AbstractControl) {

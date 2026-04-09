@@ -13,6 +13,7 @@
             [ngClass]="{ 'is-invalid': teamInfoForm.controls.team.errors }">
           <div *ngIf="teamInfoForm.controls.team.errors" class="invalid-feedback">
             <div *ngIf="teamInfoForm.controls.team.errors.required">Le numéro d'équipe est requis</div>
+            <div *ngIf="teamInfoForm.controls.team.errors.min">Le numéro doit être un nombre positif</div>
             <div *ngIf="teamInfoForm.controls.team.errors.uniqueTeam">Ce numéro d'équipe existe déjà</div>
           </div>
         </div>

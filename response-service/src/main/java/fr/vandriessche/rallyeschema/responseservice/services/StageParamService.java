@@ -56,7 +56,7 @@ public class StageParamService {
 	private TeamPointService teamPointService;
 
 	public StageParam addStageParam(StageParam stageParam) {
-		return updateStageParam(stageParam, new StageParam());
+		return updateStageParam(new StageParam(), stageParam);
 	}
 
 	public void deleteStageParam(String id) {
@@ -156,7 +156,7 @@ public class StageParamService {
 		if (Objects.nonNull(stageParamToUpdate))
 			return updateStageParam(stageParamToUpdate, stageParam);
 		else
-			return updateStageParam(stageParam, new StageParam());
+			return updateStageParam(new StageParam(), stageParam);
 	}
 
 	private void removePerformancePointParam(StageParam stageParamToUpdate, String performanceName) {
@@ -282,19 +282,39 @@ public class StageParamService {
 	}
 
 	private void updateStageParamData(StageParam stageParamToUpdate, StageParam stageParam) {
-		if (Objects.nonNull(stageParam.getName())) {
-			stageParamToUpdate.setName(stageParam.getName());
-		}
+        // Update stage number if provided and different
+        if (Objects.nonNull(stageParam.getStage())
+                && !stageParam.getStage().equals(stageParamToUpdate.getStage())) {
+            stageParamRepository.findByStage(stageParam.getStage())
+                    .filter(existing -> !existing.getId().equals(stageParamToUpdate.getId()))
+                    .ifPresent(existing -> {
+                        throw new IllegalArgumentException(
+                                "Le numero d'epreuve " + stageParam.getStage() + " est deja utilise.");
+                    });
+            stageParamToUpdate.setStage(stageParam.getStage());
+        }
 
-		// 🔹 Gestion du groupe
-		if (stageParam.getGroup() == null) {
-			// L'utilisateur a choisi "Aucun groupe" → on détache le groupe
-			stageParamToUpdate.setGroup(null);
-		} else if (stageParam.getGroup().getId() != null) {
-			// L'utilisateur a choisi un groupe → on récupère le vrai StageGroup en base
-			stageGroupRepository.findById(stageParam.getGroup().getId())
-				.ifPresent(stageParamToUpdate::setGroup);
-		}
-	}
+        if (Objects.nonNull(stageParam.getName())) {
+            stageParamToUpdate.setName(stageParam.getName());
+        }
 
+        // Handle group attachment
+        if (stageParam.getGroup() == null) {
+            // User chose "Aucun groupe"
+            stageParamToUpdate.setGroup(null);
+        } else if (stageParam.getGroup().getId() != null) {
+            var group = stageGroupRepository.findById(stageParam.getGroup().getId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Groupe d'epreuves introuvable (id=" + stageParam.getGroup().getId() + ")."));
+            stageParamToUpdate.setGroup(group);
+        } else if (stageParam.getGroup().getName() != null) {
+            var group = stageGroupRepository.findByName(stageParam.getGroup().getName())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Groupe d'epreuves introuvable (nom=" + stageParam.getGroup().getName() + ")."));
+            stageParamToUpdate.setGroup(group);
+        } else {
+            stageParamToUpdate.setGroup(null);
+        }
+    }
 }
+

@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { AbstractControl, UntypedFormArray, UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
+import { AbstractControl, UntypedFormArray, UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
 import { HalLink } from 'src/app/models/hal-link';
@@ -25,6 +25,7 @@ import { StageParamService } from '../stage-param.service';
 })
 export class ModifyStageParamComponent implements OnInit {
   stageParam: StageParam;
+  stageParams: StageParam[] = [];
   stageGroups: StageGroup[] = [];
 
   perfPointAllocationType = {
@@ -82,11 +83,23 @@ export class ModifyStageParamComponent implements OnInit {
 
     // Formulaire réactif : on ajoute groupId
     this.stageParamForm = this.formBuilder.group({
+      stage: [null, [Validators.required, Validators.min(1), this.uniqueStageValidator.bind(this)]],
       name: '',
       groupId: '', // id du groupe ou '' si aucun
       questionPointParams: this.formBuilder.array([]),
       performancePointParams: this.formBuilder.array([]),
       questionParams: this.formBuilder.array([])
+    });
+
+    // Charger les épreuves existantes pour la vérification d'unicité du numéro
+    this.stageParamService.getStageParams().subscribe({
+      next: response => {
+        this.stageParams = response?._embedded?.stageParams ?? [];
+        this.stageParamForm.controls.stage.updateValueAndValidity();
+      },
+      error: () => {
+        this.stageParams = [];
+      }
     });
 
     // Charger les groupes d'épreuves pour le <select>
@@ -101,11 +114,13 @@ export class ModifyStageParamComponent implements OnInit {
       this.questionParamName = '';
       this.removedQuestionParams = [];
       this.questionParamNames = [];
+      this.stageParamForm.controls.stage.setValue(this.stageParam.stage);
       this.stageParamForm.controls.name.setValue(this.stageParam.name);
 
       // Pré-remplir groupId avec le groupe existant (ou '')
       const currentGroupId = this.stageParam.group && this.stageParam.group.id ? this.stageParam.group.id : '';
       this.stageParamForm.controls.groupId.setValue(currentGroupId);
+      this.stageParamForm.controls.stage.updateValueAndValidity();
 
       this.questionPointParams.clear();
       this.performancePointParams.clear();
@@ -128,6 +143,7 @@ export class ModifyStageParamComponent implements OnInit {
       this.removedQuestionParams = [];
       this.questionParamNames = [];
       this.responseFileParamUrls = [];
+      this.stageParamForm.controls.stage.setValue('');
       this.stageParamForm.controls.name.setValue('');
       this.stageParamForm.controls.groupId.setValue('');
       this.questionPointParams.clear();
@@ -261,9 +277,15 @@ export class ModifyStageParamComponent implements OnInit {
   }
 
   onSubmit() {
+    if (this.stageParamForm.invalid) {
+      this.stageParamForm.markAllAsTouched();
+      return;
+    }
+
     const modifiedQuestionPointParams = this.getModifiedQuestionPointParams();
     const modifiedPerformancePointParams = this.getModifiedPerformancePointParams();
     const modifiedQuestionParams = this.getModifiedQuestionParams();
+    const stageValue = Number(this.stageParamForm.value.stage);
 
     // 🔎 récupérer l'id du groupe choisi dans le formulaire
     const groupId: string = this.stageParamForm.value.groupId;
@@ -273,7 +295,7 @@ export class ModifyStageParamComponent implements OnInit {
 
     this.stageParamService.updateStageParam({
       id: this.stageParam.id,
-      stage: this.stageParam.stage,
+      stage: stageValue,
       name: this.stageParamForm.value.name,
       questionPointParams: modifiedQuestionPointParams,
       performancePointParams: modifiedPerformancePointParams,
@@ -380,5 +402,21 @@ export class ModifyStageParamComponent implements OnInit {
     }).catch((error) => {
       console.log(error);
     });
+  }
+
+  private uniqueStageValidator(control: AbstractControl) {
+    if (!control) { return null; }
+    const stage = Number(control.value);
+    if (!stage) { return null; }
+
+    const currentId = this.stageParam?.id;
+    const stagesInUse = this.stageParams
+      .filter(param => param.id !== currentId)
+      .map(param => param.stage);
+
+    if (stagesInUse.includes(stage)) {
+      return { uniqueStage: true };
+    }
+    return null;
   }
 }

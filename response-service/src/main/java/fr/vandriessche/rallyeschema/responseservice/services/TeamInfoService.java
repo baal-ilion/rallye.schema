@@ -140,6 +140,16 @@ public class TeamInfoService {
             changed = true;
         }
         if (teamInfo.getTeam() != null && !teamInfo.getTeam().equals(existing.getTeam())) {
+            final String existingId = existing.getId();
+            if (teamInfo.getTeam() <= 0) {
+                throw new IllegalArgumentException("Le numéro d'équipe doit être strictement positif.");
+            }
+            teamInfoRepository.findByTeam(teamInfo.getTeam())
+                    .filter(other -> !other.getId().equals(existingId))
+                    .ifPresent(other -> {
+                        throw new IllegalArgumentException(
+                                "Le numéro d'équipe " + teamInfo.getTeam() + " est déjà utilisé.");
+                    });
             existing.setTeam(teamInfo.getTeam());
             changed = true;
         }
@@ -156,3 +166,4 @@ public class TeamInfoService {
         return existing;
     }
 }
+

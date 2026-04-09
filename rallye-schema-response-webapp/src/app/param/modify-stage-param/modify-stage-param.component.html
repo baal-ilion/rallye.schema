@@ -6,10 +6,20 @@
   </div>
   <form [formGroup]="stageParamForm" (ngSubmit)="onSubmit()" class="container">
     <div class="form-group mt-3">
+      <label for="stage-number">Numéro</label>
+      <input id="stage-number" type="number" class="form-control" formControlName="stage"
+        [ngClass]="{ 'is-invalid': stageParamForm.controls.stage.errors }">
+      <div *ngIf="stageParamForm.controls.stage.errors" class="invalid-feedback">
+        <div *ngIf="stageParamForm.controls.stage.errors.required">Le numéro d'épreuve est requis</div>
+        <div *ngIf="stageParamForm.controls.stage.errors.min">Le numéro doit être un nombre positif</div>
+        <div *ngIf="stageParamForm.controls.stage.errors.uniqueStage">Ce numéro d'épreuve existe déjà</div>
+      </div>
+    </div>
+    <div class="form-group mt-3">
       <label for="stage-name">Nom</label>
       <input type="text" formControlName="name" class="form-control" id="stage-name">
     </div>
-    <div class="form-group mt-2">
+    <div class="form-group mt-3">
       <label>Groupe d'épreuves</label>
       <select class="form-control" formControlName="groupId">
         <option value="">Aucun groupe</option>

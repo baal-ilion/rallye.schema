@@ -71,6 +71,14 @@ export class NewStageParamComponent implements OnInit {
 
   submitForm() {
     // On renvoie { stage, name, group } au composant parent
-    this.dialogRef.close(this.stageParamForm.value);
+    const formValue = this.stageParamForm.value;
+    const payload = {
+      stage: formValue.stage,
+      name: formValue.name,
+      group: formValue.group
+        ? { id: formValue.group.id, name: formValue.group.name, description: formValue.group.description }
+        : null
+    };
+    this.dialogRef.close(payload);
   }
 }

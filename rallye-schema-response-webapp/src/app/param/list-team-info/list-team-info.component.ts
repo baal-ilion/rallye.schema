@@ -62,9 +62,10 @@ export class ListTeamInfoComponent implements OnInit {
       console.log(result);
       if (!result) { return; }
       this.teamInfoService.updateTeamInfo(result as TeamInfo).subscribe(data => {
-        teamInfo.name = data.name;
+        this.ngOnInit();
       }, err => {
         console.log(err);
+        this.ngOnInit();
       });
     }).catch((error) => {
       console.log(error);
