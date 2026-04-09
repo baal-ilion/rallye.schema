@@ -6,7 +6,9 @@ import java.io.OutputStream;
 import java.net.FileNameMap;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -28,15 +30,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileModel;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileParam;
+import fr.vandriessche.rallyeschema.responseservice.entities.StageGroup;
 import fr.vandriessche.rallyeschema.responseservice.entities.StageParam;
 import fr.vandriessche.rallyeschema.responseservice.entities.TeamInfo;
 import fr.vandriessche.rallyeschema.responseservice.repositories.ResponseFileModelRepository;
 import fr.vandriessche.rallyeschema.responseservice.repositories.ResponseFileParamRepository;
+import fr.vandriessche.rallyeschema.responseservice.repositories.StageGroupRepository;
 import fr.vandriessche.rallyeschema.responseservice.repositories.StageParamRepository;
 import fr.vandriessche.rallyeschema.responseservice.repositories.TeamInfoRepository;
 
 @Service
 public class SharingService {
+	private static final String STAGE_GROUP = "stageGroup/";
+	private static final String STAGE_GROUP_REGEX = "^stageGroup/[^/]+[.]json$";
 	private static final String STAGE_PARAM = "stageParam/";
 	private static final String STAGE_PARAM_REGEX = "^stageParam/[^/]+/[^/]+[.]json$";
 	private static final String TEAM_INFO = "teamInfo/";
@@ -56,6 +62,8 @@ public class SharingService {
 	@Autowired
 	private StageParamRepository stageParamRepository;
 	@Autowired
+	private StageGroupRepository stageGroupRepository;
+	@Autowired
 	private ResponseFileParamRepository responseFileParamRepository;
 	@Autowired
 	private ResponseFileModelRepository responseFileModelRepository;
@@ -74,6 +82,17 @@ public class SharingService {
 			zipOut.putNextEntry(zipEntry);
 			teamInfo.setId(null);
 			byte[] json = specificObjectMapper.writeValueAsBytes(teamInfo);
+			zipOut.write(json);
+		}
+		zipOut.putNextEntry(new ZipEntry(STAGE_GROUP));
+		zipOut.closeEntry();
+		List<StageGroup> stageGroups = stageGroupRepository.findAll();
+		for (int i = 0; i < stageGroups.size(); i++) {
+			var stageGroup = stageGroups.get(i);
+			String suffix = Objects.nonNull(stageGroup.getId()) ? stageGroup.getId() : Integer.toString(i + 1);
+			final ZipEntry zipEntry = new ZipEntry(STAGE_GROUP + "stageGroup-" + suffix + ".json");
+			zipOut.putNextEntry(zipEntry);
+			byte[] json = specificObjectMapper.writeValueAsBytes(stageGroup);
 			zipOut.write(json);
 		}
 		zipOut.putNextEntry(new ZipEntry(STAGE_PARAM));
@@ -127,9 +146,11 @@ public class SharingService {
 	public void uploadParamZip(MultipartFile file) throws IOException, ParserConfigurationException, SAXException {
 		teamInfoRepository.deleteAll();
 		stageParamRepository.deleteAll();
+		stageGroupRepository.deleteAll();
 		responseFileParamRepository.deleteAll();
 		responseFileModelRepository.deleteAll();
 
+		List<StageParam> stageParams = new ArrayList<>();
 		HashMap<String, ResponseFileParam> responseFileParams = new HashMap<>();
 		HashMap<String, ByteArrayOutputStream> responseFileTemplates = new HashMap<>();
 		HashMap<String, ResponseFileModel> responseFileModels = new HashMap<>();
@@ -140,9 +161,11 @@ public class SharingService {
 			if (name.matches(TEAM_INFO_REGEX)) {
 				TeamInfo teamInfo = readFile(zis, TeamInfo.class);
 				teamInfoService.addTeamInfo(teamInfo);
+			} else if (name.matches(STAGE_GROUP_REGEX)) {
+				StageGroup stageGroup = readFile(zis, StageGroup.class);
+				stageGroupRepository.save(stageGroup);
 			} else if (name.matches(STAGE_PARAM_REGEX)) {
-				StageParam stageParam = readFile(zis, StageParam.class);
-				stageParamService.updateOrCreateStageParam(stageParam);
+				stageParams.add(readFile(zis, StageParam.class));
 			} else if (name.matches(RESPONSE_FILE_PARAM_REGEX)) {
 				var dir = FilenameUtils.getPath(name);
 				responseFileParams.put(dir, readFile(zis, ResponseFileParam.class));
@@ -158,6 +181,11 @@ public class SharingService {
 			}
 			zipEntry = zis.getNextEntry();
 		}
+
+		for (var stageParam : stageParams) {
+			stageParamService.updateOrCreateStageParam(stageParam);
+		}
+
 		zis.closeEntry();
 		zis.close();
 	}
