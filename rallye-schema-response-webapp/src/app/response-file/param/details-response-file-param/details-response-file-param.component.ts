@@ -12,6 +12,7 @@ import { ResponseFileParamService } from '../response-file-param.service';
 })
 export class DetailsResponseFileParamComponent implements OnInit {
   @Input() paramUrl: string;
+  @Input() stageName: string;
   @Output() deleteEvent = new EventEmitter();
 
   param: ResponseFileParam;
@@ -27,16 +28,20 @@ export class DetailsResponseFileParamComponent implements OnInit {
     this.param = null;
     this.responseFileParamService.getResponseFileParamByResource(this.paramUrl).subscribe((param) => {
       this.param = param;
-      this.modelUrl = param._links.responseFileModel.href;
+      this.modelUrl = param._links?.responseFileModel?.href ?? '';
     });
   }
 
   openModifyResponseFileParam() {
-    const modalRef = this.dialogService.open(ModifyResponseFileParamComponent);
-    modalRef.componentInstance.param = this.param;
+    const modalRef = this.dialogService.open(ModifyResponseFileParamComponent, {
+      data: {
+        stageName: this.stageName,
+        param: this.param
+      }
+    });
     modalRef.result.then((result) => {
       if (!result) { return; }
-      this.responseFileParamService.updateResponseFileParam(result as ResponseFileParam).subscribe(data => {
+      this.responseFileParamService.updateResponseFileParam(result as FormData).subscribe(data => {
         this.param = data;
       }, () => {
         // keep current param on error

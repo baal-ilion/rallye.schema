@@ -18,17 +18,20 @@ import { PerformancePointParams, QuestionParams, QuestionPointParams, StageParam
 import { StageGroup } from '../models/stage-group';
 import { StageParamService } from '../stage-param.service';
 
+type PerfPointAllocation = 'SCORE' | 'DATE' | 'RANK';
+type PartialQuestionParam = { name: string; type?: QuestionType };
+
 @Component({
   selector: 'app-modify-stage-param',
   templateUrl: './modify-stage-param.component.html',
   styleUrls: ['./modify-stage-param.component.scss']
 })
 export class ModifyStageParamComponent implements OnInit {
-  stageParam: StageParam;
+  stageParam!: StageParam;
   stageParams: StageParam[] = [];
   stageGroups: StageGroup[] = [];
 
-  perfPointAllocationType = {
+  perfPointAllocationType: Record<PerformanceRangeType, PerfPointAllocation> = {
     VALUE: 'SCORE',
     BEGIN_UP_RANK: 'DATE',
     BEGIN_DOWN_RANK: 'DATE',
@@ -38,13 +41,13 @@ export class ModifyStageParamComponent implements OnInit {
     PERF_DOWN_RANK: 'RANK'
   };
 
-  perfPointDefaultRangeType = {
+  perfPointDefaultRangeType: Record<PerfPointAllocation, PerformanceRangeType> = {
     SCORE: PerformanceRangeType.VALUE,
     DATE: PerformanceRangeType.BEGIN_UP_RANK,
     RANK: PerformanceRangeType.PERF_UP_RANK,
   };
 
-  stageParamForm: UntypedFormGroup;
+  stageParamForm!: UntypedFormGroup;
   responseFileParamUrls: string[] = [];
   removedQuestionParams: string[] = [];
   questionParamNames: string[] = [];
@@ -75,7 +78,6 @@ export class ModifyStageParamComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.stageParam = null;
     this.questionParamName = '';
     this.removedQuestionParams = [];
     this.questionParamNames = [];
@@ -109,6 +111,10 @@ export class ModifyStageParamComponent implements OnInit {
     });
 
     const id = this.route.snapshot.paramMap.get('id');
+    if (!id) {
+      this.router.navigateByUrl('/listStageParam');
+      return;
+    }
     this.stageParamService.findById(id).subscribe(stageParam => {
       this.stageParam = stageParam;
       this.questionParamName = '';
@@ -138,7 +144,6 @@ export class ModifyStageParamComponent implements OnInit {
         }
       }
     }, error => {
-      this.stageParam = null;
       this.questionParamName = '';
       this.removedQuestionParams = [];
       this.questionParamNames = [];
@@ -193,28 +198,31 @@ export class ModifyStageParamComponent implements OnInit {
     if (questionParam.type === QuestionType.QUESTION || questionParam.type === QuestionType.PERFORMANCE) {
       this.questionParams.push(this.formBuilder.group({
         name: questionParam.name,
-        type: questionParam.type,
-        staff: questionParam.staff
+        type: questionParam.type
       }));
       this.questionParamNames.push(questionParam.name);
     }
   }
 
   addResponseFileParam() {
-    const modalRef: AppDialogRef<ModifyResponseFileParamComponent> = this.dialogService.open(ModifyResponseFileParamComponent);
-    modalRef.componentInstance.param = {
+    const initialParam = {
       stage: this.stageParam.stage,
       page: 1,
       template: '',
       height: 0,
       width: 0,
-      questions: {} as any,
-      _links: {} as any
+      questions: {} as any
     } as ResponseFileParam;
+    const modalRef: AppDialogRef<ModifyResponseFileParamComponent, FormData> = this.dialogService.open(ModifyResponseFileParamComponent, {
+      data: {
+        stageName: this.stageParam.name,
+        param: initialParam
+      }
+    });
     modalRef.result.then((result) => {
       console.log(result);
       if (!result) { return; }
-      this.responseFileParamService.createResponseFileParam(result as ResponseFileParam).subscribe(() => {
+      this.responseFileParamService.createResponseFileParam(result as FormData).subscribe(() => {
         this.ngOnInit();
       }, err => {
         console.log(err);
@@ -229,8 +237,7 @@ export class ModifyStageParamComponent implements OnInit {
     if (!this.questionParamNames.includes(paramName) || this.removedQuestionParams.includes(paramName)) {
       this.questionParams.push(this.formBuilder.group({
         name: paramName,
-        type: QuestionType.QUESTION,
-        staff: false
+        type: QuestionType.QUESTION
       }));
       const index = this.removedQuestionParams.indexOf(paramName, 0);
       if (index > -1) {
@@ -253,6 +260,10 @@ export class ModifyStageParamComponent implements OnInit {
   }
 
   deleteStageParam() {
+    const stageParamId = this.stageParam.id;
+    if (!stageParamId) {
+      return;
+    }
     this.confirmationDialogService.confirm(
       'Suppresion d\'une épreuve',
       'Supprimer l\'épreuve ' + this.stageParam.stage + '\u00A0?',
@@ -260,7 +271,7 @@ export class ModifyStageParamComponent implements OnInit {
       .then((confirmed) => {
         console.log('User confirmed:', confirmed);
         if (confirmed) {
-          this.stageParamService.deleteStageParam(this.stageParam.id).subscribe(() => {
+          this.stageParamService.deleteStageParam(stageParamId).subscribe(() => {
             this.router.navigateByUrl('/listStageParam');
           });
         }
@@ -270,7 +281,7 @@ export class ModifyStageParamComponent implements OnInit {
       });
   }
 
-  onDeleteResponseFileParam(event) {
+  onDeleteResponseFileParam(event: unknown) {
     console.log('onDeleteResponseFileParam');
     console.log(event);
     this.ngOnInit();
@@ -356,25 +367,26 @@ export class ModifyStageParamComponent implements OnInit {
       if (!question) {
         modifiedQuestionParams[item.name] = item;
       } else {
-        if (item.type !== question.type || item.staff !== question.staff) {
-          modifiedQuestionParams[item.name] = { name: item.name, type: undefined, staff: undefined };
+        if (item.type !== question.type) {
+          const patch: PartialQuestionParam = { name: item.name };
           if (item.type !== question.type) {
-            modifiedQuestionParams[item.name].type = item.type;
+            patch.type = item.type;
           }
-          if (item.staff !== question.staff) {
-            modifiedQuestionParams[item.name].staff = item.staff;
-          }
+          modifiedQuestionParams[item.name] = patch as QuestionParam;
         }
       }
     });
     this.removedQuestionParams.forEach((removed) => {
-      modifiedQuestionParams[removed] = { name: removed, type: undefined, staff: undefined };
+      const patch: PartialQuestionParam = { name: removed };
+      modifiedQuestionParams[removed] = patch as QuestionParam;
     });
     return modifiedQuestionParams;
   }
 
   onPerfPointAllocationType(value: string, range: UntypedFormGroup) {
-    if (this.perfPointAllocationType[range.value.type] !== value) {
+    const currentType = range.value.type as PerformanceRangeType | undefined;
+    const currentAllocation = currentType ? this.perfPointAllocationType[currentType] : undefined;
+    if (this.isPerfPointAllocation(value) && currentAllocation !== value) {
       range.patchValue({ type: this.perfPointDefaultRangeType[value] });
     }
   }
@@ -394,14 +406,21 @@ export class ModifyStageParamComponent implements OnInit {
   }
 
   onClickDetailPoint(range: UntypedFormGroup) {
-    const modalRef: AppDialogRef<ModifyPerformanceRangePointParamComponent> = this.dialogService.open(ModifyPerformanceRangePointParamComponent, { size: 'xl' });
+    const modalRef: AppDialogRef<ModifyPerformanceRangePointParamComponent, PerformanceRangePointParam> = this.dialogService.open(ModifyPerformanceRangePointParamComponent, { size: 'xl' });
     modalRef.componentInstance.range = range.value as PerformanceRangePointParam;
-    modalRef.result.then((result: PerformanceRangePointParam) => {
+    modalRef.result.then((result) => {
+      if (!result) {
+        return;
+      }
       console.log(result);
       range.patchValue({ point: result.point, expression: result.expression });
     }).catch((error) => {
       console.log(error);
     });
+  }
+
+  private isPerfPointAllocation(value: string): value is PerfPointAllocation {
+    return value === 'SCORE' || value === 'DATE' || value === 'RANK';
   }
 
   private uniqueStageValidator(control: AbstractControl) {

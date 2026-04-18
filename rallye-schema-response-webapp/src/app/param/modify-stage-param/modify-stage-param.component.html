@@ -44,7 +44,7 @@
         <div class="row" *ngIf="responseFileParamUrls">
           <div *ngFor="let responseFileParamUrl of responseFileParamUrls" class="col-12">
             <div class="panel-body">
-              <app-details-response-file-param [paramUrl]="responseFileParamUrl"
+              <app-details-response-file-param [paramUrl]="responseFileParamUrl" [stageName]="stageParam?.name"
                 (deleteEvent)="onDeleteResponseFileParam($event)">
               </app-details-response-file-param>
             </div>
@@ -74,12 +74,6 @@
               " class="col-6 col-lg-3 col-sm-6 col-md-4">
             <div [formGroup]="questionParam" class="row">
               <label class="col align-self-center">{{questionParam.value.name}}</label>
-              <div class="col-auto d-flex align-items-center">
-                <label for="staff">Staff </label>
-                <app-toggle-switch formControlName="staff" id="staff"
-                  style="-webkit-transform: translateY(-20%); -ms-transform: translateY(-20%); transform: translateY(-20%);">
-                </app-toggle-switch>
-              </div>
               <select class="form-group custom-select" formControlName="type">
                 <option value="QUESTION">Question</option>
                 <option value="PERFORMANCE">Performance</option>

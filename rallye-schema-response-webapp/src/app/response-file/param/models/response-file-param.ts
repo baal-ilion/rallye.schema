@@ -14,5 +14,5 @@ export interface ResponseFileParam {
   height: number;
   width: number;
   questions: { [name: string]: QuestionPageParam };
-  _links: ResponseFileParamLinks;
+  _links?: ResponseFileParamLinks;
 }

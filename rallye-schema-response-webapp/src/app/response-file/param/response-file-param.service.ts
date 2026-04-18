@@ -24,11 +24,11 @@ export class ResponseFileParamService {
     }
   }
 
-  createResponseFileParam(param: ResponseFileParam): Observable<ResponseFileParam> {
+  createResponseFileParam(param: FormData): Observable<ResponseFileParam> {
     return this.http.post<ResponseFileParam>(AppConfigService.settings.apiUrl.rallyeSchema + '/responseFileParams', param);
   }
 
-  updateResponseFileParam(param: ResponseFileParam): Observable<ResponseFileParam> {
+  updateResponseFileParam(param: FormData): Observable<ResponseFileParam> {
     return this.http.put<ResponseFileParam>(AppConfigService.settings.apiUrl.rallyeSchema + '/responseFileParams', param);
   }
 
