@@ -18,7 +18,6 @@ import java.util.zip.ZipOutputStream;
 import com.mongodb.DBRef;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.MongoIterable;
 import org.bson.Document;
 import org.bson.json.JsonMode;
 import org.bson.json.JsonWriterSettings;
@@ -69,21 +68,15 @@ public class DatabaseMaintenanceService {
 
     public void restoreFromBackup(MultipartFile file) throws IOException {
         MongoDatabase database = mongoTemplate.getDb();
-        Set<String> existingCollections = toSet(database.listCollectionNames());
-        Set<String> restoredCollections = new HashSet<>();
+        dropExistingCollections(database);
 
         try (ZipInputStream zis = new ZipInputStream(file.getInputStream(), StandardCharsets.UTF_8)) {
             ZipEntry entry = zis.getNextEntry();
             while (entry != null) {
                 if (!entry.isDirectory() && entry.getName().endsWith(COLLECTION_FILE_EXTENSION)) {
                     String collectionName = stripExtension(entry.getName());
-                    restoredCollections.add(collectionName);
                     log.info(() -> "Restore collection " + collectionName);
-                    boolean alreadyExists = existingCollections.contains(collectionName);
                     MongoCollection<Document> collection = database.getCollection(collectionName);
-                    if (alreadyExists) {
-                        collection.deleteMany(new Document());
-                    }
                     importCollection(collectionName, collection, zis);
                 } else if (!entry.isDirectory() && entry.getName().startsWith(FILES_PREFIX)) {
                     processBinaryEntry(database, entry.getName(), zis);
@@ -92,17 +85,24 @@ public class DatabaseMaintenanceService {
                 entry = zis.getNextEntry();
             }
         }
-        cleanRemainingCollections(database, restoredCollections);
     }
 
     public void eraseDatabase() {
         MongoDatabase database = mongoTemplate.getDb();
+        dropExistingCollections(database);
+    }
+
+    private void dropExistingCollections(MongoDatabase database) {
+        List<String> collectionsToDrop = new ArrayList<>();
         for (String collectionName : database.listCollectionNames()) {
             if (shouldSkipCollection(collectionName)) {
                 continue;
             }
-            log.info(() -> "Erase collection " + collectionName);
-            database.getCollection(collectionName).deleteMany(new Document());
+            collectionsToDrop.add(collectionName);
+        }
+        for (String collectionName : collectionsToDrop) {
+            log.info(() -> "Drop collection " + collectionName);
+            database.getCollection(collectionName).drop();
         }
     }
 
@@ -406,21 +406,4 @@ public class DatabaseMaintenanceService {
         return fileName;
     }
 
-    private Set<String> toSet(MongoIterable<String> iterable) {
-        Set<String> set = new HashSet<>();
-        for (String value : iterable) {
-            set.add(value);
-        }
-        return set;
-    }
-
-    private void cleanRemainingCollections(MongoDatabase database, Set<String> restoredCollections) {
-        for (String collectionName : database.listCollectionNames()) {
-            if (shouldSkipCollection(collectionName) || restoredCollections.contains(collectionName)) {
-                continue;
-            }
-            log.info(() -> "Cleaning leftover collection " + collectionName);
-            database.getCollection(collectionName).deleteMany(new Document());
-        }
-    }
 }

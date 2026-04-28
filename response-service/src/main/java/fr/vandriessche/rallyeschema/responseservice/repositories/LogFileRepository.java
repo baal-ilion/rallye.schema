@@ -16,5 +16,7 @@ public interface LogFileRepository extends MongoRepository<LogFile, String> {
 
 	List<TeamOnly> findBySource(String source);
 
+	List<LogFile> findByTeam(Integer team);
+
 	Optional<LogFile> findBySourceAndTeam(String source, Integer team);
 }

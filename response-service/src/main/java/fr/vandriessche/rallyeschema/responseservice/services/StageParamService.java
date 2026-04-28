@@ -18,10 +18,21 @@ import fr.vandriessche.rallyeschema.responseservice.entities.PerformancePointPar
 import fr.vandriessche.rallyeschema.responseservice.entities.QuestionParam;
 import fr.vandriessche.rallyeschema.responseservice.entities.QuestionPointParam;
 import fr.vandriessche.rallyeschema.responseservice.entities.QuestionType;
+import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileInfo;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileParam;
+import fr.vandriessche.rallyeschema.responseservice.entities.StagePoint;
 import fr.vandriessche.rallyeschema.responseservice.entities.StageParam;
+import fr.vandriessche.rallyeschema.responseservice.entities.StageResponse;
+import fr.vandriessche.rallyeschema.responseservice.entities.StageResult;
+import fr.vandriessche.rallyeschema.responseservice.entities.TeamPoint;
+import fr.vandriessche.rallyeschema.responseservice.repositories.ResponseFileInfoRepository;
+import fr.vandriessche.rallyeschema.responseservice.repositories.ResponseFileParamRepository;
 import fr.vandriessche.rallyeschema.responseservice.repositories.StageGroupRepository;
 import fr.vandriessche.rallyeschema.responseservice.repositories.StageParamRepository;
+import fr.vandriessche.rallyeschema.responseservice.repositories.StageRankingRepository;
+import fr.vandriessche.rallyeschema.responseservice.repositories.StageResponseRepository;
+import fr.vandriessche.rallyeschema.responseservice.repositories.StageResultRepository;
+import fr.vandriessche.rallyeschema.responseservice.repositories.TeamPointRepository;
 import lombok.extern.java.Log;
 
 @Service
@@ -32,6 +43,24 @@ public class StageParamService {
 
 	@Autowired
 	private StageGroupRepository stageGroupRepository;
+
+	@Autowired
+	private ResponseFileParamRepository responseFileParamRepository;
+
+	@Autowired
+	private ResponseFileInfoRepository responseFileInfoRepository;
+
+	@Autowired
+	private StageResponseRepository stageResponseRepository;
+
+	@Autowired
+	private StageResultRepository stageResultRepository;
+
+	@Autowired
+	private StageRankingRepository stageRankingRepository;
+
+	@Autowired
+	private TeamPointRepository teamPointRepository;
 
 	@Autowired
 	private ResponseFileParamService responseFileParamService;
@@ -273,12 +302,94 @@ public class StageParamService {
 	}
 
 	private StageParam updateStageParam(StageParam stageParamToUpdate, StageParam stageParam) {
+		Integer previousStage = stageParamToUpdate.getStage();
+		Integer nextStage = stageParam.getStage();
+		boolean stageChanged = Objects.nonNull(nextStage) && !nextStage.equals(previousStage);
+		if (stageChanged) {
+			ensureTargetStageHasNoDependentData(nextStage);
+		}
 		updateStageParamData(stageParamToUpdate, stageParam);
 		updateQuestionParams(stageParamToUpdate, stageParam.getQuestionParams().values());
 		updateQuestionPointParams(stageParamToUpdate, stageParam.getQuestionPointParams().values());
 		updatePerformancePointParams(stageParamToUpdate, stageParam.getPerformancePointParams().values());
 		stageParamToUpdate = stageParamRepository.save(stageParamToUpdate);
+		if (stageChanged) {
+			migrateStageNumber(stageParamToUpdate, previousStage, nextStage);
+		}
 		return stageParamToUpdate;
+	}
+
+	private void ensureTargetStageHasNoDependentData(Integer nextStage) {
+		if (!responseFileParamRepository.findByStage(nextStage).isEmpty()
+				|| !responseFileInfoRepository.findByStage(nextStage).isEmpty()
+				|| !stageResponseRepository.findByStage(nextStage).isEmpty()
+				|| !stageResultRepository.findByStage(nextStage).isEmpty()
+				|| stageRankingRepository.findByStage(nextStage).isPresent()
+				|| teamPointRepository.findAll().stream()
+						.anyMatch(teamPoint -> teamPoint.getStagePoints().containsKey(nextStage))) {
+			throw new IllegalArgumentException(
+					"Le num\u00e9ro d'\u00e9preuve " + nextStage + " est d\u00e9j\u00e0 utilis\u00e9 par des donn\u00e9es li\u00e9es.");
+		}
+	}
+
+	private void migrateStageNumber(StageParam stageParamToUpdate, Integer previousStage, Integer nextStage) {
+		if (Objects.isNull(previousStage) || Objects.isNull(nextStage) || previousStage.equals(nextStage)) {
+			return;
+		}
+
+		stageParamToUpdate.getResponseFileParams().forEach(responseFileParam -> responseFileParam.setStage(nextStage));
+		migrateResponseFileParams(previousStage, nextStage);
+		migrateResponseFileInfos(previousStage, nextStage);
+		migrateStageResponses(previousStage, nextStage);
+		migrateStageResults(previousStage, nextStage);
+		migrateStageRanking(previousStage, nextStage);
+		migrateTeamPoints(previousStage, nextStage);
+	}
+
+	private void migrateResponseFileParams(Integer previousStage, Integer nextStage) {
+		for (ResponseFileParam responseFileParam : responseFileParamRepository.findByStage(previousStage)) {
+			responseFileParam.setStage(nextStage);
+			responseFileParamRepository.save(responseFileParam);
+		}
+	}
+
+	private void migrateResponseFileInfos(Integer previousStage, Integer nextStage) {
+		for (ResponseFileInfo responseFileInfo : responseFileInfoRepository.findByStage(previousStage)) {
+			responseFileInfo.setStage(nextStage);
+			responseFileInfoRepository.save(responseFileInfo);
+		}
+	}
+
+	private void migrateStageResponses(Integer previousStage, Integer nextStage) {
+		for (StageResponse stageResponse : stageResponseRepository.findByStage(previousStage)) {
+			stageResponse.setStage(nextStage);
+			stageResponseRepository.save(stageResponse);
+		}
+	}
+
+	private void migrateStageResults(Integer previousStage, Integer nextStage) {
+		for (StageResult stageResult : stageResultRepository.findByStage(previousStage)) {
+			stageResult.setStage(nextStage);
+			stageResultRepository.save(stageResult);
+		}
+	}
+
+	private void migrateStageRanking(Integer previousStage, Integer nextStage) {
+		stageRankingRepository.findByStage(previousStage).ifPresent(stageRanking -> {
+			stageRanking.setStage(nextStage);
+			stageRankingRepository.save(stageRanking);
+		});
+	}
+
+	private void migrateTeamPoints(Integer previousStage, Integer nextStage) {
+		for (TeamPoint teamPoint : teamPointRepository.findAll()) {
+			StagePoint stagePoint = teamPoint.getStagePoints().remove(previousStage);
+			if (Objects.nonNull(stagePoint)) {
+				stagePoint.setStage(nextStage);
+				teamPoint.getStagePoints().put(nextStage, stagePoint);
+				teamPointRepository.save(teamPoint);
+			}
+		}
 	}
 
 	private void updateStageParamData(StageParam stageParamToUpdate, StageParam stageParam) {
@@ -289,7 +400,7 @@ public class StageParamService {
                     .filter(existing -> !existing.getId().equals(stageParamToUpdate.getId()))
                     .ifPresent(existing -> {
                         throw new IllegalArgumentException(
-                                "Le numero d'epreuve " + stageParam.getStage() + " est deja utilise.");
+                                "Le num\u00e9ro d'\u00e9preuve " + stageParam.getStage() + " est d\u00e9j\u00e0 utilis\u00e9.");
                     });
             stageParamToUpdate.setStage(stageParam.getStage());
         }
@@ -305,12 +416,12 @@ public class StageParamService {
         } else if (stageParam.getGroup().getId() != null) {
             var group = stageGroupRepository.findById(stageParam.getGroup().getId())
                     .orElseThrow(() -> new IllegalArgumentException(
-                            "Groupe d'epreuves introuvable (id=" + stageParam.getGroup().getId() + ")."));
+                            "Groupe d'\u00e9preuves introuvable (id=" + stageParam.getGroup().getId() + ")."));
             stageParamToUpdate.setGroup(group);
         } else if (stageParam.getGroup().getName() != null) {
             var group = stageGroupRepository.findByName(stageParam.getGroup().getName())
                     .orElseThrow(() -> new IllegalArgumentException(
-                            "Groupe d'epreuves introuvable (nom=" + stageParam.getGroup().getName() + ")."));
+                            "Groupe d'\u00e9preuves introuvable (nom=" + stageParam.getGroup().getName() + ")."));
             stageParamToUpdate.setGroup(group);
         } else {
             stageParamToUpdate.setGroup(null);
