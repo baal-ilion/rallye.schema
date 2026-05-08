@@ -61,9 +61,8 @@ public class ResponseFileParamService {
 			responseFileParam = new ResponseFileParam();
 		if (Objects.nonNull(responseFileParam.getId()))
 			responseFileParamRepository.findById(responseFileParam.getId()).orElseThrow();
-		// else if (getResponseFileParamByStageAndPage(responseFileParam.getStage(),
-		// responseFileParam.getPage()).isPresent())
 
+		validateUniqueStageAndPage(responseFileParam);
 		fillResponseFileParam(responseFileParam);
 		ResponseFileModel responseFileModel = Objects.nonNull(fileModel) ? makeResponseFileModel(fileModel, null)
 				: model;
@@ -167,6 +166,18 @@ public class ResponseFileParamService {
 		BufferedImage image = ImageIO.read(new ByteArrayInputStream(responseFileModel.getFile().getData()));
 		responseFileParam.setHeight(image.getHeight());
 		responseFileParam.setWidth(image.getWidth());
+	}
+
+	private void validateUniqueStageAndPage(ResponseFileParam responseFileParam) {
+		if (Objects.isNull(responseFileParam.getStage()) || Objects.isNull(responseFileParam.getPage())) {
+			return;
+		}
+		getResponseFileParamByStageAndPage(responseFileParam.getStage(), responseFileParam.getPage())
+				.filter(existing -> !Objects.equals(existing.getId(), responseFileParam.getId()))
+				.ifPresent(existing -> {
+					throw new IllegalArgumentException("Un modèle de formulaire existe déjà pour l'épreuve "
+							+ responseFileParam.getStage() + ", page " + responseFileParam.getPage() + ".");
+				});
 	}
 
 	private QuestionType getTypeByName(String name, QuestionType defaultType) {

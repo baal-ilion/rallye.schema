@@ -1,6 +1,7 @@
 package fr.vandriessche.rallyeschema.responseservice.services;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -18,6 +19,8 @@ import org.springframework.stereotype.Service;
 
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFile;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileInfo;
+import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileModel;
+import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileParam;
 import fr.vandriessche.rallyeschema.responseservice.entities.StageParam;
 import fr.vandriessche.rallyeschema.responseservice.entities.StagePoint;
 import fr.vandriessche.rallyeschema.responseservice.entities.StageResult;
@@ -46,6 +49,7 @@ public class DatabaseConsistencyService {
     private static final String ISSUE_ORPHAN_RESPONSE_FILE_INFO = "RESPONSE_FILE_INFO_ORPHAN_TEAM";
     private static final String ISSUE_RESPONSE_FILE_MISSING_INFO = "RESPONSE_FILE_MISSING_INFO";
     private static final String ISSUE_RESPONSE_FILE_MISSING_FILE = "RESPONSE_FILE_MISSING_FILE";
+    private static final String ISSUE_DUP_RESPONSE_FILE_PARAM = "RESPONSE_FILE_PARAM_DUP_STAGE_PAGE";
 
     @Autowired
     private MongoTemplate mongoTemplate;
@@ -65,6 +69,7 @@ public class DatabaseConsistencyService {
 
         addDuplicates(issues, ISSUE_DUP_TEAM_NUMBER, "Équipes avec le même numéro", teamsByNumber);
         addDuplicates(issues, ISSUE_DUP_TEAM_NAME, "Équipes avec le même nom", teamsByName);
+        addResponseFileParamDuplicates(issues);
 
         addOrphans(issues, ISSUE_ORPHAN_STAGE_RESULT, "Scores sans équipe associée",
                 mongoTemplate.find(Query.query(new Criteria().orOperator(
@@ -178,7 +183,8 @@ public class DatabaseConsistencyService {
                 ISSUE_TEAM_POINT_ORPHAN_STAGE,
                 ISSUE_ORPHAN_RESPONSE_FILE_INFO,
                 ISSUE_RESPONSE_FILE_MISSING_INFO,
-                ISSUE_RESPONSE_FILE_MISSING_FILE
+                ISSUE_RESPONSE_FILE_MISSING_FILE,
+                ISSUE_DUP_RESPONSE_FILE_PARAM
         ));
     }
 
@@ -228,6 +234,9 @@ public class DatabaseConsistencyService {
                 case ISSUE_RESPONSE_FILE_MISSING_FILE:
                     fixed += deleteByIds(mongoTemplate.getCollectionName(ResponseFile.class), issue.getIds());
                     break;
+                case ISSUE_DUP_RESPONSE_FILE_PARAM:
+                    fixed += deduplicateResponseFileParamsByStageAndPage();
+                    break;
                 default:
                     break;
             }
@@ -250,6 +259,22 @@ public class DatabaseConsistencyService {
         }
     }
 
+    private void addResponseFileParamDuplicates(List<ConsistencyIssue> issues) {
+        Map<String, List<ResponseFileParam>> grouped = mongoTemplate.findAll(ResponseFileParam.class).stream()
+                .filter(param -> param.getStage() != null && param.getPage() != null)
+                .collect(Collectors.groupingBy(this::responseFileParamKey));
+        List<String> duplicateIds = grouped.values().stream()
+                .filter(list -> list.size() > 1)
+                .flatMap(List::stream)
+                .map(ResponseFileParam::getId)
+                .collect(Collectors.toList());
+        if (!duplicateIds.isEmpty()) {
+            issues.add(new ConsistencyIssue(ISSUE_DUP_RESPONSE_FILE_PARAM,
+                    "Modèles de formulaire en doublon pour la même épreuve/page", duplicateIds.size(), duplicateIds,
+                    true, sampleResponseFileParamDuplicates(grouped)));
+        }
+    }
+
     private void addOrphans(List<ConsistencyIssue> issues, String code, String description, List<String> ids) {
         if (!ids.isEmpty()) {
             issues.add(new ConsistencyIssue(code, description, ids.size(), ids, true, sampleIds(ids)));
@@ -264,6 +289,23 @@ public class DatabaseConsistencyService {
         List<String> sample = ids.subList(0, limit);
         String suffix = ids.size() > limit ? " …" : "";
         return "Exemples : " + String.join(", ", sample) + suffix;
+    }
+
+    private String sampleResponseFileParamDuplicates(Map<String, List<ResponseFileParam>> grouped) {
+        List<String> samples = grouped.values().stream()
+                .filter(list -> list.size() > 1)
+                .limit(5)
+                .map(list -> {
+                    ResponseFileParam first = list.get(0);
+                    String ids = list.stream().map(ResponseFileParam::getId).collect(Collectors.joining(", "));
+                    return "épreuve " + first.getStage() + " page " + first.getPage() + " : " + ids;
+                })
+                .collect(Collectors.toList());
+        return "Exemples : " + String.join(" ; ", samples);
+    }
+
+    private String responseFileParamKey(ResponseFileParam responseFileParam) {
+        return responseFileParam.getStage() + "/" + responseFileParam.getPage();
     }
 
     private long deduplicateTeamsByKey(java.util.function.Function<TeamInfo, ?> keyExtractor) {
@@ -281,6 +323,61 @@ public class DatabaseConsistencyService {
             deleted += deleteByIds(mongoTemplate.getCollectionName(TeamInfo.class), toDelete);
         }
         return deleted;
+    }
+
+    private long deduplicateResponseFileParamsByStageAndPage() {
+        Map<String, List<ResponseFileParam>> grouped = mongoTemplate.findAll(ResponseFileParam.class).stream()
+                .filter(param -> param.getStage() != null && param.getPage() != null)
+                .collect(Collectors.groupingBy(this::responseFileParamKey));
+        long deleted = 0;
+        for (List<ResponseFileParam> list : grouped.values()) {
+            if (list.size() <= 1) {
+                continue;
+            }
+            ResponseFileParam kept = selectResponseFileParamToKeep(list);
+            List<String> toDelete = list.stream()
+                    .map(ResponseFileParam::getId)
+                    .filter(id -> !Objects.equals(id, kept.getId()))
+                    .collect(Collectors.toList());
+            deleted += deleteByIds(mongoTemplate.getCollectionName(ResponseFileParam.class), toDelete);
+            deleteByIds(mongoTemplate.getCollectionName(ResponseFileModel.class), toDelete);
+            attachResponseFileParamToStage(kept);
+        }
+        return deleted;
+    }
+
+    private ResponseFileParam selectResponseFileParamToKeep(List<ResponseFileParam> duplicates) {
+        ResponseFileParam first = duplicates.get(0);
+        StageParam stageParam = mongoTemplate.findOne(Query.query(Criteria.where("stage").is(first.getStage())),
+                StageParam.class);
+        if (stageParam != null && stageParam.getResponseFileParams() != null) {
+            for (ResponseFileParam referenced : stageParam.getResponseFileParams()) {
+                if (!Objects.equals(referenced.getPage(), first.getPage())) {
+                    continue;
+                }
+                for (ResponseFileParam duplicate : duplicates) {
+                    if (Objects.equals(duplicate.getId(), referenced.getId())) {
+                        return duplicate;
+                    }
+                }
+            }
+        }
+        return duplicates.stream()
+                .min(Comparator.comparing(ResponseFileParam::getId, Comparator.nullsLast(String::compareTo)))
+                .orElse(first);
+    }
+
+    private void attachResponseFileParamToStage(ResponseFileParam kept) {
+        StageParam stageParam = mongoTemplate.findOne(Query.query(Criteria.where("stage").is(kept.getStage())),
+                StageParam.class);
+        if (stageParam == null || stageParam.getResponseFileParams() == null) {
+            return;
+        }
+        stageParam.getResponseFileParams().removeIf(param -> Objects.equals(param.getPage(), kept.getPage()));
+        stageParam.getResponseFileParams().add(kept);
+        stageParam.getResponseFileParams()
+                .sort(Comparator.comparing(ResponseFileParam::getPage, Comparator.nullsLast(Integer::compareTo)));
+        mongoTemplate.save(stageParam);
     }
 
     private long deleteByIds(String collectionName, List<String> ids) {
