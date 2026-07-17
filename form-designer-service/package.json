@@ -1,0 +1,32 @@
+{
+  "name": "rallye-schema-form-designer-service",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "ng serve --port 4300",
+    "build": "ng build",
+    "build:production": "ng build --configuration=production",
+    "typecheck": "ngc -p tsconfig.app.json"
+  },
+  "dependencies": {
+    "@angular/animations": "^18.2.14",
+    "@angular/cdk": "^18.2.14",
+    "@angular/common": "^18.2.14",
+    "@angular/compiler": "^18.2.14",
+    "@angular/core": "^18.2.14",
+    "@angular/forms": "^18.2.14",
+    "@angular/platform-browser": "^18.2.14",
+    "@angular/platform-browser-dynamic": "^18.2.14",
+    "bootstrap": "^5.3.3",
+    "rxjs": "^7.8.1",
+    "tslib": "^2.6.2",
+    "xlsx": "^0.16.4",
+    "zone.js": "~0.14.10"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^18.2.21",
+    "@angular/cli": "^18.2.21",
+    "@angular/compiler-cli": "^18.2.14",
+    "typescript": "~5.4.5"
+  }
+}

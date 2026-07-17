@@ -1,0 +1,96 @@
+<div class="designer container-fluid">
+  <header class="designer-toolbar card">
+    <div class="card-body row align-items-end">
+      <div class="form-group col-md-2">
+        <label for="stage">N° d'épreuve</label>
+        <input id="stage" class="form-control" type="number" min="1" max="99" [(ngModel)]="stage">
+      </div>
+      <div class="form-group col-md-4">
+        <label for="stageName">Nom de l'épreuve</label>
+        <input id="stageName" class="form-control" [(ngModel)]="stageName">
+      </div>
+      <div class="form-group col-md-3">
+        <label for="rallyTitle">Intitulé du Rallye</label>
+        <input id="rallyTitle" class="form-control" [ngModel]="rallyTitle"
+          (ngModelChange)="updateRallyTitle($event)">
+      </div>
+      <div class="form-group col-md-3">
+        <label for="workbook">Fichier de réponses et barème</label>
+        <input id="workbook" class="form-control-file" type="file" accept=".xlsx,.xls"
+          (change)="importWorkbook($any($event.target).files)">
+      </div>
+      <div class="col-md-3 actions">
+        <button class="btn btn-outline-primary" type="button" (click)="addSection()">Ajouter une section</button>
+        <button class="btn btn-outline-secondary" type="button" [disabled]="!sections.length"
+          (click)="print(false)">PDF vierge</button>
+        <button class="btn btn-primary" type="button" [disabled]="!sections.length"
+          (click)="print(true)">PDF corrigé</button>
+      </div>
+      <div class="col-12 text-muted" *ngIf="fileName">Source : {{ fileName }}</div>
+      <div class="col-12 text-danger" *ngIf="importError">{{ importError }}</div>
+    </div>
+  </header>
+
+  <div class="workspace" *ngIf="sections.length; else emptyState">
+    <aside class="properties card">
+      <div class="card-header">Mise en page</div>
+      <div class="card-body">
+        <p><b>{{ pages.length }}</b> page(s) A4 calculée(s) automatiquement.</p>
+        <p [class.text-danger]="questionCount !== paginatedQuestionCount">
+          {{ paginatedQuestionCount }} question(s) affichée(s) sur {{ questionCount }} importée(s).
+        </p>
+        <div class="custom-control custom-switch mt-3">
+          <input id="corrected" class="custom-control-input" type="checkbox" [(ngModel)]="correctedPreview">
+          <label class="custom-control-label" for="corrected">Afficher le corrigé</label>
+        </div>
+        <p class="small mt-3">Déplacez les lignes entre les sections. Les identifiants techniques restent uniques.</p>
+      </div>
+    </aside>
+
+    <div class="pages" [style.--question-column-width]="questionColumnWidth">
+    <main class="paper" *ngFor="let currentPage of pages">
+      <div class="corner top-left" aria-hidden="true"></div><div class="corner top-right" aria-hidden="true"></div>
+      <div class="form-header">
+        <h1>{{ stageName }}</h1>
+        <div class="identity">
+          <span>Équipe : <b>__</b></span>
+          <span>Épreuve : <b>{{ stage | number:'2.0-0' }}</b></span>
+          <span>Page : <b>{{ currentPage.number }}/{{ pages.length }}</b></span>
+        </div>
+      </div>
+
+      <div class="page-content">
+      <section class="question-section" *ngFor="let fragment of currentPage.sections">
+        <div class="section-editor" [style.backgroundColor]="fragment.section.color">
+          <input [(ngModel)]="fragment.section.title" aria-label="Titre de section">
+          <span class="continued" *ngIf="fragment.continued">(suite)</span>
+          <input type="color" [(ngModel)]="fragment.section.color" aria-label="Couleur de section">
+          <button type="button" class="btn btn-sm btn-link text-danger" (click)="removeSection(sections.indexOf(fragment.section))">Supprimer</button>
+        </div>
+        <table>
+          <thead [style.backgroundColor]="fragment.section.color"><tr><th>N°</th><th>Réponse</th><th colspan="3">Corrigé</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let question of fragment.questions; trackBy: trackQuestion">
+              <td><input [(ngModel)]="question.number"></td>
+              <td>
+                <input class="answer" [(ngModel)]="question.answer"
+                  [class.hidden-answer]="!correctedPreview && question.points > 0">
+              </td>
+              <td class="check" aria-label="O"></td><td class="check" aria-label="N"></td><td class="check" aria-label="Y"></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <div class="empty-page" *ngIf="!currentPage.sections.length">Importez des questions pour composer le formulaire.</div>
+      </div>
+      <div class="corner bottom-left" aria-hidden="true"></div><div class="corner bottom-right" aria-hidden="true"></div>
+      <footer>{{ rallyTitle }} <span>Page {{ currentPage.number }} sur {{ pages.length }}</span></footer>
+    </main>
+    </div>
+  </div>
+
+  <ng-template #emptyState>
+    <div class="empty-state">Importez un fichier Excel pour commencer la conception du formulaire.</div>
+  </ng-template>
+</div>
