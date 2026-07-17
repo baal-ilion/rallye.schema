@@ -87,8 +87,8 @@ public class DatabaseConsistencyService {
                 )), TeamPoint.class)
                         .stream().map(TeamPoint::getId).collect(Collectors.toList()));
 
-        addOrphans(issues, ISSUE_ORPHAN_RESPONSE_FILE_INFO, "Formulaires non attachés à une équipe",
-                mongoTemplate.find(Query.query(new Criteria().orOperator(
+        addOrphans(issues, ISSUE_ORPHAN_RESPONSE_FILE_INFO, "Formulaires validés non attachés à une équipe",
+                mongoTemplate.find(checkedResponseFileInfoQuery(new Criteria().orOperator(
                         Criteria.where("team").exists(false),
                         Criteria.where("team").is(null),
                         Criteria.where("team").nin(knownTeams)
@@ -116,8 +116,8 @@ public class DatabaseConsistencyService {
                         Criteria.where("team").nin(knownTeams)
                 )), StageResponse.class).stream().map(StageResponse::getId).collect(Collectors.toList()));
 
-        addOrphans(issues, ISSUE_ORPHAN_RESPONSE_FILE_INFO_STAGE, "Formulaires liés à une épreuve inexistante",
-                mongoTemplate.find(Query.query(new Criteria().orOperator(
+        addOrphans(issues, ISSUE_ORPHAN_RESPONSE_FILE_INFO_STAGE, "Formulaires validés liés à une épreuve inexistante",
+                mongoTemplate.find(checkedResponseFileInfoQuery(new Criteria().orOperator(
                         Criteria.where("stage").exists(false),
                         Criteria.where("stage").is(null),
                         Criteria.where("stage").nin(knownStages)
@@ -210,7 +210,7 @@ public class DatabaseConsistencyService {
                     fixed += deleteByIds(mongoTemplate.getCollectionName(TeamPoint.class), issue.getIds());
                     break;
                 case ISSUE_ORPHAN_RESPONSE_FILE_INFO:
-                    fixed += deleteByIds(mongoTemplate.getCollectionName(ResponseFileInfo.class), issue.getIds());
+                    fixed += deleteResponseFileInfosByIds(issue.getIds());
                     break;
                 case ISSUE_ORPHAN_STAGE_RESULT_STAGE:
                     fixed += deleteByIds(mongoTemplate.getCollectionName(StageResult.class), issue.getIds());
@@ -222,7 +222,7 @@ public class DatabaseConsistencyService {
                     fixed += deleteByIds(mongoTemplate.getCollectionName(StageResponse.class), issue.getIds());
                     break;
                 case ISSUE_ORPHAN_RESPONSE_FILE_INFO_STAGE:
-                    fixed += deleteByIds(mongoTemplate.getCollectionName(ResponseFileInfo.class), issue.getIds());
+                    fixed += deleteResponseFileInfosByIds(issue.getIds());
                     break;
                 case ISSUE_ORPHAN_STAGE_RANKING:
                     fixed += deleteByIds(mongoTemplate.getCollectionName(StageRanking.class), issue.getIds());
@@ -378,6 +378,19 @@ public class DatabaseConsistencyService {
         stageParam.getResponseFileParams()
                 .sort(Comparator.comparing(ResponseFileParam::getPage, Comparator.nullsLast(Integer::compareTo)));
         mongoTemplate.save(stageParam);
+    }
+
+    private Query checkedResponseFileInfoQuery(Criteria orphanCriteria) {
+        return Query.query(new Criteria().andOperator(
+                Criteria.where("checked").is(true),
+                orphanCriteria
+        ));
+    }
+
+    private long deleteResponseFileInfosByIds(List<String> ids) {
+        long deletedInfos = deleteByIds(mongoTemplate.getCollectionName(ResponseFileInfo.class), ids);
+        deleteByIds(mongoTemplate.getCollectionName(ResponseFile.class), ids);
+        return deletedInfos;
     }
 
     private long deleteByIds(String collectionName, List<String> ids) {

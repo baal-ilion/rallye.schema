@@ -102,11 +102,11 @@ public class ResponseFileService {
 		}
 		String name = FilenameUtils.getBaseName(file.getOriginalFilename());
 
-		FormTemplate filledForm = makeFormTemplate(image, name, null, null, null);
+		FormTemplate filledForm = makeFormTemplate(image, name, null, null, null, true);
 
 		ResponseFileInfo responseFileInfo = new ResponseFileInfo();
 		fillResponseFileInfo(filledForm, responseFileInfo);
-		filledForm = makeFormTemplate(image, name, responseFileInfo.getStage(), responseFileInfo.getPage(), null);
+		filledForm = makeFormTemplate(image, name, responseFileInfo.getStage(), responseFileInfo.getPage(), null, true);
 		logFormTemplate(filledForm);
 		responseFileInfo.setFilledForm(filledForm);
 
@@ -257,6 +257,11 @@ public class ResponseFileService {
 	}
 
 	private void fillResponseFileInfo(FormTemplate filledForm, ResponseFileInfo responseFileInfo) {
+		fillResponseFileInfo(filledForm, responseFileInfo, true);
+	}
+
+	private void fillResponseFileInfo(FormTemplate filledForm, ResponseFileInfo responseFileInfo,
+			boolean useDefaultStageAndPage) {
 		HashMap<String, FormGroup> groups = filledForm.getGroups();
 		for (var group : groups.values()) {
 			var equipe1 = group.getFields().get(EQUIPE1);
@@ -274,9 +279,9 @@ public class ResponseFileService {
 			if (Objects.nonNull(page))
 				responseFileInfo.setPage(parseInt(page.getValues()));
 		}
-		if (Objects.isNull(responseFileInfo.getStage()))
+		if (useDefaultStageAndPage && Objects.isNull(responseFileInfo.getStage()))
 			responseFileInfo.setStage(1);
-		if (Objects.isNull(responseFileInfo.getPage()))
+		if (useDefaultStageAndPage && Objects.isNull(responseFileInfo.getPage()))
 			responseFileInfo.setPage(1);
 	}
 
@@ -319,7 +324,7 @@ public class ResponseFileService {
 	}
 
 	private FormTemplate makeFormTemplate(BufferedImage image, String name, Integer stage, Integer page,
-			HashMap<Corners, FormPoint> corners)
+			HashMap<Corners, FormPoint> corners, boolean allowPartial)
 			throws ParserConfigurationException, SAXException, IOException, FormScannerException {
 
 		com.albertoborsetta.formscanner.api.FormTemplate formTemplate = responseFileParamService.makeFormTemplate(stage,
@@ -335,7 +340,17 @@ public class ResponseFileService {
 				: formTemplate.getCrop();
 		com.albertoborsetta.formscanner.api.FormTemplate filledForm = new com.albertoborsetta.formscanner.api.FormTemplate(
 				name, formTemplate);
-		filledForm.findCorners(image, threshold, density, cornerType, crop);
+
+		boolean canFindPoints = true;
+		try {
+			filledForm.findCorners(image, threshold, density, cornerType, crop);
+		} catch (FormScannerException e) {
+			if (!allowPartial) {
+				throw e;
+			}
+			log.log(Level.WARNING, "findCorners failed, response file will be saved for manual correction", e);
+			canFindPoints = false;
+		}
 		if (Objects.nonNull(corners)) {
 			for (var entry : corners.entrySet()) {
 				com.albertoborsetta.formscanner.api.FormPoint corner = new com.albertoborsetta.formscanner.api.FormPoint();
@@ -343,19 +358,78 @@ public class ResponseFileService {
 				filledForm.setCorner(entry.getKey(), corner);
 			}
 			filledForm.clearPoints();
+			canFindPoints = true;
 		}
-		filledForm.findPoints(image, threshold, density, shapeSize);
-		filledForm.findAreas(image);
+		if (!hasAllCorners(filledForm)) {
+			setDefaultCorners(filledForm, image);
+			canFindPoints = false;
+		}
+		if (canFindPoints) {
+			try {
+				filledForm.findPoints(image, threshold, density, shapeSize);
+			} catch (FormScannerException e) {
+				if (!allowPartial) {
+					throw e;
+				}
+				log.log(Level.WARNING, "findPoints failed, response file will be saved for manual correction", e);
+				canFindPoints = false;
+			}
+		}
+		if (canFindPoints) {
+			try {
+				filledForm.findAreas(image);
+			} catch (FormScannerException e) {
+				if (!allowPartial) {
+					throw e;
+				}
+				log.log(Level.WARNING, "findAreas failed, response file will be saved without detected areas", e);
+			}
+		}
 
 		FormTemplate filledForm2 = new FormTemplate();
 		ResponseFileUtil.copyProperties(filledForm, filledForm2);
 		filledForm2.setHeight(image.getHeight());
 		filledForm2.setWidth(image.getWidth());
+		if (Objects.isNull(filledForm2.getSize()) || filledForm2.getSize() < 0) {
+			filledForm2.setSize(shapeSize);
+		}
+		if (!canFindPoints) {
+			clearDetectedValues(filledForm2);
+		}
 		responseFileParamService.getResponseFileParamByStageAndPage(stage, page).ifPresent(responseFileParam -> {
 			filledForm2.getParentTemplate().setHeight(responseFileParam.getHeight());
 			filledForm2.getParentTemplate().setWidth(responseFileParam.getWidth());
 		});
 		return filledForm2;
+	}
+
+	private void clearDetectedValues(FormTemplate formTemplate) {
+		formTemplate.getPoints().clear();
+		formTemplate.getAreas().clear();
+		formTemplate.getGroups().values().forEach(group -> {
+			group.getAreas().clear();
+			group.getFields().values().forEach(field -> field.getPoints().clear());
+		});
+	}
+
+	private boolean hasAllCorners(com.albertoborsetta.formscanner.api.FormTemplate formTemplate) {
+		return Stream.of(Corners.TOP_LEFT, Corners.TOP_RIGHT, Corners.BOTTOM_RIGHT, Corners.BOTTOM_LEFT)
+				.allMatch(corner -> Objects.nonNull(formTemplate.getCorners().get(corner)));
+	}
+
+	private void setDefaultCorners(com.albertoborsetta.formscanner.api.FormTemplate formTemplate, BufferedImage image) {
+		setDefaultCorner(formTemplate, Corners.TOP_LEFT, image.getWidth() * 0.12, image.getHeight() * 0.08);
+		setDefaultCorner(formTemplate, Corners.TOP_RIGHT, image.getWidth() * 0.88, image.getHeight() * 0.08);
+		setDefaultCorner(formTemplate, Corners.BOTTOM_RIGHT, image.getWidth() * 0.88, image.getHeight() * 0.92);
+		setDefaultCorner(formTemplate, Corners.BOTTOM_LEFT, image.getWidth() * 0.12, image.getHeight() * 0.92);
+	}
+
+	private void setDefaultCorner(com.albertoborsetta.formscanner.api.FormTemplate formTemplate, Corners corner,
+			double x, double y) {
+		com.albertoborsetta.formscanner.api.FormPoint point = new com.albertoborsetta.formscanner.api.FormPoint();
+		point.setX(x);
+		point.setY(y);
+		formTemplate.setCorner(corner, point);
 	}
 
 	private FormTemplate updateFormTemplate(ResponseFileInfo responseFileInfo, ResponseFileInfo updatedResponseFileInfo)
@@ -370,20 +444,22 @@ public class ResponseFileService {
 				Objects.nonNull(responseFileInfo.getPage()) ? responseFileInfo.getPage()
 						: updatedResponseFileInfo.getPage(),
 				Objects.nonNull(responseFileInfo.getFilledForm()) ? responseFileInfo.getFilledForm().getCorners()
-						: updatedResponseFileInfo.getFilledForm().getCorners());
+						: updatedResponseFileInfo.getFilledForm().getCorners(),
+				true);
 
 		ResponseFileInfo info = new ResponseFileInfo();
-		fillResponseFileInfo(filledForm, info);
+		fillResponseFileInfo(filledForm, info, false);
 		if (Objects.isNull(responseFileInfo.getTeam()))
 			responseFileInfo.setTeam(info.getTeam());
 		if (Objects.nonNull(responseFileInfo.getStage())) {
 			// l'etape et la page sont choisi on garde le template de cette page
 			logFormTemplate(filledForm);
 		} else {
-			if (!info.getStage().equals(updatedResponseFileInfo.getStage())
-					|| !info.getPage().equals(updatedResponseFileInfo.getPage())) {
+			if (Objects.nonNull(info.getStage()) && Objects.nonNull(info.getPage())
+					&& (!info.getStage().equals(updatedResponseFileInfo.getStage())
+							|| !info.getPage().equals(updatedResponseFileInfo.getPage()))) {
 				filledForm = makeFormTemplate(image, name, info.getStage(), info.getPage(),
-						responseFileInfo.getFilledForm().getCorners());
+						responseFileInfo.getFilledForm().getCorners(), true);
 				responseFileInfo.setStage(info.getStage());
 				responseFileInfo.setPage(info.getPage());
 			}
