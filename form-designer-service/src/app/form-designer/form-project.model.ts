@@ -11,6 +11,8 @@ export interface DesignerQuestion {
   number: string;
   answer: string;
   visibleInBlankForm: boolean;
+  numberColor: string;
+  answerColor: string;
   corrections: DesignerCorrection[];
 }
 
@@ -19,6 +21,8 @@ export interface DesignerSection {
   title: string;
   showTitle: boolean;
   color: string;
+  headerLabels: string[];
+  headerColors: string[];
   questions: DesignerQuestion[];
 }
 
@@ -63,11 +67,13 @@ export interface DesignerTableColumn {
   title: string;
   width: number;
   type: 'text' | 'number' | 'image';
+  color: string;
 }
 
 export interface DesignerTableRow {
   id: string;
   cells: string[];
+  cellColors: string[];
 }
 
 export interface DesignerStage {

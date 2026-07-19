@@ -16,6 +16,8 @@ interface DesignerPage {
   blocks: DesignerBlock[];
 }
 
+interface CellPosition { gridId: string; row: number; column: number; id: string; }
+
 @Component({
   selector: 'app-form-designer',
   templateUrl: './form-designer.component.html',
@@ -26,18 +28,35 @@ export class FormDesignerComponent {
 
   project: FormProject = this.makeProject();
   activeStageId = this.project.stages[0].id;
-  correctedPreview = false;
+  correctedPreview = true;
   importError = '';
   pages: DesignerPage[] = [{ number: 1, sections: [], blocks: [] }];
   ribbonTab: 'home' | 'insert' | 'table' | 'layout' | 'styles' = 'home';
   selectedBlockId = '';
   zoom = 85;
-  showGrid = false;
-  showOutline = true;
-  showPictogramPalette = false;
-  readonly pictograms = ['★', '●', '○', '✓', '✗', '→', '←', '↑', '↓', '⚑', '⚠', 'ⓘ',
-    '♥', '♦', '♣', '♠', '⚓', '☀', '☂', '☎', '♬', '✉', '⌂', '◆'];
-  private lastTextEditor: HTMLInputElement | HTMLTextAreaElement | null = null;
+  showCellColorPalette = false;
+  showTextColorPalette = false;
+  readonly selectedCellIds = new Set<string>();
+  private cellSelectionAnchor?: CellPosition;
+  private draggingCellSelection = false;
+  readonly themeColorColumns = [
+    ['#ffffff', '#f2f2f2', '#d9d9d9', '#bfbfbf', '#a6a6a6', '#7f7f7f'],
+    ['#000000', '#7f7f7f', '#595959', '#3f3f3f', '#262626', '#0d0d0d'],
+    ['#44546a', '#d6dce4', '#adb9ca', '#8497b0', '#5b6f8d', '#323f4f'],
+    ['#4472c4', '#d9e2f3', '#b4c6e7', '#8eaadb', '#2f5597', '#203864'],
+    ['#ed7d31', '#fce4d6', '#f8cbad', '#f4b183', '#c65911', '#843c0c'],
+    ['#a5a5a5', '#ededed', '#dbdbdb', '#c9c9c9', '#7b7b7b', '#525252'],
+    ['#ffc000', '#fff2cc', '#ffe699', '#ffd966', '#bf9000', '#806000'],
+    ['#5b9bd5', '#ddebf7', '#bdd7ee', '#9dc3e6', '#2e75b6', '#1f4e78'],
+    ['#70ad47', '#e2f0d9', '#c6e0b4', '#a9d18e', '#548235', '#375623'],
+    ['#264478', '#d9e1f2', '#b4c6e7', '#8faadc', '#203864', '#172b4d']
+  ];
+  readonly standardColors = ['#c00000', '#ff0000', '#ffc000', '#ffff00', '#92d050', '#00b050', '#00b0f0', '#0070c0', '#002060', '#7030a0'];
+  readonly fontFamilies = ['Arial', 'Calibri', 'Cambria', 'Georgia', 'Tahoma', 'Times New Roman', 'Verdana'];
+  readonly fontSizes = ['8', '9', '10', '11', '12', '14', '16', '18', '20', '24', '28', '32', '36'];
+  private richTextEditor: HTMLElement | null = null;
+  private richTextRange: Range | null = null;
+  private activeTextEditingCellId = '';
   readonly blockCatalog: Array<{ type: DesignerBlockType; label: string; icon: string }> = [
     { type: 'section', label: 'Section de réponses', icon: '▦' },
     { type: 'custom-table', label: 'Tableau', icon: '▤' },
@@ -111,7 +130,7 @@ export class FormDesignerComponent {
 
   get questionColumnWidth(): string {
     const maxLength = this.sections.reduce((length, section) => Math.max(length,
-      ...section.questions.map(question => question.number.length)), 2);
+      ...section.questions.map(question => this.plainText(question.number).length)), 2);
     return `calc(${maxLength}ch + 5mm)`;
   }
 
@@ -239,6 +258,8 @@ export class FormDesignerComponent {
       title: `Section ${index}`,
       showTitle: true,
       color: '#d9eaf2',
+      headerLabels: ['N°', 'Réponse', 'Corrigé'],
+      headerColors: ['#d9eaf2', '#d9eaf2', '#d9eaf2'],
       questions: [this.makeQuestion(1)]
     });
     this.blocks.push(this.makeBlock('section', `Section ${index}`, this.sections[this.sections.length - 1].id));
@@ -255,6 +276,8 @@ export class FormDesignerComponent {
     if (type === 'section') {
       const section: DesignerSection = {
         id: this.newId('section'), title: block.title, showTitle: true, color: block.color,
+        headerLabels: ['N°', 'Réponse', 'Corrigé'],
+        headerColors: [block.color, block.color, block.color],
         questions: [this.makeQuestion(1)]
       };
       block.sectionId = section.id;
@@ -266,53 +289,451 @@ export class FormDesignerComponent {
 
   selectBlock(id: string): void { this.selectedBlockId = id; }
 
+  startCellSelection(event: MouseEvent, gridId: string, row: number, column: number, cellId: string): void {
+    if ((event.target as Element | null)?.closest('[contenteditable="true"]')) { return; }
+    event.stopPropagation();
+    if (event.button !== 0) { return; }
+    this.activeTextEditingCellId = '';
+    const cell = { gridId, row, column, id: cellId };
+    if (event.shiftKey && this.cellSelectionAnchor?.gridId === gridId) {
+      this.selectCellRange(this.cellSelectionAnchor, cell, event.ctrlKey || event.metaKey);
+      return;
+    }
+    if (event.ctrlKey || event.metaKey) {
+      this.selectedCellIds.has(cellId) ? this.selectedCellIds.delete(cellId) : this.selectedCellIds.add(cellId);
+      this.cellSelectionAnchor = cell;
+      return;
+    }
+    this.selectedCellIds.clear();
+    this.selectedCellIds.add(cellId);
+    this.cellSelectionAnchor = cell;
+    this.draggingCellSelection = true;
+  }
+
+  extendCellSelection(event: MouseEvent, gridId: string, row: number, column: number, cellId: string): void {
+    if (!this.draggingCellSelection || event.buttons !== 1 || this.cellSelectionAnchor?.gridId !== gridId) { return; }
+    event.stopPropagation();
+    this.selectCellRange(this.cellSelectionAnchor, { gridId, row, column, id: cellId }, false);
+  }
+
+  endCellSelection(): void { this.draggingCellSelection = false; }
+
+  isCellSelected(cellId: string): boolean { return this.selectedCellIds.has(cellId); }
+  isTextEditing(cellId: string): boolean { return this.activeTextEditingCellId === cellId; }
+
+  beginTextEditing(event: MouseEvent, cellId: string): void {
+    event.stopPropagation();
+    this.activeTextEditingCellId = cellId;
+    const editor = event.currentTarget as HTMLElement;
+    editor.contentEditable = 'true';
+    editor.focus();
+  }
+
+  handleRichTextClick(event: MouseEvent, cellId: string): void {
+    if (event.detail < 3 || !this.isTextEditing(cellId)) { return; }
+    event.preventDefault();
+    event.stopPropagation();
+    const documentWithCaret = document as Document & {
+      caretRangeFromPoint?: (x: number, y: number) => Range | null;
+    };
+    const range = documentWithCaret.caretRangeFromPoint?.(event.clientX, event.clientY);
+    const selection = window.getSelection() as (Selection & {
+      modify?: (alter: string, direction: string, granularity: string) => void;
+    }) | null;
+    if (!range || !selection) { return; }
+    selection.removeAllRanges();
+    selection.addRange(range);
+    selection.modify?.('move', 'backward', 'word');
+    selection.modify?.('extend', 'forward', 'word');
+    this.rememberRichTextSelection();
+  }
+  questionCellRow(section: DesignerSection, question: DesignerQuestion): number {
+    return section.questions.indexOf(question) + 2;
+  }
+
+  selectAllCellsInSelectedBlock(): void {
+    const block = this.selectedBlock;
+    if (!block) { return; }
+    this.activeTextEditingCellId = '';
+    this.selectedCellIds.clear();
+    const section = block.sectionId ? this.sections.find(item => item.id === block.sectionId) : undefined;
+    if (section) {
+      this.cellsInGrid(`section-${section.id}`).forEach(cell => this.selectedCellIds.add(cell.id));
+    }
+    if (block.type === 'custom-table') {
+      this.cellsInGrid(`table-${block.id}`).forEach(cell => this.selectedCellIds.add(cell.id));
+    }
+  }
+
+  clearCellSelection(): void { this.selectedCellIds.clear(); this.cellSelectionAnchor = undefined; }
+
+  chooseSelectedCellColor(color: string): void {
+    this.applySelectedCellColor(color);
+    this.showCellColorPalette = false;
+  }
+
+  chooseTextColor(color: string): void {
+    this.applyFontCommand('foreColor', color);
+    this.showTextColorPalette = false;
+  }
+
+  private selectCellRange(from: CellPosition, to: CellPosition, preserveSelection: boolean): void {
+    if (!preserveSelection) { this.selectedCellIds.clear(); }
+    const minRow = Math.min(from.row, to.row), maxRow = Math.max(from.row, to.row);
+    const minColumn = Math.min(from.column, to.column), maxColumn = Math.max(from.column, to.column);
+    this.cellsInGrid(from.gridId).filter(cell => cell.row >= minRow && cell.row <= maxRow
+      && cell.column >= minColumn && cell.column <= maxColumn)
+      .forEach(cell => this.selectedCellIds.add(cell.id));
+  }
+
+  private cellsInGrid(gridId: string): CellPosition[] {
+    const cells: CellPosition[] = [];
+    if (gridId.startsWith('section-')) {
+      const section = this.sections.find(item => `section-${item.id}` === gridId);
+      if (!section) { return cells; }
+      if (section.showTitle) { cells.push({ gridId, row: 0, column: 0, id: `section-title-${section.id}` }); }
+      section.headerColors.forEach((_, column) => cells.push({ gridId, row: 1, column, id: `section-header-${section.id}-${column}` }));
+      section.questions.forEach((question, index) => [0, 1].forEach(column => cells.push({
+        gridId, row: index + 2, column, id: `question-${question.id}-${column}`
+      })));
+    } else if (gridId.startsWith('table-')) {
+      const block = this.allBlocks.find(item => `table-${item.id}` === gridId && item.type === 'custom-table');
+      if (!block) { return cells; }
+      if (block.showTableHeader) { block.tableColumns.forEach((column, index) => cells.push({ gridId, row: 0, column: index, id: `table-header-${column.id}` })); }
+      block.tableRows.forEach((row, rowIndex) => row.cells.forEach((_, column) => cells.push({
+        gridId, row: rowIndex + 1, column, id: `table-cell-${row.id}-${column}`
+      })));
+    }
+    return cells;
+  }
+
+  applySelectedCellColor(color: string): void {
+    for (const section of this.sections) {
+      if (this.selectedCellIds.has(`section-title-${section.id}`)) { section.color = color; }
+      section.headerColors = section.headerColors.map((current, column) =>
+        this.selectedCellIds.has(`section-header-${section.id}-${column}`) ? color : current);
+      section.questions.forEach(question => {
+        if (this.selectedCellIds.has(`question-${question.id}-0`)) { question.numberColor = color; }
+        if (this.selectedCellIds.has(`question-${question.id}-1`)) { question.answerColor = color; }
+      });
+    }
+    this.allBlocks.filter(block => block.type === 'custom-table').forEach(block => {
+      block.tableColumns.forEach(column => {
+        if (this.selectedCellIds.has(`table-header-${column.id}`)) { column.color = color; }
+      });
+      block.tableRows.forEach(row => {
+        row.cellColors = row.cellColors.map((current, column) =>
+          this.selectedCellIds.has(`table-cell-${row.id}-${column}`) ? color : current);
+      });
+    });
+  }
+
   rememberTextEditor(event: FocusEvent): void {
     const target = event.target;
-    if (target instanceof HTMLTextAreaElement) {
-      this.lastTextEditor = target;
+    if (target instanceof HTMLElement && target.isContentEditable) {
+      if (target.closest('[data-rich-text-context="free"]')) { this.activeTextEditingCellId = '__free_text__'; }
+      this.richTextEditor = target;
+      this.rememberRichTextSelection();
       return;
-    }
-    if (target instanceof HTMLInputElement && ['text', 'search', 'url', 'email'].includes(target.type)) {
-      this.lastTextEditor = target;
     }
   }
 
-  insertPictogram(symbol: string): void {
-    const editor = this.lastTextEditor;
-    if (!editor) {
-      this.importError = 'Placez d’abord le curseur dans un champ de texte.';
-      return;
-    }
-    const start = editor.selectionStart ?? editor.value.length;
-    const end = editor.selectionEnd ?? start;
-    editor.setRangeText(symbol, start, end, 'end');
-    editor.dispatchEvent(new Event('input', { bubbles: true }));
-    editor.focus();
-    this.showPictogramPalette = false;
-    this.importError = '';
+  handleDesignerClick(event: MouseEvent): void {
+    if (!(event.target as Element | null)?.closest('label[title="Surlignage du texte"]')) { return; }
+    event.preventDefault();
+    this.applyFontCommand('hiliteColor', '#ffff00');
   }
 
-  formatAsList(style: 'bullet' | 'numbered'): void {
-    const editor = this.lastTextEditor;
-    if (!editor) {
-      this.importError = 'Placez d’abord le curseur dans un champ de texte.';
+  rememberRichTextSelection(): void {
+    const selection = window.getSelection();
+    if (!selection?.rangeCount || !this.richTextEditor) { return; }
+    const range = selection.getRangeAt(0);
+    if (this.richTextEditor.contains(range.commonAncestorContainer)) { this.richTextRange = range.cloneRange(); }
+  }
+
+  updateRichText(target: any, property: string, event: Event): void {
+    target[property] = (event.currentTarget as HTMLElement).innerHTML;
+  }
+
+  updateRichTextArray(values: string[], index: number, event: Event): void {
+    values[index] = (event.currentTarget as HTMLElement).innerHTML;
+  }
+
+  handleRichTextBlur(event: FocusEvent): void {
+    const editor = event.target;
+    if (!(editor instanceof HTMLElement) || !editor.isContentEditable) { return; }
+    const next = event.relatedTarget;
+    if (next instanceof Element && next.closest('.ribbon')) { return; }
+    setTimeout(() => {
+      if (document.activeElement?.closest('.ribbon')) { return; }
+      this.activeTextEditingCellId = '';
+      this.questionEdited();
+    });
+  }
+
+  applyFontCommand(command: string, value?: string): void {
+    if (!this.activeTextEditingCellId && this.selectedCellIds.size) {
+      this.applyFontToSelectedCells(command, value);
       return;
     }
-    const value = editor.value;
-    const selectionStart = editor.selectionStart ?? 0;
-    const selectionEnd = editor.selectionEnd ?? selectionStart;
-    const lineStart = value.lastIndexOf('\n', Math.max(0, selectionStart - 1)) + 1;
-    const nextBreak = value.indexOf('\n', selectionEnd);
-    const lineEnd = nextBreak < 0 ? value.length : nextBreak;
-    const selectedLines = value.slice(lineStart, lineEnd).split('\n');
-    const formatted = selectedLines.map((line, index) => {
-      const content = line.replace(/^\s*(?:[•*-]|\d+[.)])\s+/, '');
-      return style === 'bullet' ? `• ${content}` : `${index + 1}. ${content}`;
-    }).join('\n');
-    editor.setRangeText(formatted, lineStart, lineEnd, 'end');
-    editor.dispatchEvent(new Event('input', { bubbles: true }));
+    if (!this.richTextEditor || !this.richTextRange) {
+      this.importError = 'Sélectionnez des cellules ou du texte dans le document.';
+      return;
+    }
+    this.richTextEditor.focus();
+    const selectionOffsets = this.captureSelectionOffsets(this.richTextEditor, this.richTextRange);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(this.richTextRange);
+    if (command === 'hiliteColor' && this.removeSelectedHighlight(this.richTextRange)) {
+      this.richTextEditor.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'formatRemove' }));
+      this.scheduleSelectionRestore(this.richTextEditor, selectionOffsets);
+      return;
+    }
+    document.execCommand(command, false, value);
+    if (command === 'hiliteColor') { this.normalizeHighlights(this.richTextEditor); }
+    if (['justifyLeft', 'justifyCenter', 'justifyRight'].includes(command)) {
+      this.normalizeAlignments(this.richTextEditor, command);
+    }
+    this.richTextEditor.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'formatSetBlockTextDirection' }));
+    this.scheduleSelectionRestore(this.richTextEditor, selectionOffsets);
+  }
+
+  private captureSelectionOffsets(editor: HTMLElement, range: Range): { start: number; end: number } {
+    const beforeStart = range.cloneRange();
+    beforeStart.selectNodeContents(editor);
+    beforeStart.setEnd(range.startContainer, range.startOffset);
+    const beforeEnd = range.cloneRange();
+    beforeEnd.selectNodeContents(editor);
+    beforeEnd.setEnd(range.endContainer, range.endOffset);
+    return { start: beforeStart.toString().length, end: beforeEnd.toString().length };
+  }
+
+  private scheduleSelectionRestore(editor: HTMLElement, offsets: { start: number; end: number }): void {
+    setTimeout(() => this.restoreSelectionOffsets(editor, offsets));
+  }
+
+  private restoreSelectionOffsets(editor: HTMLElement, offsets: { start: number; end: number }): void {
+    if (!editor.isConnected) { return; }
+    const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+    const nodes: Text[] = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) { nodes.push(node as Text); }
+    if (!nodes.length) { return; }
+    const boundary = (offset: number): { node: Text; offset: number } => {
+      let consumed = 0;
+      for (const node of nodes) {
+        const length = node.data.length;
+        if (offset <= consumed + length) { return { node, offset: Math.max(0, offset - consumed) }; }
+        consumed += length;
+      }
+      const node = nodes[nodes.length - 1];
+      return { node, offset: node.data.length };
+    };
+    const start = boundary(offsets.start);
+    const end = boundary(offsets.end);
+    const range = document.createRange();
+    range.setStart(start.node, start.offset);
+    range.setEnd(end.node, end.offset);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
     editor.focus();
-    this.importError = '';
+    this.richTextEditor = editor;
+    this.richTextRange = range.cloneRange();
+  }
+
+  private normalizeHighlights(editor: HTMLElement): void {
+    Array.from(editor.querySelectorAll<HTMLElement>('[style]')).forEach(element => {
+      if (!element.style.backgroundColor) { return; }
+      const mark = document.createElement('mark');
+      mark.append(...Array.from(element.childNodes));
+      element.replaceWith(mark);
+    });
+  }
+
+  private normalizeAlignments(editor: HTMLElement, command: string): void {
+    const requestedAlignment = command === 'justifyLeft' ? 'left' : command === 'justifyCenter' ? 'center' : 'right';
+    editor.querySelectorAll<HTMLElement>('[style]').forEach(element => {
+      if (!element.style.textAlign) { return; }
+      element.setAttribute('align', element.style.textAlign);
+      element.style.removeProperty('text-align');
+      if (!element.getAttribute('style')) { element.removeAttribute('style'); }
+    });
+    if (editor.style.textAlign) {
+      const wrapper = document.createElement('div');
+      wrapper.setAttribute('align', editor.style.textAlign || requestedAlignment);
+      wrapper.append(...Array.from(editor.childNodes));
+      editor.append(wrapper);
+      editor.style.removeProperty('text-align');
+      if (!editor.getAttribute('style')) { editor.removeAttribute('style'); }
+    }
+  }
+
+  private removeSelectedHighlight(range: Range): boolean {
+    const elementFor = (node: Node) => node instanceof Element ? node : node.parentElement;
+    const startMark = elementFor(range.startContainer)?.closest('mark');
+    const endMark = elementFor(range.endContainer)?.closest('mark');
+    if (!startMark || startMark !== endMark) { return false; }
+    startMark.replaceWith(...Array.from(startMark.childNodes));
+    return true;
+  }
+
+  isFontStyleActive(command: string): boolean {
+    if (this.activeTextEditingCellId) {
+      if (command === 'hiliteColor' && this.richTextRange) {
+        const node = this.richTextRange.commonAncestorContainer;
+        const element = node instanceof Element ? node : node.parentElement;
+        return !!element?.closest('mark');
+      }
+      return document.queryCommandState(command);
+    }
+    const tag = this.toggleTagForCommand(command);
+    const contents = this.selectedCellContents();
+    return !!tag && contents.length > 0 && contents.every(html => this.isEntireCellFormatted(html, tag));
+  }
+
+  isAlignmentActive(command: 'justifyLeft' | 'justifyCenter' | 'justifyRight'): boolean {
+    if (this.activeTextEditingCellId) { return document.queryCommandState(command); }
+    const alignment = command === 'justifyLeft' ? 'left' : command === 'justifyCenter' ? 'center' : 'right';
+    const contents = this.selectedCellContents();
+    return contents.length > 0 && contents.every(html => {
+      const container = document.createElement('div');
+      container.innerHTML = html;
+      return container.firstElementChild?.getAttribute('align') === alignment;
+    });
+  }
+
+  private applyFontToSelectedCells(command: string, value?: string): void {
+    const toggleTag = this.toggleTagForCommand(command);
+    const selectedContents = this.selectedCellContents();
+    const removeToggle = !!toggleTag && selectedContents.length > 0
+      && selectedContents.every(html => this.isEntireCellFormatted(html, toggleTag));
+    const format = (html: string) => {
+      if (!toggleTag) { return this.formatWholeCell(html, command, value); }
+      if (removeToggle) { return this.removeTag(html, toggleTag); }
+      return this.isEntireCellFormatted(html, toggleTag) ? html : this.formatWholeCell(html, command, value);
+    };
+    for (const section of this.sections) {
+      if (this.selectedCellIds.has(`section-title-${section.id}`)) {
+        section.title = format(section.title);
+        const block = this.blockForSection(section);
+        if (block) { block.title = section.title; }
+      }
+      section.headerLabels = section.headerLabels.map((label, column) =>
+        this.selectedCellIds.has(`section-header-${section.id}-${column}`) ? format(label) : label);
+      section.questions.forEach(question => {
+        if (this.selectedCellIds.has(`question-${question.id}-0`)) { question.number = format(question.number); }
+        if (this.selectedCellIds.has(`question-${question.id}-1`)) { question.answer = format(question.answer); }
+      });
+    }
+    this.allBlocks.filter(block => block.type === 'custom-table').forEach(block => {
+      block.tableColumns.forEach(column => {
+        if (this.selectedCellIds.has(`table-header-${column.id}`)) { column.title = format(column.title); }
+      });
+      block.tableRows.forEach(row => {
+        row.cells = row.cells.map((cell, column) =>
+          this.selectedCellIds.has(`table-cell-${row.id}-${column}`) ? format(cell) : cell);
+      });
+    });
+    this.questionEdited();
+  }
+
+  private selectedCellContents(): string[] {
+    const contents: string[] = [];
+    for (const section of this.sections) {
+      if (this.selectedCellIds.has(`section-title-${section.id}`)) { contents.push(section.title); }
+      section.headerLabels.forEach((label, column) => {
+        if (this.selectedCellIds.has(`section-header-${section.id}-${column}`)) { contents.push(label); }
+      });
+      section.questions.forEach(question => {
+        if (this.selectedCellIds.has(`question-${question.id}-0`)) { contents.push(question.number); }
+        if (this.selectedCellIds.has(`question-${question.id}-1`)) { contents.push(question.answer); }
+      });
+    }
+    this.allBlocks.filter(block => block.type === 'custom-table').forEach(block => {
+      block.tableColumns.forEach(column => {
+        if (this.selectedCellIds.has(`table-header-${column.id}`)) { contents.push(column.title); }
+      });
+      block.tableRows.forEach(row => row.cells.forEach((cell, column) => {
+        if (this.selectedCellIds.has(`table-cell-${row.id}-${column}`)) { contents.push(cell); }
+      }));
+    });
+    return contents;
+  }
+
+  private toggleTagForCommand(command: string): string | undefined {
+    const tags: Record<string, string> = {
+      bold: 'b', italic: 'i', underline: 'u', strikeThrough: 's', subscript: 'sub', superscript: 'sup',
+      hiliteColor: 'mark'
+    };
+    return tags[command];
+  }
+
+  private isEntireCellFormatted(html: string, tag: string): boolean {
+    const container = document.createElement('div');
+    container.innerHTML = html;
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+    const textNodes: Node[] = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (node.textContent?.trim()) { textNodes.push(node); }
+    }
+    return textNodes.length > 0 && textNodes.every(node => {
+      for (let element = node.parentElement; element && element !== container; element = element.parentElement) {
+        if (element.tagName.toLowerCase() === tag) { return true; }
+      }
+      return false;
+    });
+  }
+
+  private removeTag(html: string, tag: string): string {
+    const container = document.createElement('div');
+    container.innerHTML = html;
+    Array.from(container.querySelectorAll(tag)).forEach(element => element.replaceWith(...Array.from(element.childNodes)));
+    return container.innerHTML;
+  }
+
+  displayText(value: string): string { return this.plainText(value); }
+
+  private formatWholeCell(html: string, command: string, value?: string): string {
+    if (command === 'removeFormat') { return this.plainText(html); }
+    if (command === 'bold') { return `<b>${html}</b>`; }
+    if (command === 'italic') { return `<i>${html}</i>`; }
+    if (command === 'underline') { return `<u>${html}</u>`; }
+    if (command === 'strikeThrough') { return `<s>${html}</s>`; }
+    if (command === 'subscript') { return `<sub>${html}</sub>`; }
+    if (command === 'superscript') { return `<sup>${html}</sup>`; }
+    if (command === 'fontName' && value) { return `<font face="${value.replace(/"/g, '&quot;')}">${html}</font>`; }
+    if (command === 'fontSize' && value) { return `<font size="${value}">${html}</font>`; }
+    if (command === 'increaseFontSize') { return `<big>${html}</big>`; }
+    if (command === 'decreaseFontSize') { return `<small>${html}</small>`; }
+    if (command === 'foreColor' && value) { return `<font color="${value}">${html}</font>`; }
+    if (command === 'hiliteColor') { return `<mark>${html}</mark>`; }
+    if (['justifyLeft', 'justifyCenter', 'justifyRight'].includes(command)) {
+      const alignment = command === 'justifyLeft' ? 'left' : command === 'justifyCenter' ? 'center' : 'right';
+      const container = document.createElement('div');
+      container.innerHTML = html;
+      container.querySelectorAll<HTMLElement>('[align]').forEach(element => element.removeAttribute('align'));
+      return `<div align="${alignment}">${container.innerHTML}</div>`;
+    }
+    return html;
+  }
+
+  changeFontSize(points: string): void {
+    this.applyFontCommand('fontSize', this.fontSizeCommandValue(Number(points)));
+  }
+
+  changeFontSizeRelative(delta: -1 | 1): void {
+    this.applyFontCommand(delta > 0 ? 'increaseFontSize' : 'decreaseFontSize');
+  }
+
+  private fontSizeCommandValue(points: number): string {
+    if (points <= 9) { return '1'; }
+    if (points <= 11) { return '2'; }
+    if (points <= 13) { return '3'; }
+    if (points <= 17) { return '4'; }
+    if (points <= 23) { return '5'; }
+    if (points <= 31) { return '6'; }
+    return '7';
   }
 
   columnDropId(container: DesignerBlock, columnIndex: number): string {
@@ -506,9 +927,9 @@ export class FormDesignerComponent {
     if (this.selectedBlock.type === 'custom-table' || this.selectedBlock.type === 'columns') {
       this.selectedBlock.tableColumns.push({
         id: this.newId('column'), title: `Colonne ${this.selectedBlock.tableColumns.length + 1}`,
-        width: 25, type: 'text'
+        width: 25, type: 'text', color: '#d9eaf2'
       });
-      this.selectedBlock.tableRows.forEach(row => row.cells.push(''));
+      this.selectedBlock.tableRows.forEach(row => { row.cells.push(''); row.cellColors.push('#ffffff'); });
       this.selectedBlock.columns = this.selectedBlock.tableColumns.length;
       if (this.selectedBlock.type === 'columns') { this.selectedBlock.childColumns.push([]); }
       return;
@@ -527,7 +948,7 @@ export class FormDesignerComponent {
         parentList.splice(containerIndex + 1, 0, ...removedChildren);
       }
       this.selectedBlock.tableColumns.pop();
-      this.selectedBlock.tableRows.forEach(row => row.cells.pop());
+      this.selectedBlock.tableRows.forEach(row => { row.cells.pop(); row.cellColors.pop(); });
       this.selectedBlock.columns = this.selectedBlock.tableColumns.length;
       return;
     }
@@ -540,7 +961,7 @@ export class FormDesignerComponent {
     if (!block || !['custom-table', 'columns'].includes(block.type)
       || block.tableColumns.length <= 1) { return; }
     block.tableColumns.splice(columnIndex, 1);
-    block.tableRows.forEach(row => row.cells.splice(columnIndex, 1));
+    block.tableRows.forEach(row => { row.cells.splice(columnIndex, 1); row.cellColors.splice(columnIndex, 1); });
     block.columns = block.tableColumns.length;
   }
 
@@ -566,7 +987,8 @@ export class FormDesignerComponent {
     if (this.selectedBlock.type === 'custom-table') {
       if (delta > 0) {
         this.selectedBlock.tableRows.push({
-          id: this.newId('row'), cells: this.selectedBlock.tableColumns.map(() => '')
+          id: this.newId('row'), cells: this.selectedBlock.tableColumns.map(() => ''),
+          cellColors: this.selectedBlock.tableColumns.map(() => '#ffffff')
         });
       } else if (this.selectedBlock.tableRows.length > 1) {
         this.selectedBlock.tableRows.pop();
@@ -597,7 +1019,7 @@ export class FormDesignerComponent {
     this.selectedBlock.color = color;
     this.selectedBlock.textColor = textColor;
     const section = this.sections.find(item => item.id === this.selectedBlock?.sectionId);
-    if (section) { section.color = color; }
+    if (section) { section.color = color; section.headerColors = section.headerColors.map(() => color); }
   }
 
   async attachImage(files: FileList | null): Promise<void> {
@@ -686,6 +1108,8 @@ export class FormDesignerComponent {
           title: sectionName || `Section sans titre ${anonymousIndex}`,
           showTitle: !!sectionName,
           color: this.sectionColor(sectionName),
+          headerLabels: ['N°', 'Réponse', 'Corrigé'],
+          headerColors: [this.sectionColor(sectionName), this.sectionColor(sectionName), this.sectionColor(sectionName)],
           questions: []
         };
         sections.push(current);
@@ -721,6 +1145,8 @@ export class FormDesignerComponent {
       number,
       answer,
       visibleInBlankForm: false,
+      numberColor: '#ffffff',
+      answerColor: '#ffffff',
       corrections
     };
   }
@@ -828,15 +1254,16 @@ export class FormDesignerComponent {
       tableColumns: type === 'custom-table'
         ? [1, 2, 3].map(index => ({
           id: this.newId('column'), title: `Colonne ${index}`, width: index === 3 ? 33.334 : 33.333,
-          type: 'text' as const
+          type: 'text' as const, color: '#d9eaf2'
         }))
         : [
-          { id: this.newId('column'), title: 'N°', width: 15, type: 'number' as const },
-          { id: this.newId('column'), title: 'Réponse', width: 70, type: 'text' as const },
-          { id: this.newId('column'), title: 'Colonne 3', width: 15, type: 'text' as const }
+          { id: this.newId('column'), title: 'N°', width: 15, type: 'number' as const, color: '#d9eaf2' },
+          { id: this.newId('column'), title: 'Réponse', width: 70, type: 'text' as const, color: '#d9eaf2' },
+          { id: this.newId('column'), title: 'Colonne 3', width: 15, type: 'text' as const, color: '#d9eaf2' }
         ].slice(0, type === 'columns' ? 2 : 3),
       tableRows: [1, 2, 3].map(index => ({
-        id: this.newId('row'), cells: type === 'custom-table' ? ['', '', ''] : [String(index), '', '']
+        id: this.newId('row'), cells: type === 'custom-table' ? ['', '', ''] : [String(index), '', ''],
+        cellColors: (type === 'custom-table' ? ['', '', ''] : [String(index), '', '']).map(() => '#ffffff')
       })),
       childColumns: type === 'columns' ? [[], []] : []
     };
@@ -845,6 +1272,7 @@ export class FormDesignerComponent {
   private makeQuestion(index: number): DesignerQuestion {
     return {
       id: this.newId('question'), number: String(index), answer: '', visibleInBlankForm: false,
+      numberColor: '#ffffff', answerColor: '#ffffff',
       corrections: [this.makeCorrection()]
     };
   }
@@ -1072,13 +1500,18 @@ export class FormDesignerComponent {
   private estimateBlockHeight(block: DesignerBlock): number {
     const spacing = (block.spacingBefore || 0) + (block.spacingAfter || 0);
     if (block.type === 'custom-table') {
-      return spacing + 8 + Math.max(1, block.tableRows.length) * Math.max(3, block.rowHeight || 4.7);
+      const columnCharacters = Math.max(12, Math.floor(75 / Math.max(1, block.tableColumns.length)));
+      const headerHeight = block.showTableHeader
+        ? Math.max(6, ...block.tableColumns.map(column => this.richTextHeightMm(column.title, columnCharacters))) : 0;
+      const rowsHeight = block.tableRows.reduce((total, row) => total + Math.max(block.rowHeight || 4.7,
+        ...row.cells.map(cell => this.richTextHeightMm(cell, columnCharacters))), 0);
+      return spacing + headerHeight + rowsHeight;
     }
     if (block.type === 'image') { return spacing + 55; }
     if (block.type === 'separator') { return spacing + 4; }
     if (block.type === 'text') {
-      const lineCount = Math.max(1, block.text.split('\n').reduce((total, line) => total + Math.max(1, Math.ceil(line.length / 85)), 0));
-      return spacing + lineCount * 5;
+      const lineCount = Math.max(1, this.plainText(block.text).split('\n').reduce((total, line) => total + Math.max(1, Math.ceil(line.length / 85)), 0));
+      return spacing + lineCount * this.richTextLineHeightMm(block.text);
     }
     return spacing + 10;
   }
@@ -1089,7 +1522,9 @@ export class FormDesignerComponent {
   }
 
   private sectionOverhead(section: DesignerSection, block?: DesignerBlock): number {
-    const titleAndHeaderHeight = section.showTitle ? 14 : 8;
+    const titleHeight = section.showTitle ? Math.max(6, this.richTextHeightMm(section.title, 70)) : 0;
+    const headerHeight = Math.max(6, ...section.headerLabels.map(label => this.richTextHeightMm(label, 28)));
+    const titleAndHeaderHeight = titleHeight + headerHeight;
     return titleAndHeaderHeight + (block?.spacingBefore || 0) + (block?.spacingAfter || 0);
   }
 
@@ -1097,10 +1532,37 @@ export class FormDesignerComponent {
     const placement = block ? this.findContainerPlacement(block.id) : undefined;
     const columnCount = placement?.container.childColumns.length || 1;
     const charactersPerLine = Math.max(18, Math.floor(78 / columnCount));
-    const visualLineCount = Math.max(1, String(question.answer || '').split('\n')
+    const visualLineCount = Math.max(1, this.plainText(question.answer || '').split('\n')
       .reduce((count, line) => count + Math.max(1, Math.ceil(line.length / charactersPerLine)), 0));
     const correctionHeight = Math.max(1, question.corrections.length) * this.project.correctionCellHeightCm * 10;
-    return Math.max(this.sectionRowHeight(block), visualLineCount * 4.2 + 1.1, correctionHeight);
+    const textHeight = visualLineCount * this.richTextLineHeightMm(question.answer) + 1.1;
+    const numberHeight = this.richTextHeightMm(question.number, 8) + 1.1;
+    return Math.max(this.sectionRowHeight(block), textHeight, numberHeight, correctionHeight);
+  }
+
+  private richTextHeightMm(html: string, charactersPerLine: number): number {
+    const lines = Math.max(1, this.plainText(html).split('\n').reduce((count, line) =>
+      count + Math.max(1, Math.ceil(line.length / charactersPerLine)), 0));
+    return lines * this.richTextLineHeightMm(html);
+  }
+
+  private richTextLineHeightMm(html: string): number {
+    const container = document.createElement('div');
+    container.innerHTML = html || '';
+    const pointSizes = [8, 10, 12, 14, 18, 24, 36];
+    let maximumPoints = 9;
+    container.querySelectorAll('font[size]').forEach(font => {
+      const size = Math.max(1, Math.min(7, Number(font.getAttribute('size')) || 3));
+      maximumPoints = Math.max(maximumPoints, pointSizes[size - 1]);
+    });
+    container.querySelectorAll('big').forEach(() => { maximumPoints = Math.max(maximumPoints, 14); });
+    return Math.max(4.2, maximumPoints * 0.3528 * 1.25);
+  }
+
+  private plainText(value: string): string {
+    const container = document.createElement('div');
+    container.innerHTML = value || '';
+    return container.textContent || '';
   }
 
   private documentBlockUnits(blocks: DesignerBlock[]): DesignerBlock[][] {
