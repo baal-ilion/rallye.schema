@@ -1,17 +1,23 @@
-export const FORM_PROJECT_SCHEMA_VERSION = 1;
+export const FORM_PROJECT_SCHEMA_VERSION = 2;
+
+export interface DesignerCorrection {
+  id: string;
+  label: string;
+  points: number;
+}
 
 export interface DesignerQuestion {
   id: string;
   number: string;
-  label: string;
   answer: string;
-  difficulty: number;
-  points: number;
+  visibleInBlankForm: boolean;
+  corrections: DesignerCorrection[];
 }
 
 export interface DesignerSection {
   id: string;
   title: string;
+  showTitle: boolean;
   color: string;
   questions: DesignerQuestion[];
 }
@@ -30,7 +36,6 @@ export interface DesignerBlock {
   spacingBefore: number;
   spacingAfter: number;
   keepTogether: boolean;
-  correctedOnly: boolean;
   columns: number;
   columnGap: number;
   rows: number;
@@ -80,6 +85,8 @@ export interface FormProject {
   id: string;
   name: string;
   rallyTitle: string;
+  correctionCellWidthCm: number;
+  correctionCellHeightCm: number;
   stages: DesignerStage[];
 }
 

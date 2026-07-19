@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import * as XLSX from 'xlsx';
-import { DesignerBlock, DesignerBlockType, DesignerQuestion, DesignerSection, DesignerStage, FORM_PROJECT_SCHEMA_VERSION,
+import { DesignerBlock, DesignerBlockType, DesignerCorrection, DesignerQuestion, DesignerSection, DesignerStage, FORM_PROJECT_SCHEMA_VERSION,
   FormProject, FormStageFile } from './form-project.model';
 
 interface DesignerSectionFragment {
@@ -54,6 +54,12 @@ export class FormDesignerComponent {
 
   get sections(): DesignerSection[] { return this.activeStage?.sections || []; }
   get rallyTitle(): string { return this.project.rallyTitle; }
+  get correctionGroupWidth(): string {
+    return `${(this.project.correctionCellWidthCm * 3).toFixed(2)}cm`;
+  }
+  sectionCorrectionWidth(section: DesignerSection): string {
+    return this.correctionGroupWidth;
+  }
   get blocks(): DesignerBlock[] {
     if (!this.activeStage.blocks) { this.activeStage.blocks = []; }
     return this.activeStage.blocks;
@@ -207,7 +213,7 @@ export class FormDesignerComponent {
       const workbook = XLSX.read(await this.readFile(file), { type: 'array' });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, raw: false, defval: '' });
-      const sections = this.parseSections(rows);
+      const sections = this.parseSections(rows, sheet);
 
       if (!sections.some(section => section.questions.length)) {
         throw new Error('Aucune réponse trouvée à partir de la ligne 11.');
@@ -231,6 +237,7 @@ export class FormDesignerComponent {
     this.sections.push({
       id: `section-${Date.now()}`,
       title: `Section ${index}`,
+      showTitle: true,
       color: '#d9eaf2',
       questions: [this.makeQuestion(1)]
     });
@@ -247,7 +254,7 @@ export class FormDesignerComponent {
     this.selectedBlockId = block.id;
     if (type === 'section') {
       const section: DesignerSection = {
-        id: this.newId('section'), title: block.title, color: block.color,
+        id: this.newId('section'), title: block.title, showTitle: true, color: block.color,
         questions: [this.makeQuestion(1)]
       };
       block.sectionId = section.id;
@@ -617,7 +624,13 @@ export class FormDesignerComponent {
 
   print(corrected: boolean): void {
     this.correctedPreview = corrected;
+    this.refreshPages();
     setTimeout(() => window.print());
+  }
+
+  setCorrectedPreview(corrected: boolean): void {
+    this.correctedPreview = corrected;
+    this.refreshPages();
   }
 
   updateRallyTitle(value: string): void {
@@ -627,55 +640,88 @@ export class FormDesignerComponent {
 
   trackSection(_: number, section: DesignerSection): string { return section.id; }
   trackQuestion(_: number, question: DesignerQuestion): string { return question.id; }
+  trackCorrection(_: number, correction: DesignerCorrection): string { return correction.id; }
 
-  private parseSections(rows: any[][]): DesignerSection[] {
-    const hasSectionColumn = String(rows[8]?.[0] ?? '').trim().toLocaleLowerCase('fr') === 'section';
-    if (!hasSectionColumn) {
-      const questions = rows.slice(10)
-        .filter(row => String(row[0] ?? '').trim() || String(row[2] ?? '').trim())
-        .map((row, index) => this.toQuestion(row, index, 0));
-      return [{ id: 'section-1', title: 'Questions', color: '#d9ead3', questions }];
+  addCorrection(question: DesignerQuestion): void {
+    question.corrections.push(this.makeCorrection());
+    this.questionEdited();
+  }
+
+  removeCorrection(question: DesignerQuestion, correction: DesignerCorrection): void {
+    if (question.corrections.length <= 1) { return; }
+    question.corrections.splice(question.corrections.indexOf(correction), 1);
+    this.questionEdited();
+  }
+
+  private parseSections(rows: any[][], sheet: XLSX.WorkSheet): DesignerSection[] {
+    const sectionHeader = String(rows[8]?.[0] ?? '').trim().toLocaleLowerCase('fr');
+    if (sectionHeader !== 'section (optionnelle)') {
+      throw new Error('Format invalide : la cellule A9 doit contenir « Section (optionnelle) ».');
     }
-
+    const sectionMerges = (sheet['!merges'] || []).filter(merge => merge.s.c === 0 && merge.e.c === 0);
     const sections: DesignerSection[] = [];
+    const responseMerges = (sheet['!merges'] || []).filter(merge =>
+      (merge.s.c === 1 && merge.e.c === 1) || (merge.s.c === 2 && merge.e.c === 2));
     let current: DesignerSection | null = null;
+    let currentKey = '';
     let questionIndex = 0;
-    for (const row of rows.slice(10)) {
-      const sectionName = String(row[0] ?? '').trim();
-      const number = String(row[1] ?? '').trim();
-      const answer = String(row[3] ?? '').trim();
-      if (!sectionName && !number && !answer) {
+    let anonymousIndex = 0;
+    for (let rowIndex = 10; rowIndex < rows.length;) {
+      const row = rows[rowIndex] || [];
+      if (![1, 2, 3, 4, 5].some(column => String(row[column] ?? '').trim())) {
+        current = null;
+        currentKey = '';
+        rowIndex++;
         continue;
       }
-      if (sectionName) {
+      const merge = sectionMerges.find(range => rowIndex >= range.s.r && rowIndex <= range.e.r);
+      const mergedSectionName = merge ? String(rows[merge.s.r]?.[0] ?? '').trim() : '';
+      const directSectionName = String(row[0] ?? '').trim();
+      const sectionName = mergedSectionName || directSectionName;
+      const key = merge ? `merge-${merge.s.r}` : sectionName ? `row-${rowIndex}` : 'anonymous';
+      if (!current || currentKey !== key) {
+        if (!sectionName) { anonymousIndex++; }
         current = {
           id: `section-${sections.length + 1}`,
-          title: sectionName,
+          title: sectionName || `Section sans titre ${anonymousIndex}`,
+          showTitle: !!sectionName,
           color: this.sectionColor(sectionName),
           questions: []
         };
         sections.push(current);
+        currentKey = key;
       }
-      if (!current) {
-        current = { id: 'section-1', title: 'Questions', color: '#d9ead3', questions: [] };
-        sections.push(current);
-      }
-      current.questions.push(this.toQuestion(row, questionIndex++, 1, current.title));
+      const responseMerge = responseMerges.find(range => range.s.r === rowIndex);
+      const groupEnd = responseMerge ? responseMerge.e.r : rowIndex;
+      current.questions.push(this.toQuestion(rows, rowIndex, groupEnd, questionIndex++));
+      rowIndex = groupEnd + 1;
     }
+    const labels = sections.flatMap(section => section.questions.flatMap(question =>
+      question.corrections.map(correction => correction.label).filter(Boolean)));
+    const duplicate = labels.find((label, index) => labels.indexOf(label) !== index);
+    if (duplicate) { throw new Error(`Format invalide : le label « ${duplicate} » est utilisé plusieurs fois.`); }
     return sections;
   }
 
-  private toQuestion(row: any[], index: number, offset: number, sectionName = 'Question'): DesignerQuestion {
-    const number = String(row[offset] ?? '').trim();
-    const label = String(row[offset + 1] ?? '').trim();
-    const technicalName = label || `${sectionName} ${number}`;
+  private toQuestion(rows: any[][], start: number, end: number, index: number): DesignerQuestion {
+    const row = rows[start] || [];
+    const number = String(row[1] ?? '').trim();
+    const answer = String(row[2] ?? '').trim();
+    const corrections = [] as DesignerCorrection[];
+    for (let rowIndex = start; rowIndex <= end; rowIndex++) {
+      const correctionRow = rows[rowIndex] || [];
+      corrections.push({
+        id: this.newId('correction'),
+        label: String(correctionRow[5] ?? '').trim(),
+        points: this.toNumber(correctionRow[4])
+      });
+    }
     return {
-      id: this.technicalId(technicalName, index),
+      id: this.technicalId(corrections.map(correction => correction.label).join('-'), index),
       number,
-      label,
-      answer: String(row[offset + 2] ?? '').trim(),
-      difficulty: this.toNumber(row[offset + 3]),
-      points: this.toNumber(row[offset + 4])
+      answer,
+      visibleInBlankForm: false,
+      corrections
     };
   }
 
@@ -733,8 +779,9 @@ export class FormDesignerComponent {
     const pages = this.paginate();
     const paginatedCount = pages.reduce((pageTotal, page) => pageTotal
       + page.sections.reduce((sectionTotal, fragment) => sectionTotal + fragment.questions.length, 0), 0);
-    if (paginatedCount !== this.questionCount) {
-      this.importError = `Pagination incomplète : ${paginatedCount} question(s) sur ${this.questionCount}.`;
+    const expectedCount = this.questionCount;
+    if (paginatedCount !== expectedCount) {
+      this.importError = `Pagination incomplète : ${paginatedCount} question(s) sur ${expectedCount}.`;
       return;
     }
     this.pages = pages;
@@ -750,6 +797,8 @@ export class FormDesignerComponent {
       id: this.newId('project'),
       name: 'Nouveau Rallye',
       rallyTitle,
+      correctionCellWidthCm: 0.53,
+      correctionCellHeightCm: 0.53,
       stages: [firstStage]
     };
   }
@@ -769,7 +818,7 @@ export class FormDesignerComponent {
     return {
       id: this.newId('block'), type, title, text: '', textStyle: 'normal', color: '#d9eaf2', textColor: '#111111',
       spacingBefore: 0, spacingAfter: 0,
-      keepTogether: true, correctedOnly: false, columns: type === 'columns' ? 2 : 3, columnGap: 5, rows: 3,
+      keepTogether: true, columns: type === 'columns' ? 2 : 3, columnGap: 5, rows: 3,
       columnWidths: type === 'custom-table' ? [33.333, 33.333, 33.334] : [15, 70, 15],
       rowHeight: 4.7, repeatHeader: true, showTableHeader: false, rowsGrouped: false,
       cellsMerged: false,
@@ -795,8 +844,13 @@ export class FormDesignerComponent {
 
   private makeQuestion(index: number): DesignerQuestion {
     return {
-      id: this.newId('question'), number: String(index), label: '', answer: '', difficulty: 0, points: 0
+      id: this.newId('question'), number: String(index), answer: '', visibleInBlankForm: false,
+      corrections: [this.makeCorrection()]
     };
+  }
+
+  private makeCorrection(): DesignerCorrection {
+    return { id: this.newId('correction'), label: '', points: 0 };
   }
 
   private synchronizeSectionOrder(): void {
@@ -887,7 +941,6 @@ export class FormDesignerComponent {
     // cartouche, aux titres de section, au pied de page et aux quatre repères.
     // Toutes les mesures correspondent aux dimensions physiques du rendu A4.
     const contentCapacityMm = 190;
-    const sectionOverheadMm = 14;
     const pages: DesignerPage[] = [];
     let current: DesignerPage = { number: 1, sections: [], blocks: [] };
     let remainingMm = contentCapacityMm;
@@ -960,8 +1013,8 @@ export class FormDesignerComponent {
       const offsets = new Map(unit.map(section => [section.id, 0]));
       const completeHeight = Math.max(...unit.map(section => {
         const block = this.blockForSection(section);
-        return sectionOverheadMm + (block?.spacingBefore || 0) + (block?.spacingAfter || 0)
-          + section.questions.length * Math.max(3, block?.rowHeight || 4.7);
+        return this.sectionOverhead(section, block)
+          + section.questions.reduce((height, question) => height + this.questionRowHeight(block, question), 0);
       }));
       const totalUnitHeight = Math.max(completeHeight, freeHeight);
       const keepTogether = unitBlocks.every(block => block.keepTogether !== false);
@@ -974,25 +1027,34 @@ export class FormDesignerComponent {
         const activeSections = unit.filter(section => (offsets.get(section.id) || 0) < section.questions.length);
         const minimumHeight = Math.max(...activeSections.map(section => {
           const block = this.blockForSection(section);
-          return sectionOverheadMm + (block?.spacingBefore || 0) + (block?.spacingAfter || 0)
-            + Math.max(3, block?.rowHeight || 4.7);
+          const offset = offsets.get(section.id) || 0;
+          return this.sectionOverhead(section, block)
+            + this.questionRowHeight(block, section.questions[offset]);
         }));
         if (remainingMm < minimumHeight) { pushPage(); }
         let consumedHeight = 0;
         for (const section of activeSections) {
           const block = this.blockForSection(section);
-          const rowHeight = Math.max(3, block?.rowHeight || 4.7);
-          const overhead = sectionOverheadMm + (block?.spacingBefore || 0) + (block?.spacingAfter || 0);
-          const availableRows = Math.max(1, Math.floor((remainingMm - overhead) / rowHeight));
+          const overhead = this.sectionOverhead(section, block);
           const offset = offsets.get(section.id) || 0;
-          const questionCount = Math.min(availableRows, section.questions.length - offset);
+          let questionCount = 0;
+          let rowsHeight = 0;
+          const availableHeight = Math.max(0, remainingMm - overhead);
+          while (offset + questionCount < section.questions.length) {
+            const nextHeight = this.questionRowHeight(block, section.questions[offset + questionCount]);
+            if (questionCount > 0 && rowsHeight + nextHeight > availableHeight) { break; }
+            rowsHeight += nextHeight;
+            questionCount++;
+            if (rowsHeight >= availableHeight) { break; }
+          }
+          questionCount = Math.max(1, questionCount);
           current.sections.push({
             section,
             questions: section.questions.slice(offset, offset + questionCount),
             continued: offset > 0
           });
           offsets.set(section.id, offset + questionCount);
-          consumedHeight = Math.max(consumedHeight, overhead + questionCount * rowHeight);
+          consumedHeight = Math.max(consumedHeight, overhead + rowsHeight);
         }
         remainingMm -= Math.max(consumedHeight, firstFragment ? freeHeight : 0);
         firstFragment = false;
@@ -1019,6 +1081,26 @@ export class FormDesignerComponent {
       return spacing + lineCount * 5;
     }
     return spacing + 10;
+  }
+
+  private sectionRowHeight(block?: DesignerBlock): number {
+    const correctionHeightMm = Math.max(3, this.project.correctionCellHeightCm * 10);
+    return Math.max(correctionHeightMm, block?.rowHeight || 4.7);
+  }
+
+  private sectionOverhead(section: DesignerSection, block?: DesignerBlock): number {
+    const titleAndHeaderHeight = section.showTitle ? 14 : 8;
+    return titleAndHeaderHeight + (block?.spacingBefore || 0) + (block?.spacingAfter || 0);
+  }
+
+  private questionRowHeight(block: DesignerBlock | undefined, question: DesignerQuestion): number {
+    const placement = block ? this.findContainerPlacement(block.id) : undefined;
+    const columnCount = placement?.container.childColumns.length || 1;
+    const charactersPerLine = Math.max(18, Math.floor(78 / columnCount));
+    const visualLineCount = Math.max(1, String(question.answer || '').split('\n')
+      .reduce((count, line) => count + Math.max(1, Math.ceil(line.length / charactersPerLine)), 0));
+    const correctionHeight = Math.max(1, question.corrections.length) * this.project.correctionCellHeightCm * 10;
+    return Math.max(this.sectionRowHeight(block), visualLineCount * 4.2 + 1.1, correctionHeight);
   }
 
   private documentBlockUnits(blocks: DesignerBlock[]): DesignerBlock[][] {
