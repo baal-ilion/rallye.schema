@@ -1,96 +1,225 @@
-<div class="designer container-fluid">
-  <header class="designer-toolbar card">
-    <div class="card-body row align-items-end">
-      <div class="form-group col-md-2">
-        <label for="stage">N° d'épreuve</label>
-        <input id="stage" class="form-control" type="number" min="1" max="99" [(ngModel)]="stage">
+<div class="designer" (focusin)="rememberTextEditor($event)">
+  <header class="ribbon">
+    <div class="ribbon-titlebar">
+      <div class="ribbon-brand">Concepteur de formulaires</div>
+      <input class="project-name" aria-label="Nom du projet" [(ngModel)]="project.name">
+      <div class="ribbon-stage-picker">
+        <label for="activeStage">Épreuve active</label>
+        <select id="activeStage" [ngModel]="activeStageId" (ngModelChange)="selectStage($event)">
+          <option *ngFor="let projectStage of project.stages" [value]="projectStage.id">
+            {{ projectStage.number }} – {{ projectStage.name }}
+          </option>
+        </select>
       </div>
-      <div class="form-group col-md-4">
-        <label for="stageName">Nom de l'épreuve</label>
-        <input id="stageName" class="form-control" [(ngModel)]="stageName">
-      </div>
-      <div class="form-group col-md-3">
-        <label for="rallyTitle">Intitulé du Rallye</label>
-        <input id="rallyTitle" class="form-control" [ngModel]="rallyTitle"
-          (ngModelChange)="updateRallyTitle($event)">
-      </div>
-      <div class="form-group col-md-3">
-        <label for="workbook">Fichier de réponses et barème</label>
-        <input id="workbook" class="form-control-file" type="file" accept=".xlsx,.xls"
-          (change)="importWorkbook($any($event.target).files)">
-      </div>
-      <div class="col-md-3 actions">
-        <button class="btn btn-outline-primary" type="button" (click)="addSection()">Ajouter une section</button>
-        <button class="btn btn-outline-secondary" type="button" [disabled]="!sections.length"
-          (click)="print(false)">PDF vierge</button>
-        <button class="btn btn-primary" type="button" [disabled]="!sections.length"
-          (click)="print(true)">PDF corrigé</button>
-      </div>
-      <div class="col-12 text-muted" *ngIf="fileName">Source : {{ fileName }}</div>
-      <div class="col-12 text-danger" *ngIf="importError">{{ importError }}</div>
     </div>
+
+    <nav class="ribbon-tabs" aria-label="Outils">
+      <button type="button" title="Gérer le projet, les épreuves, l’import Excel et les exports PDF." [class.active]="ribbonTab === 'home'" (click)="ribbonTab = 'home'">Accueil</button>
+      <button type="button" title="Ajouter au document des tableaux, textes, images, sections et autres blocs." [class.active]="ribbonTab === 'insert'" (click)="ribbonTab = 'insert'">Insertion</button>
+      <button type="button" title="Modifier la structure du tableau ou du bloc actuellement sélectionné." [class.active]="ribbonTab === 'table'" (click)="ribbonTab = 'table'">Tableau</button>
+      <button type="button" title="Régler la position, les dimensions, les espacements et la pagination du bloc sélectionné." [class.active]="ribbonTab === 'layout'" (click)="ribbonTab = 'layout'">Mise en page</button>
+      <button type="button" title="Appliquer des couleurs et une mise en forme au bloc sélectionné." [class.active]="ribbonTab === 'styles'" (click)="ribbonTab = 'styles'">Styles</button>
+    </nav>
+
+    <div class="ribbon-tools" *ngIf="ribbonTab === 'home'">
+      <section class="ribbon-group"><div class="ribbon-commands">
+        <button class="ribbon-button" type="button" title="Créer un projet vide. Les changements non sauvegardés seront perdus après confirmation." (click)="newProject()"><span class="icon">＋</span>Nouveau</button>
+        <label class="ribbon-button" title="Ouvrir un projet Rallye précédemment sauvegardé au format JSON."><span class="icon">⌂</span>Ouvrir<input class="file-input" type="file" accept=".json" (change)="openProject($any($event.target).files)"></label>
+        <button class="ribbon-button" type="button" title="Télécharger le projet complet avec toutes ses épreuves et ses blocs." (click)="saveProject()"><span class="icon">▣</span>Sauver</button>
+      </div><div class="ribbon-group-title">Projet</div></section>
+      <section class="ribbon-group"><div class="ribbon-commands compact">
+        <button type="button" title="Ajouter une nouvelle épreuve vide au projet." (click)="addStage()">Nouvelle épreuve</button>
+        <label title="Importer une épreuve sauvegardée dans le projet courant.">Ouvrir une épreuve<input class="file-input" type="file" accept=".json" (change)="openStage($any($event.target).files)"></label>
+        <button type="button" title="Télécharger uniquement l’épreuve active." (click)="saveActiveStage()">Sauver l’épreuve</button>
+        <button class="danger" type="button" title="Supprimer l’épreuve active après confirmation." (click)="deleteActiveStage()">Supprimer</button>
+      </div><div class="ribbon-group-title">Épreuves</div></section>
+      <section class="ribbon-group properties-group"><div class="ribbon-fields">
+        <label>N°<input type="number" min="1" max="99" [(ngModel)]="activeStage.number"></label>
+        <label>Nom<input [(ngModel)]="activeStage.name"></label>
+        <label>Intitulé du Rallye<input [ngModel]="rallyTitle" (ngModelChange)="updateRallyTitle($event)"></label>
+      </div><div class="ribbon-group-title">Propriétés</div></section>
+      <section class="ribbon-group"><div class="ribbon-commands">
+        <label class="ribbon-button" title="Lire le fichier Excel de réponses et créer automatiquement les sections et questions."><span class="icon">XLS</span>Importer<input class="file-input" type="file" accept=".xlsx,.xls" (change)="importWorkbook($any($event.target).files)"></label>
+        <button class="ribbon-button" type="button" title="Créer une copie du bloc sélectionné juste après l’original." (click)="duplicateSelected()" [disabled]="!selectedBlock"><span class="icon">▣</span>Dupliquer</button>
+        <button class="ribbon-button danger" type="button" title="Retirer du document le bloc actuellement sélectionné." (click)="deleteSelected()" [disabled]="!selectedBlock"><span class="icon">×</span>Supprimer</button>
+      </div><div class="ribbon-group-title">Édition</div></section>
+      <section class="ribbon-group"><div class="ribbon-commands compact">
+        <label class="toggle" title="Afficher ou masquer les réponses dans l’aperçu."><input type="checkbox" [(ngModel)]="correctedPreview"> Afficher le corrigé</label>
+        <label class="toggle" title="Afficher ou masquer la liste ordonnée des blocs à gauche."><input type="checkbox" [(ngModel)]="showOutline"> Plan du document</label>
+        <button type="button" title="Imprimer ou enregistrer en PDF la version destinée aux joueurs." (click)="print(false)">PDF vierge</button><button type="button" title="Imprimer ou enregistrer en PDF la version contenant les réponses pour les correcteurs." (click)="print(true)">PDF corrigé</button>
+      </div><div class="ribbon-group-title">Affichage</div></section>
+    </div>
+
+    <div class="ribbon-tools insert-tools" *ngIf="ribbonTab === 'insert'">
+      <section class="ribbon-group insertion-blocks">
+        <div class="ribbon-commands"><button type="button" class="ribbon-button" *ngFor="let tool of blockCatalog" [title]="blockHelp(tool.type)" (click)="insertBlock(tool.type)"><span class="icon">{{ tool.icon }}</span>{{ tool.label }}</button></div>
+        <div class="ribbon-group-title">Blocs du document</div>
+      </section>
+      <section class="ribbon-group pictogram-group text-tools-group">
+        <div class="ribbon-commands">
+          <button type="button" class="ribbon-button" title="Insérer un symbole à la position du curseur dans le dernier texte sélectionné." (click)="showPictogramPalette = !showPictogramPalette"><span class="icon">★</span>Pictogrammes</button>
+          <button type="button" class="ribbon-button" title="Transformer les lignes sélectionnées en liste à puces." (click)="formatAsList('bullet')"><span class="icon">•</span>Liste à puces</button>
+          <button type="button" class="ribbon-button" title="Transformer les lignes sélectionnées en liste numérotée." (click)="formatAsList('numbered')"><span class="icon">1.</span>Liste numérotée</button>
+        </div>
+        <div class="pictogram-palette" *ngIf="showPictogramPalette"><button type="button" *ngFor="let symbol of pictograms" [title]="'Insérer ' + symbol" (click)="insertPictogram(symbol)">{{ symbol }}</button></div>
+        <div class="ribbon-group-title">Texte et mise en forme</div>
+      </section>
+    </div>
+
+    <div class="ribbon-tools" *ngIf="ribbonTab === 'table'">
+      <section class="ribbon-group"><div class="ribbon-commands compact">
+        <button type="button" [disabled]="!canCustomizeColumns" [title]="canCustomizeColumns ? 'Ajouter une colonne au tableau personnalisé.' : 'Les colonnes N°, Réponse et O/N/Y d’un tableau importé sont protégées.'" (click)="addTableColumn()">Ajouter colonne</button><button type="button" [disabled]="!canCustomizeColumns" [title]="canCustomizeColumns ? 'Supprimer la dernière colonne personnalisée.' : 'Les colonnes d’un tableau importé sont protégées.'" (click)="removeTableColumn()">Supprimer colonne</button>
+        <button type="button" [disabled]="!isTableSelection" title="Ajouter une ligne au tableau sélectionné." (click)="changeRows(1)">Ajouter ligne</button><button type="button" [disabled]="!isTableSelection" title="Supprimer la dernière ligne du tableau sélectionné." (click)="changeRows(-1)">Supprimer ligne</button>
+      </div><div class="ribbon-group-title">Lignes et colonnes</div></section>
+      <section class="ribbon-group"><div class="ribbon-fields" *ngIf="selectedBlock">
+        <label>Colonnes<input type="number" min="1" max="12" [disabled]="!canCustomizeColumns" [ngModel]="selectedBlock.columns" (ngModelChange)="setCustomColumnCount($event)"></label>
+        <label>Hauteur<input type="number" min="3" max="30" step=".1" [(ngModel)]="selectedBlock.rowHeight" (change)="questionEdited()"></label>
+      </div><div class="ribbon-group-title">Dimensions en mm</div></section>
+      <section class="ribbon-group"><div class="ribbon-commands compact"><button type="button" title="Traiter les lignes comme un ensemble visuel et les déplacer ensemble." (click)="toggleGroupedRows()">{{ selectedBlock?.rowsGrouped ? 'Dégrouper' : 'Grouper les lignes' }}</button><button type="button" title="Répéter l’en-tête lorsque le tableau continue sur une nouvelle page." (click)="toggleRepeatHeader()">{{ selectedBlock?.repeatHeader ? 'Ne pas répéter l’en-tête' : 'Répéter l’en-tête' }}</button></div><div class="ribbon-group-title">Structure</div></section>
+    </div>
+
+    <div class="ribbon-tools" *ngIf="ribbonTab === 'layout'">
+      <section class="ribbon-group"><div class="ribbon-commands compact" *ngIf="selectedBlock">
+        <button type="button" title="Déplacer le bloc avant le bloc précédent." (click)="moveSelected(-1)">Monter</button><button type="button" title="Déplacer le bloc après le bloc suivant." (click)="moveSelected(1)">Descendre</button>
+      </div><div class="ribbon-group-title">Disposition</div></section>
+      <section class="ribbon-group"><div class="ribbon-fields" *ngIf="selectedBlock">
+        <label>Avant<input type="number" min="0" max="50" [(ngModel)]="selectedBlock.spacingBefore" (change)="questionEdited()"></label>
+        <label>Après<input type="number" min="0" max="50" [(ngModel)]="selectedBlock.spacingAfter" (change)="questionEdited()"></label>
+        <label><span>Solidaire</span><input type="checkbox" [(ngModel)]="selectedBlock.keepTogether"></label>
+      </div><div class="ribbon-group-title">Espacement en mm</div></section>
+      <section class="ribbon-group"><div class="ribbon-commands compact"><label class="toggle" title="Afficher une grille de 5 mm derrière le canevas pour faciliter les alignements."><input type="checkbox" [(ngModel)]="showGrid"> Grille</label><label title="Agrandir ou réduire uniquement l’aperçu à l’écran, sans changer les dimensions imprimées.">Zoom <input type="range" min="45" max="120" [(ngModel)]="zoom"></label></div><div class="ribbon-group-title">Canevas</div></section>
+    </div>
+
+    <div class="ribbon-tools" *ngIf="ribbonTab === 'styles'">
+      <section class="ribbon-group"><div class="swatches">
+        <button title="Appliquer un fond gris au bloc sélectionné." style="--swatch:#d9d9d9" (click)="applyStyle('#d9d9d9')">Gris</button><button title="Appliquer un fond vert au bloc sélectionné." style="--swatch:#b7d7a8" (click)="applyStyle('#b7d7a8')">Vert</button>
+        <button style="--swatch:#a9d6e5" (click)="applyStyle('#a9d6e5')">Bleu</button><button style="--swatch:#f4a3a3" (click)="applyStyle('#f4a3a3')">Rouge</button>
+        <button style="--swatch:#ffe98a" (click)="applyStyle('#ffe98a')">Jaune</button><button style="--swatch:#183a60" (click)="applyStyle('#183a60','#ffffff')">Marine</button>
+      </div><div class="ribbon-group-title">Styles rapides</div></section>
+      <section class="ribbon-group"><div class="ribbon-fields" *ngIf="selectedBlock"><label>Fond<input type="color" [ngModel]="selectedBlock.color" (ngModelChange)="updateSelectedSectionColor($event)"></label><label>Texte<input type="color" [(ngModel)]="selectedBlock.textColor"></label></div><div class="ribbon-group-title">Couleurs</div></section>
+      <section class="ribbon-group"><div class="ribbon-commands compact"><button type="button" (click)="toggleTextStyle('bold')">Gras</button><button type="button" (click)="toggleTextStyle('italic')">Italique</button><button type="button" (click)="toggleTextStyle('underline')">Souligné</button><button type="button" title="Créer une copie indépendante du bloc sélectionné." (click)="duplicateSelected()">Dupliquer le bloc</button></div><div class="ribbon-group-title">Texte et blocs</div></section>
+    </div>
+
+    <div class="ribbon-status"><span>{{ pages.length }} page(s) A4</span><span>{{ blocks.length }} bloc(s)</span><span>{{ paginatedQuestionCount }}/{{ questionCount }} question(s)</span><span class="error" *ngIf="importError">{{ importError }}</span></div>
   </header>
 
-  <div class="workspace" *ngIf="sections.length; else emptyState">
-    <aside class="properties card">
-      <div class="card-header">Mise en page</div>
-      <div class="card-body">
-        <p><b>{{ pages.length }}</b> page(s) A4 calculée(s) automatiquement.</p>
-        <p [class.text-danger]="questionCount !== paginatedQuestionCount">
-          {{ paginatedQuestionCount }} question(s) affichée(s) sur {{ questionCount }} importée(s).
-        </p>
-        <div class="custom-control custom-switch mt-3">
-          <input id="corrected" class="custom-control-input" type="checkbox" [(ngModel)]="correctedPreview">
-          <label class="custom-control-label" for="corrected">Afficher le corrigé</label>
+  <div class="editor-shell">
+    <aside class="document-outline" *ngIf="showOutline">
+      <h2>Plan du document</h2>
+      <div class="outline-list" id="root-blocks" cdkDropList [cdkDropListData]="blocks" [cdkDropListConnectedTo]="dropListIds" (cdkDropListDropped)="dropBlock($event)">
+        <div class="outline-node" *ngFor="let block of blocks" cdkDrag [cdkDragData]="block">
+          <button type="button" [class.selected]="block.id === selectedBlockId" (click)="selectBlock(block.id)">
+            <span cdkDragHandle>⋮⋮</span><small>{{ block.type }}</small>{{ block.title }}
+          </button>
+          <div class="outline-container" *ngIf="block.type === 'columns'">
+            <div class="outline-column" *ngFor="let childColumn of block.childColumns; let columnIndex = index"
+              [id]="columnDropId(block, columnIndex)" cdkDropList [cdkDropListData]="childColumn"
+              [cdkDropListConnectedTo]="dropListIds" (cdkDropListDropped)="dropBlock($event)">
+              <small>Colonne {{ columnIndex + 1 }}</small>
+              <button type="button" *ngFor="let child of childColumn" cdkDrag [cdkDragData]="child" [class.selected]="child.id === selectedBlockId" (click)="selectBlock(child.id)"><span cdkDragHandle>⋮⋮</span>{{ child.title }}</button>
+              <em *ngIf="!childColumn.length">Déposer ici</em>
+            </div>
+          </div>
         </div>
-        <p class="small mt-3">Déplacez les lignes entre les sections. Les identifiants techniques restent uniques.</p>
       </div>
+      <p *ngIf="!blocks.length">Ajoutez un bloc depuis l’onglet Insertion.</p>
     </aside>
 
-    <div class="pages" [style.--question-column-width]="questionColumnWidth">
-    <main class="paper" *ngFor="let currentPage of pages">
-      <div class="corner top-left" aria-hidden="true"></div><div class="corner top-right" aria-hidden="true"></div>
-      <div class="form-header">
-        <h1>{{ stageName }}</h1>
-        <div class="identity">
-          <span>Équipe : <b>__</b></span>
-          <span>Épreuve : <b>{{ stage | number:'2.0-0' }}</b></span>
-          <span>Page : <b>{{ currentPage.number }}/{{ pages.length }}</b></span>
-        </div>
-      </div>
+    <div class="workspace" [class.with-grid]="showGrid">
+      <ng-template #freeBlock let-block>
+        <article class="designer-block" [hidden]="block.correctedOnly && !correctedPreview" [class.selected]="block.id === selectedBlockId" [style.order]="documentOrder(block)" [style.width]="blockWidth(block)" [style.margin-left]="blockMarginLeft(block)" [style.margin-right]="blockMarginRight(block)" [style.marginTop.mm]="block.spacingBefore" [style.marginBottom.mm]="block.spacingAfter" [style.color]="block.textColor" [style.font-weight]="block.fontWeight" [style.font-style]="block.fontStyle" [style.text-decoration]="block.textDecoration" (click)="selectBlock(block.id)">
+          <strong *ngIf="block.type !== 'text' && block.type !== 'image' && block.type !== 'separator' && block.type !== 'custom-table'" [style.color]="block.textColor" [style.backgroundColor]="block.color" [style.fontWeight]="block.fontWeight" [style.fontStyle]="block.fontStyle" [style.textDecoration]="block.textDecoration">{{ block.title }}</strong>
+          <p *ngIf="block.text" [class.instruction-content]="block.textStyle === 'instruction'" [class.title-content]="block.textStyle === 'title'" [class.boxed-content]="block.textStyle === 'boxed'">{{ block.text }}</p>
+          <div class="form-image" *ngIf="block.imageUrl"><img [src]="block.imageUrl" alt=""></div>
+          <hr *ngIf="block.type === 'separator'">
+          <div class="page-break-preview" *ngIf="block.type === 'page-break'">Saut de page A4</div>
+          <div class="columns-preview" *ngIf="block.type === 'columns'">
+            <div class="canvas-column" *ngFor="let childColumn of block.childColumns; let columnIndex = index">
+              <small>Colonne {{ columnIndex + 1 }}</small>
+              <div class="nested-block" *ngFor="let child of childColumn" [class.selected]="child.id === selectedBlockId" (click)="$event.stopPropagation(); selectBlock(child.id)"><strong *ngIf="child.type !== 'custom-table'" [style.backgroundColor]="child.color">{{ child.title }}</strong><p *ngIf="child.text">{{ child.text }}</p></div>
+              <em *ngIf="!childColumn.length">Glissez un bloc ici depuis le plan</em>
+            </div>
+          </div>
+          <table class="custom-table-editor" *ngIf="block.type === 'custom-table'" [style.--section-row-height.mm]="block.rowHeight">
+            <colgroup><col *ngFor="let column of block.tableColumns" [style.width.%]="column.width"></colgroup>
+            <thead *ngIf="block.showTableHeader" [style.backgroundColor]="block.color"><tr><th *ngFor="let column of block.tableColumns">{{ column.title }}</th></tr></thead>
+            <tbody><tr *ngFor="let row of block.tableRows"><td *ngFor="let cell of row.cells; let cellIndex = index"><input [(ngModel)]="row.cells[cellIndex]" type="text"></td></tr></tbody>
+          </table>
+          <div class="block-placeholder" *ngIf="!block.text && !block.imageUrl && ['custom-table','separator','page-break','columns'].indexOf(block.type) < 0">Cliquez pour configurer ce bloc</div>
+        </article>
+      </ng-template>
 
-      <div class="page-content">
-      <section class="question-section" *ngFor="let fragment of currentPage.sections">
-        <div class="section-editor" [style.backgroundColor]="fragment.section.color">
-          <input [(ngModel)]="fragment.section.title" aria-label="Titre de section">
-          <span class="continued" *ngIf="fragment.continued">(suite)</span>
-          <input type="color" [(ngModel)]="fragment.section.color" aria-label="Couleur de section">
-          <button type="button" class="btn btn-sm btn-link text-danger" (click)="removeSection(sections.indexOf(fragment.section))">Supprimer</button>
-        </div>
-        <table>
-          <thead [style.backgroundColor]="fragment.section.color"><tr><th>N°</th><th>Réponse</th><th colspan="3">Corrigé</th></tr></thead>
-          <tbody>
-            <tr *ngFor="let question of fragment.questions; trackBy: trackQuestion">
-              <td><input [(ngModel)]="question.number"></td>
-              <td>
-                <input class="answer" [(ngModel)]="question.answer"
-                  [class.hidden-answer]="!correctedPreview && question.points > 0">
-              </td>
-              <td class="check" aria-label="O"></td><td class="check" aria-label="N"></td><td class="check" aria-label="Y"></td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-
-      <div class="empty-page" *ngIf="!currentPage.sections.length">Importez des questions pour composer le formulaire.</div>
+      <div class="pages" [style.--question-column-width]="questionColumnWidth" [style.transform]="'scale(' + zoom / 100 + ')'" [style.transformOrigin]="'top center'">
+        <main class="paper" *ngFor="let currentPage of pages">
+          <div class="corner top-left"></div><div class="corner top-right"></div>
+          <div class="form-header"><h1>{{ activeStage.name }}</h1><div class="identity"><span>Équipe : <b>__</b></span><span>Épreuve : <b>{{ activeStage.number | number:'2.0-0' }}</b></span><span>Page : <b>{{ currentPage.number }}/{{ pages.length }}</b></span></div></div>
+          <div class="page-content">
+            <ng-container *ngFor="let block of freeBlocksForPage(currentPage.number)" [ngTemplateOutlet]="freeBlock" [ngTemplateOutletContext]="{ $implicit: block }"></ng-container>
+            <section class="question-section" *ngFor="let fragment of currentPage.sections"
+              [hidden]="blockForSection(fragment.section)?.correctedOnly && !correctedPreview"
+              [style.order]="sectionDocumentOrder(fragment.section)"
+              [class.selected-section]="selectedBlock?.sectionId === fragment.section.id"
+              [style.width]="sectionWidth(fragment.section)"
+              [style.margin-left]="sectionMarginLeft(fragment.section)"
+              [style.margin-right]="sectionMarginRight(fragment.section)"
+              [style.margin-top.mm]="blockForSection(fragment.section)?.spacingBefore"
+              [style.margin-bottom.mm]="blockForSection(fragment.section)?.spacingAfter"
+              [style.color]="blockForSection(fragment.section)?.textColor"
+              [style.font-weight]="blockForSection(fragment.section)?.fontWeight"
+              [style.font-style]="blockForSection(fragment.section)?.fontStyle"
+              [style.text-decoration]="blockForSection(fragment.section)?.textDecoration"
+              [style.--section-row-height.mm]="blockForSection(fragment.section)?.rowHeight"
+              (click)="selectSectionBlock(fragment.section)">
+              <div class="section-editor" [style.backgroundColor]="fragment.section.color"><input [ngModel]="fragment.section.title" (ngModelChange)="selectSectionBlock(fragment.section); updateSelectedSectionTitle($event)"><span *ngIf="fragment.continued">(suite)</span></div>
+              <table><thead *ngIf="!fragment.continued || blockForSection(fragment.section)?.repeatHeader !== false" [style.backgroundColor]="fragment.section.color"><tr><th>N°</th><th>Réponse</th><th class="correction-heading" colspan="3">Corrigé</th></tr></thead><tbody>
+                <tr *ngFor="let question of fragment.questions; trackBy: trackQuestion"><td><input [(ngModel)]="question.number"></td><td><input class="answer" [(ngModel)]="question.answer" [class.hidden-answer]="!correctedPreview && question.points > 0"></td><td class="check"></td><td class="check"></td><td class="check"></td></tr>
+              </tbody></table>
+            </section>
+            <div class="empty-page" *ngIf="!currentPage.sections.length && !freeBlocksForPage(currentPage.number).length">Ajoutez une section ou importez un fichier Excel.</div>
+          </div>
+          <div class="corner bottom-left"></div><div class="corner bottom-right"></div><footer>{{ rallyTitle }} <span>Page {{ currentPage.number }} sur {{ pages.length }}</span></footer>
+        </main>
       </div>
-      <div class="corner bottom-left" aria-hidden="true"></div><div class="corner bottom-right" aria-hidden="true"></div>
-      <footer>{{ rallyTitle }} <span>Page {{ currentPage.number }} sur {{ pages.length }}</span></footer>
-    </main>
     </div>
-  </div>
 
-  <ng-template #emptyState>
-    <div class="empty-state">Importez un fichier Excel pour commencer la conception du formulaire.</div>
-  </ng-template>
+    <aside class="inspector">
+      <h2>Propriétés</h2>
+      <ng-container *ngIf="selectedBlock as block; else noSelection">
+        <label *ngIf="block.type === 'section'">Titre<input [ngModel]="selectedSection?.title || block.title" (ngModelChange)="updateSelectedSectionTitle($event)"></label><label *ngIf="block.type === 'text'">Contenu<textarea rows="5" [(ngModel)]="block.text"></textarea></label>
+        <label *ngIf="block.type === 'text'">Présentation<select [(ngModel)]="block.textStyle"><option value="normal">Texte normal</option><option value="instruction">Consigne</option><option value="title">Titre</option><option value="boxed">Encadré</option></select></label>
+        <label *ngIf="selectedSection">Couleur de la section<input type="color" [ngModel]="selectedSection?.color" (ngModelChange)="updateSelectedSectionColor($event)"></label>
+        <section class="question-editor" *ngIf="selectedSection as editableSection">
+          <div class="question-editor-title"><strong>Questions importées</strong><button type="button" title="Ajouter une nouvelle réponse à la fin de cette section." (click)="addQuestion(editableSection)">＋ Ajouter</button></div>
+          <div class="editable-question" *ngFor="let question of editableSection.questions; trackBy: trackQuestion">
+            <input class="question-number" aria-label="Numéro" title="Numéro ou identifiant imprimé de la question." [(ngModel)]="question.number">
+            <textarea rows="2" aria-label="Réponse" title="Réponse affichée dans la version corrigée." [(ngModel)]="question.answer"></textarea>
+            <label title="Nom interne importé depuis Excel.">Libellé<input [(ngModel)]="question.label"></label>
+            <label title="Niveau de difficulté importé depuis Excel.">Difficulté<input type="number" min="0" step="0.5" [(ngModel)]="question.difficulty"></label>
+            <label title="Nombre de points associé à cette réponse.">Points<input type="number" min="0" step="0.5" [(ngModel)]="question.points"></label>
+            <div class="question-actions"><button type="button" title="Monter cette question." (click)="moveQuestion(editableSection, question, -1)">↑</button><button type="button" title="Descendre cette question." (click)="moveQuestion(editableSection, question, 1)">↓</button><button type="button" class="delete-question" title="Supprimer cette question de la section et recalculer les pages." (click)="removeQuestion(editableSection, question)">×</button></div>
+          </div>
+        </section>
+        <ng-container *ngIf="block.type === 'image'">
+          <label>Fichier<input type="file" accept="image/*" (change)="attachImage($any($event.target).files)"></label>
+        </ng-container>
+        <fieldset *ngIf="block.type === 'columns'"><legend>Disposition des colonnes</legend>
+          <label>Nombre de colonnes<input type="number" min="1" max="6" [ngModel]="block.columns" (ngModelChange)="setCustomColumnCount($event)"></label>
+          <label>Espacement (mm)<input type="number" min="0" max="30" step="0.5" [(ngModel)]="block.columnGap"></label>
+        </fieldset>
+        <fieldset class="column-editor" *ngIf="block.type === 'custom-table'"><legend>Colonnes du tableau</legend>
+          <label class="check-label"><input type="checkbox" [(ngModel)]="block.showTableHeader"> Afficher l’en-tête</label>
+          <div class="editable-column" *ngFor="let column of block.tableColumns; let columnIndex = index">
+            <input title="Titre affiché dans l’en-tête." [(ngModel)]="column.title">
+            <select title="Type de contenu de la colonne." [(ngModel)]="column.type"><option value="text">Texte</option><option value="number">Numéro</option><option value="image">Image</option></select>
+            <input title="Largeur relative de la colonne en pourcentage." type="number" min="3" max="100" [(ngModel)]="column.width">
+            <button type="button" title="Supprimer cette colonne." (click)="removeCustomColumn(columnIndex)">×</button>
+          </div>
+          <button type="button" class="add-column" (click)="addTableColumn()">＋ Ajouter une colonne</button>
+        </fieldset>
+        <fieldset *ngIf="block.type === 'section'"><legend>Numérotation</legend><label>Mode<select [(ngModel)]="block.numbering" (ngModelChange)="applyNumbering()"><option value="numeric">1, 2, 3</option><option value="alpha">A, B, C</option><option value="roman">I, II, III</option><option value="manual">Libre</option></select></label><label>Préfixe<input [(ngModel)]="block.prefix" (ngModelChange)="applyNumbering()" placeholder="Q, P, B…"></label></fieldset>
+        <fieldset *ngIf="block.type !== 'page-break' && block.type !== 'separator'"><legend>Affichage</legend><label class="check-label"><input type="checkbox" [(ngModel)]="block.correctedOnly"> Corrigé uniquement</label></fieldset>
+        <div class="inspector-actions"><button (click)="duplicateSelected()">Dupliquer</button><button class="danger" (click)="deleteSelected()">Supprimer</button></div>
+      </ng-container><ng-template #noSelection><p>Sélectionnez un bloc dans le plan ou le canevas.</p></ng-template>
+    </aside>
+  </div>
 </div>
