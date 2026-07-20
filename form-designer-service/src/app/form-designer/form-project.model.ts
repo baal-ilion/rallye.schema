@@ -1,4 +1,4 @@
-export const FORM_PROJECT_SCHEMA_VERSION = 2;
+export const FORM_PROJECT_SCHEMA_VERSION = 6;
 
 export interface DesignerCorrection {
   id: string;
@@ -47,7 +47,6 @@ export interface DesignerBlock {
   rowHeight: number;
   repeatHeader: boolean;
   showTableHeader: boolean;
-  rowsGrouped: boolean;
   cellsMerged: boolean;
   fontWeight: 'normal' | 'bold';
   fontStyle: 'normal' | 'italic';
@@ -66,7 +65,6 @@ export interface DesignerTableColumn {
   id: string;
   title: string;
   width: number;
-  type: 'text' | 'number' | 'image';
   color: string;
 }
 
@@ -80,6 +78,7 @@ export interface DesignerStage {
   id: string;
   number: number;
   name: string;
+  headerTitle: string;
   sourceFileName: string;
   sections: DesignerSection[];
   blocks?: DesignerBlock[];
@@ -91,6 +90,11 @@ export interface FormProject {
   id: string;
   name: string;
   rallyTitle: string;
+  rallyDate: string;
+  showLogo: boolean;
+  logoUrl: string;
+  titleSpacingBeforeMm: number;
+  titleSpacingAfterMm: number;
   correctionCellWidthCm: number;
   correctionCellHeightCm: number;
   stages: DesignerStage[];

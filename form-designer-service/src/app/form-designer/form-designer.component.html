@@ -1,4 +1,4 @@
-<div class="designer" (focusin)="rememberTextEditor($event)" (focusout)="handleRichTextBlur($event)" (click)="handleDesignerClick($event)" (mouseup)="endCellSelection()" (mouseleave)="endCellSelection()">
+<div class="designer" (focusin)="rememberTextEditor($event)" (focusout)="handleRichTextBlur($event)" (mouseup)="endCellSelection()" (mouseleave)="endCellSelection()">
   <header class="ribbon">
     <div class="ribbon-titlebar">
       <div class="ribbon-brand"><span class="brand-mark">R</span><span><strong>Rallye</strong><small>Concepteur de formulaires</small></span></div>
@@ -13,10 +13,8 @@
 
     <nav class="ribbon-tabs" aria-label="Outils">
       <button type="button" title="Gérer le projet, les épreuves, l’import Excel et les exports PDF." [class.active]="ribbonTab === 'home'" (click)="ribbonTab = 'home'">Accueil</button>
-      <button type="button" title="Ajouter au document des tableaux, textes, images, sections et autres blocs." [class.active]="ribbonTab === 'insert'" (click)="ribbonTab = 'insert'">Insertion</button>
-      <button type="button" title="Modifier la structure du tableau ou du bloc actuellement sélectionné." [class.active]="ribbonTab === 'table'" (click)="ribbonTab = 'table'">Tableau</button>
-      <button type="button" title="Régler la position, les dimensions, les espacements et la pagination du bloc sélectionné." [class.active]="ribbonTab === 'layout'" (click)="ribbonTab = 'layout'">Mise en page</button>
-      <button type="button" title="Appliquer des couleurs et une mise en forme au bloc sélectionné." [class.active]="ribbonTab === 'styles'" (click)="ribbonTab = 'styles'">Styles</button>
+      <button type="button" title="Ajouter des blocs et mettre en forme les cellules ou les textes sélectionnés." [class.active]="ribbonTab === 'insert'" (click)="ribbonTab = 'insert'">Édition</button>
+      <button type="button" title="Régler l’affichage et le niveau de zoom de l’aperçu du document." [class.active]="ribbonTab === 'layout'" (click)="ribbonTab = 'layout'">Affichage</button>
     </nav>
 
     <div class="ribbon-tools" *ngIf="ribbonTab === 'home'">
@@ -35,11 +33,8 @@
         <label>N°<input type="number" min="1" max="99" [(ngModel)]="activeStage.number"></label>
         <label>Nom<input [(ngModel)]="activeStage.name"></label>
         <label>Intitulé du Rallye<input [ngModel]="rallyTitle" (ngModelChange)="updateRallyTitle($event)"></label>
+        <label>Date du Rallye<input type="date" [(ngModel)]="project.rallyDate"></label>
       </div><div class="ribbon-group-title">Propriétés</div></section>
-      <section class="ribbon-group correction-size-group"><div class="ribbon-fields">
-        <label>Largeur<input type="number" min="0.3" max="1" step="0.01" [(ngModel)]="project.correctionCellWidthCm" (change)="questionEdited()"></label>
-        <label>Hauteur<input type="number" min="0.3" max="1" step="0.01" [(ngModel)]="project.correctionCellHeightCm" (change)="questionEdited()"></label>
-      </div><div class="ribbon-group-title">Cases de correction (cm)</div></section>
       <section class="ribbon-group"><div class="ribbon-commands">
         <label class="ribbon-button" title="Lire le fichier Excel de réponses et créer automatiquement les sections et questions."><span class="icon">XLS</span>Importer<input class="file-input" type="file" accept=".xlsx,.xls" (change)="importWorkbook($any($event.target).files)"></label>
         <button class="ribbon-button" type="button" title="Créer une copie du bloc sélectionné juste après l’original." (click)="duplicateSelected()" [disabled]="!selectedBlock"><span class="icon">▣</span>Dupliquer</button>
@@ -51,47 +46,23 @@
       </div><div class="ribbon-group-title">Affichage</div></section>
     </div>
 
-    <div class="ribbon-tools insert-tools" *ngIf="ribbonTab === 'insert'">
+    <div class="ribbon-tools" *ngIf="ribbonTab === 'layout'">
+      <section class="ribbon-group"><div class="ribbon-commands compact"><label title="Agrandir ou réduire uniquement l’aperçu à l’écran, sans changer les dimensions imprimées.">Zoom <input type="range" min="45" max="120" [(ngModel)]="zoom"></label></div><div class="ribbon-group-title">Zoom de l’aperçu</div></section>
+    </div>
+
+    <div class="ribbon-tools styles-tools insert-tools" *ngIf="ribbonTab === 'insert'">
       <section class="ribbon-group insertion-blocks">
         <div class="ribbon-commands"><button type="button" class="ribbon-button" *ngFor="let tool of blockCatalog" [title]="blockHelp(tool.type)" (click)="insertBlock(tool.type)"><span class="icon">{{ tool.icon }}</span>{{ tool.label }}</button></div>
         <div class="ribbon-group-title">Blocs du document</div>
       </section>
-    </div>
-
-    <div class="ribbon-tools" *ngIf="ribbonTab === 'table'">
-      <section class="ribbon-group"><div class="ribbon-commands compact">
-        <button type="button" [disabled]="!canCustomizeColumns" [title]="canCustomizeColumns ? 'Ajouter une colonne au tableau personnalisé.' : 'Les colonnes N°, Réponse et cases de correction d’un tableau importé sont protégées.'" (click)="addTableColumn()">Ajouter colonne</button><button type="button" [disabled]="!canCustomizeColumns" [title]="canCustomizeColumns ? 'Supprimer la dernière colonne personnalisée.' : 'Les colonnes d’un tableau importé sont protégées.'" (click)="removeTableColumn()">Supprimer colonne</button>
-        <button type="button" [disabled]="!isTableSelection" title="Ajouter une ligne au tableau sélectionné." (click)="changeRows(1)">Ajouter ligne</button><button type="button" [disabled]="!isTableSelection" title="Supprimer la dernière ligne du tableau sélectionné." (click)="changeRows(-1)">Supprimer ligne</button>
-      </div><div class="ribbon-group-title">Lignes et colonnes</div></section>
-      <section class="ribbon-group"><div class="ribbon-fields" *ngIf="selectedBlock">
-        <label>Colonnes<input type="number" min="1" max="12" [disabled]="!canCustomizeColumns" [ngModel]="selectedBlock.columns" (ngModelChange)="setCustomColumnCount($event)"></label>
-        <label>Hauteur<input type="number" min="3" max="30" step=".1" [(ngModel)]="selectedBlock.rowHeight" (change)="questionEdited()"></label>
-      </div><div class="ribbon-group-title">Dimensions en mm</div></section>
-      <section class="ribbon-group"><div class="ribbon-commands compact"><button type="button" title="Traiter les lignes comme un ensemble visuel et les déplacer ensemble." (click)="toggleGroupedRows()">{{ selectedBlock?.rowsGrouped ? 'Dégrouper' : 'Grouper les lignes' }}</button><button type="button" title="Répéter l’en-tête lorsque le tableau continue sur une nouvelle page." (click)="toggleRepeatHeader()">{{ selectedBlock?.repeatHeader ? 'Ne pas répéter l’en-tête' : 'Répéter l’en-tête' }}</button></div><div class="ribbon-group-title">Structure</div></section>
-    </div>
-
-    <div class="ribbon-tools" *ngIf="ribbonTab === 'layout'">
-      <section class="ribbon-group"><div class="ribbon-commands compact" *ngIf="selectedBlock">
-        <button type="button" title="Déplacer le bloc avant le bloc précédent." (click)="moveSelected(-1)">Monter</button><button type="button" title="Déplacer le bloc après le bloc suivant." (click)="moveSelected(1)">Descendre</button>
-      </div><div class="ribbon-group-title">Disposition</div></section>
-      <section class="ribbon-group"><div class="ribbon-fields" *ngIf="selectedBlock">
-        <label>Avant<input type="number" min="0" max="50" [(ngModel)]="selectedBlock.spacingBefore" (change)="questionEdited()"></label>
-        <label>Après<input type="number" min="0" max="50" [(ngModel)]="selectedBlock.spacingAfter" (change)="questionEdited()"></label>
-        <label><span>Solidaire</span><input type="checkbox" [(ngModel)]="selectedBlock.keepTogether" (ngModelChange)="questionEdited()"></label>
-      </div><div class="ribbon-group-title">Espacement en mm</div></section>
-      <section class="ribbon-group"><div class="ribbon-commands compact"><label title="Agrandir ou réduire uniquement l’aperçu à l’écran, sans changer les dimensions imprimées.">Zoom <input type="range" min="45" max="120" [(ngModel)]="zoom"></label></div><div class="ribbon-group-title">Canevas</div></section>
-    </div>
-
-    <div class="ribbon-tools styles-tools" *ngIf="ribbonTab === 'styles'">
       <section class="ribbon-group word-color-group"><div class="ribbon-commands"><button type="button" class="ribbon-button word-color-button" [disabled]="!selectedCellIds.size" title="Choisir la couleur de fond des cellules sélectionnées." (click)="showCellColorPalette = !showCellColorPalette"><span class="paint-bucket">▨</span><span>Trame de fond</span><i></i><small>▼</small></button></div>
         <div class="word-color-palette" *ngIf="showCellColorPalette"><button type="button" class="no-color" (click)="chooseSelectedCellColor('#ffffff')"><span>×</span> Sans couleur</button><h3>Couleurs du thème</h3><div class="theme-color-grid"><div class="theme-color-column" *ngFor="let column of themeColorColumns"><button type="button" *ngFor="let color of column" [style.backgroundColor]="color" [title]="color" (click)="chooseSelectedCellColor(color)"></button></div></div><h3>Couleurs standard</h3><div class="standard-color-grid"><button type="button" *ngFor="let color of standardColors" [style.backgroundColor]="color" [title]="color" (click)="chooseSelectedCellColor(color)"></button></div><label class="more-colors">Autres couleurs…<input type="color" (change)="chooseSelectedCellColor($any($event.target).value)"></label></div>
         <div class="ribbon-group-title">Arrière-plan des cellules</div></section>
-      <section class="ribbon-group font-group"><div class="font-selectors"><select title="Police" (change)="applyFontCommand('fontName', $any($event.target).value)"><option value="">Police</option><option *ngFor="let font of fontFamilies" [value]="font" [style.fontFamily]="font">{{ font }}</option></select><select title="Taille de police" (change)="changeFontSize($any($event.target).value)"><option value="">Taille</option><option *ngFor="let size of fontSizes" [value]="size">{{ size }}</option></select><button type="button" title="Agrandir la police" (click)="changeFontSizeRelative(1)">A▲</button><button type="button" title="Réduire la police" (click)="changeFontSizeRelative(-1)">A▼</button></div><div class="font-buttons"><button type="button" title="Gras" [class.active]="isFontStyleActive('bold')" (click)="applyFontCommand('bold')"><b>G</b></button><button type="button" title="Italique" [class.active]="isFontStyleActive('italic')" (click)="applyFontCommand('italic')"><i>I</i></button><button type="button" title="Souligné" [class.active]="isFontStyleActive('underline')" (click)="applyFontCommand('underline')"><u>S</u></button><button type="button" title="Barré" [class.active]="isFontStyleActive('strikeThrough')" (click)="applyFontCommand('strikeThrough')"><s>ab</s></button><button type="button" title="Indice" [class.active]="isFontStyleActive('subscript')" (click)="applyFontCommand('subscript')">X₂</button><button type="button" title="Exposant" [class.active]="isFontStyleActive('superscript')" (click)="applyFontCommand('superscript')">X²</button><label title="Couleur du texte"><span>A</span><input type="color" (change)="applyFontCommand('foreColor', $any($event.target).value)"></label><label title="Surlignage du texte"><span class="highlight-symbol">ab</span><input type="color" value="#ffff00" (change)="applyFontCommand('hiliteColor', $any($event.target).value)"></label><button type="button" title="Effacer toute la mise en forme" (click)="applyFontCommand('removeFormat')">A×</button></div><div class="ribbon-group-title">Police</div></section>
+      <section class="ribbon-group font-group"><div class="font-selectors"><select title="Choisir la police" (change)="applyFontCommand('fontName', $any($event.target).value)"><option value="">Police</option><option *ngFor="let font of fontFamilies" [value]="font" [style.fontFamily]="font">{{ font }}</option></select><select title="Choisir la taille" (change)="changeFontSize($any($event.target).value)"><option value="">Taille</option><option *ngFor="let size of fontSizes" [value]="size">{{ size }}</option></select><button type="button" title="Agrandir la police" (click)="changeFontSizeRelative(1)">A▲</button><button type="button" title="Réduire la police" (click)="changeFontSizeRelative(-1)">A▼</button></div><div class="font-buttons"><button type="button" title="Gras" [class.active]="isFontStyleActive('bold')" (click)="applyFontCommand('bold')"><b>G</b></button><button type="button" title="Italique" [class.active]="isFontStyleActive('italic')" (click)="applyFontCommand('italic')"><i>I</i></button><button type="button" title="Souligné" [class.active]="isFontStyleActive('underline')" (click)="applyFontCommand('underline')"><u>S</u></button><button type="button" title="Barré" [class.active]="isFontStyleActive('strikeThrough')" (click)="applyFontCommand('strikeThrough')"><s>ab</s></button><button type="button" title="Indice" [class.active]="isFontStyleActive('subscript')" (click)="applyFontCommand('subscript')">X₂</button><button type="button" title="Exposant" [class.active]="isFontStyleActive('superscript')" (click)="applyFontCommand('superscript')">X²</button><button type="button" class="highlight-button" title="Surligner en jaune" (click)="applyFontCommand('hiliteColor', '#ffff00')"><span class="highlight-symbol">ab</span></button><button type="button" class="clear-format-button" title="Effacer toute la mise en forme" (click)="applyFontCommand('removeFormat')">A×</button></div><div class="ribbon-group-title">Police et effets</div></section>
       <section class="ribbon-group word-color-group text-color-group"><div class="ribbon-commands"><button type="button" class="ribbon-button word-color-button text-color-button" title="Choisir la couleur du texte sélectionné ou des cellules sélectionnées." (click)="showTextColorPalette = !showTextColorPalette"><span class="text-color-symbol">A</span><span>Couleur du texte</span><i></i><small>▼</small></button></div>
         <div class="word-color-palette" *ngIf="showTextColorPalette"><button type="button" class="automatic-color" (click)="chooseTextColor('#000000')"><span></span> Automatique</button><h3>Couleurs du thème</h3><div class="theme-color-grid"><div class="theme-color-column" *ngFor="let column of themeColorColumns"><button type="button" *ngFor="let color of column" [style.backgroundColor]="color" [title]="color" (click)="chooseTextColor(color)"></button></div></div><h3>Couleurs standard</h3><div class="standard-color-grid"><button type="button" *ngFor="let color of standardColors" [style.backgroundColor]="color" [title]="color" (click)="chooseTextColor(color)"></button></div><label class="more-colors">Autres couleurs…<input type="color" (change)="chooseTextColor($any($event.target).value)"></label></div>
         <div class="ribbon-group-title">Couleur de police</div></section>
       <section class="ribbon-group alignment-group"><div class="ribbon-commands"><button type="button" title="Aligner le texte à gauche" [class.active]="isAlignmentActive('justifyLeft')" (click)="applyFontCommand('justifyLeft')"><span class="align-icon align-left">☰</span>Gauche</button><button type="button" title="Centrer le texte" [class.active]="isAlignmentActive('justifyCenter')" (click)="applyFontCommand('justifyCenter')"><span class="align-icon align-center">☰</span>Centre</button><button type="button" title="Aligner le texte à droite" [class.active]="isAlignmentActive('justifyRight')" (click)="applyFontCommand('justifyRight')"><span class="align-icon align-right">☰</span>Droite</button></div><div class="ribbon-group-title">Alignement</div></section>
-      <section class="ribbon-group style-help-group"><p>Clic : une cellule. Glisser : une plage lignes/colonnes. <b>Maj</b> : étendre. <b>Ctrl</b> : ajouter ou retirer.</p><div class="ribbon-group-title">Aide</div></section>
     </div>
 
     <div class="ribbon-status"><span class="status-context">{{ activeStage.number }} · {{ activeStage.name }}</span><span>{{ pages.length }} page(s) A4</span><span>{{ blocks.length }} bloc(s)</span><span>{{ paginatedQuestionCount }}/{{ questionCount }} question(s)</span><span class="error" *ngIf="importError">{{ importError }}</span></div>
@@ -100,6 +71,14 @@
   <div class="editor-shell">
     <aside class="document-outline">
       <h2>Plan du document</h2>
+      <div class="outline-list fixed-outline-list">
+        <div class="outline-node fixed-outline-node">
+          <button type="button" [class.selected]="isIdentificationBlockSelected" (click)="selectFixedHeaderBlock(identificationBlockId)"><span class="fixed-block-icon" title="Bloc fixe">🔒</span><small>Fixe · position 1</small>Grilles d’identification</button>
+        </div>
+        <div class="outline-node fixed-outline-node">
+          <button type="button" [class.selected]="isTitleBlockSelected" (click)="selectFixedHeaderBlock(titleBlockId)"><span class="fixed-block-icon" title="Bloc fixe">🔒</span><small>Fixe · position 2</small>Logo et titre</button>
+        </div>
+      </div>
       <div class="outline-list" id="root-blocks" cdkDropList [cdkDropListData]="blocks" [cdkDropListConnectedTo]="dropListIds" (cdkDropListDropped)="dropBlock($event)">
         <div class="outline-node" *ngFor="let block of blocks" cdkDrag [cdkDragData]="block">
           <button type="button" [class.selected]="block.id === selectedBlockId" (click)="selectBlock(block.id)">
@@ -136,8 +115,8 @@
           </div>
           <table class="custom-table-editor" *ngIf="block.type === 'custom-table'" [style.--section-row-height.mm]="block.rowHeight">
             <colgroup><col *ngFor="let column of block.tableColumns" [style.width.%]="column.width"></colgroup>
-            <thead *ngIf="block.showTableHeader"><tr><th *ngFor="let column of block.tableColumns; let columnIndex = index" [style.backgroundColor]="column.color" [class.cell-selected]="isCellSelected('table-header-' + column.id)" (mousedown)="startCellSelection($event, 'table-' + block.id, 0, columnIndex, 'table-header-' + column.id)" (mouseenter)="extendCellSelection($event, 'table-' + block.id, 0, columnIndex, 'table-header-' + column.id)"><div class="rich-text-editor" [attr.contenteditable]="isTextEditing('table-header-' + column.id)" [innerHTML]="column.title" (dblclick)="beginTextEditing($event, 'table-header-' + column.id)" (click)="handleRichTextClick($event, 'table-header-' + column.id)" (input)="updateRichText(column, 'title', $event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></div></th></tr></thead>
-            <tbody><tr *ngFor="let row of block.tableRows; let rowIndex = index"><td *ngFor="let cell of row.cells; let cellIndex = index" [style.backgroundColor]="row.cellColors[cellIndex]" [class.cell-selected]="isCellSelected('table-cell-' + row.id + '-' + cellIndex)" (mousedown)="startCellSelection($event, 'table-' + block.id, rowIndex + 1, cellIndex, 'table-cell-' + row.id + '-' + cellIndex)" (mouseenter)="extendCellSelection($event, 'table-' + block.id, rowIndex + 1, cellIndex, 'table-cell-' + row.id + '-' + cellIndex)"><div class="rich-text-editor" [attr.contenteditable]="isTextEditing('table-cell-' + row.id + '-' + cellIndex)" [innerHTML]="row.cells[cellIndex]" (dblclick)="beginTextEditing($event, 'table-cell-' + row.id + '-' + cellIndex)" (click)="handleRichTextClick($event, 'table-cell-' + row.id + '-' + cellIndex)" (input)="updateRichTextArray(row.cells, cellIndex, $event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></div></td></tr></tbody>
+            <thead *ngIf="block.showTableHeader"><tr><th *ngFor="let column of block.tableColumns; let columnIndex = index; trackBy: trackTableColumn" [style.backgroundColor]="column.color" [class.cell-selected]="isCellSelected('table-header-' + column.id)" (mousedown)="startCellSelection($event, 'table-' + block.id, 0, columnIndex, 'table-header-' + column.id)" (mouseenter)="extendCellSelection($event, 'table-' + block.id, 0, columnIndex, 'table-header-' + column.id)"><div class="rich-text-editor" [attr.contenteditable]="isTextEditing('table-header-' + column.id)" [innerHTML]="column.title" (dblclick)="beginTextEditing($event, 'table-header-' + column.id)" (click)="handleRichTextClick($event, 'table-header-' + column.id)" (blur)="updateRichText(column, 'title', $event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></div></th></tr></thead>
+            <tbody><tr *ngFor="let row of block.tableRows; let rowIndex = index; trackBy: trackTableRow"><td *ngFor="let cell of row.cells; let cellIndex = index; trackBy: trackIndex" [style.backgroundColor]="row.cellColors[cellIndex]" [class.cell-selected]="isCellSelected('table-cell-' + row.id + '-' + cellIndex)" (mousedown)="startCellSelection($event, 'table-' + block.id, rowIndex + 1, cellIndex, 'table-cell-' + row.id + '-' + cellIndex)" (mouseenter)="extendCellSelection($event, 'table-' + block.id, rowIndex + 1, cellIndex, 'table-cell-' + row.id + '-' + cellIndex)"><div class="rich-text-editor" [attr.contenteditable]="isTextEditing('table-cell-' + row.id + '-' + cellIndex)" [innerHTML]="row.cells[cellIndex]" (dblclick)="beginTextEditing($event, 'table-cell-' + row.id + '-' + cellIndex)" (click)="handleRichTextClick($event, 'table-cell-' + row.id + '-' + cellIndex)" (blur)="updateRichTextArray(row.cells, cellIndex, $event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></div></td></tr></tbody>
           </table>
           <div class="block-placeholder" *ngIf="!block.text && !block.imageUrl && ['custom-table','separator','page-break','columns'].indexOf(block.type) < 0">Cliquez pour configurer ce bloc</div>
         </article>
@@ -146,8 +125,35 @@
       <div class="pages" [style.--question-column-width]="questionColumnWidth" [style.--correction-cell-width]="project.correctionCellWidthCm + 'cm'" [style.--correction-cell-height]="project.correctionCellHeightCm + 'cm'" [style.--correction-group-width]="correctionGroupWidth" [style.transform]="'scale(' + zoom / 100 + ')'" [style.transformOrigin]="'top center'">
         <main class="paper" *ngFor="let currentPage of pages">
           <div class="corner top-left"></div><div class="corner top-right"></div>
-          <div class="form-header"><h1>{{ activeStage.name }}</h1><div class="identity"><span>Équipe : <b>__</b></span><span>Épreuve : <b>{{ activeStage.number | number:'2.0-0' }}</b></span><span>Page : <b>{{ currentPage.number }}/{{ pages.length }}</b></span></div></div>
+          <div class="form-header">
+            <div class="form-identification" [class.selected-fixed-header]="isIdentificationBlockSelected" (click)="selectFixedHeaderBlock(identificationBlockId)" aria-label="Identification du formulaire">
+              <section class="identification-field team-field">
+                <h2>Équipe <strong class="handwritten-team">__</strong></h2>
+                <div class="digit-grid ten-digits">
+                  <span class="digit-label" *ngFor="let digit of identificationDigits">{{ digit }}</span>
+                  <span class="mark-box" data-field="Equipe1" *ngFor="let digit of identificationDigits" [attr.data-value]="digit" [attr.aria-label]="'Dizaine équipe ' + digit"></span>
+                  <span class="mark-box" data-field="Equipe2" *ngFor="let digit of identificationDigits" [attr.data-value]="digit" [attr.aria-label]="'Unité équipe ' + digit"></span>
+                </div>
+              </section>
+              <section class="identification-field stage-field">
+                <h2>Épreuve <strong>{{ activeStage.number | number:'2.0-0' }}</strong></h2>
+                <div class="digit-grid ten-digits">
+                  <span class="digit-label" *ngFor="let digit of identificationDigits">{{ digit }}</span>
+                  <span class="mark-box" data-field="Etape1" *ngFor="let digit of identificationDigits" [attr.data-value]="digit" [class.marked]="isStageDigitMarked(0, digit)" [attr.aria-label]="'Dizaine épreuve ' + digit"></span>
+                  <span class="mark-box" data-field="Etape2" *ngFor="let digit of identificationDigits" [attr.data-value]="digit" [class.marked]="isStageDigitMarked(1, digit)" [attr.aria-label]="'Unité épreuve ' + digit"></span>
+                </div>
+              </section>
+              <section class="identification-field page-field">
+                <h2>Page <strong>{{ currentPage.number }}/{{ pages.length }}</strong></h2>
+                <div class="digit-grid page-digits" [style.--page-choice-count]="pageChoices.length">
+                  <span class="digit-label" *ngFor="let page of pageChoices">{{ page }}</span>
+                  <span class="mark-box" data-field="Page" *ngFor="let page of pageChoices" [attr.data-value]="page" [class.marked]="page === currentPage.number" [attr.aria-label]="'Page ' + page"></span>
+                </div>
+              </section>
+            </div>
+          </div>
           <div class="page-content">
+            <div class="form-heading" *ngIf="currentPage.number === 1" [style.margin-top.mm]="project.titleSpacingBeforeMm" [style.margin-bottom.mm]="project.titleSpacingAfterMm" [class.selected-fixed-header]="isTitleBlockSelected" (click)="selectFixedHeaderBlock(titleBlockId)"><img *ngIf="project.showLogo" [src]="project.logoUrl" alt="Logo du Rallye"><h1 class="rich-text-editor" data-rich-text-context="free" contenteditable="true" [style.width.mm]="stageTitleWidthMm" [innerHTML]="activeStage.headerTitle" (input)="updateRichText(activeStage, 'headerTitle', $event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></h1></div>
             <ng-container *ngFor="let block of freeBlocksForPage(currentPage.number)" [ngTemplateOutlet]="freeBlock" [ngTemplateOutletContext]="{ $implicit: block }"></ng-container>
             <section class="question-section" *ngFor="let fragment of currentPage.sections"
               [style.order]="sectionDocumentOrder(fragment.section)"
@@ -171,7 +177,7 @@
             </section>
             <div class="empty-page" *ngIf="!currentPage.sections.length && !freeBlocksForPage(currentPage.number).length">Ajoutez une section ou importez un fichier Excel.</div>
           </div>
-          <div class="corner bottom-left"></div><div class="corner bottom-right"></div><footer>{{ rallyTitle }} <span>Page {{ currentPage.number }} sur {{ pages.length }}</span></footer>
+          <div class="corner bottom-left"></div><div class="corner bottom-right"></div><footer>{{ rallyFooterText }}</footer>
         </main>
       </div>
     </div>
@@ -179,27 +185,57 @@
     <aside class="inspector">
       <h2>Propriétés</h2>
       <ng-container *ngIf="selectedBlock as block; else noSelection">
-        <fieldset class="block-properties"><legend>Propriétés du bloc</legend>
-          <label *ngIf="block.type === 'section'">Titre<div class="inspector-rich-text rich-text-editor" contenteditable="true" [innerHTML]="selectedSection?.title || block.title" (input)="updateRichText(selectedSection || block, 'title', $event); updateSelectedSectionTitle((selectedSection?.title || block.title))" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></div></label><label *ngIf="block.type === 'text'">Contenu<div class="inspector-rich-text rich-text-editor" data-rich-text-context="free" contenteditable="true" [innerHTML]="block.text" (input)="updateRichText(block, 'text', $event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></div></label>
-          <label *ngIf="block.type === 'text'">Présentation<select [(ngModel)]="block.textStyle"><option value="normal">Texte normal</option><option value="instruction">Consigne</option><option value="title">Titre</option><option value="boxed">Encadré</option></select></label>
-          <button class="section-title-toggle" type="button" *ngIf="selectedSection" (click)="selectedSection.showTitle = !selectedSection.showTitle; questionEdited()">{{ selectedSection.showTitle ? 'Masquer le titre de la section' : 'Afficher le titre de la section' }}</button>
-          <ng-container *ngIf="block.type === 'image'"><label>Fichier<input type="file" accept="image/*" (change)="attachImage($any($event.target).files)"></label></ng-container>
-          <fieldset *ngIf="block.type === 'columns'"><legend>Disposition des colonnes</legend>
-            <label>Nombre de colonnes<input type="number" min="1" max="6" [ngModel]="block.columns" (ngModelChange)="setCustomColumnCount($event)"></label>
-            <label>Espacement (mm)<input type="number" min="0" max="30" step="0.5" [(ngModel)]="block.columnGap"></label>
-          </fieldset>
-          <fieldset class="column-editor" *ngIf="block.type === 'custom-table'"><legend>Colonnes du tableau</legend>
-          <label class="check-label"><input type="checkbox" [(ngModel)]="block.showTableHeader"> Afficher l’en-tête</label>
-          <div class="editable-column" *ngFor="let column of block.tableColumns; let columnIndex = index">
-            <div class="inspector-rich-text rich-text-editor" title="Titre affiché dans l’en-tête." contenteditable="true" [innerHTML]="column.title" (input)="updateRichText(column, 'title', $event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></div>
-            <select title="Type de contenu de la colonne." [(ngModel)]="column.type"><option value="text">Texte</option><option value="number">Numéro</option><option value="image">Image</option></select>
-            <input title="Largeur relative de la colonne en pourcentage." type="number" min="3" max="100" [(ngModel)]="column.width">
-            <button type="button" title="Supprimer cette colonne." (click)="removeCustomColumn(columnIndex)">×</button>
-          </div>
-          <button type="button" class="add-column" (click)="addTableColumn()">＋ Ajouter une colonne</button>
-          </fieldset>
-          <fieldset *ngIf="block.type === 'section'"><legend>Numérotation du bloc</legend><label>Mode<select [(ngModel)]="block.numbering" (ngModelChange)="applyNumbering()"><option value="numeric">1, 2, 3</option><option value="alpha">A, B, C</option><option value="roman">I, II, III</option><option value="manual">Libre</option></select></label><label>Préfixe<input [(ngModel)]="block.prefix" (ngModelChange)="applyNumbering()" placeholder="Q, P, B…"></label></fieldset>
-        </fieldset>
+        <div class="block-properties">
+          <section class="property-card" *ngIf="block.type === 'section' || block.type === 'text' || block.type === 'image'">
+            <header class="property-card-header"><h3>Contenu</h3></header>
+            <label *ngIf="block.type === 'section'">Titre<div class="inspector-rich-text rich-text-editor" contenteditable="true" [innerHTML]="selectedSection?.title || block.title" (input)="updateRichText(selectedSection || block, 'title', $event); updateSelectedSectionTitle((selectedSection?.title || block.title))" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></div></label>
+            <label *ngIf="block.type === 'text'">Texte<div class="inspector-rich-text rich-text-editor" data-rich-text-context="free" contenteditable="true" [innerHTML]="block.text" (input)="updateRichText(block, 'text', $event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></div></label>
+            <label *ngIf="block.type === 'text'">Présentation<select [(ngModel)]="block.textStyle"><option value="normal">Texte normal</option><option value="instruction">Consigne</option><option value="title">Titre</option><option value="boxed">Encadré</option></select></label>
+            <button class="property-button secondary" type="button" *ngIf="selectedSection" (click)="selectedSection.showTitle = !selectedSection.showTitle; questionEdited()">{{ selectedSection.showTitle ? 'Masquer le titre' : 'Afficher le titre' }}</button>
+            <label *ngIf="block.type === 'image'">Fichier image<input type="file" accept="image/*" (change)="attachImage($any($event.target).files)"></label>
+          </section>
+
+          <section class="property-card" *ngIf="supportsBlockSpacing(block.type)">
+            <header class="property-card-header"><h3>Espacement</h3><span>mm</span></header>
+            <div class="property-grid two-columns">
+              <label>Avant<input type="number" min="0" max="50" step="0.5" [(ngModel)]="block.spacingBefore" (change)="questionEdited()"></label>
+              <label>Après<input type="number" min="0" max="50" step="0.5" [(ngModel)]="block.spacingAfter" (change)="questionEdited()"></label>
+            </div>
+          </section>
+
+          <section class="property-card" *ngIf="block.type === 'custom-table' || block.type === 'section'">
+            <header class="property-card-header"><h3>Structure du tableau</h3></header>
+            <label>Hauteur des lignes <span class="field-unit">mm</span><input type="number" min="3" max="30" step="0.1" [(ngModel)]="block.rowHeight" (change)="questionEdited()"></label>
+            <div class="property-toggles">
+              <label class="check-label" title="Conserver toutes les lignes sur la même page lorsque le bloc peut tenir sur une seule page A4."><input type="checkbox" [(ngModel)]="block.keepTogether" (ngModelChange)="questionEdited()"><span>Solidaire</span></label>
+              <label class="check-label" title="Répéter l’en-tête lorsque le tableau continue sur une nouvelle page."><input type="checkbox" [(ngModel)]="block.repeatHeader" (ngModelChange)="questionEdited()"><span>Répéter l’en-tête sur chaque page</span></label>
+              <label class="check-label" *ngIf="block.type === 'custom-table'"><input type="checkbox" [ngModel]="block.showTableHeader" (ngModelChange)="block.showTableHeader = $event; questionEdited()"><span>Afficher l’en-tête</span></label>
+            </div>
+            <div class="table-structure-actions">
+              <button class="add-action" type="button" (click)="changeSelectedTableRows(1)"><span>＋</span> Ligne</button>
+              <button class="remove-action" type="button" [disabled]="!canRemoveSelectedTableRow" (click)="changeSelectedTableRows(-1)"><span>−</span> Ligne</button>
+              <button class="add-action" type="button" *ngIf="block.type === 'custom-table'" (click)="addTableColumn()"><span>＋</span> Colonne</button>
+              <button class="remove-action" type="button" *ngIf="block.type === 'custom-table'" [disabled]="block.tableColumns.length <= 1" (click)="removeTableColumn()"><span>−</span> Colonne</button>
+            </div>
+          </section>
+
+          <section class="property-card" *ngIf="block.type === 'columns'">
+            <header class="property-card-header"><h3>Disposition des colonnes</h3></header>
+            <div class="property-grid two-columns"><label>Nombre<input type="number" min="1" max="6" [ngModel]="block.columns" (ngModelChange)="setCustomColumnCount($event)"></label><label>Écart <span class="field-unit">mm</span><input type="number" min="0" max="30" step="0.5" [(ngModel)]="block.columnGap"></label></div>
+            <div class="table-structure-actions"><button class="add-action" type="button" (click)="addTableColumn()"><span>＋</span> Colonne</button><button class="remove-action" type="button" [disabled]="block.childColumns.length <= 1" (click)="removeTableColumn()"><span>−</span> Colonne</button></div>
+          </section>
+
+          <section class="property-card column-editor" *ngIf="block.type === 'custom-table'">
+            <header class="property-card-header"><h3>Largeur des colonnes</h3><span>Total : 100 %</span></header>
+            <p class="property-hint">Modifier une colonne ajuste automatiquement celles situées à sa droite.</p>
+            <div class="column-width-row" *ngFor="let column of block.tableColumns; let columnIndex = index"><label>Colonne {{ columnIndex + 1 }}<span><input title="Largeur relative de la colonne." type="number" min="3" max="100" step="0.1" [ngModel]="column.width" (change)="updateTableColumnWidth(columnIndex, $any($event.target).value)"><b>%</b></span></label></div>
+          </section>
+
+          <section class="property-card" *ngIf="block.type === 'section'">
+            <header class="property-card-header"><h3>Numérotation</h3></header>
+            <div class="property-grid two-columns"><label>Mode<select [(ngModel)]="block.numbering" (ngModelChange)="applyNumbering()"><option value="numeric">1, 2, 3</option><option value="alpha">A, B, C</option><option value="roman">I, II, III</option><option value="manual">Libre</option></select></label><label>Préfixe<input [(ngModel)]="block.prefix" (ngModelChange)="applyNumbering()" placeholder="Q, P, B…"></label></div>
+          </section>
+        </div>
         <section class="question-editor" *ngIf="selectedSection as editableSection">
           <div class="question-editor-title"><strong>Propriétés des questions</strong><button type="button" title="Ajouter une nouvelle réponse à la fin de cette section." (click)="addQuestion(editableSection)">＋ Ajouter</button></div>
           <article class="editable-question" *ngFor="let question of editableSection.questions; let questionIndex = index; trackBy: trackQuestion">
@@ -213,7 +249,24 @@
           </article>
         </section>
         <div class="inspector-actions"><button (click)="duplicateSelected()">Dupliquer</button><button class="danger" (click)="deleteSelected()">Supprimer</button></div>
-      </ng-container><ng-template #noSelection><p>Sélectionnez un bloc dans le plan ou le canevas.</p></ng-template>
+      </ng-container><ng-template #noSelection>
+        <fieldset class="header-properties" *ngIf="isTitleBlockSelected"><legend>Logo et titre</legend>
+          <label>Titre de l’épreuve<div class="inspector-rich-text rich-text-editor" data-rich-text-context="free" contenteditable="true" [innerHTML]="activeStage.headerTitle" (input)="updateRichText(activeStage, 'headerTitle', $event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></div></label>
+          <label class="check-label"><input type="checkbox" [(ngModel)]="project.showLogo"> Afficher le logo</label>
+          <label>Remplacer le logo<input type="file" accept="image/*" (change)="replaceProjectLogo($any($event.target).files)"></label>
+          <button type="button" class="section-title-toggle" (click)="restoreDefaultLogo()">Restaurer le logo par défaut</button>
+          <label>Espace avant (mm)<input type="number" min="0" max="50" step="0.5" [(ngModel)]="project.titleSpacingBeforeMm" (change)="questionEdited()"></label>
+          <label>Espace après (mm)<input type="number" min="0" max="50" step="0.5" [(ngModel)]="project.titleSpacingAfterMm" (change)="questionEdited()"></label>
+          <p class="fixed-block-notice">Ce bloc est fixe et reste toujours en deuxième position.</p>
+        </fieldset>
+        <fieldset class="header-properties" *ngIf="isIdentificationBlockSelected"><legend>Grilles d’identification</legend>
+          <p>Les grilles Équipe, Épreuve et Page utilisent des positions et des dimensions communes à tous les formulaires.</p>
+          <label>Largeur des cases (cm)<input type="number" min="0.3" max="1" step="0.01" [(ngModel)]="project.correctionCellWidthCm" (change)="questionEdited()"></label>
+          <label>Hauteur des cases (cm)<input type="number" min="0.3" max="1" step="0.01" [(ngModel)]="project.correctionCellHeightCm" (change)="questionEdited()"></label>
+          <p class="fixed-block-notice">Ce bloc est fixe et reste toujours en première position.</p>
+        </fieldset>
+        <p *ngIf="!isFixedHeaderBlockSelected">Sélectionnez un bloc dans le plan ou le canevas.</p>
+      </ng-template>
     </aside>
   </div>
 </div>

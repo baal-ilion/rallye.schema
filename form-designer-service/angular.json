@@ -16,7 +16,9 @@
             "main": "src/main.ts",
             "polyfills": "src/polyfills.ts",
             "tsConfig": "tsconfig.app.json",
-            "assets": [],
+            "assets": [
+              "src/assets"
+            ],
             "styles": [
               "src/styles.scss"
             ],
@@ -32,8 +34,17 @@
                 { "type": "initial", "maximumWarning": "2mb", "maximumError": "5mb" },
                 { "type": "anyComponentStyle", "maximumWarning": "10kb", "maximumError": "15kb" }
               ]
+            },
+            "development": {
+              "optimization": false,
+              "buildOptimizer": false,
+              "sourceMap": true,
+              "vendorChunk": true,
+              "namedChunks": true,
+              "extractLicenses": false
             }
-          }
+          },
+          "defaultConfiguration": "development"
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",

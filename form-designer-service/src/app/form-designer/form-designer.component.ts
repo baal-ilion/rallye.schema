@@ -25,13 +25,15 @@ interface CellPosition { gridId: string; row: number; column: number; id: string
 })
 export class FormDesignerComponent {
   private static readonly RALLY_TITLE_STORAGE_KEY = 'rallye-schema.form-designer.rally-title';
+  readonly identificationBlockId = '__fixed_form_identification__';
+  readonly titleBlockId = '__fixed_form_title__';
 
   project: FormProject = this.makeProject();
   activeStageId = this.project.stages[0].id;
   correctedPreview = true;
   importError = '';
   pages: DesignerPage[] = [{ number: 1, sections: [], blocks: [] }];
-  ribbonTab: 'home' | 'insert' | 'table' | 'layout' | 'styles' = 'home';
+  ribbonTab: 'home' | 'insert' | 'layout' = 'home';
   selectedBlockId = '';
   zoom = 85;
   showCellColorPalette = false;
@@ -54,9 +56,11 @@ export class FormDesignerComponent {
   readonly standardColors = ['#c00000', '#ff0000', '#ffc000', '#ffff00', '#92d050', '#00b050', '#00b0f0', '#0070c0', '#002060', '#7030a0'];
   readonly fontFamilies = ['Arial', 'Calibri', 'Cambria', 'Georgia', 'Tahoma', 'Times New Roman', 'Verdana'];
   readonly fontSizes = ['8', '9', '10', '11', '12', '14', '16', '18', '20', '24', '28', '32', '36'];
+  readonly identificationDigits = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
   private richTextEditor: HTMLElement | null = null;
   private richTextRange: Range | null = null;
   private activeTextEditingCellId = '';
+  private titleWidthCache?: { text: string; showLogo: boolean; widthMm: number };
   readonly blockCatalog: Array<{ type: DesignerBlockType; label: string; icon: string }> = [
     { type: 'section', label: 'Section de réponses', icon: '▦' },
     { type: 'custom-table', label: 'Tableau', icon: '▤' },
@@ -71,10 +75,97 @@ export class FormDesignerComponent {
     return this.project.stages.find(stage => stage.id === this.activeStageId) || this.project.stages[0];
   }
 
+  get isIdentificationBlockSelected(): boolean { return this.selectedBlockId === this.identificationBlockId; }
+  get isTitleBlockSelected(): boolean { return this.selectedBlockId === this.titleBlockId; }
+  get isFixedHeaderBlockSelected(): boolean {
+    return this.isIdentificationBlockSelected || this.isTitleBlockSelected;
+  }
+
+  selectFixedHeaderBlock(blockId: string): void {
+    this.selectedBlockId = blockId;
+    this.clearCellSelection();
+  }
+
+  get pageChoices(): number[] {
+    return [1, 2, 3, 4];
+  }
+
+  get stageTitleWidthMm(): number {
+    const titleHtml = String(this.activeStage.headerTitle || '');
+    const text = this.plainText(titleHtml).trim().toUpperCase();
+    if (!text) { return 20; }
+    if (this.titleWidthCache?.text === titleHtml && this.titleWidthCache.showLogo === this.project.showLogo) {
+      return this.titleWidthCache.widthMm;
+    }
+    const pixelsPerMm = 96 / 25.4;
+    const maximumWidthPx = (this.project.showLogo ? 150 : 170) * pixelsPerMm;
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) { return this.project.showLogo ? 150 : 170; }
+    const titleContainer = document.createElement('div');
+    titleContainer.innerHTML = titleHtml;
+    const pointSizes = [8, 10, 12, 14, 18, 24, 36];
+    let fontSizePx = 5.8 * pixelsPerMm;
+    titleContainer.querySelectorAll('font[size]').forEach(font => {
+      const size = Math.max(1, Math.min(7, Number(font.getAttribute('size')) || 3));
+      fontSizePx = Math.max(fontSizePx, pointSizes[size - 1] * 96 / 72);
+    });
+    context.font = `700 ${fontSizePx}px Arial`;
+    const words = text.split(/\s+/);
+    const spaceWidth = context.measureText(' ').width;
+    const wordWidths = words.map(word => context.measureText(word).width);
+    const lineCount = (width: number): number => {
+      let lines = 1;
+      let currentWidth = 0;
+      wordWidths.forEach(wordWidth => {
+        const nextWidth = currentWidth ? currentWidth + spaceWidth + wordWidth : wordWidth;
+        if (currentWidth && nextWidth > width) {
+          lines++;
+          currentWidth = wordWidth;
+        } else {
+          currentWidth = nextWidth;
+        }
+      });
+      return lines;
+    };
+    const targetLineCount = lineCount(maximumWidthPx);
+    let minimum = Math.min(maximumWidthPx, Math.max(...wordWidths));
+    let maximum = maximumWidthPx;
+    for (let iteration = 0; iteration < 14; iteration++) {
+      const candidate = (minimum + maximum) / 2;
+      if (lineCount(candidate) <= targetLineCount) { maximum = candidate; } else { minimum = candidate; }
+    }
+    const widthMm = Math.min(maximumWidthPx, Math.ceil(maximum + 1)) / pixelsPerMm;
+    this.titleWidthCache = { text: titleHtml, showLogo: this.project.showLogo, widthMm };
+    return widthMm;
+  }
+
+  get titleBlockHeightMm(): number {
+    const textHeight = this.richTextHeightMm(this.activeStage.headerTitle || '', 45) + 3;
+    return Math.max(this.project.showLogo ? 21 : 18, textHeight);
+  }
+
+  isStageDigitMarked(position: 0 | 1, digit: number): boolean {
+    const stageNumber = Math.max(0, Math.min(99, Math.trunc(Number(this.activeStage.number) || 0)));
+    return Number(String(stageNumber).padStart(2, '0')[position]) === digit;
+  }
+
   get sections(): DesignerSection[] { return this.activeStage?.sections || []; }
   get rallyTitle(): string { return this.project.rallyTitle; }
+  get rallyFooterText(): string {
+    let date = '';
+    if (this.project.rallyDate) {
+      const [year, month, day] = this.project.rallyDate.split('-');
+      date = year && month && day ? `${day}/${month}/${year}` : this.project.rallyDate;
+    }
+    return [date, this.rallyTitle].filter(Boolean).join(' - ');
+  }
   get correctionGroupWidth(): string {
     return `${(this.project.correctionCellWidthCm * 3).toFixed(2)}cm`;
+  }
+
+  supportsBlockSpacing(type: DesignerBlockType): boolean {
+    return ['section', 'custom-table', 'text', 'image', 'separator'].includes(type);
   }
   sectionCorrectionWidth(section: DesignerSection): string {
     return this.correctionGroupWidth;
@@ -112,11 +203,33 @@ export class FormDesignerComponent {
     const block = this.blockForSection(section);
     return block ? this.documentOrder(block) : Number.MAX_SAFE_INTEGER;
   }
-  get isTableSelection(): boolean {
-    return !!this.selectedSection || this.selectedBlock?.type === 'custom-table';
+  get canRemoveSelectedTableRow(): boolean {
+    if (this.selectedSection) { return this.selectedSection.questions.length > 1; }
+    return !!this.selectedBlock && this.selectedBlock.type === 'custom-table'
+      && this.selectedBlock.tableRows.length > 1;
   }
-  get canCustomizeColumns(): boolean {
-    return this.selectedBlock?.type === 'custom-table' || this.selectedBlock?.type === 'columns';
+
+  changeSelectedTableRows(delta: 1 | -1): void {
+    if (this.selectedSection) {
+      const selectedIndex = this.selectedSectionRowIndex(this.selectedSection);
+      if (delta > 0) {
+        const insertionIndex = selectedIndex >= 0 ? selectedIndex + 1 : this.selectedSection.questions.length;
+        const question = this.makeQuestion(insertionIndex + 1);
+        this.selectedSection.questions.splice(insertionIndex, 0, question);
+        this.applyNumbering();
+        this.selectSingleCell(`section-${this.selectedSection.id}`, insertionIndex + 2, 0,
+          `question-${question.id}-0`);
+      } else if (this.selectedSection.questions.length > 1) {
+        const removalIndex = selectedIndex >= 0 ? selectedIndex : this.selectedSection.questions.length - 1;
+        this.selectedSection.questions.splice(removalIndex, 1);
+        this.applyNumbering();
+        this.clearCellSelection();
+      }
+      this.questionEdited();
+      return;
+    }
+    this.changeRows(delta);
+    this.questionEdited();
   }
 
   get questionCount(): number {
@@ -351,6 +464,10 @@ export class FormDesignerComponent {
     return section.questions.indexOf(question) + 2;
   }
 
+  trackTableColumn(_: number, column: DesignerBlock['tableColumns'][number]): string { return column.id; }
+  trackTableRow(_: number, row: DesignerBlock['tableRows'][number]): string { return row.id; }
+  trackIndex(index: number): number { return index; }
+
   selectAllCellsInSelectedBlock(): void {
     const block = this.selectedBlock;
     if (!block) { return; }
@@ -438,12 +555,6 @@ export class FormDesignerComponent {
     }
   }
 
-  handleDesignerClick(event: MouseEvent): void {
-    if (!(event.target as Element | null)?.closest('label[title="Surlignage du texte"]')) { return; }
-    event.preventDefault();
-    this.applyFontCommand('hiliteColor', '#ffff00');
-  }
-
   rememberRichTextSelection(): void {
     const selection = window.getSelection();
     if (!selection?.rangeCount || !this.richTextEditor) { return; }
@@ -452,11 +563,27 @@ export class FormDesignerComponent {
   }
 
   updateRichText(target: any, property: string, event: Event): void {
-    target[property] = (event.currentTarget as HTMLElement).innerHTML;
+    const editor = event.currentTarget as HTMLElement;
+    const selectionOffsets = this.selectionOffsetsInEditor(editor);
+    target[property] = editor.innerHTML;
+    if (selectionOffsets) { this.scheduleSelectionRestore(editor, selectionOffsets); }
   }
 
   updateRichTextArray(values: string[], index: number, event: Event): void {
-    values[index] = (event.currentTarget as HTMLElement).innerHTML;
+    const editor = event.currentTarget as HTMLElement;
+    const selectionOffsets = this.selectionOffsetsInEditor(editor);
+    values[index] = editor.innerHTML;
+    if (selectionOffsets) { this.scheduleSelectionRestore(editor, selectionOffsets); }
+  }
+
+  private selectionOffsetsInEditor(editor: HTMLElement): { start: number; end: number } | undefined {
+    const selection = window.getSelection();
+    if (!selection?.rangeCount) { return undefined; }
+    const range = selection.getRangeAt(0);
+    if (!editor.contains(range.commonAncestorContainer)) { return undefined; }
+    this.richTextEditor = editor;
+    this.richTextRange = range.cloneRange();
+    return this.captureSelectionOffsets(editor, range);
   }
 
   handleRichTextBlur(event: FocusEvent): void {
@@ -868,17 +995,6 @@ export class FormDesignerComponent {
     this.synchronizeSectionOrder();
   }
 
-  moveSelected(direction: -1 | 1): void {
-    const list = this.findBlockList(this.selectedBlockId);
-    if (!list) { return; }
-    const index = list.findIndex(block => block.id === this.selectedBlockId);
-    const destination = index + direction;
-    if (index >= 0 && destination >= 0 && destination < list.length) {
-      moveItemInArray(list, index, destination);
-      this.synchronizeSectionOrder();
-    }
-  }
-
   duplicateSelected(): void {
     const block = this.selectedBlock;
     if (!block) { return; }
@@ -925,13 +1041,26 @@ export class FormDesignerComponent {
   addTableColumn(): void {
     if (!this.selectedBlock) { return; }
     if (this.selectedBlock.type === 'custom-table' || this.selectedBlock.type === 'columns') {
-      this.selectedBlock.tableColumns.push({
-        id: this.newId('column'), title: `Colonne ${this.selectedBlock.tableColumns.length + 1}`,
-        width: 25, type: 'text', color: '#d9eaf2'
+      const selectedColumn = this.selectedBlock.type === 'custom-table'
+        ? this.selectedCustomTableColumnIndex(this.selectedBlock) : -1;
+      const insertionIndex = selectedColumn >= 0 ? selectedColumn + 1 : this.selectedBlock.tableColumns.length;
+      const column = {
+        id: this.newId('column'), title: '',
+        width: 25, color: '#d9eaf2'
+      } as DesignerBlock['tableColumns'][number];
+      this.selectedBlock.tableColumns.splice(insertionIndex, 0, column);
+      this.selectedBlock.tableRows.forEach(row => {
+        row.cells.splice(insertionIndex, 0, '');
+        row.cellColors.splice(insertionIndex, 0, '#ffffff');
       });
-      this.selectedBlock.tableRows.forEach(row => { row.cells.push(''); row.cellColors.push('#ffffff'); });
       this.selectedBlock.columns = this.selectedBlock.tableColumns.length;
-      if (this.selectedBlock.type === 'columns') { this.selectedBlock.childColumns.push([]); }
+      if (this.selectedBlock.type === 'columns') { this.selectedBlock.childColumns.splice(insertionIndex, 0, []); }
+      if (this.selectedBlock.type === 'custom-table') {
+        this.normalizeTableColumnWidths(this.selectedBlock);
+        this.selectSingleCell(`table-${this.selectedBlock.id}`, 0, insertionIndex,
+          `table-header-${column.id}`);
+      }
+      this.questionEdited();
       return;
     }
     this.selectedBlock.columns++;
@@ -941,29 +1070,90 @@ export class FormDesignerComponent {
   removeTableColumn(): void {
     if (!this.selectedBlock || this.selectedBlock.columns <= 1) { return; }
     if (this.selectedBlock.type === 'custom-table' || this.selectedBlock.type === 'columns') {
+      const selectedColumn = this.selectedBlock.type === 'custom-table'
+        ? this.selectedCustomTableColumnIndex(this.selectedBlock) : -1;
+      const removalIndex = selectedColumn >= 0 ? selectedColumn : this.selectedBlock.tableColumns.length - 1;
       if (this.selectedBlock.type === 'columns') {
-        const removedChildren = this.selectedBlock.childColumns.pop() || [];
+        const [removedChildren = []] = this.selectedBlock.childColumns.splice(removalIndex, 1);
         const parentList = this.findBlockList(this.selectedBlock.id) || this.blocks;
         const containerIndex = parentList.indexOf(this.selectedBlock);
         parentList.splice(containerIndex + 1, 0, ...removedChildren);
       }
-      this.selectedBlock.tableColumns.pop();
-      this.selectedBlock.tableRows.forEach(row => { row.cells.pop(); row.cellColors.pop(); });
+      this.selectedBlock.tableColumns.splice(removalIndex, 1);
+      this.selectedBlock.tableRows.forEach(row => {
+        row.cells.splice(removalIndex, 1);
+        row.cellColors.splice(removalIndex, 1);
+      });
       this.selectedBlock.columns = this.selectedBlock.tableColumns.length;
+      if (this.selectedBlock.type === 'custom-table') {
+        this.normalizeTableColumnWidths(this.selectedBlock);
+      }
+      this.clearCellSelection();
+      this.questionEdited();
       return;
     }
     this.selectedBlock.columns--;
     this.selectedBlock.columnWidths.pop();
   }
 
-  removeCustomColumn(columnIndex: number): void {
+  updateTableColumnWidth(columnIndex: number, value: number | string): void {
     const block = this.selectedBlock;
-    if (!block || !['custom-table', 'columns'].includes(block.type)
-      || block.tableColumns.length <= 1) { return; }
-    block.tableColumns.splice(columnIndex, 1);
-    block.tableRows.forEach(row => { row.cells.splice(columnIndex, 1); row.cellColors.splice(columnIndex, 1); });
-    block.columns = block.tableColumns.length;
+    if (!block || block.type !== 'custom-table' || !block.tableColumns[columnIndex]) { return; }
+    this.redistributeTableColumnWidths(block, columnIndex, Number(value));
+    this.questionEdited();
   }
+
+  private redistributeTableColumnWidths(block: DesignerBlock, fixedIndex: number, requestedWidth: number): void {
+    const count = block.tableColumns.length;
+    if (count === 1) {
+      block.tableColumns[0].width = 100;
+      block.columnWidths = [100];
+      return;
+    }
+    const minimumWidth = 3;
+    const previousWidth = block.tableColumns.slice(0, fixedIndex)
+      .reduce((total, column) => total + column.width, 0);
+    const followingIndexes = block.tableColumns.map((_, index) => index).filter(index => index > fixedIndex);
+    const availableWidth = Math.max(0, 100 - previousWidth);
+    const maximumFixedWidth = Math.max(minimumWidth,
+      availableWidth - minimumWidth * followingIndexes.length);
+    const fixedWidth = followingIndexes.length
+      ? Math.max(minimumWidth, Math.min(maximumFixedWidth, Number(requestedWidth) || minimumWidth))
+      : availableWidth;
+    const availableExtra = availableWidth - fixedWidth - minimumWidth * followingIndexes.length;
+    const weightTotal = followingIndexes.reduce((total, index) =>
+      total + Math.max(0, block.tableColumns[index].width - minimumWidth), 0);
+    block.tableColumns[fixedIndex].width = this.roundPercentage(fixedWidth);
+    followingIndexes.forEach(index => {
+      const weight = weightTotal > 0
+        ? Math.max(0, block.tableColumns[index].width - minimumWidth) / weightTotal
+        : 1 / followingIndexes.length;
+      block.tableColumns[index].width = this.roundPercentage(minimumWidth + availableExtra * weight);
+    });
+    const total = block.tableColumns.reduce((sum, column) => sum + column.width, 0);
+    const adjustmentIndex = followingIndexes[followingIndexes.length - 1] ?? fixedIndex;
+    block.tableColumns[adjustmentIndex].width = this.roundPercentage(block.tableColumns[adjustmentIndex].width
+      + 100 - total);
+    block.columnWidths = block.tableColumns.map(column => column.width);
+  }
+
+  private normalizeTableColumnWidths(block: DesignerBlock): void {
+    if (!block.tableColumns.length) { return; }
+    const total = block.tableColumns.reduce((sum, column) => sum + Math.max(0, column.width), 0);
+    if (total <= 0) {
+      const equalWidth = 100 / block.tableColumns.length;
+      block.tableColumns.forEach(column => column.width = this.roundPercentage(equalWidth));
+    } else {
+      block.tableColumns.forEach(column =>
+        column.width = this.roundPercentage(Math.max(0, column.width) * 100 / total));
+    }
+    const normalizedTotal = block.tableColumns.reduce((sum, column) => sum + column.width, 0);
+    const last = block.tableColumns[block.tableColumns.length - 1];
+    last.width = this.roundPercentage(last.width + 100 - normalizedTotal);
+    block.columnWidths = block.tableColumns.map(column => column.width);
+  }
+
+  private roundPercentage(value: number): number { return Math.round(value * 1000) / 1000; }
 
   setCustomColumnCount(value: number): void {
     const block = this.selectedBlock;
@@ -985,13 +1175,22 @@ export class FormDesignerComponent {
       return;
     }
     if (this.selectedBlock.type === 'custom-table') {
+      const selectedIndex = this.selectedCustomTableRowIndex(this.selectedBlock);
       if (delta > 0) {
-        this.selectedBlock.tableRows.push({
+        const insertionIndex = selectedIndex >= 0 ? selectedIndex + 1 : this.selectedBlock.tableRows.length;
+        const row = {
           id: this.newId('row'), cells: this.selectedBlock.tableColumns.map(() => ''),
           cellColors: this.selectedBlock.tableColumns.map(() => '#ffffff')
-        });
+        };
+        this.selectedBlock.tableRows.splice(insertionIndex, 0, row);
+        this.applyNumbering();
+        this.selectSingleCell(`table-${this.selectedBlock.id}`, insertionIndex + 1, 0,
+          `table-cell-${row.id}-0`);
       } else if (this.selectedBlock.tableRows.length > 1) {
-        this.selectedBlock.tableRows.pop();
+        const removalIndex = selectedIndex >= 0 ? selectedIndex : this.selectedBlock.tableRows.length - 1;
+        this.selectedBlock.tableRows.splice(removalIndex, 1);
+        this.applyNumbering();
+        this.clearCellSelection();
       }
       this.selectedBlock.rows = this.selectedBlock.tableRows.length;
       return;
@@ -999,14 +1198,42 @@ export class FormDesignerComponent {
     this.selectedBlock.rows = Math.max(1, (this.selectedBlock.rows || 1) + delta);
   }
 
-  toggleGroupedRows(): void {
-    if (this.selectedBlock) {
-      this.selectedBlock.rowsGrouped = !this.selectedBlock.rowsGrouped;
-      this.selectedBlock.keepTogether = this.selectedBlock.rowsGrouped;
-      this.refreshPages();
-    }
+  private selectedSectionRowIndex(section: DesignerSection): number {
+    const cellId = this.activeSelectedCellId(`section-${section.id}`);
+    return section.questions.findIndex(question => [0, 1]
+      .some(column => cellId === `question-${question.id}-${column}`));
   }
-  toggleRepeatHeader(): void { if (this.selectedBlock) { this.selectedBlock.repeatHeader = !this.selectedBlock.repeatHeader; } }
+
+  private selectedCustomTableRowIndex(block: DesignerBlock): number {
+    const cellId = this.activeSelectedCellId(`table-${block.id}`);
+    return block.tableRows.findIndex(row => row.cells
+      .some((_, column) => cellId === `table-cell-${row.id}-${column}`));
+  }
+
+  private selectedCustomTableColumnIndex(block: DesignerBlock): number {
+    const cellId = this.activeSelectedCellId(`table-${block.id}`);
+    const headerIndex = block.tableColumns.findIndex(column => cellId === `table-header-${column.id}`);
+    if (headerIndex >= 0) { return headerIndex; }
+    for (const row of block.tableRows) {
+      const cellIndex = row.cells.findIndex((_, column) => cellId === `table-cell-${row.id}-${column}`);
+      if (cellIndex >= 0) { return cellIndex; }
+    }
+    return -1;
+  }
+
+  private activeSelectedCellId(gridId: string): string {
+    if (this.cellSelectionAnchor?.gridId === gridId && this.selectedCellIds.has(this.cellSelectionAnchor.id)) {
+      return this.cellSelectionAnchor.id;
+    }
+    return this.cellsInGrid(gridId).find(cell => this.selectedCellIds.has(cell.id))?.id || '';
+  }
+
+  private selectSingleCell(gridId: string, row: number, column: number, id: string): void {
+    this.selectedCellIds.clear();
+    this.selectedCellIds.add(id);
+    this.cellSelectionAnchor = { gridId, row, column, id };
+  }
+
   toggleTextStyle(style: 'bold' | 'italic' | 'underline'): void {
     if (!this.selectedBlock) { return; }
     if (style === 'bold') { this.selectedBlock.fontWeight = this.selectedBlock.fontWeight === 'bold' ? 'normal' : 'bold'; }
@@ -1031,6 +1258,28 @@ export class FormDesignerComponent {
       reader.onerror = () => reject(reader.error);
       reader.readAsDataURL(file);
     });
+  }
+
+  async replaceProjectLogo(files: FileList | null): Promise<void> {
+    const file = files?.item(0);
+    if (!file) { return; }
+    if (!file.type.startsWith('image/')) {
+      this.importError = 'Le logo doit être un fichier image.';
+      return;
+    }
+    this.project.logoUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+    this.project.showLogo = true;
+    this.importError = '';
+  }
+
+  restoreDefaultLogo(): void {
+    this.project.logoUrl = 'assets/logo-rallye.png';
+    this.project.showLogo = true;
   }
 
   removeSection(index: number): void {
@@ -1223,6 +1472,11 @@ export class FormDesignerComponent {
       id: this.newId('project'),
       name: 'Nouveau Rallye',
       rallyTitle,
+      rallyDate: '',
+      showLogo: true,
+      logoUrl: 'assets/logo-rallye.png',
+      titleSpacingBeforeMm: 0,
+      titleSpacingAfterMm: 0,
       correctionCellWidthCm: 0.53,
       correctionCellHeightCm: 0.53,
       stages: [firstStage]
@@ -1234,6 +1488,7 @@ export class FormDesignerComponent {
       id: this.newId('stage'),
       number,
       name: 'Nouvelle épreuve',
+      headerTitle: 'Nouvelle épreuve',
       sourceFileName: '',
       sections: [],
       blocks: []
@@ -1246,20 +1501,20 @@ export class FormDesignerComponent {
       spacingBefore: 0, spacingAfter: 0,
       keepTogether: true, columns: type === 'columns' ? 2 : 3, columnGap: 5, rows: 3,
       columnWidths: type === 'custom-table' ? [33.333, 33.333, 33.334] : [15, 70, 15],
-      rowHeight: 4.7, repeatHeader: true, showTableHeader: false, rowsGrouped: false,
+      rowHeight: 4.7, repeatHeader: true, showTableHeader: false,
       cellsMerged: false,
       fontWeight: 'normal', fontStyle: 'normal',
       textDecoration: 'none', numbering: 'numeric', prefix: '', sectionId,
       imageUsage: 'illustration',
       tableColumns: type === 'custom-table'
         ? [1, 2, 3].map(index => ({
-          id: this.newId('column'), title: `Colonne ${index}`, width: index === 3 ? 33.334 : 33.333,
-          type: 'text' as const, color: '#d9eaf2'
+          id: this.newId('column'), title: '', width: index === 3 ? 33.334 : 33.333,
+          color: '#d9eaf2'
         }))
         : [
-          { id: this.newId('column'), title: 'N°', width: 15, type: 'number' as const, color: '#d9eaf2' },
-          { id: this.newId('column'), title: 'Réponse', width: 70, type: 'text' as const, color: '#d9eaf2' },
-          { id: this.newId('column'), title: 'Colonne 3', width: 15, type: 'text' as const, color: '#d9eaf2' }
+          { id: this.newId('column'), title: 'N°', width: 15, color: '#d9eaf2' },
+          { id: this.newId('column'), title: 'Réponse', width: 70, color: '#d9eaf2' },
+          { id: this.newId('column'), title: 'Colonne 3', width: 15, color: '#d9eaf2' }
         ].slice(0, type === 'columns' ? 2 : 3),
       tableRows: [1, 2, 3].map(index => ({
         id: this.newId('row'), cells: type === 'custom-table' ? ['', '', ''] : [String(index), '', ''],
@@ -1368,15 +1623,20 @@ export class FormDesignerComponent {
     // La hauteur des lignes est fixe en CSS. Cette capacité laisse la place au
     // cartouche, aux titres de section, au pied de page et aux quatre repères.
     // Toutes les mesures correspondent aux dimensions physiques du rendu A4.
-    const contentCapacityMm = 190;
+    const continuationPageCapacityMm = 211.5;
+    const firstPageCapacityMm = continuationPageCapacityMm - this.titleBlockHeightMm
+      - Math.max(0, this.project.titleSpacingBeforeMm || 0)
+      - Math.max(0, this.project.titleSpacingAfterMm || 0);
     const pages: DesignerPage[] = [];
     let current: DesignerPage = { number: 1, sections: [], blocks: [] };
-    let remainingMm = contentCapacityMm;
+    let remainingMm = firstPageCapacityMm;
+    const currentPageCapacityMm = () => current.number === 1
+      ? firstPageCapacityMm : continuationPageCapacityMm;
 
     const pushPage = () => {
       pages.push(current);
       current = { number: pages.length + 1, sections: [], blocks: [] };
-      remainingMm = contentCapacityMm;
+      remainingMm = continuationPageCapacityMm;
     };
 
     /* Ancien algorithme séquentiel conservé temporairement pour faciliter la comparaison.
@@ -1390,7 +1650,7 @@ export class FormDesignerComponent {
       const questionHeightMm = Math.max(3, sectionBlock?.rowHeight || 4.7);
       const spacingMm = (sectionBlock?.spacingBefore || 0) + (sectionBlock?.spacingAfter || 0);
       const completeSectionHeight = sectionOverheadMm + spacingMm + section.questions.length * questionHeightMm;
-      if (sectionBlock?.keepTogether && completeSectionHeight <= contentCapacityMm
+      if (sectionBlock?.keepTogether && completeSectionHeight <= currentPageCapacityMm()
         && completeSectionHeight > remainingMm) {
         pushPage();
       }
@@ -1423,6 +1683,61 @@ export class FormDesignerComponent {
           pushPage();
           continue;
       }
+      if (unitBlocks.length === 1 && unitBlocks[0].type === 'custom-table'
+        && unitBlocks[0].tableRows.length > 0) {
+        const table = unitBlocks[0];
+        const completeTableHeight = this.estimateBlockHeight(table);
+        if (table.keepTogether && completeTableHeight <= continuationPageCapacityMm
+          && completeTableHeight > remainingMm) {
+          pushPage();
+        }
+        let rowOffset = 0;
+        let firstFragment = true;
+
+        while (rowOffset < table.tableRows.length) {
+          const showHeader = table.showTableHeader && (firstFragment || table.repeatHeader);
+          const spacingBefore = firstFragment ? Math.max(0, table.spacingBefore || 0) : 0;
+          const headerHeight = this.customTableHeaderHeight(table, showHeader);
+          const firstRowHeight = this.customTableRowHeight(table, table.tableRows[rowOffset]);
+          const minimumHeight = spacingBefore + headerHeight + firstRowHeight;
+          const pageHasContent = current.blocks.length > 0 || current.sections.length > 0;
+
+          if (minimumHeight > remainingMm && pageHasContent) {
+            pushPage();
+            continue;
+          }
+
+          const fragmentRows: typeof table.tableRows = [];
+          let fragmentHeight = spacingBefore + headerHeight;
+          while (rowOffset < table.tableRows.length) {
+            const row = table.tableRows[rowOffset];
+            const rowHeight = this.customTableRowHeight(table, row);
+            const isLastRow = rowOffset === table.tableRows.length - 1;
+            const spacingAfter = isLastRow ? Math.max(0, table.spacingAfter || 0) : 0;
+            if (fragmentRows.length > 0 && fragmentHeight + rowHeight + spacingAfter > remainingMm) {
+              break;
+            }
+            fragmentRows.push(row);
+            fragmentHeight += rowHeight;
+            rowOffset++;
+            if (isLastRow) { fragmentHeight += spacingAfter; }
+            if (fragmentHeight >= remainingMm) { break; }
+          }
+
+          const lastFragment = rowOffset >= table.tableRows.length;
+          current.blocks.push({
+            ...table,
+            tableRows: fragmentRows,
+            showTableHeader: showHeader,
+            spacingBefore,
+            spacingAfter: lastFragment ? table.spacingAfter : 0
+          });
+          remainingMm = Math.max(0, remainingMm - fragmentHeight);
+          firstFragment = false;
+          if (!lastFragment) { pushPage(); }
+        }
+        continue;
+      }
       const freeBlocks = unitBlocks.filter(block => !block.sectionId && block.type !== 'page-break');
       const unit = unitBlocks.map(block => block.sectionId ? sectionsById.get(block.sectionId) : undefined)
         .filter((section): section is DesignerSection => !!section && section.questions.length > 0);
@@ -1430,12 +1745,12 @@ export class FormDesignerComponent {
 
       if (!unit.length) {
         const keepTogether = freeBlocks.every(block => block.keepTogether !== false);
-        if (keepTogether && freeHeight <= contentCapacityMm && freeHeight > remainingMm
+        if (keepTogether && freeHeight <= currentPageCapacityMm() && freeHeight > remainingMm
           && (current.blocks.length > 0 || current.sections.length > 0)) {
           pushPage();
         }
         current.blocks.push(...freeBlocks);
-        remainingMm = Math.max(0, remainingMm - Math.min(contentCapacityMm, freeHeight));
+        remainingMm = Math.max(0, remainingMm - Math.min(currentPageCapacityMm(), freeHeight));
         continue;
       }
       const offsets = new Map(unit.map(section => [section.id, 0]));
@@ -1446,7 +1761,7 @@ export class FormDesignerComponent {
       }));
       const totalUnitHeight = Math.max(completeHeight, freeHeight);
       const keepTogether = unitBlocks.every(block => block.keepTogether !== false);
-      if (keepTogether && totalUnitHeight <= contentCapacityMm && totalUnitHeight > remainingMm) {
+      if (keepTogether && totalUnitHeight <= currentPageCapacityMm() && totalUnitHeight > remainingMm) {
         pushPage();
       }
       current.blocks.push(...freeBlocks);
@@ -1500,12 +1815,8 @@ export class FormDesignerComponent {
   private estimateBlockHeight(block: DesignerBlock): number {
     const spacing = (block.spacingBefore || 0) + (block.spacingAfter || 0);
     if (block.type === 'custom-table') {
-      const columnCharacters = Math.max(12, Math.floor(75 / Math.max(1, block.tableColumns.length)));
-      const headerHeight = block.showTableHeader
-        ? Math.max(6, ...block.tableColumns.map(column => this.richTextHeightMm(column.title, columnCharacters))) : 0;
-      const rowsHeight = block.tableRows.reduce((total, row) => total + Math.max(block.rowHeight || 4.7,
-        ...row.cells.map(cell => this.richTextHeightMm(cell, columnCharacters))), 0);
-      return spacing + headerHeight + rowsHeight;
+      const rowsHeight = block.tableRows.reduce((total, row) => total + this.customTableRowHeight(block, row), 0);
+      return spacing + this.customTableHeaderHeight(block, block.showTableHeader) + rowsHeight;
     }
     if (block.type === 'image') { return spacing + 55; }
     if (block.type === 'separator') { return spacing + 4; }
@@ -1514,6 +1825,18 @@ export class FormDesignerComponent {
       return spacing + lineCount * this.richTextLineHeightMm(block.text);
     }
     return spacing + 10;
+  }
+
+  private customTableHeaderHeight(block: DesignerBlock, visible: boolean): number {
+    if (!visible) { return 0; }
+    const columnCharacters = Math.max(12, Math.floor(75 / Math.max(1, block.tableColumns.length)));
+    return Math.max(6, ...block.tableColumns.map(column => this.richTextHeightMm(column.title, columnCharacters)));
+  }
+
+  private customTableRowHeight(block: DesignerBlock, row: DesignerBlock['tableRows'][number]): number {
+    const columnCharacters = Math.max(12, Math.floor(75 / Math.max(1, block.tableColumns.length)));
+    return Math.max(block.rowHeight || 4.7,
+      ...row.cells.map(cell => this.richTextHeightMm(cell, columnCharacters)));
   }
 
   private sectionRowHeight(block?: DesignerBlock): number {
