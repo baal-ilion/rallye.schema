@@ -46,6 +46,11 @@
 .ribbon-status > span:first-child { padding-left: 0; }
 .ribbon-status .status-context { max-width: 320px; overflow: hidden; color: #244c7d; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .ribbon-status .error { color: #b00020; font-weight: 600; }
+.ribbon-status .sync-state { margin-left: auto; }
+.no-form-design { width: min(620px, 85%); margin: 70px auto; padding: 36px; text-align: center; background: #fff; border: 1px solid #cbd5df; border-radius: 4px; box-shadow: 0 3px 14px #1c36501f; }
+.no-form-design h2 { margin: 0 0 10px; color: #244c7d; }
+.no-form-design p { color: #657381; }
+.no-form-design button { padding: 9px 16px; color: #fff; background: #2f69a5; border: 1px solid #245889; border-radius: 3px; }
 .file-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
 .insert-tools { gap: 0; padding-top: 8px; background: linear-gradient(180deg, #fff 0, #f3f6f9 100%); }
 .insert-tools .ribbon-group { padding: 0 9px; }

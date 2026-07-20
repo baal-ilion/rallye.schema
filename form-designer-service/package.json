@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start": "ng serve --port 4300",
+    "start": "ng serve --port 4300 --proxy-config proxy.conf.json",
     "build": "ng build",
     "build:production": "ng build --configuration=production",
     "typecheck": "ngc -p tsconfig.app.json"

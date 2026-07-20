@@ -76,6 +76,8 @@ export interface DesignerTableRow {
 
 export interface DesignerStage {
   id: string;
+  hasFormDesign: boolean;
+  formDesignVersion?: number;
   number: number;
   name: string;
   headerTitle: string;
@@ -98,10 +100,4 @@ export interface FormProject {
   correctionCellWidthCm: number;
   correctionCellHeightCm: number;
   stages: DesignerStage[];
-}
-
-export interface FormStageFile {
-  kind: 'rallye-form-stage';
-  schemaVersion: number;
-  stage: DesignerStage;
 }

@@ -1,8 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
+import { firstValueFrom, forkJoin } from 'rxjs';
 import * as XLSX from 'xlsx';
 import { DesignerBlock, DesignerBlockType, DesignerCorrection, DesignerQuestion, DesignerSection, DesignerStage, FORM_PROJECT_SCHEMA_VERSION,
-  FormProject, FormStageFile } from './form-project.model';
+  FormProject } from './form-project.model';
+import { FormDesignerApiService, FormDesignDto, RallyParamDto, StageParamDto } from './form-designer-api.service';
 
 interface DesignerSectionFragment {
   section: DesignerSection;
@@ -23,8 +25,7 @@ interface CellPosition { gridId: string; row: number; column: number; id: string
   templateUrl: './form-designer.component.html',
   styleUrls: ['./form-designer.component.scss']
 })
-export class FormDesignerComponent {
-  private static readonly RALLY_TITLE_STORAGE_KEY = 'rallye-schema.form-designer.rally-title';
+export class FormDesignerComponent implements OnInit {
   readonly identificationBlockId = '__fixed_form_identification__';
   readonly titleBlockId = '__fixed_form_title__';
 
@@ -32,6 +33,8 @@ export class FormDesignerComponent {
   activeStageId = this.project.stages[0].id;
   correctedPreview = true;
   importError = '';
+  syncState: 'loading' | 'ready' | 'modified' | 'saving' | 'saved' | 'error' = 'loading';
+  syncMessage = 'Chargement de la configuration partagée…';
   pages: DesignerPage[] = [{ number: 1, sections: [], blocks: [] }];
   ribbonTab: 'home' | 'insert' | 'layout' = 'home';
   selectedBlockId = '';
@@ -61,6 +64,8 @@ export class FormDesignerComponent {
   private richTextRange: Range | null = null;
   private activeTextEditingCellId = '';
   private titleWidthCache?: { text: string; showLogo: boolean; widthMm: number };
+  private rallyParam?: RallyParamDto;
+  private readonly stageParams = new Map<string, StageParamDto>();
   readonly blockCatalog: Array<{ type: DesignerBlockType; label: string; icon: string }> = [
     { type: 'section', label: 'Section de réponses', icon: '▦' },
     { type: 'custom-table', label: 'Tableau', icon: '▤' },
@@ -70,6 +75,12 @@ export class FormDesignerComponent {
     { type: 'separator', label: 'Séparateur', icon: '―' },
     { type: 'page-break', label: 'Saut de page', icon: '↵' }
   ];
+
+  constructor(private readonly api: FormDesignerApiService) {}
+
+  ngOnInit(): void {
+    this.loadSharedConfiguration();
+  }
 
   get activeStage(): DesignerStage {
     return this.project.stages.find(stage => stage.id === this.activeStageId) || this.project.stages[0];
@@ -248,20 +259,28 @@ export class FormDesignerComponent {
   }
 
   newProject(): void {
-    if (!confirm('Créer un nouveau projet ? Les modifications non sauvegardées seront perdues.')) {
+    if (!confirm('Recharger la configuration partagée ? Les modifications non enregistrées seront perdues.')) {
       return;
     }
-    this.project = this.makeProject();
-    this.activeStageId = this.project.stages[0].id;
-    this.importError = '';
-    this.refreshPages();
+    this.loadSharedConfiguration();
   }
 
   addStage(): void {
+    const onlyDraft = this.stageParams.size === 0 && this.project.stages.length === 1;
     const nextNumber = Math.max(0, ...this.project.stages.map(stage => stage.number)) + 1;
-    const stage = this.makeStage(nextNumber);
-    this.project.stages.push(stage);
-    this.selectStage(stage.id);
+    const number = onlyDraft ? this.activeStage.number : nextNumber;
+    this.setSyncState('saving', 'Création de l’épreuve…');
+    this.api.createStage({ ...this.emptyStageParam(number), name: onlyDraft ? this.activeStage.name : 'Nouvelle épreuve' }).subscribe({
+      next: value => {
+        const stage = this.makeStageFromParam(value);
+        this.stageParams.set(stage.id, value);
+        if (onlyDraft) { this.project.stages[0] = stage; }
+        else { this.project.stages.push(stage); }
+        this.selectStage(stage.id);
+        this.setSyncState('saved', 'Épreuve créée dans la configuration partagée.');
+      },
+      error: error => this.handleSyncError(error, 'Impossible de créer l’épreuve.')
+    });
   }
 
   selectStage(id: string): void {
@@ -272,67 +291,234 @@ export class FormDesignerComponent {
   }
 
   deleteActiveStage(): void {
-    if (this.project.stages.length === 1) {
-      this.importError = 'Le projet doit contenir au moins une épreuve.';
+    if (!confirm(`Supprimer l'épreuve « ${this.activeStage.name} », son formulaire et toutes ses données associées ?`)) {
       return;
     }
-    if (!confirm(`Supprimer l'épreuve « ${this.activeStage.name} » ?`)) {
+    const stageId = this.activeStage.id;
+    if (!this.stageParams.has(stageId)) {
+      this.project.stages[0] = this.makeStage(1);
+      this.activeStageId = this.project.stages[0].id;
+      this.setSyncState('ready', 'Aucune épreuve enregistrée.');
+      this.refreshPages();
       return;
     }
-    const index = this.project.stages.findIndex(stage => stage.id === this.activeStageId);
-    this.project.stages.splice(index, 1);
-    this.selectStage(this.project.stages[Math.max(0, index - 1)].id);
+    const index = this.project.stages.findIndex(stage => stage.id === stageId);
+    this.setSyncState('saving', 'Suppression de l’épreuve…');
+    this.api.deleteStage(stageId).subscribe({
+      next: () => {
+        this.project.stages.splice(index, 1);
+        this.stageParams.delete(stageId);
+        if (!this.project.stages.length) { this.project.stages.push(this.makeStage(1)); }
+        this.selectStage(this.project.stages[Math.max(0, index - 1)].id);
+        this.setSyncState('saved', this.stageParams.size
+          ? 'Épreuve et formulaire associé supprimés.'
+          : 'Toutes les épreuves sont supprimées. Une nouvelle épreuve peut être créée.');
+      },
+      error: error => this.handleSyncError(error, 'Impossible de supprimer l’épreuve.')
+    });
   }
 
   saveProject(): void {
-    this.downloadJson(this.project, `${this.fileSlug(this.project.name)}.rallye-project.json`);
+    this.saveAll();
   }
 
   saveActiveStage(): void {
-    const stageFile: FormStageFile = {
-      kind: 'rallye-form-stage',
-      schemaVersion: FORM_PROJECT_SCHEMA_VERSION,
-      stage: this.clone(this.activeStage)
+    this.saveStages([this.activeStage]);
+  }
+
+  createActiveForm(): void {
+    if (this.activeStage.hasFormDesign) { return; }
+    this.activeStage.hasFormDesign = true;
+    this.activeStage.headerTitle = this.activeStage.name;
+    this.questionEdited();
+    this.saveActiveStage();
+  }
+
+  deleteActiveForm(): void {
+    const stage = this.activeStage;
+    if (!stage.hasFormDesign || !confirm(`Supprimer le formulaire de « ${stage.name} » ? L’épreuve sera conservée.`)) {
+      return;
+    }
+    this.setSyncState('saving', 'Suppression du formulaire…');
+    this.api.deleteFormDesign(stage.id).subscribe({
+      next: () => {
+        stage.hasFormDesign = false;
+        stage.formDesignVersion = undefined;
+        stage.sections = [];
+        stage.blocks = [];
+        this.selectedBlockId = '';
+        this.refreshPages();
+        this.setSyncState('saved', 'Formulaire supprimé. L’épreuve est conservée.');
+      },
+      error: error => this.handleSyncError(error, 'Impossible de supprimer le formulaire.')
+    });
+  }
+
+  private loadSharedConfiguration(): void {
+    this.setSyncState('loading', 'Chargement de la configuration partagée…');
+    forkJoin({
+      rally: this.api.getRally(),
+      stages: this.api.getStages(),
+      designs: this.api.getFormDesigns()
+    }).subscribe({
+      next: ({ rally, stages, designs }) => {
+        this.rallyParam = rally;
+        this.stageParams.clear();
+        const stageParams = this.api.stageItems(stages)
+          .sort((left, right) => left.stage - right.stage);
+        const designsByStage = new Map(designs.map(design => [design.stageParamId, design]));
+        const designerStages = stageParams.map(stageParam => {
+          if (stageParam.id) { this.stageParams.set(stageParam.id, stageParam); }
+          return this.stageFromSharedData(stageParam, designsByStage.get(stageParam.id));
+        });
+        const draft = this.makeStage(1);
+        this.project = {
+          kind: 'rallye-form-project',
+          schemaVersion: FORM_PROJECT_SCHEMA_VERSION,
+          id: rally.id,
+          name: rally.name,
+          rallyTitle: rally.title,
+          rallyDate: rally.date,
+          showLogo: rally.showLogo,
+          logoUrl: rally.logoUrl || 'assets/logo-rallye.png',
+          titleSpacingBeforeMm: rally.titleSpacingBeforeMm,
+          titleSpacingAfterMm: rally.titleSpacingAfterMm,
+          correctionCellWidthCm: rally.correctionCellWidthCm,
+          correctionCellHeightCm: rally.correctionCellHeightCm,
+          stages: designerStages.length ? designerStages : [draft]
+        };
+        this.activeStageId = this.project.stages[0].id;
+        this.selectedBlockId = this.blocks[0]?.id || '';
+        this.importError = '';
+        this.refreshPages();
+        this.setSyncState('ready', designerStages.length
+          ? 'Configuration partagée chargée.'
+          : 'Aucune épreuve : la première sera créée lors de l’enregistrement.');
+      },
+      error: error => this.handleSyncError(error,
+        'Le designer ne peut pas charger la configuration du back.')
+    });
+  }
+
+  private async saveAll(): Promise<void> {
+    this.setSyncState('saving', 'Enregistrement de tout le projet…');
+    try {
+      await this.saveRally();
+      await this.persistStages(this.project.stages);
+      this.setSyncState('saved', 'Projet enregistré dans la configuration partagée.');
+    } catch (error) {
+      this.handleSyncError(error, 'Impossible d’enregistrer tout le projet.');
+    }
+  }
+
+  private async saveStages(stages: DesignerStage[]): Promise<void> {
+    this.setSyncState('saving', stages.length === 1 ? 'Enregistrement de l’épreuve…' : 'Enregistrement des épreuves…');
+    try {
+      await this.saveRally();
+      await this.persistStages(stages);
+      this.setSyncState('saved', stages.length === 1 ? 'Épreuve enregistrée.' : 'Épreuves enregistrées.');
+    } catch (error) {
+      this.handleSyncError(error, 'Impossible d’enregistrer la configuration.');
+    }
+  }
+
+  private async saveRally(): Promise<void> {
+    const current = this.rallyParam || {
+      id: 'rally', name: '', title: '', date: '', showLogo: true, logoUrl: '',
+      titleSpacingBeforeMm: 0, titleSpacingAfterMm: 0,
+      correctionCellWidthCm: 0.53, correctionCellHeightCm: 0.53
     };
-    this.downloadJson(stageFile,
-      `${String(this.activeStage.number).padStart(2, '0')}-${this.fileSlug(this.activeStage.name)}.rallye-stage.json`);
+    this.rallyParam = await firstValueFrom(this.api.saveRally({
+      ...current,
+      name: this.project.name,
+      title: this.project.rallyTitle,
+      date: this.project.rallyDate,
+      showLogo: this.project.showLogo,
+      logoUrl: this.project.logoUrl,
+      titleSpacingBeforeMm: this.project.titleSpacingBeforeMm,
+      titleSpacingAfterMm: this.project.titleSpacingAfterMm,
+      correctionCellWidthCm: this.project.correctionCellWidthCm,
+      correctionCellHeightCm: this.project.correctionCellHeightCm
+    }));
   }
 
-  async openProject(files: FileList | null): Promise<void> {
-    const file = files?.item(0);
-    if (!file) { return; }
-    try {
-      const value = JSON.parse(await file.text()) as FormProject;
-      if (value.kind !== 'rallye-form-project' || value.schemaVersion !== FORM_PROJECT_SCHEMA_VERSION
-        || !Array.isArray(value.stages) || !value.stages.length) {
-        throw new Error('Le fichier ne contient pas un projet compatible.');
+  private async persistStages(stages: DesignerStage[]): Promise<void> {
+    for (const stage of stages) {
+      let stageParam = this.stageParams.get(stage.id);
+      const payload: StageParamDto = {
+        ...(stageParam || this.emptyStageParam(stage.number)),
+        id: stageParam?.id,
+        stage: stage.number,
+        name: stage.name
+      };
+      delete payload._links;
+      const savedStage = stageParam
+        ? await firstValueFrom(this.api.updateStage(payload))
+        : await firstValueFrom(this.api.createStage(payload));
+      if (!savedStage.id) { throw new Error('Le back n’a pas retourné l’identifiant de l’épreuve.'); }
+      if (savedStage.id !== stage.id) {
+        const oldId = stage.id;
+        stage.id = savedStage.id;
+        if (this.activeStageId === oldId) { this.activeStageId = savedStage.id; }
       }
-      this.project = value;
-      this.activeStageId = value.stages[0].id;
-      this.updateRallyTitle(value.rallyTitle);
-      this.importError = '';
-      this.refreshPages();
-    } catch (error) {
-      this.importError = error instanceof Error ? error.message : 'Impossible d\'ouvrir le projet.';
+      this.stageParams.set(savedStage.id, savedStage);
+      stageParam = savedStage;
+      if (stage.hasFormDesign) {
+        const content = this.clone(stage);
+        content.formDesignVersion = undefined;
+        const savedDesign = await firstValueFrom(this.api.saveFormDesign(savedStage.id, {
+          version: stage.formDesignVersion,
+          stageParamId: savedStage.id,
+          schemaVersion: FORM_PROJECT_SCHEMA_VERSION,
+          content
+        }));
+        stage.formDesignVersion = savedDesign.version;
+      }
     }
   }
 
-  async openStage(files: FileList | null): Promise<void> {
-    const file = files?.item(0);
-    if (!file) { return; }
-    try {
-      const value = JSON.parse(await file.text()) as FormStageFile;
-      if (value.kind !== 'rallye-form-stage' || value.schemaVersion !== FORM_PROJECT_SCHEMA_VERSION
-        || !value.stage?.sections) {
-        throw new Error('Le fichier ne contient pas une épreuve compatible.');
-      }
-      const stage = this.clone(value.stage);
-      stage.id = this.newId('stage');
-      this.project.stages.push(stage);
-      this.selectStage(stage.id);
-    } catch (error) {
-      this.importError = error instanceof Error ? error.message : 'Impossible d\'ouvrir l\'épreuve.';
-    }
+  private stageFromSharedData(stageParam: StageParamDto, design?: FormDesignDto): DesignerStage {
+    const stage = design?.content ? this.clone(design.content) : this.makeStageFromParam(stageParam);
+    stage.id = stageParam.id || stage.id;
+    stage.number = stageParam.stage;
+    stage.name = stageParam.name;
+    stage.headerTitle ||= stageParam.name;
+    stage.sections ||= [];
+    stage.blocks ||= [];
+    stage.hasFormDesign = !!design;
+    stage.formDesignVersion = design?.version;
+    return stage;
+  }
+
+  private makeStageFromParam(stageParam: StageParamDto): DesignerStage {
+    const stage = this.makeStage(stageParam.stage);
+    stage.id = stageParam.id || stage.id;
+    stage.name = stageParam.name;
+    stage.headerTitle = stageParam.name;
+    stage.hasFormDesign = false;
+    return stage;
+  }
+
+  private emptyStageParam(number: number): StageParamDto {
+    return {
+      stage: number,
+      name: 'Nouvelle épreuve',
+      questionPointParams: {},
+      performancePointParams: {},
+      questionParams: {}
+    };
+  }
+
+  private setSyncState(state: FormDesignerComponent['syncState'], message: string): void {
+    this.syncState = state;
+    this.syncMessage = message;
+  }
+
+  private handleSyncError(error: unknown, fallback: string): void {
+    const status = typeof error === 'object' && error && 'status' in error ? Number(error.status) : 0;
+    this.setSyncState('error', status === 409
+      ? 'La configuration a été modifiée ailleurs. Rechargez-la avant de recommencer.'
+      : fallback);
   }
 
   async importWorkbook(files: FileList | null): Promise<void> {
@@ -351,6 +537,7 @@ export class FormDesignerComponent {
         throw new Error('Aucune réponse trouvée à partir de la ligne 11.');
       }
       this.activeStage.sourceFileName = file.name;
+      this.activeStage.hasFormDesign = true;
       this.activeStage.sections = sections;
       this.activeStage.blocks = sections.map(section => {
         const block = this.makeBlock('section', section.title, section.id);
@@ -566,6 +753,7 @@ export class FormDesignerComponent {
     const editor = event.currentTarget as HTMLElement;
     const selectionOffsets = this.selectionOffsetsInEditor(editor);
     target[property] = editor.innerHTML;
+    this.markModified();
     if (selectionOffsets) { this.scheduleSelectionRestore(editor, selectionOffsets); }
   }
 
@@ -573,6 +761,7 @@ export class FormDesignerComponent {
     const editor = event.currentTarget as HTMLElement;
     const selectionOffsets = this.selectionOffsetsInEditor(editor);
     values[index] = editor.innerHTML;
+    this.markModified();
     if (selectionOffsets) { this.scheduleSelectionRestore(editor, selectionOffsets); }
   }
 
@@ -955,7 +1144,13 @@ export class FormDesignerComponent {
     }
   }
 
-  questionEdited(): void { this.refreshPages(); }
+  questionEdited(): void { this.markModified(); this.refreshPages(); }
+
+  markModified(): void {
+    if (this.syncState !== 'loading' && this.syncState !== 'saving') {
+      this.setSyncState('modified', 'Modifications non enregistrées.');
+    }
+  }
 
   applyNumbering(): void {
     const block = this.selectedBlock;
@@ -1306,7 +1501,7 @@ export class FormDesignerComponent {
 
   updateRallyTitle(value: string): void {
     this.project.rallyTitle = value;
-    localStorage.setItem(FormDesignerComponent.RALLY_TITLE_STORAGE_KEY, value);
+    this.markModified();
   }
 
   trackSection(_: number, section: DesignerSection): string { return section.id; }
@@ -1463,15 +1658,13 @@ export class FormDesignerComponent {
   }
 
   private makeProject(): FormProject {
-    const rallyTitle = localStorage.getItem(FormDesignerComponent.RALLY_TITLE_STORAGE_KEY)
-      || 'Le Rallye se prend aux jeux';
     const firstStage = this.makeStage(1);
     return {
       kind: 'rallye-form-project',
       schemaVersion: FORM_PROJECT_SCHEMA_VERSION,
       id: this.newId('project'),
       name: 'Nouveau Rallye',
-      rallyTitle,
+      rallyTitle: 'Le Rallye se prend aux jeux',
       rallyDate: '',
       showLogo: true,
       logoUrl: 'assets/logo-rallye.png',
@@ -1486,6 +1679,7 @@ export class FormDesignerComponent {
   private makeStage(number: number): DesignerStage {
     return {
       id: this.newId('stage'),
+      hasFormDesign: false,
       number,
       name: 'Nouvelle épreuve',
       headerTitle: 'Nouvelle épreuve',
@@ -1602,21 +1796,6 @@ export class FormDesignerComponent {
 
   private clone<T>(value: T): T {
     return JSON.parse(JSON.stringify(value)) as T;
-  }
-
-  private fileSlug(value: string): string {
-    return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'sans-nom';
-  }
-
-  private downloadJson(value: unknown, fileName: string): void {
-    const blob = new Blob([JSON.stringify(value, null, 2)], { type: 'application/json;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-    link.click();
-    URL.revokeObjectURL(url);
   }
 
   private paginate(): DesignerPage[] {

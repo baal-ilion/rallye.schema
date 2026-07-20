@@ -2,7 +2,7 @@
   <header class="ribbon">
     <div class="ribbon-titlebar">
       <div class="ribbon-brand"><span class="brand-mark">R</span><span><strong>Rallye</strong><small>Concepteur de formulaires</small></span></div>
-      <label class="project-identity"><span>Projet</span><input class="project-name" aria-label="Nom du projet" [(ngModel)]="project.name"></label>
+      <label class="project-identity"><span>Projet</span><input class="project-name" aria-label="Nom du projet" [(ngModel)]="project.name" (ngModelChange)="markModified()"></label>
       <div class="ribbon-stage-picker">
         <label for="activeStage"><span>Épreuve active</span></label>
         <select id="activeStage" [ngModel]="activeStageId" (ngModelChange)="selectStage($event)">
@@ -19,21 +19,21 @@
 
     <div class="ribbon-tools" *ngIf="ribbonTab === 'home'">
       <section class="ribbon-group"><div class="ribbon-commands">
-        <button class="ribbon-button" type="button" title="Créer un projet vide. Les changements non sauvegardés seront perdus après confirmation." (click)="newProject()"><span class="icon">＋</span>Nouveau</button>
-        <label class="ribbon-button" title="Ouvrir un projet Rallye précédemment sauvegardé au format JSON."><span class="icon">⌂</span>Ouvrir<input class="file-input" type="file" accept=".json" (change)="openProject($any($event.target).files)"></label>
-        <button class="ribbon-button" type="button" title="Télécharger le projet complet avec toutes ses épreuves et ses blocs." (click)="saveProject()"><span class="icon">▣</span>Sauver</button>
+        <button class="ribbon-button" type="button" title="Recharger les données communes depuis le back." (click)="newProject()"><span class="icon">↻</span>Recharger</button>
+        <button class="ribbon-button" type="button" title="Enregistrer tout le projet dans le back." (click)="saveProject()" [disabled]="syncState === 'saving' || syncState === 'loading'"><span class="icon">▣</span>Tout enregistrer</button>
       </div><div class="ribbon-group-title">Projet</div></section>
       <section class="ribbon-group"><div class="ribbon-commands compact">
         <button type="button" title="Ajouter une nouvelle épreuve vide au projet." (click)="addStage()">Nouvelle épreuve</button>
-        <label title="Importer une épreuve sauvegardée dans le projet courant.">Ouvrir une épreuve<input class="file-input" type="file" accept=".json" (change)="openStage($any($event.target).files)"></label>
-        <button type="button" title="Télécharger uniquement l’épreuve active." (click)="saveActiveStage()">Sauver l’épreuve</button>
-        <button class="danger" type="button" title="Supprimer l’épreuve active après confirmation." (click)="deleteActiveStage()">Supprimer</button>
+        <button type="button" title="Enregistrer l’épreuve active et son éventuel formulaire dans le back." (click)="saveActiveStage()">Enregistrer l’épreuve</button>
+        <button type="button" *ngIf="!activeStage.hasFormDesign" title="Associer un nouveau formulaire graphique à cette épreuve." (click)="createActiveForm()">Créer le formulaire</button>
+        <button class="danger" type="button" *ngIf="activeStage.hasFormDesign" title="Supprimer seulement le formulaire et conserver l’épreuve." (click)="deleteActiveForm()">Supprimer le formulaire</button>
+        <button class="danger" type="button" title="Supprimer l’épreuve et son formulaire." (click)="deleteActiveStage()">Supprimer l’épreuve</button>
       </div><div class="ribbon-group-title">Épreuves</div></section>
       <section class="ribbon-group properties-group"><div class="ribbon-fields">
-        <label>N°<input type="number" min="1" max="99" [(ngModel)]="activeStage.number"></label>
-        <label>Nom<input [(ngModel)]="activeStage.name"></label>
+        <label>N°<input type="number" min="1" max="99" [(ngModel)]="activeStage.number" (ngModelChange)="markModified()"></label>
+        <label>Nom<input [(ngModel)]="activeStage.name" (ngModelChange)="markModified()"></label>
         <label>Intitulé du Rallye<input [ngModel]="rallyTitle" (ngModelChange)="updateRallyTitle($event)"></label>
-        <label>Date du Rallye<input type="date" [(ngModel)]="project.rallyDate"></label>
+        <label>Date du Rallye<input type="date" [(ngModel)]="project.rallyDate" (ngModelChange)="markModified()"></label>
       </div><div class="ribbon-group-title">Propriétés</div></section>
       <section class="ribbon-group"><div class="ribbon-commands">
         <label class="ribbon-button" title="Lire le fichier Excel de réponses et créer automatiquement les sections et questions."><span class="icon">XLS</span>Importer<input class="file-input" type="file" accept=".xlsx,.xls" (change)="importWorkbook($any($event.target).files)"></label>
@@ -65,7 +65,7 @@
       <section class="ribbon-group alignment-group"><div class="ribbon-commands"><button type="button" title="Aligner le texte à gauche" [class.active]="isAlignmentActive('justifyLeft')" (click)="applyFontCommand('justifyLeft')"><span class="align-icon align-left">☰</span>Gauche</button><button type="button" title="Centrer le texte" [class.active]="isAlignmentActive('justifyCenter')" (click)="applyFontCommand('justifyCenter')"><span class="align-icon align-center">☰</span>Centre</button><button type="button" title="Aligner le texte à droite" [class.active]="isAlignmentActive('justifyRight')" (click)="applyFontCommand('justifyRight')"><span class="align-icon align-right">☰</span>Droite</button></div><div class="ribbon-group-title">Alignement</div></section>
     </div>
 
-    <div class="ribbon-status"><span class="status-context">{{ activeStage.number }} · {{ activeStage.name }}</span><span>{{ pages.length }} page(s) A4</span><span>{{ blocks.length }} bloc(s)</span><span>{{ paginatedQuestionCount }}/{{ questionCount }} question(s)</span><span class="error" *ngIf="importError">{{ importError }}</span></div>
+    <div class="ribbon-status"><span class="status-context">{{ activeStage.number }} · {{ activeStage.name }}</span><span>{{ activeStage.hasFormDesign ? 'Formulaire associé' : 'Sans formulaire' }}</span><span *ngIf="activeStage.hasFormDesign">{{ pages.length }} page(s) A4</span><span *ngIf="activeStage.hasFormDesign">{{ blocks.length }} bloc(s)</span><span class="sync-state" [class.error]="syncState === 'error'">{{ syncMessage }}</span><span class="error" *ngIf="importError">{{ importError }}</span></div>
   </header>
 
   <div class="editor-shell">
@@ -122,7 +122,8 @@
         </article>
       </ng-template>
 
-      <div class="pages" [style.--question-column-width]="questionColumnWidth" [style.--correction-cell-width]="project.correctionCellWidthCm + 'cm'" [style.--correction-cell-height]="project.correctionCellHeightCm + 'cm'" [style.--correction-group-width]="correctionGroupWidth" [style.transform]="'scale(' + zoom / 100 + ')'" [style.transformOrigin]="'top center'">
+      <div class="no-form-design" *ngIf="!activeStage.hasFormDesign"><h2>Cette épreuve n’a pas de formulaire</h2><p>Elle reste configurable et utilisable dans l’application de correction.</p><button type="button" (click)="createActiveForm()">Créer un formulaire pour cette épreuve</button></div>
+      <div class="pages" *ngIf="activeStage.hasFormDesign" [style.--question-column-width]="questionColumnWidth" [style.--correction-cell-width]="project.correctionCellWidthCm + 'cm'" [style.--correction-cell-height]="project.correctionCellHeightCm + 'cm'" [style.--correction-group-width]="correctionGroupWidth" [style.transform]="'scale(' + zoom / 100 + ')'" [style.transformOrigin]="'top center'">
         <main class="paper" *ngFor="let currentPage of pages">
           <div class="corner top-left"></div><div class="corner top-right"></div>
           <div class="form-header">
