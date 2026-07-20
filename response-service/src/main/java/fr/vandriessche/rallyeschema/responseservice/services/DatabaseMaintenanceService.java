@@ -119,6 +119,8 @@ public class DatabaseMaintenanceService {
                 "responseFileInfo",
                 "responseFileModel",
                 "responseFileParam",
+                "formDesign",
+                "rallyParam",
                 "stageGroup",
                 "stageParam",
                 "stageRanking",

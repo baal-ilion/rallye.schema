@@ -27,6 +27,7 @@ import fr.vandriessche.rallyeschema.responseservice.entities.StageResult;
 import fr.vandriessche.rallyeschema.responseservice.entities.TeamPoint;
 import fr.vandriessche.rallyeschema.responseservice.repositories.ResponseFileInfoRepository;
 import fr.vandriessche.rallyeschema.responseservice.repositories.ResponseFileParamRepository;
+import fr.vandriessche.rallyeschema.responseservice.repositories.FormDesignRepository;
 import fr.vandriessche.rallyeschema.responseservice.repositories.StageGroupRepository;
 import fr.vandriessche.rallyeschema.responseservice.repositories.StageParamRepository;
 import fr.vandriessche.rallyeschema.responseservice.repositories.StageRankingRepository;
@@ -46,6 +47,9 @@ public class StageParamService {
 
 	@Autowired
 	private ResponseFileParamRepository responseFileParamRepository;
+
+	@Autowired
+	private FormDesignRepository formDesignRepository;
 
 	@Autowired
 	private ResponseFileInfoRepository responseFileInfoRepository;
@@ -94,6 +98,7 @@ public class StageParamService {
 
 		stageParam.getResponseFileParams().forEach(
 				responseFileParam -> responseFileParamService.deleteResponseFileParam(responseFileParam.getId()));
+		formDesignRepository.deleteByStageParamId(id);
 
 		// Nettoyage des données liées à l'épreuve
 		try {

@@ -1,6 +1,20 @@
 ## Pour utiliser java 11
 $env:java_home = "C:\Program Files\AdoptOpenJDK\jdk-11.0.3.7-hotspot\"
 
+## Configuration commune du rallye et formulaires du designer
+
+Une base contient la configuration d'un seul rallye. Le back expose les données communes au front de correction et au designer :
+
+- `GET /api/rally` : charge les paramètres globaux et crée les valeurs par défaut sur une base vierge ;
+- `PUT /api/rally` : enregistre les paramètres globaux ;
+- `GET /api/formDesigns/stages` : liste les projets graphiques rattachés aux épreuves ;
+- `GET /api/formDesigns/stages/{stageParamId}` : charge le projet graphique facultatif d'une épreuve ;
+- `PUT /api/formDesigns/stages/{stageParamId}` : crée ou remplace son projet graphique ;
+- `DELETE /api/formDesigns/stages/{stageParamId}` : supprime uniquement le formulaire, sans supprimer l'épreuve ;
+- `GET|PUT|DELETE /api/formDesigns/reference` : gère le formulaire de référence global.
+
+Une suppression via `DELETE /stageParams/{id}` supprime aussi le projet graphique rattaché. Les collections `rallyParam` et `formDesign` sont incluses dans la sauvegarde et la restauration de la base.
+
 ## Pour supprimer l'image docker existante :
 docker rmi baalilion/rallye-schema-response-service -f
 
