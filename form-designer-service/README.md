@@ -13,6 +13,10 @@ Application indépendante de conception des formulaires de correction Rallye Sch
 - création, modification et suppression d’épreuves partagées avec le front ;
 - formulaire graphique facultatif pour chaque épreuve ;
 - enregistrement individuel ou global directement dans la base commune.
+- publication des labels et points des cases de correction dans les questions et
+  barèmes utilisés par le front de correction ;
+- préservation des groupes, performances et questions créées hors designer ;
+- validation des labels vides, dupliqués ou incompatibles avec une performance.
 
 ## Exécution
 

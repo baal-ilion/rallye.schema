@@ -4,7 +4,8 @@ import { firstValueFrom, forkJoin } from 'rxjs';
 import * as XLSX from 'xlsx';
 import { DesignerBlock, DesignerBlockType, DesignerCorrection, DesignerQuestion, DesignerSection, DesignerStage, FORM_PROJECT_SCHEMA_VERSION,
   FormProject } from './form-project.model';
-import { FormDesignerApiService, FormDesignDto, RallyParamDto, StageParamDto } from './form-designer-api.service';
+import { FormDesignerApiService, FormDesignDto, QuestionParamDto, QuestionPointParamDto,
+  RallyParamDto, StageParamDto } from './form-designer-api.service';
 
 interface DesignerSectionFragment {
   section: DesignerSection;
@@ -66,6 +67,7 @@ export class FormDesignerComponent implements OnInit {
   private titleWidthCache?: { text: string; showLogo: boolean; widthMm: number };
   private rallyParam?: RallyParamDto;
   private readonly stageParams = new Map<string, StageParamDto>();
+  private readonly publishedDesignerLabels = new Map<string, Set<string>>();
   readonly blockCatalog: Array<{ type: DesignerBlockType; label: string; icon: string }> = [
     { type: 'section', label: 'Section de réponses', icon: '▦' },
     { type: 'custom-table', label: 'Tableau', icon: '▤' },
@@ -364,12 +366,18 @@ export class FormDesignerComponent implements OnInit {
       next: ({ rally, stages, designs }) => {
         this.rallyParam = rally;
         this.stageParams.clear();
+        this.publishedDesignerLabels.clear();
         const stageParams = this.api.stageItems(stages)
           .sort((left, right) => left.stage - right.stage);
         const designsByStage = new Map(designs.map(design => [design.stageParamId, design]));
         const designerStages = stageParams.map(stageParam => {
           if (stageParam.id) { this.stageParams.set(stageParam.id, stageParam); }
-          return this.stageFromSharedData(stageParam, designsByStage.get(stageParam.id));
+          const design = designsByStage.get(stageParam.id);
+          if (stageParam.id) {
+            this.publishedDesignerLabels.set(stageParam.id,
+              new Set(design ? this.designerCorrectionEntries(design.content).map(entry => entry.label) : []));
+          }
+          return this.stageFromSharedData(stageParam, design);
         });
         const draft = this.makeStage(1);
         this.project = {
@@ -403,6 +411,7 @@ export class FormDesignerComponent implements OnInit {
   private async saveAll(): Promise<void> {
     this.setSyncState('saving', 'Enregistrement de tout le projet…');
     try {
+      this.validateDesignerQuestions(this.project.stages);
       await this.saveRally();
       await this.persistStages(this.project.stages);
       this.setSyncState('saved', 'Projet enregistré dans la configuration partagée.');
@@ -414,6 +423,7 @@ export class FormDesignerComponent implements OnInit {
   private async saveStages(stages: DesignerStage[]): Promise<void> {
     this.setSyncState('saving', stages.length === 1 ? 'Enregistrement de l’épreuve…' : 'Enregistrement des épreuves…');
     try {
+      this.validateDesignerQuestions(stages);
       await this.saveRally();
       await this.persistStages(stages);
       this.setSyncState('saved', stages.length === 1 ? 'Épreuve enregistrée.' : 'Épreuves enregistrées.');
@@ -451,6 +461,7 @@ export class FormDesignerComponent implements OnInit {
         stage: stage.number,
         name: stage.name
       };
+      this.applyDesignerQuestions(payload, stage);
       delete payload._links;
       const savedStage = stageParam
         ? await firstValueFrom(this.api.updateStage(payload))
@@ -473,6 +484,8 @@ export class FormDesignerComponent implements OnInit {
           content
         }));
         stage.formDesignVersion = savedDesign.version;
+        this.publishedDesignerLabels.set(savedStage.id,
+          new Set(this.designerCorrectionEntries(stage).map(entry => entry.label)));
       }
     }
   }
@@ -487,6 +500,7 @@ export class FormDesignerComponent implements OnInit {
     stage.blocks ||= [];
     stage.hasFormDesign = !!design;
     stage.formDesignVersion = design?.version;
+    if (design) { this.hydrateDesignerPoints(stage, stageParam); }
     return stage;
   }
 
@@ -509,6 +523,78 @@ export class FormDesignerComponent implements OnInit {
     };
   }
 
+  private designerCorrectionEntries(stage: DesignerStage): Array<{ label: string; points: number }> {
+    return (stage.sections || []).flatMap(section => section.questions.flatMap(question =>
+      question.corrections.map(correction => ({
+        label: this.plainText(correction.label || '').trim(),
+        points: Number(correction.points)
+      }))));
+  }
+
+  private validateDesignerQuestions(stages: DesignerStage[]): void {
+    for (const stage of stages.filter(item => item.hasFormDesign)) {
+      const entries = this.designerCorrectionEntries(stage);
+      const empty = entries.find(entry => !entry.label);
+      if (empty) {
+        throw new Error(`L’épreuve « ${stage.name} » contient un bloc de correction sans label.`);
+      }
+      const labels = new Map<string, string>();
+      for (const entry of entries) {
+        const normalized = entry.label.toLocaleLowerCase('fr-FR');
+        if (labels.has(normalized)) {
+          throw new Error(`Le label « ${entry.label} » est utilisé plusieurs fois dans l’épreuve « ${stage.name} ».`);
+        }
+        labels.set(normalized, entry.label);
+        if (!Number.isFinite(entry.points) || !Number.isInteger(entry.points)) {
+          throw new Error(`Le nombre de points du label « ${entry.label} » doit être un nombre entier.`);
+        }
+      }
+      const stageParam = this.stageParams.get(stage.id);
+      for (const entry of entries) {
+        if (stageParam?.questionParams?.[entry.label]?.type === 'PERFORMANCE') {
+          throw new Error(`Le label « ${entry.label} » est déjà utilisé par une performance dans l’épreuve « ${stage.name} ».`);
+        }
+      }
+    }
+  }
+
+  private applyDesignerQuestions(stageParam: StageParamDto, stage: DesignerStage): void {
+    if (!stage.hasFormDesign) { return; }
+    const questionParams: Record<string, QuestionParamDto> = { ...(stageParam.questionParams || {}) };
+    const pointParams: Record<string, QuestionPointParamDto> = { ...(stageParam.questionPointParams || {}) };
+    const currentEntries = this.designerCorrectionEntries(stage);
+    const currentLabels = new Set(currentEntries.map(entry => entry.label));
+    for (const previousLabel of this.publishedDesignerLabels.get(stage.id) || []) {
+      if (!currentLabels.has(previousLabel)) {
+        questionParams[previousLabel] = { name: previousLabel };
+        pointParams[previousLabel] = { name: previousLabel, point: null };
+      }
+    }
+    for (const entry of currentEntries) {
+      const existing = questionParams[entry.label];
+      questionParams[entry.label] = {
+        name: entry.label,
+        type: 'QUESTION',
+        managedByOrganizer: existing?.managedByOrganizer ?? false
+      };
+      pointParams[entry.label] = { name: entry.label, point: entry.points };
+    }
+    stageParam.questionParams = questionParams;
+    stageParam.questionPointParams = pointParams;
+  }
+
+  private hydrateDesignerPoints(stage: DesignerStage, stageParam: StageParamDto): void {
+    for (const section of stage.sections || []) {
+      for (const question of section.questions) {
+        for (const correction of question.corrections) {
+          const label = this.plainText(correction.label || '').trim();
+          const sharedPoint = stageParam.questionPointParams?.[label]?.point;
+          if (sharedPoint !== undefined && sharedPoint !== null) { correction.points = sharedPoint; }
+        }
+      }
+    }
+  }
+
   private setSyncState(state: FormDesignerComponent['syncState'], message: string): void {
     this.syncState = state;
     this.syncMessage = message;
@@ -518,7 +604,7 @@ export class FormDesignerComponent implements OnInit {
     const status = typeof error === 'object' && error && 'status' in error ? Number(error.status) : 0;
     this.setSyncState('error', status === 409
       ? 'La configuration a été modifiée ailleurs. Rechargez-la avant de recommencer.'
-      : fallback);
+      : error instanceof Error && !status ? error.message : fallback);
   }
 
   async importWorkbook(files: FileList | null): Promise<void> {

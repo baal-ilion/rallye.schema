@@ -10,5 +10,5 @@ import lombok.NoArgsConstructor;
 public class QuestionParam {
 	private String name;
 	private QuestionType type;
-	private Boolean staff;
+	private Boolean managedByOrganizer;
 }

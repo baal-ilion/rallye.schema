@@ -249,8 +249,8 @@ public class StageParamService {
 				questionParamToUpdate.setType(questionParam.getType());
 				initalisePointParam(stageParamToUpdate, Stream.of(questionParamToUpdate));
 			}
-			if (Objects.nonNull(questionParam.getStaff()))
-				questionParamToUpdate.setStaff(questionParam.getStaff());
+			if (Objects.nonNull(questionParam.getManagedByOrganizer()))
+				questionParamToUpdate.setManagedByOrganizer(questionParam.getManagedByOrganizer());
 		}
 	}
 
@@ -281,8 +281,9 @@ public class StageParamService {
 	private void updateQuestionParams(StageParam stageParamToUpdate, Collection<QuestionParam> questionParams) {
 		for (var questionParam : questionParams) {
 			if (Objects.nonNull(questionParam.getName())) {
-				if (Objects.isNull(questionParam.getType()) && Objects.isNull(questionParam.getStaff())) {
-					// on n'a ni de type ni de staff ca siginfie que l'on veut supprimer la question
+				if (Objects.isNull(questionParam.getType())
+						&& Objects.isNull(questionParam.getManagedByOrganizer())) {
+					// Sans type ni mode de gestion, le patch demande la suppression de la question.
 					stageParamToUpdate.getQuestionParams().remove(questionParam.getName());
 					removeQuestionPointParam(stageParamToUpdate, questionParam.getName());
 					removePerformancePointParam(stageParamToUpdate, questionParam.getName());

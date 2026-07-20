@@ -25,10 +25,21 @@ export interface StageParamDto {
   group?: unknown;
   groupId?: string;
   groupName?: string;
-  questionPointParams?: Record<string, unknown>;
+  questionPointParams?: Record<string, QuestionPointParamDto>;
   performancePointParams?: Record<string, unknown>;
-  questionParams?: Record<string, unknown>;
+  questionParams?: Record<string, QuestionParamDto>;
   _links?: unknown;
+}
+
+export interface QuestionParamDto {
+  name: string;
+  type?: 'QUESTION' | 'PERFORMANCE';
+  managedByOrganizer?: boolean;
+}
+
+export interface QuestionPointParamDto {
+  name: string;
+  point: number | null;
 }
 
 export interface FormDesignDto {
