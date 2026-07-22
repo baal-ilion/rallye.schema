@@ -37,3 +37,15 @@ Le serveur de développement transmet les appels `/api` au back disponible sur
 la configuration. Les projets ne sont plus stockés dans des fichiers JSON locaux.
 
 Les modèles publiés restent consultables et modifiables dans le front de correction.
+
+## Exécution Docker
+
+Avec le back et ses certificats déjà démarrés :
+
+```bash
+docker compose up -d --build
+```
+
+Le designer de production est alors accessible sur `https://localhost:4300`.
+Il est servi par son propre conteneur et transmet ses appels `/api` au même back
+que l'application de correction.

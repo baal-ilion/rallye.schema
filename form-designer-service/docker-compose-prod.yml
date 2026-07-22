@@ -1,0 +1,14 @@
+services:
+  rallye-schema-form-designer-service:
+    container_name: rallye-schema-form-designer-service
+    image: baalilion/rallye-schema-form-designer-service
+    build:
+      context: .
+      dockerfile: Dockerfile-prod
+    volumes:
+      - '../rallye-schema-response-webapp/certs:/etc/nginx/certs:ro'
+    ports:
+      - '4300:443'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    restart: always
