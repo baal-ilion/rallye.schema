@@ -82,7 +82,7 @@
         <div class="edit-group-title">Couleur du texte</div></section>
     </div>
 
-    <div class="ribbon-status"><span class="status-context">{{ isReferenceActive ? activeStage.name : (activeStage.number + ' · ' + activeStage.name) }}</span><span>{{ isReferenceActive ? 'Référence globale' : (activeStage.hasFormDesign ? 'Formulaire associé' : 'Sans formulaire') }}</span><span *ngIf="activeStage.hasFormDesign">{{ pages.length }} page(s) A4</span><span *ngIf="activeStage.hasFormDesign">{{ blocks.length }} bloc(s)</span><span class="sync-state" [class.error]="syncState === 'error'">{{ syncMessage }}</span><span class="error" *ngIf="importError">{{ importError }}</span></div>
+    <div class="ribbon-status"><span class="status-context">{{ isReferenceActive ? activeStage.name : (activeStage.number + ' · ' + activeStage.name) }}</span><span>{{ isReferenceActive ? 'Référence globale' : (activeStage.hasFormDesign ? 'Formulaire associé' : 'Sans formulaire') }}</span><span *ngIf="activeStage.hasFormDesign">{{ pages.length }} page(s) A4</span><span *ngIf="activeStage.hasFormDesign">{{ blocks.length }} bloc(s)</span><span class="sync-state" [class.error]="syncState === 'error'">{{ syncMessage }}</span><span class="error" *ngIf="importError">{{ importError }}</span><button type="button" class="front-return-link" (click)="returnToCorrectionApp()">Retour au paramétrage</button></div>
   </header>
 
   <div class="editor-shell">

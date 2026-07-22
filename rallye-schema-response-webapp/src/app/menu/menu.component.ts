@@ -42,6 +42,14 @@ export class MenuComponent implements OnInit {
     }
   }
 
+  @HostListener('window:message', ['$event'])
+  onDesignerMessage(event: MessageEvent) {
+    const designerOrigin = `https://${window.location.hostname}:4300`;
+    if (event.origin === designerOrigin && event.data?.type === 'rallye-designer-close') {
+      window.location.reload();
+    }
+  }
+
   rememberUrl(event?: Event, url?: string) {
     const target = url || this.extractHref(event) || this.router.url;
     this.navigationMemoryService.setLastMenuUrl(target);

@@ -73,6 +73,8 @@
 .ribbon-status .status-context { max-width: 320px; overflow: hidden; color: var(--rallye-green-dark); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .ribbon-status .error { color: #b00020; font-weight: 600; }
 .ribbon-status .sync-state { margin-left: auto; }
+.ribbon-status .front-return-link { margin-left: 10px; padding: 1px 8px; color: var(--rallye-green-dark); font: inherit; font-weight: 600; text-decoration: none; background: var(--rallye-green-soft); border: 1px solid #c5d4b9; border-radius: 3px; white-space: nowrap; cursor: pointer; }
+.ribbon-status .front-return-link:hover { color: var(--rallye-gold-dark); background: var(--rallye-gold-soft); border-color: #c7a76b; }
 .no-form-design { width: min(620px, 85%); margin: 70px auto; padding: 36px; text-align: center; background: #fff; border: 1px solid #cbd5df; border-radius: 4px; box-shadow: 0 3px 14px #1c36501f; }
 .no-form-design h2 { margin: 0 0 10px; color: #495057; }
 .no-form-design p { color: #657381; }

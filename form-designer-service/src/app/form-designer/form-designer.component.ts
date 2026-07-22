@@ -105,6 +105,23 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
   }
 
   get isReferenceActive(): boolean { return this.activeStageId === this.referenceStageId; }
+  get correctionAppUrl(): string {
+    const path = this.isReferenceActive
+      ? '/listStageParam'
+      : `/stageParam/${encodeURIComponent(this.activeStage.id)}`;
+    return `https://${window.location.hostname}${path}`;
+  }
+
+  returnToCorrectionApp(): void {
+    if (window.opener && !window.opener.closed) {
+      const correctionOrigin = `https://${window.location.hostname}`;
+      window.opener.postMessage({ type: 'rallye-designer-close' }, correctionOrigin);
+      window.opener.focus();
+      window.close();
+      return;
+    }
+    window.location.href = this.correctionAppUrl;
+  }
 
   get isIdentificationBlockSelected(): boolean { return this.selectedBlockId === this.identificationBlockId; }
   get isTitleBlockSelected(): boolean { return this.selectedBlockId === this.titleBlockId; }
