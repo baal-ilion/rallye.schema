@@ -29,10 +29,12 @@ interface CellPosition { gridId: string; row: number; column: number; id: string
   styleUrls: ['./form-designer.component.scss']
 })
 export class FormDesignerComponent implements OnInit, AfterViewChecked {
+  readonly referenceStageId = '__reference_form__';
   readonly identificationBlockId = '__fixed_form_identification__';
   readonly titleBlockId = '__fixed_form_title__';
 
   project: FormProject = this.makeProject();
+  referenceStage: DesignerStage = this.makeReferenceStage();
   activeStageId = this.project.stages[0].id;
   correctedPreview = true;
   importError = '';
@@ -97,8 +99,11 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
   }
 
   get activeStage(): DesignerStage {
+    if (this.isReferenceActive) { return this.referenceStage; }
     return this.project.stages.find(stage => stage.id === this.activeStageId) || this.project.stages[0];
   }
+
+  get isReferenceActive(): boolean { return this.activeStageId === this.referenceStageId; }
 
   get isIdentificationBlockSelected(): boolean { return this.selectedBlockId === this.identificationBlockId; }
   get isTitleBlockSelected(): boolean { return this.selectedBlockId === this.titleBlockId; }
@@ -282,9 +287,10 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
   addStage(): void {
     const onlyDraft = this.stageParams.size === 0 && this.project.stages.length === 1;
     const nextNumber = Math.max(0, ...this.project.stages.map(stage => stage.number)) + 1;
-    const number = onlyDraft ? this.activeStage.number : nextNumber;
+    const draftStage = this.project.stages[0];
+    const number = onlyDraft ? draftStage.number : nextNumber;
     this.setSyncState('saving', 'Création de l’épreuve…');
-    this.api.createStage({ ...this.emptyStageParam(number), name: onlyDraft ? this.activeStage.name : 'Nouvelle épreuve' }).subscribe({
+    this.api.createStage({ ...this.emptyStageParam(number), name: onlyDraft ? draftStage.name : 'Nouvelle épreuve' }).subscribe({
       next: value => {
         const stage = this.makeStageFromParam(value);
         this.stageParams.set(stage.id, value);
@@ -302,6 +308,10 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
     this.importError = '';
     this.refreshPages();
     this.selectedBlockId = this.blocks[0]?.id || '';
+    if (this.isReferenceActive) {
+      this.setSyncState('ready', 'Formulaire de référence chargé.');
+      return;
+    }
     if (!this.stageParams.has(id)) { return; }
     this.api.getStage(id).subscribe({
       next: stageParam => {
@@ -348,7 +358,23 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
   }
 
   saveActiveStage(): void {
+    if (this.isReferenceActive) {
+      this.saveReferenceForm();
+      return;
+    }
     this.saveStages([this.activeStage]);
+  }
+
+  private async saveReferenceForm(): Promise<void> {
+    this.setSyncState('saving', 'Enregistrement du formulaire de référence…');
+    try {
+      await this.saveRally();
+      await this.persistReferenceForm();
+      await this.publishActiveRecognition();
+      this.setSyncState('saved', 'Formulaire de référence enregistré et publié.');
+    } catch (error) {
+      this.handleSyncError(error, 'Impossible d’enregistrer le formulaire de référence.');
+    }
   }
 
   createActiveForm(): void {
@@ -386,9 +412,10 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
     forkJoin({
       rally: this.api.getRally(),
       stages: this.api.getStages(),
-      designs: this.api.getFormDesigns()
+      designs: this.api.getFormDesigns(),
+      referenceDesign: this.api.getReferenceFormDesign()
     }).subscribe({
-      next: ({ rally, stages, designs }) => {
+      next: ({ rally, stages, designs, referenceDesign }) => {
         this.rallyParam = rally;
         this.stageParams.clear();
         this.publishedDesignerLabels.clear();
@@ -419,6 +446,13 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
           correctionCellHeightCm: rally.correctionCellHeightCm,
           stages: designerStages.length ? designerStages : [draft]
         };
+        this.referenceStage = referenceDesign?.content
+          ? this.clone(referenceDesign.content)
+          : this.makeReferenceStage();
+        this.referenceStage.id = this.referenceStageId;
+        this.referenceStage.name = 'Formulaire de référence';
+        this.referenceStage.hasFormDesign = true;
+        this.referenceStage.formDesignVersion = referenceDesign?.version;
         this.activeStageId = this.project.stages[0].id;
         this.selectedBlockId = this.blocks[0]?.id || '';
         this.importError = '';
@@ -438,6 +472,7 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
       this.validateDesignerQuestions(this.project.stages);
       await this.saveRally();
       await this.persistStages(this.project.stages);
+      await this.persistReferenceForm();
       await this.publishActiveRecognition();
       this.setSyncState('saved', 'Projet enregistré dans la configuration partagée.');
     } catch (error) {
@@ -475,6 +510,16 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
       correctionCellWidthCm: this.project.correctionCellWidthCm,
       correctionCellHeightCm: this.project.correctionCellHeightCm
     }));
+  }
+
+  private async persistReferenceForm(): Promise<void> {
+    const saved = await firstValueFrom(this.api.saveReferenceFormDesign({
+      version: this.referenceStage.formDesignVersion,
+      schemaVersion: FORM_PROJECT_SCHEMA_VERSION,
+      content: this.clone(this.referenceStage)
+    }));
+    this.referenceStage.formDesignVersion = saved.version;
+    this.referenceStage.hasFormDesign = true;
   }
 
   private async persistStages(stages: DesignerStage[]): Promise<void> {
@@ -658,13 +703,16 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
         || expectedLabels.some((label, index) => label !== renderedLabels[index])) {
         throw new Error('La prévisualisation du formulaire n’est pas à jour. La publication a été interrompue pour éviter de conserver un ancien formulaire.');
       }
-      const generatedPages: GeneratedRecognitionPageDto[] = [];
-      for (let index = 0; index < paperElements.length; index++) {
-        generatedPages.push(await this.generateRecognitionPage(paperElements[index], index + 1, false));
+      if (this.isReferenceActive) {
+        await firstValueFrom(this.api.publishReferenceRecognition(
+          await this.generateRecognitionPage(paperElements[0], undefined, true)));
+      } else {
+        const generatedPages: GeneratedRecognitionPageDto[] = [];
+        for (let index = 0; index < paperElements.length; index++) {
+          generatedPages.push(await this.generateRecognitionPage(paperElements[index], index + 1, false));
+        }
+        await firstValueFrom(this.api.publishRecognitionPages(this.activeStage.number, generatedPages));
       }
-      await firstValueFrom(this.api.publishRecognitionPages(this.activeStage.number, generatedPages));
-      await firstValueFrom(this.api.publishReferenceRecognition(
-        await this.generateRecognitionPage(paperElements[0], undefined, true)));
     } finally {
       this.correctedPreview = previousPreview;
       this.zoom = previousZoom;
@@ -2009,6 +2057,19 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
       number,
       name: 'Nouvelle épreuve',
       headerTitle: 'Nouvelle épreuve',
+      sourceFileName: '',
+      sections: [],
+      blocks: []
+    };
+  }
+
+  private makeReferenceStage(): DesignerStage {
+    return {
+      id: this.referenceStageId,
+      hasFormDesign: true,
+      number: 0,
+      name: 'Formulaire de référence',
+      headerTitle: 'Formulaire de référence',
       sourceFileName: '',
       sections: [],
       blocks: []

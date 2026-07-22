@@ -108,6 +108,14 @@ export class FormDesignerApiService {
     return this.http.get<FormDesignDto[]>(`${this.apiUrl}/formDesigns/stages`);
   }
 
+  getReferenceFormDesign(): Observable<FormDesignDto | null> {
+    return this.http.get<FormDesignDto | null>(`${this.apiUrl}/formDesigns/reference`);
+  }
+
+  saveReferenceFormDesign(design: FormDesignDto): Observable<FormDesignDto> {
+    return this.http.put<FormDesignDto>(`${this.apiUrl}/formDesigns/reference`, design);
+  }
+
   saveFormDesign(stageId: string, design: FormDesignDto): Observable<FormDesignDto> {
     return this.http.put<FormDesignDto>(
       `${this.apiUrl}/formDesigns/stages/${encodeURIComponent(stageId)}`, design);
