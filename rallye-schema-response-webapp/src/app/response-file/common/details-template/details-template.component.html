@@ -2,11 +2,36 @@
   <div style="position: relative;" class="response-file">
     <img *ngIf="template.fileUrl" [src]="template.fileUrl" [alt]="template.fileAlt"
       style="width: 100%; height: auto;" />
-    <div *ngIf="points" style="position: absolute; top:0px; left:0px; height: 100%; width: 100%;">
+    <div *ngIf="points && dragable" style="position: absolute; top:0px; left:0px; height: 100%; width: 100%;">
       <div *ngFor="let point of points" [className]="point.class" [style.top.%]="point.top" [style.left.%]="point.left"
         [style.width.%]="point.width" [style.height.%]="point.height"
         style="position: absolute; z-index: 2; transform: translate(-50%, -50%);" [attr.title]="point.tooltip"></div>
     </div>
+    <svg *ngIf="!dragable" class="template-overlay"
+      [attr.viewBox]="'0 0 ' + template.width + ' ' + template.height"
+      preserveAspectRatio="none" aria-hidden="true">
+      <rect *ngFor="let point of template.points" [attr.x]="point.point.x - template.square"
+        [attr.y]="point.point.y - template.square" [attr.width]="template.square * 2"
+        [attr.height]="template.square * 2" [attr.class]="getPointClass(point.valid)">
+        <title>{{ point.comment }}</title>
+      </rect>
+      <rect *ngIf="template.corners.TOP_LEFT" class="default-point"
+        [attr.x]="template.corners.TOP_LEFT.x - template.square"
+        [attr.y]="template.corners.TOP_LEFT.y - template.square"
+        [attr.width]="template.square * 2" [attr.height]="template.square * 2" />
+      <rect *ngIf="template.corners.TOP_RIGHT" class="default-point"
+        [attr.x]="template.corners.TOP_RIGHT.x - template.square"
+        [attr.y]="template.corners.TOP_RIGHT.y - template.square"
+        [attr.width]="template.square * 2" [attr.height]="template.square * 2" />
+      <rect *ngIf="template.corners.BOTTOM_RIGHT" class="default-point"
+        [attr.x]="template.corners.BOTTOM_RIGHT.x - template.square"
+        [attr.y]="template.corners.BOTTOM_RIGHT.y - template.square"
+        [attr.width]="template.square * 2" [attr.height]="template.square * 2" />
+      <rect *ngIf="template.corners.BOTTOM_LEFT" class="default-point"
+        [attr.x]="template.corners.BOTTOM_LEFT.x - template.square"
+        [attr.y]="template.corners.BOTTOM_LEFT.y - template.square"
+        [attr.width]="template.square * 2" [attr.height]="template.square * 2" />
+    </svg>
     <!-- <div
   style="position: absolute; top:0px; left:0px; height: 100%; width: 100%; z-index: 2;border:1px solid yellowgreen;">
   <svg preserveAspectRatio="none" viewBox="0 0 100 100" style="position: absolute; top:0px; left:0px; height: 100%; width: 100%; z-index: 2;">
@@ -39,21 +64,5 @@
       [style.left.%]="topRightCorner.left" [style.width.%]="topRightCorner.width"
       [style.height.%]="topRightCorner.height" style="position: absolute; z-index: 2; transform: translate(-50%, -50%);"
       cdkDragBoundary=".response-file" (cdkDragEnded)="endDrag($event, topRightCorner)" cdkDrag></div>
-    <div *ngIf="topLeftCorner && !dragable" class="default-point" [style.top.%]="topLeftCorner.top"
-      [style.left.%]="topLeftCorner.left" [style.width.%]="topLeftCorner.width" [style.height.%]="topLeftCorner.height"
-      style="position: absolute; z-index: 2; transform: translate(-50%, -50%);">
-    </div>
-    <div *ngIf="bottomLeftCorner && !dragable" class="default-point" [style.top.%]="bottomLeftCorner.top"
-      [style.left.%]="bottomLeftCorner.left" [style.width.%]="bottomLeftCorner.width"
-      [style.height.%]="bottomLeftCorner.height"
-      style="position: absolute; z-index: 2; transform: translate(-50%, -50%);"></div>
-    <div *ngIf="bottomRightCorner && !dragable" class="default-point" [style.top.%]="bottomRightCorner.top"
-      [style.left.%]="bottomRightCorner.left" [style.width.%]="bottomRightCorner.width"
-      [style.height.%]="bottomRightCorner.height"
-      style="position: absolute; z-index: 2; transform: translate(-50%, -50%);"></div>
-    <div *ngIf="topRightCorner && !dragable" class="default-point" [style.top.%]="topRightCorner.top"
-      [style.left.%]="topRightCorner.left" [style.width.%]="topRightCorner.width"
-      [style.height.%]="topRightCorner.height"
-      style="position: absolute; z-index: 2; transform: translate(-50%, -50%);"></div>
   </div>
 </div>

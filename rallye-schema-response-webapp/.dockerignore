@@ -1,3 +1,8 @@
 node_modules
+.angular
+dist
+out-tsc
+.idea
+.vscode
 .git
 .gitignore

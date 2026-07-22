@@ -1,10 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { AfterViewChecked, ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
-import { firstValueFrom, forkJoin } from 'rxjs';
+import { firstValueFrom, forkJoin, switchMap } from 'rxjs';
 import * as XLSX from 'xlsx';
+import html2canvas from 'html2canvas';
 import { DesignerBlock, DesignerBlockType, DesignerCorrection, DesignerQuestion, DesignerSection, DesignerStage, FORM_PROJECT_SCHEMA_VERSION,
   FormProject } from './form-project.model';
-import { FormDesignerApiService, FormDesignDto, QuestionParamDto, QuestionPointParamDto,
+import { FormDesignerApiService, FormDesignDto, GeneratedRecognitionPageDto, QuestionParamDto, QuestionPointParamDto,
   RallyParamDto, StageParamDto } from './form-designer-api.service';
 
 interface DesignerSectionFragment {
@@ -26,7 +27,7 @@ interface CellPosition { gridId: string; row: number; column: number; id: string
   templateUrl: './form-designer.component.html',
   styleUrls: ['./form-designer.component.scss']
 })
-export class FormDesignerComponent implements OnInit {
+export class FormDesignerComponent implements OnInit, AfterViewChecked {
   readonly identificationBlockId = '__fixed_form_identification__';
   readonly titleBlockId = '__fixed_form_title__';
 
@@ -78,10 +79,19 @@ export class FormDesignerComponent implements OnInit {
     { type: 'page-break', label: 'Saut de page', icon: '↵' }
   ];
 
-  constructor(private readonly api: FormDesignerApiService) {}
+  constructor(private readonly api: FormDesignerApiService, private readonly changeDetector: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     this.loadSharedConfiguration();
+  }
+
+  ngAfterViewChecked(): void {
+    document.querySelectorAll<HTMLElement>('.correction-groups').forEach(group => {
+      const cellsHeight = Array.from(group.querySelectorAll<HTMLElement>(':scope > .correction-cells'))
+        .reduce((height, cells) => height + cells.getBoundingClientRect().height, 0);
+      const hasSpaceBelow = group.getBoundingClientRect().height > cellsHeight + 0.5;
+      group.classList.toggle('ends-before-row', hasSpaceBelow);
+    });
   }
 
   get activeStage(): DesignerStage {
@@ -290,6 +300,17 @@ export class FormDesignerComponent implements OnInit {
     this.importError = '';
     this.refreshPages();
     this.selectedBlockId = this.blocks[0]?.id || '';
+    if (!this.stageParams.has(id)) { return; }
+    this.api.getStage(id).subscribe({
+      next: stageParam => {
+        this.stageParams.set(id, stageParam);
+        if (this.activeStageId !== id) { return; }
+        this.hydrateDesignerPoints(this.activeStage, stageParam);
+        this.refreshPages();
+        this.setSyncState('ready', 'Épreuve et barèmes actualisés depuis la configuration partagée.');
+      },
+      error: error => this.handleSyncError(error, 'Impossible d’actualiser les paramètres de l’épreuve.')
+    });
   }
 
   deleteActiveStage(): void {
@@ -342,7 +363,9 @@ export class FormDesignerComponent implements OnInit {
       return;
     }
     this.setSyncState('saving', 'Suppression du formulaire…');
-    this.api.deleteFormDesign(stage.id).subscribe({
+    this.api.deleteRecognitionPages(stage.number).pipe(
+      switchMap(() => this.api.deleteFormDesign(stage.id))
+    ).subscribe({
       next: () => {
         stage.hasFormDesign = false;
         stage.formDesignVersion = undefined;
@@ -414,6 +437,7 @@ export class FormDesignerComponent implements OnInit {
       this.validateDesignerQuestions(this.project.stages);
       await this.saveRally();
       await this.persistStages(this.project.stages);
+      await this.publishActiveRecognition();
       this.setSyncState('saved', 'Projet enregistré dans la configuration partagée.');
     } catch (error) {
       this.handleSyncError(error, 'Impossible d’enregistrer tout le projet.');
@@ -426,6 +450,7 @@ export class FormDesignerComponent implements OnInit {
       this.validateDesignerQuestions(stages);
       await this.saveRally();
       await this.persistStages(stages);
+      if (stages.some(stage => stage.id === this.activeStage.id)) { await this.publishActiveRecognition(); }
       this.setSyncState('saved', stages.length === 1 ? 'Épreuve enregistrée.' : 'Épreuves enregistrées.');
     } catch (error) {
       this.handleSyncError(error, 'Impossible d’enregistrer la configuration.');
@@ -595,6 +620,163 @@ export class FormDesignerComponent implements OnInit {
     }
   }
 
+  private async publishActiveRecognition(): Promise<void> {
+    if (!this.activeStage.hasFormDesign) { return; }
+    const previousPreview = this.correctedPreview;
+    const previousZoom = this.zoom;
+    const previousSelectedBlockId = this.selectedBlockId;
+    const previousSelectedCellIds = [...this.selectedCellIds];
+    this.correctedPreview = false;
+    // Le zoom ne concerne que l'aperçu. html2canvas ignore la transformation
+    // du conteneur pour l'image, tandis que getBoundingClientRect peut encore
+    // la refléter pour les coordonnées. Publier à 100 % garantit un référentiel
+    // unique entre le PNG et le template FormScanner.
+    this.zoom = 100;
+    this.selectedBlockId = '';
+    this.selectedCellIds.clear();
+    if (document.activeElement instanceof HTMLElement) { document.activeElement.blur(); }
+
+    // Le contenu éditable peut conserver son ancien DOM alors que le modèle a
+    // déjà été mis à jour et sauvegardé. Détruire puis reconstruire les pages
+    // garantit que le PNG et le template sont produits depuis le modèle courant.
+    this.pages = [];
+    this.changeDetector.detectChanges();
+    this.refreshPages();
+    this.changeDetector.detectChanges();
+    await this.nextPaint();
+    try {
+      const paperElements = Array.from(document.querySelectorAll<HTMLElement>('.pages .paper'));
+      if (!paperElements.length) { throw new Error('Aucune page A4 à publier.'); }
+
+      const expectedLabels = this.designerCorrectionEntries(this.activeStage)
+        .map(entry => entry.label).sort((left, right) => left.localeCompare(right, 'fr'));
+      const renderedLabels = paperElements.flatMap(paper =>
+        Array.from(paper.querySelectorAll<HTMLElement>('.correction-cells'))
+          .map(group => group.getAttribute('title') || '').filter(Boolean))
+        .sort((left, right) => left.localeCompare(right, 'fr'));
+      if (expectedLabels.length !== renderedLabels.length
+        || expectedLabels.some((label, index) => label !== renderedLabels[index])) {
+        throw new Error('La prévisualisation du formulaire n’est pas à jour. La publication a été interrompue pour éviter de conserver un ancien formulaire.');
+      }
+      const generatedPages: GeneratedRecognitionPageDto[] = [];
+      for (let index = 0; index < paperElements.length; index++) {
+        generatedPages.push(await this.generateRecognitionPage(paperElements[index], index + 1, false));
+      }
+      await firstValueFrom(this.api.publishRecognitionPages(this.activeStage.number, generatedPages));
+      await firstValueFrom(this.api.publishReferenceRecognition(
+        await this.generateRecognitionPage(paperElements[0], undefined, true)));
+    } finally {
+      this.correctedPreview = previousPreview;
+      this.zoom = previousZoom;
+      this.selectedBlockId = previousSelectedBlockId;
+      previousSelectedCellIds.forEach(id => this.selectedCellIds.add(id));
+      this.changeDetector.detectChanges();
+    }
+  }
+
+  private async generateRecognitionPage(paper: HTMLElement, page: number | undefined,
+      referenceOnly: boolean): Promise<GeneratedRecognitionPageDto> {
+    // Les modèles historiques produits par FormScanner font 2481 × 3508 px.
+    // Conserver cette résolution garantit que les coordonnées et la taille des
+    // marqueurs ont la même échelle que les formulaires déjà reconnus par le back.
+    const targetWidth = 2481;
+    const targetHeight = 3508;
+    const captureScale = targetWidth / paper.offsetWidth;
+    const paperRect = paper.getBoundingClientRect();
+    const capturedCanvas = await html2canvas(paper, {
+      scale: captureScale, backgroundColor: '#ffffff', useCORS: true, logging: false,
+      width: paper.offsetWidth, height: paper.offsetHeight
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const context = canvas.getContext('2d');
+    if (!context) { throw new Error('Impossible de préparer le modèle FormScanner.'); }
+    context.imageSmoothingEnabled = false;
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, targetWidth, targetHeight);
+    context.drawImage(capturedCanvas, 0, 0, targetWidth, targetHeight);
+    return {
+      param: {
+        stage: referenceOnly ? undefined : this.activeStage.number,
+        page: referenceOnly ? undefined : page,
+        template: this.buildRecognitionTemplate(paper, {
+          x: targetWidth / paperRect.width,
+          y: targetHeight / paperRect.height
+        }, referenceOnly),
+        questions: {}
+      },
+      modelBase64: canvas.toDataURL('image/png').split(',')[1],
+      modelFileType: 'image/png',
+      modelFileExtension: 'png'
+    };
+  }
+
+  private buildRecognitionTemplate(paper: HTMLElement, scale: { x: number; y: number },
+      referenceOnly: boolean): string {
+    const paperRect = paper.getBoundingClientRect();
+    const point = (element: Element): { x: number; y: number } => {
+      const rect = element.getBoundingClientRect();
+      return { x: ((rect.left + rect.width / 2) - paperRect.left) * scale.x,
+        y: ((rect.top + rect.height / 2) - paperRect.top) * scale.y };
+    };
+    const cornerEntries = [
+      ['TOP_LEFT', '.corner.top-left'], ['TOP_RIGHT', '.corner.top-right'],
+      ['BOTTOM_RIGHT', '.corner.bottom-right'], ['BOTTOM_LEFT', '.corner.bottom-left']
+    ].map(([position, selector]) => ({ position, point: point(paper.querySelector(selector) as Element) }));
+    const identification = new Map<string, Array<{ response: string; x: number; y: number }>>();
+    paper.querySelectorAll<HTMLElement>('.mark-box[data-field][data-value]').forEach(box => {
+      const name = box.dataset['field'] || '';
+      const values = identification.get(name) || [];
+      values.push({ response: box.dataset['value'] || '', ...point(box) });
+      identification.set(name, values);
+    });
+    const corrections = new Map<string, Array<{ response: string; x: number; y: number }>>();
+    if (!referenceOnly) {
+      paper.querySelectorAll<HTMLElement>('.correction-cells').forEach(group => {
+        const name = group.getAttribute('title') || '';
+        if (!name) { return; }
+        const values = corrections.get(name) || [];
+        group.querySelectorAll<HTMLElement>('span[aria-label]').forEach(box => {
+          values.push({ response: box.getAttribute('aria-label') || '', ...point(box) });
+        });
+        corrections.set(name, values);
+      });
+    }
+    // Valeur native de FormScanner utilisée par tous les anciens templates.
+    // Il s'agit de la zone de détection autour du centre, pas de la dimension
+    // graphique complète de la cellule imprimée.
+    const fieldSize = 15;
+    const xmlQuestions = (fields: Map<string, Array<{ response: string; x: number; y: number }>>) =>
+      Array.from(fields.entries()).map(([name, values]) => {
+        const correction = ['O', 'N', 'Y'].includes(values[0]?.response);
+        return `            <question multiple="${correction}" question="${this.xmlEscape(name)}" rejectMultiple="${!correction}" type="QUESTIONS_BY_ROWS">\n                <values>\n${values.map(value => `                    <value response="${this.xmlEscape(value.response)}"><point x="${value.x.toFixed(1)}" y="${value.y.toFixed(1)}"/></value>`).join('\n')}\n                </values>\n            </question>`;
+      }).join('\n');
+    return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<template density="40" threshold="127" version="2.1">
+    <crop bottom="0" left="0" right="0" top="0"/>
+    <rotation angle="0.0"/>
+    <corners type="ROUND">
+${cornerEntries.map(entry => `        <corner position="${entry.position}"><point x="${entry.point.x.toFixed(1)}" y="${entry.point.y.toFixed(1)}"/></corner>`).join('\n')}
+    </corners>
+    <fields groups="true" shape="SQUARE" size="${fieldSize}">
+        <group name="Identification">
+${xmlQuestions(identification)}
+        </group>
+${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(corrections)}\n        </group>`}
+    </fields>
+</template>`;
+  }
+
+  private xmlEscape(value: string): string {
+    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+  }
+
+  private nextPaint(): Promise<void> {
+    return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+  }
+
   private setSyncState(state: FormDesignerComponent['syncState'], message: string): void {
     this.syncState = state;
     this.syncMessage = message;
@@ -631,7 +813,7 @@ export class FormDesignerComponent implements OnInit {
         return block;
       });
       this.selectedBlockId = this.activeStage.blocks[0]?.id || '';
-      this.refreshPages();
+      this.questionEdited();
     } catch (error) {
       this.importError = error instanceof Error ? error.message : 'Le fichier Excel ne peut pas être lu.';
     }
@@ -649,7 +831,7 @@ export class FormDesignerComponent implements OnInit {
       questions: [this.makeQuestion(1)]
     });
     this.blocks.push(this.makeBlock('section', `Section ${index}`, this.sections[this.sections.length - 1].id));
-    this.refreshPages();
+    this.questionEdited();
   }
 
   insertBlock(type: DesignerBlockType): void {
@@ -1213,12 +1395,12 @@ export class FormDesignerComponent implements OnInit {
   addQuestion(section: DesignerSection): void {
     const index = section.questions.length + 1;
     section.questions.push(this.makeQuestion(index));
-    this.refreshPages();
+    this.questionEdited();
   }
 
   removeQuestion(section: DesignerSection, question: DesignerQuestion): void {
     const index = section.questions.indexOf(question);
-    if (index >= 0) { section.questions.splice(index, 1); this.refreshPages(); }
+    if (index >= 0) { section.questions.splice(index, 1); this.questionEdited(); }
   }
 
   moveQuestion(section: DesignerSection, question: DesignerQuestion, direction: -1 | 1): void {
@@ -1226,7 +1408,7 @@ export class FormDesignerComponent implements OnInit {
     const destination = index + direction;
     if (index >= 0 && destination >= 0 && destination < section.questions.length) {
       moveItemInArray(section.questions, index, destination);
-      this.refreshPages();
+      this.questionEdited();
     }
   }
 
@@ -1571,7 +1753,7 @@ export class FormDesignerComponent implements OnInit {
       }
       this.sections[0].questions.push(...section.questions);
     }
-    this.refreshPages();
+    this.questionEdited();
   }
 
   print(corrected: boolean): void {

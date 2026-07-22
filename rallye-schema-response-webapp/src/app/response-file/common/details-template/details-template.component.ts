@@ -68,12 +68,7 @@ export class DetailsTemplateComponent implements OnInit, OnChanges {
 
     this.points = [];
     for (const point of template.points) {
-      let pointClass = 'default-point';
-      if (point.valid === true) {
-        pointClass = 'valid-point';
-      } else if (point.valid === false) {
-        pointClass = 'invalid-point';
-      }
+      const pointClass = this.getPointClass(point.valid);
       this.points.push({
         top: point.point.y * 100 / height,
         left: point.point.x * 100 / width,
@@ -82,6 +77,16 @@ export class DetailsTemplateComponent implements OnInit, OnChanges {
         tooltip: point.comment
       });
     }
+  }
+
+  getPointClass(valid: boolean | null): string {
+    if (valid === true) {
+      return 'valid-point';
+    }
+    if (valid === false) {
+      return 'invalid-point';
+    }
+    return 'default-point';
   }
 
   endDrag(event: CdkDragEnd, corner: any) {

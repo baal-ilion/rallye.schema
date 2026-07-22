@@ -17,6 +17,11 @@ Application indépendante de conception des formulaires de correction Rallye Sch
   barèmes utilisés par le front de correction ;
 - préservation des groupes, performances et questions créées hors designer ;
 - validation des labels vides, dupliqués ou incompatibles avec une performance.
+- génération automatique d’une image PNG et d’un gabarit de reconnaissance
+  pour chaque page A4 enregistrée ;
+- calcul des coordonnées des repères, grilles d’identification et cases de
+  correction directement depuis le rendu du designer ;
+- publication d’un modèle de référence global indépendant de l’épreuve 1.
 
 ## Exécution
 
@@ -31,5 +36,4 @@ Le serveur de développement transmet les appels `/api` au back disponible sur
 `https://localhost:8443`. Le back doit donc être démarré pour charger et enregistrer
 la configuration. Les projets ne sont plus stockés dans des fichiers JSON locaux.
 
-La génération des données de reconnaissance et leur publication vers le service
-de correction constituent l’incrément suivant.
+Les modèles publiés restent consultables et modifiables dans le front de correction.

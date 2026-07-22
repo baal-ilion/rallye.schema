@@ -28,7 +28,7 @@ export class DetailsResponseFileParamComponent implements OnInit {
     this.param = null;
     this.responseFileParamService.getResponseFileParamByResource(this.paramUrl).subscribe((param) => {
       this.param = param;
-      this.modelUrl = param._links?.responseFileModel?.href ?? '';
+      this.modelUrl = this.cacheBustedModelUrl(param._links?.responseFileModel?.href);
     });
   }
 
@@ -43,6 +43,7 @@ export class DetailsResponseFileParamComponent implements OnInit {
       if (!result) { return; }
       this.responseFileParamService.updateResponseFileParam(result as FormData).subscribe(data => {
         this.param = data;
+        this.modelUrl = this.cacheBustedModelUrl(data._links?.responseFileModel?.href);
       }, () => {
         // keep current param on error
       });
@@ -66,5 +67,11 @@ export class DetailsResponseFileParamComponent implements OnInit {
       .catch(() => {
         // dialog dismissed
       });
+  }
+
+  private cacheBustedModelUrl(href?: string): string {
+    if (!href) { return ''; }
+    const separator = href.includes('?') ? '&' : '?';
+    return `${href}${separator}v=${Date.now()}`;
   }
 }

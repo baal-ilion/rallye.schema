@@ -11,4 +11,6 @@ public interface ResponseFileParamRepository extends MongoRepository<ResponseFil
 	List<ResponseFileParam> findByStage(Integer stage);
 
 	Optional<ResponseFileParam> findByStageAndPage(Integer stage, Integer page);
+
+	Optional<ResponseFileParam> findByStageIsNullAndPageIsNull();
 }

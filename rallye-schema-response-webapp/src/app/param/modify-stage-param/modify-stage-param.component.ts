@@ -52,6 +52,7 @@ export class ModifyStageParamComponent implements OnInit {
   removedQuestionParams: string[] = [];
   questionParamNames: string[] = [];
   questionParamName = '';
+  questionParamError = '';
   showResponseFiles = false;
   showQuestions = false;
   showPoints = false;
@@ -79,6 +80,7 @@ export class ModifyStageParamComponent implements OnInit {
 
   ngOnInit() {
     this.questionParamName = '';
+    this.questionParamError = '';
     this.removedQuestionParams = [];
     this.questionParamNames = [];
     this.responseFileParamUrls = [];
@@ -132,7 +134,8 @@ export class ModifyStageParamComponent implements OnInit {
       this.performancePointParams.clear();
       this.questionParams.clear();
 
-      const questionKeys = Object.keys(this.stageParam.questionParams);
+      const questionKeys = Object.keys(this.stageParam.questionParams)
+        .sort((left, right) => this.compareLabels(left, right));
       for (const questionKey of questionKeys) {
         const questionParam = this.stageParam.questionParams[questionKey];
         this.initQuestionPointParam(questionParam);
@@ -234,17 +237,49 @@ export class ModifyStageParamComponent implements OnInit {
   }
 
   addQuestionParam(paramName: string) {
-    if (!this.questionParamNames.includes(paramName) || this.removedQuestionParams.includes(paramName)) {
-      this.questionParams.push(this.formBuilder.group({
-        name: paramName,
-        type: QuestionType.QUESTION
-      }));
-      const index = this.removedQuestionParams.indexOf(paramName, 0);
-      if (index > -1) {
-        this.removedQuestionParams.splice(index, 1);
-      }
+    const name = (paramName || '').trim();
+    this.questionParamError = '';
+    if (!name) {
+      this.questionParamError = 'Le label de la question est obligatoire.';
+      return;
+    }
+    const existingName = this.questionParamNames.find(item =>
+      this.compareLabels(item, name) === 0 && !this.removedQuestionParams.includes(item));
+    if (existingName) {
+      this.questionParamError = `La question « ${existingName} » existe déjà.`;
+      return;
+    }
+
+    const question = this.formBuilder.group({ name, type: QuestionType.QUESTION });
+    const questionInsertionIndex = this.questionParams.controls.findIndex(control =>
+      this.compareLabels(name, control.value.name) < 0);
+    this.questionParams.insert(
+      questionInsertionIndex < 0 ? this.questionParams.length : questionInsertionIndex, question);
+
+    const point = this.formBuilder.group({ name, point: 0 });
+    const pointInsertionIndex = this.questionPointParams.controls.findIndex(control =>
+      this.compareLabels(name, control.value.name) < 0);
+    this.questionPointParams.insert(
+      pointInsertionIndex < 0 ? this.questionPointParams.length : pointInsertionIndex, point);
+
+    // Les questions et leurs barèmes sont affichés dans deux panneaux distincts,
+    // mais constituent une seule donnée fonctionnelle. Force leur mise à jour
+    // commune pour que le barème nouvellement créé soit immédiatement rendu.
+    this.questionParams.updateValueAndValidity();
+    this.questionPointParams.updateValueAndValidity();
+    this.stageParamForm.updateValueAndValidity();
+
+    if (!this.questionParamNames.includes(name)) {
+      this.questionParamNames.push(name);
+      this.questionParamNames.sort((left, right) => this.compareLabels(left, right));
+    }
+    const removedIndex = this.removedQuestionParams.indexOf(name);
+    if (removedIndex >= 0) {
+      this.removedQuestionParams.splice(removedIndex, 1);
     }
     this.questionParamName = '';
+    this.showPoints = true;
+    this.stageParamForm.markAsDirty();
   }
 
   removeQuestionParam(index: number) {
@@ -257,6 +292,10 @@ export class ModifyStageParamComponent implements OnInit {
       this.removedQuestionParams.push(questionName);
     }
     this.questionParams.removeAt(index);
+    const pointIndex = this.questionPointParams.controls.findIndex(control => control.value.name === questionName);
+    if (pointIndex >= 0) {
+      this.questionPointParams.removeAt(pointIndex);
+    }
   }
 
   deleteStageParam() {
@@ -325,8 +364,8 @@ export class ModifyStageParamComponent implements OnInit {
     const modifiedQuestionPointParams: QuestionPointParams = {};
     this.stageParamForm.value.questionPointParams.forEach((item: QuestionPointParam) => {
       const questionPoint = this.stageParam.questionPointParams[item.name];
-      if ((!questionPoint && item.point && item.point !== 0) || (questionPoint && questionPoint.point !== item.point)) {
-        if (!item.point) {
+      if (!questionPoint || questionPoint.point !== item.point) {
+        if (item.point === null || item.point === undefined || Number.isNaN(item.point)) {
           item.point = 0;
         }
         modifiedQuestionPointParams[item.name] = item;
@@ -421,6 +460,13 @@ export class ModifyStageParamComponent implements OnInit {
 
   private isPerfPointAllocation(value: string): value is PerfPointAllocation {
     return value === 'SCORE' || value === 'DATE' || value === 'RANK';
+  }
+
+  private compareLabels(left: string, right: string): number {
+    return left.localeCompare(right, 'fr', {
+      sensitivity: 'base',
+      numeric: true
+    });
   }
 
   private uniqueStageValidator(control: AbstractControl) {

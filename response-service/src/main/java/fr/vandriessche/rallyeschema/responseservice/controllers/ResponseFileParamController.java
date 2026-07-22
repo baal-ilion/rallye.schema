@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.List;
 import java.util.logging.Level;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -19,11 +20,13 @@ import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.CacheControl;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,6 +37,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileModel;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileParam;
 import fr.vandriessche.rallyeschema.responseservice.models.ResponseFileParamModelAssembler;
+import fr.vandriessche.rallyeschema.responseservice.models.GeneratedResponseFileParamRequest;
+import fr.vandriessche.rallyeschema.responseservice.models.GeneratedStageResponseFileRequest;
 import fr.vandriessche.rallyeschema.responseservice.services.ResponseFileParamService;
 import lombok.extern.java.Log;
 
@@ -68,7 +73,7 @@ public class ResponseFileParamController {
 		if (Objects.isNull(contentType)) {
 			contentType = "application/octet-stream";
 		}
-		return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType))
+		return ResponseEntity.ok().cacheControl(CacheControl.noStore()).contentType(MediaType.parseMediaType(contentType))
 				.header(HttpHeaders.CONTENT_DISPOSITION,
 						"attachment; filename=\"" + id + "." + responseFileModel.getFileExtension() + "\"")
 				.body(new ByteArrayResource(responseFileModel.getFile().getData()));
@@ -119,5 +124,34 @@ public class ResponseFileParamController {
 				ResponseFileParam.class);
 		return assembler
 				.toModel(responseFileParamService.updateResponseFileParam(responseFileParam, responseFileModel));
+	}
+
+	@PutMapping(URL + "/generated/stages/{stage}")
+	public List<ResponseFileParam> replaceGeneratedStageResponseFileParams(@PathVariable Integer stage,
+			@RequestBody GeneratedStageResponseFileRequest request)
+			throws ParserConfigurationException, SAXException, IOException {
+		return responseFileParamService.replaceGeneratedStageResponseFileParams(stage, request.getPages());
+	}
+
+	@DeleteMapping(URL + "/generated/stages/{stage}")
+	public void deleteGeneratedStageResponseFileParams(@PathVariable Integer stage) {
+		responseFileParamService.deleteResponseFileParamsByStage(stage);
+	}
+
+	@GetMapping(URL + "/reference")
+	public ResponseFileParam getReferenceResponseFileParam() {
+		return responseFileParamService.getReferenceResponseFileParam().orElse(null);
+	}
+
+	@PutMapping(URL + "/reference/generated")
+	public ResponseFileParam saveGeneratedReferenceResponseFileParam(
+			@RequestBody GeneratedResponseFileParamRequest request)
+			throws ParserConfigurationException, SAXException, IOException {
+		return responseFileParamService.saveGeneratedReferenceResponseFileParam(request);
+	}
+
+	@DeleteMapping(URL + "/reference")
+	public void deleteReferenceResponseFileParam() {
+		responseFileParamService.deleteReferenceResponseFileParam();
 	}
 }

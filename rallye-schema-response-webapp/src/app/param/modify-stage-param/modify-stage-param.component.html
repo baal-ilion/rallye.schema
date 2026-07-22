@@ -64,6 +64,7 @@
             (click)="addQuestionParam(questionParamName)">
             Ajouter
           </button>
+          <small class="text-danger ml-2" *ngIf="questionParamError">{{ questionParamError }}</small>
         </div>
       </div>
       <div class="card-body" *ngIf="showQuestions">
@@ -90,7 +91,7 @@
     <div class="card mt-3 mb-3">
       <div class="card-header d-flex align-items-center justify-content-between">
         <button type="button" class="btn btn-link text-left pl-1 w-auto" (click)="showPoints = !showPoints">
-          Paramétrage des points
+          Paramétrage des points ({{ questionPointParams.controls.length + performancePointParams.controls.length }})
         </button>
       </div>
       <div class="card-body" *ngIf="showPoints">
@@ -108,7 +109,8 @@
               <div [formGroup]="questionPointParam" class="row">
                 <label class="col align-self-center">{{questionPointParam.value.name}}</label>
                 <div class="col-auto align-self-center">
-                  <input type="number" formControlName="point" class="col-auto" />
+                  <input type="number" formControlName="point" class="form-control point-input"
+                    [attr.aria-label]="'Barème de la question ' + questionPointParam.value.name" />
                 </div>
               </div>
             </div>

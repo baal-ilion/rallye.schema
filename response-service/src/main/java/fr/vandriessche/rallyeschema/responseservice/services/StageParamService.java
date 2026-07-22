@@ -1,11 +1,13 @@
 package fr.vandriessche.rallyeschema.responseservice.services;
 
+import java.text.Collator;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -131,15 +133,16 @@ public class StageParamService {
 	}
 
 	public StageParam getStageParam(String id) {
-		return stageParamRepository.findById(id).orElseThrow();
+		return sortDisplayParams(stageParamRepository.findById(id).orElseThrow());
 	}
 
 	public StageParam getStageParamByStage(Integer stage) {
-		return stageParamRepository.findByStage(stage).orElse(null);
+		StageParam stageParam = stageParamRepository.findByStage(stage).orElse(null);
+		return Objects.isNull(stageParam) ? null : sortDisplayParams(stageParam);
 	}
 
 	public List<StageParam> getStageParams() {
-		return stageParamRepository.findAll();
+		return stageParamRepository.findAll().stream().map(this::sortDisplayParams).collect(Collectors.toList());
 	}
 
 	public void removeResponseFileParam(ResponseFileParam responseFileParam) {
@@ -203,20 +206,67 @@ public class StageParamService {
 
 	private void sortPerformancePointParams(StageParam stageParam) {
 		stageParam.setPerformancePointParams(
-				stageParam.getPerformancePointParams().entrySet().stream().sorted(Map.Entry.comparingByKey())
+				stageParam.getPerformancePointParams().entrySet().stream()
+						.sorted((left, right) -> compareLabels(left.getKey(), right.getKey()))
 						.collect(Collectors.toMap(Entry::getKey, Entry::getValue, (x, y) -> y, LinkedHashMap::new)));
 	}
 
 	private void sortQuestionParams(StageParam stageParam) {
 		stageParam
-				.setQuestionParams(stageParam.getQuestionParams().entrySet().stream().sorted(Map.Entry.comparingByKey())
+				.setQuestionParams(stageParam.getQuestionParams().entrySet().stream()
+						.sorted((left, right) -> compareLabels(left.getKey(), right.getKey()))
 						.collect(Collectors.toMap(Entry::getKey, Entry::getValue, (x, y) -> y, LinkedHashMap::new)));
 	}
 
 	private void sortQuestionPointParams(StageParam stageParam) {
 		stageParam.setQuestionPointParams(
-				stageParam.getQuestionPointParams().entrySet().stream().sorted(Map.Entry.comparingByKey())
+				stageParam.getQuestionPointParams().entrySet().stream()
+						.sorted((left, right) -> compareLabels(left.getKey(), right.getKey()))
 						.collect(Collectors.toMap(Entry::getKey, Entry::getValue, (x, y) -> y, LinkedHashMap::new)));
+	}
+
+	private StageParam sortDisplayParams(StageParam stageParam) {
+		sortQuestionParams(stageParam);
+		sortQuestionPointParams(stageParam);
+		sortPerformancePointParams(stageParam);
+		return stageParam;
+	}
+
+	private int compareLabels(String left, String right) {
+		Collator collator = Collator.getInstance(Locale.FRENCH);
+		collator.setStrength(Collator.PRIMARY);
+		int leftIndex = 0;
+		int rightIndex = 0;
+		while (leftIndex < left.length() && rightIndex < right.length()) {
+			boolean leftDigit = Character.isDigit(left.charAt(leftIndex));
+			boolean rightDigit = Character.isDigit(right.charAt(rightIndex));
+			int leftEnd = nextChunkEnd(left, leftIndex, leftDigit);
+			int rightEnd = nextChunkEnd(right, rightIndex, rightDigit);
+			String leftChunk = left.substring(leftIndex, leftEnd);
+			String rightChunk = right.substring(rightIndex, rightEnd);
+			int comparison;
+			if (leftDigit && rightDigit) {
+				String normalizedLeft = leftChunk.replaceFirst("^0+(?!$)", "");
+				String normalizedRight = rightChunk.replaceFirst("^0+(?!$)", "");
+				comparison = Integer.compare(normalizedLeft.length(), normalizedRight.length());
+				if (comparison == 0)
+					comparison = normalizedLeft.compareTo(normalizedRight);
+			} else {
+				comparison = collator.compare(leftChunk, rightChunk);
+			}
+			if (comparison != 0)
+				return comparison;
+			leftIndex = leftEnd;
+			rightIndex = rightEnd;
+		}
+		return Integer.compare(left.length(), right.length());
+	}
+
+	private int nextChunkEnd(String value, int start, boolean digit) {
+		int index = start + 1;
+		while (index < value.length() && Character.isDigit(value.charAt(index)) == digit)
+			index++;
+		return index;
 	}
 
 	private void updatePerformancePointParams(StageParam stageParamToUpdate,

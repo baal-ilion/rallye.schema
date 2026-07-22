@@ -51,6 +51,18 @@ export interface FormDesignDto {
   updatedAt?: string;
 }
 
+export interface GeneratedRecognitionPageDto {
+  param: {
+    stage?: number;
+    page?: number;
+    template: string;
+    questions: Record<string, unknown>;
+  };
+  modelBase64: string;
+  modelFileType: 'image/png';
+  modelFileExtension: 'png';
+}
+
 interface StageParamCollectionDto {
   _embedded?: { stageParams?: StageParamDto[] };
 }
@@ -71,6 +83,10 @@ export class FormDesignerApiService {
 
   getStages(): Observable<StageParamCollectionDto> {
     return this.http.get<StageParamCollectionDto>(`${this.apiUrl}/stageParams`);
+  }
+
+  getStage(id: string): Observable<StageParamDto> {
+    return this.http.get<StageParamDto>(`${this.apiUrl}/stageParams/${encodeURIComponent(id)}`);
   }
 
   stageItems(collection: StageParamCollectionDto): StageParamDto[] {
@@ -100,5 +116,17 @@ export class FormDesignerApiService {
 
   deleteFormDesign(stageId: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/formDesigns/stages/${encodeURIComponent(stageId)}`);
+  }
+
+  publishRecognitionPages(stage: number, pages: GeneratedRecognitionPageDto[]): Observable<unknown[]> {
+    return this.http.put<unknown[]>(`${this.apiUrl}/responseFileParams/generated/stages/${stage}`, { pages });
+  }
+
+  deleteRecognitionPages(stage: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/responseFileParams/generated/stages/${stage}`);
+  }
+
+  publishReferenceRecognition(page: GeneratedRecognitionPageDto): Observable<unknown> {
+    return this.http.put<unknown>(`${this.apiUrl}/responseFileParams/reference/generated`, page);
   }
 }

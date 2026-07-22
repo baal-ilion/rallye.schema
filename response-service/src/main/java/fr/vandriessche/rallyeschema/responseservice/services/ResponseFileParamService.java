@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,7 @@ import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileModel;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileParam;
 import fr.vandriessche.rallyeschema.responseservice.repositories.ResponseFileModelRepository;
 import fr.vandriessche.rallyeschema.responseservice.repositories.ResponseFileParamRepository;
+import fr.vandriessche.rallyeschema.responseservice.models.GeneratedResponseFileParamRequest;
 import lombok.extern.java.Log;
 
 @Service
@@ -111,11 +113,64 @@ public class ResponseFileParamService {
 		return responseFileParamRepository.findByStage(stage);
 	}
 
+	public Optional<ResponseFileParam> getReferenceResponseFileParam() {
+		return responseFileParamRepository.findByStageIsNullAndPageIsNull();
+	}
+
+	public void deleteResponseFileParamsByStage(Integer stage) {
+		new ArrayList<>(responseFileParamRepository.findByStage(stage))
+				.forEach(param -> deleteCascadeResponseFileParam(param.getId()));
+	}
+
+	public List<ResponseFileParam> replaceGeneratedStageResponseFileParams(Integer stage,
+			List<GeneratedResponseFileParamRequest> generatedPages)
+			throws ParserConfigurationException, SAXException, IOException {
+		List<ResponseFileParam> existingPages = responseFileParamRepository.findByStage(stage);
+		List<ResponseFileParam> savedPages = new ArrayList<>();
+		for (GeneratedResponseFileParamRequest generatedPage : generatedPages) {
+			ResponseFileParam param = Objects.requireNonNull(generatedPage.getParam(), "Paramètres de page absents.");
+			param.setStage(stage);
+			ResponseFileParam existing = responseFileParamRepository.findByStageAndPage(stage, param.getPage())
+					.orElse(null);
+			param.setId(existing == null ? null : existing.getId());
+			savedPages.add(addResponseFileParam(param, null, makeGeneratedResponseFileModel(generatedPage)));
+		}
+		List<Integer> publishedPageNumbers = savedPages.stream().map(ResponseFileParam::getPage)
+				.collect(java.util.stream.Collectors.toList());
+		existingPages.stream().filter(existing -> !publishedPageNumbers.contains(existing.getPage()))
+				.forEach(existing -> deleteCascadeResponseFileParam(existing.getId()));
+		return savedPages;
+	}
+
+	public ResponseFileParam saveGeneratedReferenceResponseFileParam(GeneratedResponseFileParamRequest generated)
+			throws ParserConfigurationException, SAXException, IOException {
+		ResponseFileParam param = Objects.requireNonNull(generated.getParam(), "Paramètres de référence absents.");
+		param.setStage(null);
+		param.setPage(null);
+		ResponseFileParam existingReference = getReferenceResponseFileParam().orElse(null);
+		if (existingReference != null)
+			param.setId(existingReference.getId());
+		fillResponseFileParam(param);
+		ResponseFileModel model = makeGeneratedResponseFileModel(generated);
+		fillResponseFileParam(param, model);
+		param = responseFileParamRepository.save(param);
+		fillResponseFileModel(param, model);
+		responseFileModelRepository.save(model);
+		return param;
+	}
+
+	public void deleteReferenceResponseFileParam() {
+		getReferenceResponseFileParam().ifPresent(reference -> deleteResponseFileParam(reference.getId()));
+	}
+
 	public com.albertoborsetta.formscanner.api.FormTemplate makeFormTemplate(Integer stage, Integer page)
 			throws ParserConfigurationException, SAXException, IOException {
 		var param = getResponseFileParamByStageAndPage(stage, page);
-		if (param.isEmpty())
-			return makeFormTemplate(1, 1);
+		if (param.isEmpty()) {
+			ResponseFileParam reference = getReferenceResponseFileParam()
+					.orElseThrow(() -> new IllegalStateException("Aucun formulaire de référence n'est configuré."));
+			return makeFormTemplate(reference);
+		}
 		return makeFormTemplate(param.get());
 	}
 
@@ -231,6 +286,14 @@ public class ResponseFileParamService {
 		responseFileModel.setFileExtension(FilenameUtils.getExtension(fileModel.getOriginalFilename()));
 		responseFileModel.setFileType(fileModel.getContentType());
 		return responseFileModel;
+	}
+
+	private ResponseFileModel makeGeneratedResponseFileModel(GeneratedResponseFileParamRequest generated) {
+		ResponseFileModel model = new ResponseFileModel();
+		model.setFile(new Binary(BsonBinarySubType.BINARY, Base64.getDecoder().decode(generated.getModelBase64())));
+		model.setFileType(Objects.requireNonNullElse(generated.getModelFileType(), "image/png"));
+		model.setFileExtension(Objects.requireNonNullElse(generated.getModelFileExtension(), "png"));
+		return model;
 	}
 
 	private List<String> makeResponseValues(FormQuestion field) {

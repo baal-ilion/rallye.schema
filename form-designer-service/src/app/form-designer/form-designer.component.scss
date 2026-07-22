@@ -248,8 +248,22 @@
 .section-editor input:first-child { flex: 1; font-size: 1.05rem; font-weight: 700; color: inherit; text-align: center; background: transparent; border: 0; }
 .section-title-editor { flex: 1; font-size: 1.05rem; font-weight: 700; text-align: center; }
 .continued { font-style: italic; }
-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-th, td { vertical-align: middle; border: 1px solid #444; padding: .3rem; }
+table {
+  width: 100%;
+  box-sizing: border-box;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  border-top: 1px solid #444;
+  border-left: 1px solid #444;
+}
+th, td {
+  vertical-align: middle;
+  border: 0;
+  border-right: 1px solid #444;
+  border-bottom: 1px solid #444;
+  padding: .3rem;
+}
 thead tr { min-height: .60cm; height: auto; }
 thead th { min-height: .60cm; height: auto; padding-top: 0; padding-bottom: 0; }
 thead th { font-size: 3.2mm; line-height: 1.1; }
@@ -269,8 +283,9 @@ thead th.response-with-correction-heading, tbody td.response-with-correction { p
 .response-cell-layout { display: grid; grid-template-columns: minmax(0, 1fr) var(--section-correction-width, var(--correction-group-width, 1.59cm)); min-height: max(var(--section-row-height, .47cm), var(--correction-cell-height, .53cm)); align-items: stretch; }
 .response-cell { min-width: 0; height: 100%; display: flex; align-items: center; padding: 0 1.5mm; }
 .correction-groups { display: flex; flex-direction: column; width: var(--section-correction-width, var(--correction-group-width, 1.59cm)); align-self: stretch; background: #fff; }
-.correction-cells { position: relative; display: grid; grid-template-columns: repeat(3, var(--correction-cell-width, .53cm)); box-sizing: border-box; width: var(--correction-group-width, 1.59cm); height: var(--correction-cell-height, .53cm); align-self: start; background: #fff; border-bottom: 1px solid #444; }
-.correction-cells:last-child { height: calc(var(--correction-cell-height, .53cm) + 1px); margin-bottom: -1px; }
+.correction-cells { position: relative; display: grid; grid-template-columns: repeat(3, var(--correction-cell-width, .53cm)); box-sizing: border-box; width: var(--correction-group-width, 1.59cm); height: var(--correction-cell-height, .53cm); align-self: start; background: #fff; }
+.correction-cells:not(:last-child),
+.correction-groups.ends-before-row .correction-cells:last-child { border-bottom: 1px solid #444; }
 .correction-cells > span { min-width: 0; height: 100%; box-sizing: border-box; border-left: 1px solid #444; }
 .question-section tbody tr, .question-section tbody td { height: auto; min-height: max(var(--section-row-height, .47cm), var(--correction-cell-height, .53cm)); max-height: none; }
 .question-section tbody td input { height: calc(max(var(--section-row-height, .47cm), var(--correction-cell-height, .53cm)) - .4mm); line-height: calc(max(var(--section-row-height, .47cm), var(--correction-cell-height, .53cm)) - .4mm); }
