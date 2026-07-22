@@ -57,6 +57,11 @@ export class ModifyStageParamComponent implements OnInit {
   showQuestions = false;
   showPoints = false;
 
+  get formDesignerUrl(): string {
+    const stageId = this.stageParam?.id ? `?stageId=${encodeURIComponent(this.stageParam.id)}` : '';
+    return `https://${window.location.hostname}:4300/${stageId}`;
+  }
+
   constructor(
     private formBuilder: UntypedFormBuilder,
     private stageParamService: StageParamService,

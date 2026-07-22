@@ -3,6 +3,11 @@
     <h1 class="col-12">
       Épreuve {{ stageParam.stage }} / {{ stageParam.name }}
     </h1>
+    <div class="col-12 mt-2">
+      <a class="btn btn-primary" [href]="formDesignerUrl" target="_blank" rel="noopener">
+        Ouvrir dans le concepteur de formulaires
+      </a>
+    </div>
   </div>
   <form [formGroup]="stageParamForm" (ngSubmit)="onSubmit()" class="container">
     <div class="form-group mt-3">

@@ -52,7 +52,7 @@
 .rally-config label { min-width: 0; display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: center; gap: 5px; margin: 0; }
 .home-button-column { display: grid; grid-template-rows: 28px 28px; gap: 4px; }
 
-.stage-picker { grid-template-columns: 56px minmax(0, 1fr); }
+.stage-picker { grid-template-columns: 68px minmax(0, 1fr); }
 .stage-action-row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .stage-group .home-group-content { width: 100%; max-width: 440px; justify-self: center; }
 

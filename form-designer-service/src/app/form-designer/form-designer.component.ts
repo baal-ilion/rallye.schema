@@ -71,6 +71,7 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
   private activeTextEditingCellId = '';
   private titleWidthCache?: { text: string; showLogo: boolean; widthMm: number };
   private rallyParam?: RallyParamDto;
+  private readonly requestedStageId = new URLSearchParams(window.location.search).get('stageId');
   private readonly stageParams = new Map<string, StageParamDto>();
   private readonly publishedDesignerLabels = new Map<string, Set<string>>();
   readonly blockCatalog: Array<{ type: DesignerBlockType; label: string; menuLabel?: string; icon: string }> = [
@@ -453,7 +454,10 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
         this.referenceStage.name = 'Formulaire de référence';
         this.referenceStage.hasFormDesign = true;
         this.referenceStage.formDesignVersion = referenceDesign?.version;
-        this.activeStageId = this.project.stages[0].id;
+        const requestedStage = this.requestedStageId
+          ? this.project.stages.find(stage => stage.id === this.requestedStageId)
+          : undefined;
+        this.activeStageId = requestedStage?.id || this.project.stages[0].id;
         this.selectedBlockId = this.blocks[0]?.id || '';
         this.importError = '';
         this.refreshPages();
