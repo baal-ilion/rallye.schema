@@ -42,7 +42,7 @@
       </div><div class="ribbon-group-title">Édition</div></section>
       <section class="ribbon-group"><div class="ribbon-commands compact">
         <label class="preview-mode" title="Choisir la version du formulaire affichée dans la zone de travail."><span>Mode d’affichage</span><select [ngModel]="correctedPreview ? 'completed' : 'blank'" (ngModelChange)="setCorrectedPreview($event === 'completed')"><option value="blank">Document vierge</option><option value="completed">Document complété</option></select></label>
-        <button type="button" title="Imprimer ou enregistrer en PDF la version destinée aux joueurs." (click)="print(false)">PDF vierge</button><button type="button" title="Imprimer ou enregistrer en PDF la version contenant les réponses pour les correcteurs." (click)="print(true)">PDF corrigé</button>
+        <button type="button" title="Télécharger le formulaire A4 destiné aux joueurs." (click)="exportPdf(false)" [disabled]="pdfExporting">PDF vierge</button><button type="button" title="Télécharger le formulaire A4 contenant les réponses pour les correcteurs." (click)="exportPdf(true)" [disabled]="pdfExporting">PDF complété</button>
       </div><div class="ribbon-group-title">Affichage</div></section>
     </div>
 

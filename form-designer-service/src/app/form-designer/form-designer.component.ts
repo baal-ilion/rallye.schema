@@ -3,6 +3,7 @@ import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/dr
 import { firstValueFrom, forkJoin, switchMap } from 'rxjs';
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import { DesignerBlock, DesignerBlockType, DesignerCorrection, DesignerQuestion, DesignerSection, DesignerStage, FORM_PROJECT_SCHEMA_VERSION,
   FormProject } from './form-project.model';
 import { FormDesignerApiService, FormDesignDto, GeneratedRecognitionPageDto, QuestionParamDto, QuestionPointParamDto,
@@ -43,6 +44,7 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
   zoom = 85;
   showCellColorPalette = false;
   showTextColorPalette = false;
+  pdfExporting = false;
   readonly selectedCellIds = new Set<string>();
   private cellSelectionAnchor?: CellPosition;
   private draggingCellSelection = false;
@@ -710,6 +712,23 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
       modelFileType: 'image/png',
       modelFileExtension: 'png'
     };
+  }
+
+  private async capturePaperPng(paper: HTMLElement, targetWidth = 2481, targetHeight = 3508): Promise<string> {
+    const capturedCanvas = await html2canvas(paper, {
+      scale: targetWidth / paper.offsetWidth, backgroundColor: '#ffffff', useCORS: true, logging: false,
+      width: paper.offsetWidth, height: paper.offsetHeight
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const context = canvas.getContext('2d');
+    if (!context) { throw new Error('Impossible de préparer la page A4.'); }
+    context.imageSmoothingEnabled = false;
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, targetWidth, targetHeight);
+    context.drawImage(capturedCanvas, 0, 0, targetWidth, targetHeight);
+    return canvas.toDataURL('image/png');
   }
 
   private buildRecognitionTemplate(paper: HTMLElement, scale: { x: number; y: number },
@@ -1756,10 +1775,52 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     this.questionEdited();
   }
 
-  print(corrected: boolean): void {
-    this.correctedPreview = corrected;
-    this.refreshPages();
-    setTimeout(() => window.print());
+  async exportPdf(corrected: boolean): Promise<void> {
+    if (this.pdfExporting || !this.activeStage.hasFormDesign) { return; }
+    const previousPreview = this.correctedPreview;
+    const previousZoom = this.zoom;
+    const previousSelectedBlockId = this.selectedBlockId;
+    const previousSelectedCellIds = [...this.selectedCellIds];
+    this.pdfExporting = true;
+    this.importError = '';
+    try {
+      this.correctedPreview = corrected;
+      this.zoom = 100;
+      this.selectedBlockId = '';
+      this.selectedCellIds.clear();
+      if (document.activeElement instanceof HTMLElement) { document.activeElement.blur(); }
+      this.pages = [];
+      this.changeDetector.detectChanges();
+      this.refreshPages();
+      this.changeDetector.detectChanges();
+      if (document.fonts?.ready) { await document.fonts.ready; }
+      await this.nextPaint();
+
+      const papers = Array.from(document.querySelectorAll<HTMLElement>('.pages .paper'));
+      if (!papers.length) { throw new Error('Aucune page A4 à exporter.'); }
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+      for (let index = 0; index < papers.length; index++) {
+        if (index > 0) { pdf.addPage('a4', 'portrait'); }
+        pdf.addImage(await this.capturePaperPng(papers[index]), 'PNG', 0, 0, 210, 297, undefined, 'FAST');
+      }
+      const mode = corrected ? 'complété' : 'vierge';
+      const stageName = this.pdfFileName(`${this.activeStage.number} - ${this.activeStage.name}`);
+      pdf.save(`${stageName} - Formulaire ${mode}.pdf`);
+    } catch (error) {
+      this.importError = error instanceof Error ? error.message : 'Le PDF ne peut pas être généré.';
+    } finally {
+      this.correctedPreview = previousPreview;
+      this.zoom = previousZoom;
+      this.selectedBlockId = previousSelectedBlockId;
+      previousSelectedCellIds.forEach(id => this.selectedCellIds.add(id));
+      this.refreshPages();
+      this.changeDetector.detectChanges();
+      this.pdfExporting = false;
+    }
+  }
+
+  private pdfFileName(value: string): string {
+    return value.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
   }
 
   setCorrectedPreview(corrected: boolean): void {
