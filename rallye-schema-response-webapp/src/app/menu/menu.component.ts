@@ -12,6 +12,10 @@ export class MenuComponent implements OnInit {
   public collapsed = true;
   openMenu: string | null = null;
 
+  get formDesignerUrl(): string {
+    return `https://${window.location.hostname}:4300/`;
+  }
+
   constructor(
     private elementRef: ElementRef<HTMLElement>,
     private router: Router,

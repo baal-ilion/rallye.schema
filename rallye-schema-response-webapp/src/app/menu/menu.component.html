@@ -89,6 +89,7 @@
           <a class="dropdown-item" routerLink="/listStageParam" (click)="rememberUrl($event, '/listStageParam')">&Eacute;preuves</a>
           <a class="dropdown-item" routerLink="/listTeamInfo" (click)="rememberUrl($event, '/listTeamInfo')">&Eacute;quipes</a>
           <div class="dropdown-divider"></div>
+          <a class="dropdown-item" [href]="formDesignerUrl" target="_blank" rel="noopener" (click)="closeMenu()">Concepteur de formulaires</a>
           <a class="dropdown-item" routerLink="/sharingParam" (click)="rememberUrl($event, '/sharingParam')">Paramétrage</a>
           <div class="dropdown-divider"></div>
           <a class="dropdown-item" routerLink="/database" (click)="rememberUrl($event, '/database')">Base de donn&eacute;es</a>
