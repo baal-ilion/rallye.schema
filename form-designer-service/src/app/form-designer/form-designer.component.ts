@@ -71,14 +71,14 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
   private rallyParam?: RallyParamDto;
   private readonly stageParams = new Map<string, StageParamDto>();
   private readonly publishedDesignerLabels = new Map<string, Set<string>>();
-  readonly blockCatalog: Array<{ type: DesignerBlockType; label: string; icon: string }> = [
-    { type: 'section', label: 'Section de réponses', icon: '▦' },
+  readonly blockCatalog: Array<{ type: DesignerBlockType; label: string; menuLabel?: string; icon: string }> = [
+    { type: 'section', label: 'Section de réponses', menuLabel: 'Section', icon: '▦' },
     { type: 'custom-table', label: 'Tableau', icon: '▤' },
     { type: 'text', label: 'Texte', icon: 'T' },
     { type: 'image', label: 'Image', icon: '▧' },
-    { type: 'columns', label: 'Conteneur colonnes', icon: '▥' },
+    { type: 'columns', label: 'Conteneur colonnes', menuLabel: 'Colonnes', icon: '▥' },
     { type: 'separator', label: 'Séparateur', icon: '―' },
-    { type: 'page-break', label: 'Saut de page', icon: '↵' }
+    { type: 'page-break', label: 'Saut de page', menuLabel: 'Saut page', icon: '↵' }
   ];
 
   constructor(private readonly api: FormDesignerApiService, private readonly changeDetector: ChangeDetectorRef) {}
@@ -409,7 +409,6 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
           kind: 'rallye-form-project',
           schemaVersion: FORM_PROJECT_SCHEMA_VERSION,
           id: rally.id,
-          name: rally.name,
           rallyTitle: rally.title,
           rallyDate: rally.date,
           showLogo: rally.showLogo,
@@ -461,13 +460,12 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
 
   private async saveRally(): Promise<void> {
     const current = this.rallyParam || {
-      id: 'rally', name: '', title: '', date: '', showLogo: true, logoUrl: '',
+      id: 'rally', title: '', date: '', showLogo: true, logoUrl: '',
       titleSpacingBeforeMm: 0, titleSpacingAfterMm: 0,
       correctionCellWidthCm: 0.53, correctionCellHeightCm: 0.53
     };
     this.rallyParam = await firstValueFrom(this.api.saveRally({
       ...current,
-      name: this.project.name,
       title: this.project.rallyTitle,
       date: this.project.rallyDate,
       showLogo: this.project.showLogo,
@@ -1992,7 +1990,6 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
       kind: 'rallye-form-project',
       schemaVersion: FORM_PROJECT_SCHEMA_VERSION,
       id: this.newId('project'),
-      name: 'Nouveau Rallye',
       rallyTitle: 'Le Rallye se prend aux jeux',
       rallyDate: '',
       showLogo: true,

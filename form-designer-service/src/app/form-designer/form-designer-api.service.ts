@@ -6,7 +6,6 @@ import { DesignerStage } from './form-project.model';
 export interface RallyParamDto {
   id: string;
   version?: number;
-  name: string;
   title: string;
   date: string;
   showLogo: boolean;

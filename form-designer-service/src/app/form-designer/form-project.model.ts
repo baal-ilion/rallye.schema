@@ -90,7 +90,6 @@ export interface FormProject {
   kind: 'rallye-form-project';
   schemaVersion: number;
   id: string;
-  name: string;
   rallyTitle: string;
   rallyDate: string;
   showLogo: boolean;

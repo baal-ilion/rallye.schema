@@ -1,68 +1,85 @@
 <div class="designer" (focusin)="rememberTextEditor($event)" (focusout)="handleRichTextBlur($event)" (mouseup)="endCellSelection()" (mouseleave)="endCellSelection()">
   <header class="ribbon">
-    <div class="ribbon-titlebar">
-      <div class="ribbon-brand"><span class="brand-mark">R</span><span><strong>Rallye</strong><small>Concepteur de formulaires</small></span></div>
-      <label class="project-identity"><span>Projet</span><input class="project-name" aria-label="Nom du projet" [(ngModel)]="project.name" (ngModelChange)="markModified()"></label>
-      <div class="ribbon-stage-picker">
-        <label for="activeStage"><span>Épreuve active</span></label>
-        <select id="activeStage" [ngModel]="activeStageId" (ngModelChange)="selectStage($event)">
-          <option *ngFor="let projectStage of project.stages" [value]="projectStage.id">{{ projectStage.number }} – {{ projectStage.name }}</option>
-        </select>
-      </div>
-    </div>
-
     <nav class="ribbon-tabs" aria-label="Outils">
+      <div class="ribbon-brand"><img class="brand-mark" src="assets/logo-application.png" alt="Logo du Rallye"><span><strong>Rallye Schéma</strong><small>Concepteur de formulaires</small></span></div>
       <button type="button" title="Gérer le projet, les épreuves, l’import Excel et les exports PDF." [class.active]="ribbonTab === 'home'" (click)="ribbonTab = 'home'">Accueil</button>
       <button type="button" title="Ajouter des blocs et mettre en forme les cellules ou les textes sélectionnés." [class.active]="ribbonTab === 'insert'" (click)="ribbonTab = 'insert'">Édition</button>
       <button type="button" title="Régler l’affichage et le niveau de zoom de l’aperçu du document." [class.active]="ribbonTab === 'layout'" (click)="ribbonTab = 'layout'">Affichage</button>
     </nav>
 
     <div class="ribbon-tools" *ngIf="ribbonTab === 'home'">
-      <section class="ribbon-group"><div class="ribbon-commands">
-        <button class="ribbon-button" type="button" title="Recharger les données communes depuis le back." (click)="newProject()"><span class="icon">↻</span>Recharger</button>
-        <button class="ribbon-button" type="button" title="Enregistrer tout le projet dans le back." (click)="saveProject()" [disabled]="syncState === 'saving' || syncState === 'loading'"><span class="icon">▣</span>Tout enregistrer</button>
-      </div><div class="ribbon-group-title">Projet</div></section>
-      <section class="ribbon-group"><div class="ribbon-commands compact">
-        <button type="button" title="Ajouter une nouvelle épreuve vide au projet." (click)="addStage()">Nouvelle épreuve</button>
-        <button type="button" title="Enregistrer l’épreuve active et son éventuel formulaire dans le back." (click)="saveActiveStage()">Enregistrer l’épreuve</button>
-        <button type="button" *ngIf="!activeStage.hasFormDesign" title="Associer un nouveau formulaire graphique à cette épreuve." (click)="createActiveForm()">Créer le formulaire</button>
-        <button class="danger" type="button" *ngIf="activeStage.hasFormDesign" title="Supprimer seulement le formulaire et conserver l’épreuve." (click)="deleteActiveForm()">Supprimer le formulaire</button>
-        <button class="danger" type="button" title="Supprimer l’épreuve et son formulaire." (click)="deleteActiveStage()">Supprimer l’épreuve</button>
-      </div><div class="ribbon-group-title">Épreuves</div></section>
-      <section class="ribbon-group properties-group"><div class="ribbon-fields">
-        <label>N°<input type="number" min="1" max="99" [(ngModel)]="activeStage.number" (ngModelChange)="markModified()"></label>
-        <label>Nom<input [(ngModel)]="activeStage.name" (ngModelChange)="markModified()"></label>
-        <label>Intitulé du Rallye<input [ngModel]="rallyTitle" (ngModelChange)="updateRallyTitle($event)"></label>
-        <label>Date du Rallye<input type="date" [(ngModel)]="project.rallyDate" (ngModelChange)="markModified()"></label>
-      </div><div class="ribbon-group-title">Propriétés</div></section>
-      <section class="ribbon-group"><div class="ribbon-commands">
-        <label class="ribbon-button" title="Lire le fichier Excel de réponses et créer automatiquement les sections et questions."><span class="icon">XLS</span>Importer<input class="file-input" type="file" accept=".xlsx,.xls" (change)="importWorkbook($any($event.target).files)"></label>
-        <button class="ribbon-button" type="button" title="Créer une copie du bloc sélectionné juste après l’original." (click)="duplicateSelected()" [disabled]="!selectedBlock"><span class="icon">▣</span>Dupliquer</button>
-        <button class="ribbon-button danger" type="button" title="Retirer du document le bloc actuellement sélectionné." (click)="deleteSelected()" [disabled]="!selectedBlock"><span class="icon">×</span>Supprimer</button>
-      </div><div class="ribbon-group-title">Édition</div></section>
-      <section class="ribbon-group"><div class="ribbon-commands compact">
-        <label class="preview-mode" title="Choisir la version du formulaire affichée dans la zone de travail."><span>Mode d’affichage</span><select [ngModel]="correctedPreview ? 'completed' : 'blank'" (ngModelChange)="setCorrectedPreview($event === 'completed')"><option value="blank">Document vierge</option><option value="completed">Document complété</option></select></label>
-        <button type="button" title="Télécharger le formulaire A4 destiné aux joueurs." (click)="exportPdf(false)" [disabled]="pdfExporting">PDF vierge</button><button type="button" title="Télécharger le formulaire A4 contenant les réponses pour les correcteurs." (click)="exportPdf(true)" [disabled]="pdfExporting">PDF complété</button>
-      </div><div class="ribbon-group-title">Affichage</div></section>
-    </div>
-
-    <div class="ribbon-tools" *ngIf="ribbonTab === 'layout'">
-      <section class="ribbon-group"><div class="ribbon-commands compact"><label title="Agrandir ou réduire uniquement l’aperçu à l’écran, sans changer les dimensions imprimées.">Zoom <input type="range" min="45" max="120" [(ngModel)]="zoom"></label></div><div class="ribbon-group-title">Zoom de l’aperçu</div></section>
-    </div>
-
-    <div class="ribbon-tools styles-tools insert-tools" *ngIf="ribbonTab === 'insert'">
-      <section class="ribbon-group insertion-blocks">
-        <div class="ribbon-commands"><button type="button" class="ribbon-button" *ngFor="let tool of blockCatalog" [title]="blockHelp(tool.type)" (click)="insertBlock(tool.type)"><span class="icon">{{ tool.icon }}</span>{{ tool.label }}</button></div>
-        <div class="ribbon-group-title">Blocs du document</div>
+      <section class="home-ribbon-group rally-group">
+        <div class="home-group-content rally-content">
+          <div class="rally-config">
+            <label><span>Intitulé</span><input [ngModel]="rallyTitle" (ngModelChange)="updateRallyTitle($event)"></label>
+            <label><span>Date</span><input type="date" [(ngModel)]="project.rallyDate" (ngModelChange)="markModified()"></label>
+          </div>
+          <div class="home-button-column">
+            <button type="button" title="Recharger les données communes depuis le back." (click)="newProject()">Recharger</button>
+            <button type="button" title="Enregistrer toute la configuration du Rallye dans le back." (click)="saveProject()" [disabled]="syncState === 'saving' || syncState === 'loading'">Sauver tout</button>
+          </div>
+        </div>
+        <div class="home-group-title">Rallye</div>
       </section>
-      <section class="ribbon-group word-color-group"><div class="ribbon-commands"><button type="button" class="ribbon-button word-color-button" [disabled]="!selectedCellIds.size" title="Choisir la couleur de fond des cellules sélectionnées." (click)="showCellColorPalette = !showCellColorPalette"><span class="paint-bucket">▨</span><span>Trame de fond</span><i></i><small>▼</small></button></div>
+
+      <section class="home-ribbon-group stage-group">
+        <div class="home-group-content two-row-content">
+          <label class="home-inline-field stage-picker" for="activeStage"><span>Épreuve</span><select id="activeStage" [ngModel]="activeStageId" (ngModelChange)="selectStage($event)"><option *ngFor="let projectStage of project.stages" [value]="projectStage.id">{{ projectStage.number }} – {{ projectStage.name }}</option></select></label>
+          <div class="home-button-row stage-action-row">
+            <button type="button" title="Ajouter une nouvelle épreuve vide au projet." (click)="addStage()">Nouvelle</button>
+            <button type="button" title="Enregistrer l’épreuve active et son éventuel formulaire dans le back." (click)="saveActiveStage()">Enregistrer</button>
+            <button type="button" *ngIf="!activeStage.hasFormDesign" title="Créer et associer un nouveau formulaire graphique à cette épreuve." (click)="createActiveForm()">Créer</button>
+            <button class="danger" type="button" *ngIf="activeStage.hasFormDesign" title="Supprimer seulement le formulaire et conserver l’épreuve." (click)="deleteActiveForm()">Suppr. form.</button>
+            <button class="danger" type="button" title="Supprimer l’épreuve et son formulaire." (click)="deleteActiveStage()">Supprimer</button>
+          </div>
+        </div>
+        <div class="home-group-title">Épreuve</div>
+      </section>
+
+      <section class="home-ribbon-group edition-group">
+        <div class="home-group-content two-row-content">
+          <div class="stage-edit-fields">
+            <label class="number-edit"><span>N°</span><input type="number" min="1" max="99" [(ngModel)]="activeStage.number" (ngModelChange)="markModified()"></label>
+            <label class="name-edit"><span>Nom</span><input [(ngModel)]="activeStage.name" (ngModelChange)="markModified()"></label>
+          </div>
+          <div class="home-button-row edition-action-row">
+            <label class="home-file-button" title="Lire le fichier Excel de réponses et créer automatiquement les sections et questions.">Importer<input class="file-input" type="file" accept=".xlsx,.xls" (change)="importWorkbook($any($event.target).files)"></label>
+            <button type="button" title="Créer une copie du bloc sélectionné juste après l’original." (click)="duplicateSelected()" [disabled]="!selectedBlock">Dupliquer</button>
+            <button class="danger" type="button" title="Retirer du document le bloc actuellement sélectionné." (click)="deleteSelected()" [disabled]="!selectedBlock">Supprimer</button>
+          </div>
+        </div>
+        <div class="home-group-title">Édition</div>
+      </section>
+
+      <section class="home-ribbon-group display-group">
+        <div class="home-group-content two-row-content">
+          <label class="home-inline-field preview-field" title="Choisir la version du formulaire affichée dans la zone de travail."><span>Vue</span><select [ngModel]="correctedPreview ? 'completed' : 'blank'" (ngModelChange)="setCorrectedPreview($event === 'completed')"><option value="blank">Vierge</option><option value="completed">Complété</option></select></label>
+          <div class="home-button-row pdf-action-row">
+            <button type="button" title="Télécharger le formulaire A4 vierge destiné aux joueurs." (click)="exportPdf(false)" [disabled]="pdfExporting">Vierge</button>
+            <button type="button" title="Télécharger le formulaire A4 complété destiné aux correcteurs." (click)="exportPdf(true)" [disabled]="pdfExporting">Complété</button>
+          </div>
+        </div>
+        <div class="home-group-title">Affichage et PDF</div>
+      </section>
+    </div>
+
+    <div class="ribbon-tools layout-tools" *ngIf="ribbonTab === 'layout'">
+      <section class="layout-ribbon-group"><div class="layout-group-content"><label title="Agrandir ou réduire uniquement l’aperçu à l’écran, sans changer les dimensions imprimées."><span>Zoom</span><input type="range" min="45" max="120" [(ngModel)]="zoom"><output>{{ zoom }} %</output></label></div><div class="layout-group-title">Aperçu du document</div></section>
+    </div>
+
+    <div class="ribbon-tools edit-tools" *ngIf="ribbonTab === 'insert'">
+      <section class="edit-ribbon-group block-tools-group">
+        <div class="edit-group-content block-tool-grid"><button type="button" class="edit-command-button" *ngFor="let tool of blockCatalog" [title]="blockHelp(tool.type)" (click)="insertBlock(tool.type)"><span>{{ tool.icon }}</span>{{ tool.menuLabel || tool.label }}</button></div>
+        <div class="edit-group-title">Blocs du document</div>
+      </section>
+      <section class="edit-ribbon-group font-group"><div class="edit-group-content font-content"><div class="font-selectors"><select title="Choisir la police" (change)="applyFontCommand('fontName', $any($event.target).value)"><option value="">Police</option><option *ngFor="let font of fontFamilies" [value]="font" [style.fontFamily]="font">{{ font }}</option></select><select title="Choisir la taille" (change)="changeFontSize($any($event.target).value)"><option value="">Taille</option><option *ngFor="let size of fontSizes" [value]="size">{{ size }}</option></select><button type="button" title="Agrandir la police" (click)="changeFontSizeRelative(1)">A▲</button><button type="button" title="Réduire la police" (click)="changeFontSizeRelative(-1)">A▼</button></div><div class="font-buttons"><button type="button" title="Gras" [class.active]="isFontStyleActive('bold')" (click)="applyFontCommand('bold')"><b>G</b></button><button type="button" title="Italique" [class.active]="isFontStyleActive('italic')" (click)="applyFontCommand('italic')"><i>I</i></button><button type="button" title="Souligné" [class.active]="isFontStyleActive('underline')" (click)="applyFontCommand('underline')"><u>S</u></button><button type="button" title="Barré" [class.active]="isFontStyleActive('strikeThrough')" (click)="applyFontCommand('strikeThrough')"><s>ab</s></button><button type="button" title="Indice" [class.active]="isFontStyleActive('subscript')" (click)="applyFontCommand('subscript')">X₂</button><button type="button" title="Exposant" [class.active]="isFontStyleActive('superscript')" (click)="applyFontCommand('superscript')">X²</button><button type="button" class="highlight-button" title="Surligner en jaune" (click)="applyFontCommand('hiliteColor', '#ffff00')"><span class="highlight-symbol">ab</span></button><button type="button" class="clear-format-button" title="Effacer toute la mise en forme" (click)="applyFontCommand('removeFormat')">A×</button></div></div><div class="edit-group-title">Police et effets</div></section>
+      <section class="edit-ribbon-group alignment-group"><div class="edit-group-content alignment-buttons"><button type="button" title="Aligner le texte à gauche" [class.active]="isAlignmentActive('justifyLeft')" (click)="applyFontCommand('justifyLeft')"><span class="align-icon align-left">☰</span>Gauche</button><button type="button" title="Centrer le texte" [class.active]="isAlignmentActive('justifyCenter')" (click)="applyFontCommand('justifyCenter')"><span class="align-icon align-center">☰</span>Centre</button><button type="button" title="Aligner le texte à droite" [class.active]="isAlignmentActive('justifyRight')" (click)="applyFontCommand('justifyRight')"><span class="align-icon align-right">☰</span>Droite</button></div><div class="edit-group-title">Alignement</div></section>
+      <section class="edit-ribbon-group word-color-group"><div class="edit-group-content color-tool-content"><button type="button" class="word-color-button" [disabled]="!selectedCellIds.size" title="Choisir la couleur de fond des cellules sélectionnées." (click)="showCellColorPalette = !showCellColorPalette"><span class="paint-bucket">▨</span><span>Fond</span><i></i><small>▼</small></button></div>
         <div class="word-color-palette" *ngIf="showCellColorPalette"><button type="button" class="no-color" (click)="chooseSelectedCellColor('#ffffff')"><span>×</span> Sans couleur</button><h3>Couleurs du thème</h3><div class="theme-color-grid"><div class="theme-color-column" *ngFor="let column of themeColorColumns"><button type="button" *ngFor="let color of column" [style.backgroundColor]="color" [title]="color" (click)="chooseSelectedCellColor(color)"></button></div></div><h3>Couleurs standard</h3><div class="standard-color-grid"><button type="button" *ngFor="let color of standardColors" [style.backgroundColor]="color" [title]="color" (click)="chooseSelectedCellColor(color)"></button></div><label class="more-colors">Autres couleurs…<input type="color" (change)="chooseSelectedCellColor($any($event.target).value)"></label></div>
-        <div class="ribbon-group-title">Arrière-plan des cellules</div></section>
-      <section class="ribbon-group font-group"><div class="font-selectors"><select title="Choisir la police" (change)="applyFontCommand('fontName', $any($event.target).value)"><option value="">Police</option><option *ngFor="let font of fontFamilies" [value]="font" [style.fontFamily]="font">{{ font }}</option></select><select title="Choisir la taille" (change)="changeFontSize($any($event.target).value)"><option value="">Taille</option><option *ngFor="let size of fontSizes" [value]="size">{{ size }}</option></select><button type="button" title="Agrandir la police" (click)="changeFontSizeRelative(1)">A▲</button><button type="button" title="Réduire la police" (click)="changeFontSizeRelative(-1)">A▼</button></div><div class="font-buttons"><button type="button" title="Gras" [class.active]="isFontStyleActive('bold')" (click)="applyFontCommand('bold')"><b>G</b></button><button type="button" title="Italique" [class.active]="isFontStyleActive('italic')" (click)="applyFontCommand('italic')"><i>I</i></button><button type="button" title="Souligné" [class.active]="isFontStyleActive('underline')" (click)="applyFontCommand('underline')"><u>S</u></button><button type="button" title="Barré" [class.active]="isFontStyleActive('strikeThrough')" (click)="applyFontCommand('strikeThrough')"><s>ab</s></button><button type="button" title="Indice" [class.active]="isFontStyleActive('subscript')" (click)="applyFontCommand('subscript')">X₂</button><button type="button" title="Exposant" [class.active]="isFontStyleActive('superscript')" (click)="applyFontCommand('superscript')">X²</button><button type="button" class="highlight-button" title="Surligner en jaune" (click)="applyFontCommand('hiliteColor', '#ffff00')"><span class="highlight-symbol">ab</span></button><button type="button" class="clear-format-button" title="Effacer toute la mise en forme" (click)="applyFontCommand('removeFormat')">A×</button></div><div class="ribbon-group-title">Police et effets</div></section>
-      <section class="ribbon-group word-color-group text-color-group"><div class="ribbon-commands"><button type="button" class="ribbon-button word-color-button text-color-button" title="Choisir la couleur du texte sélectionné ou des cellules sélectionnées." (click)="showTextColorPalette = !showTextColorPalette"><span class="text-color-symbol">A</span><span>Couleur du texte</span><i></i><small>▼</small></button></div>
+        <div class="edit-group-title">Fond des cellules</div></section>
+      <section class="edit-ribbon-group word-color-group text-color-group"><div class="edit-group-content color-tool-content"><button type="button" class="word-color-button text-color-button" title="Choisir la couleur du texte sélectionné ou des cellules sélectionnées." (click)="showTextColorPalette = !showTextColorPalette"><span class="text-color-symbol">A</span><span>Texte</span><i></i><small>▼</small></button></div>
         <div class="word-color-palette" *ngIf="showTextColorPalette"><button type="button" class="automatic-color" (click)="chooseTextColor('#000000')"><span></span> Automatique</button><h3>Couleurs du thème</h3><div class="theme-color-grid"><div class="theme-color-column" *ngFor="let column of themeColorColumns"><button type="button" *ngFor="let color of column" [style.backgroundColor]="color" [title]="color" (click)="chooseTextColor(color)"></button></div></div><h3>Couleurs standard</h3><div class="standard-color-grid"><button type="button" *ngFor="let color of standardColors" [style.backgroundColor]="color" [title]="color" (click)="chooseTextColor(color)"></button></div><label class="more-colors">Autres couleurs…<input type="color" (change)="chooseTextColor($any($event.target).value)"></label></div>
-        <div class="ribbon-group-title">Couleur de police</div></section>
-      <section class="ribbon-group alignment-group"><div class="ribbon-commands"><button type="button" title="Aligner le texte à gauche" [class.active]="isAlignmentActive('justifyLeft')" (click)="applyFontCommand('justifyLeft')"><span class="align-icon align-left">☰</span>Gauche</button><button type="button" title="Centrer le texte" [class.active]="isAlignmentActive('justifyCenter')" (click)="applyFontCommand('justifyCenter')"><span class="align-icon align-center">☰</span>Centre</button><button type="button" title="Aligner le texte à droite" [class.active]="isAlignmentActive('justifyRight')" (click)="applyFontCommand('justifyRight')"><span class="align-icon align-right">☰</span>Droite</button></div><div class="ribbon-group-title">Alignement</div></section>
+        <div class="edit-group-title">Couleur du texte</div></section>
     </div>
 
     <div class="ribbon-status"><span class="status-context">{{ activeStage.number }} · {{ activeStage.name }}</span><span>{{ activeStage.hasFormDesign ? 'Formulaire associé' : 'Sans formulaire' }}</span><span *ngIf="activeStage.hasFormDesign">{{ pages.length }} page(s) A4</span><span *ngIf="activeStage.hasFormDesign">{{ blocks.length }} bloc(s)</span><span class="sync-state" [class.error]="syncState === 'error'">{{ syncMessage }}</span><span class="error" *ngIf="importError">{{ importError }}</span></div>
@@ -95,7 +112,7 @@
           </div>
         </div>
       </div>
-      <p *ngIf="!blocks.length">Ajoutez un bloc depuis l’onglet Insertion.</p>
+      <p *ngIf="!blocks.length">Ajoutez un bloc depuis l’onglet Édition.</p>
     </aside>
 
     <div class="workspace">

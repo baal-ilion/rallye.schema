@@ -19,7 +19,6 @@ public class RallyParam {
 	@Version
 	private Long version;
 
-	private String name = "Nouveau Rallye";
 	private String title = "";
 	private String date = "";
 	private Boolean showLogo = true;
