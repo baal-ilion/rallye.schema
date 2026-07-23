@@ -78,6 +78,19 @@ public class ResponseFileParamService {
 		return responseFileParam;
 	}
 
+	public ResponseFileParam addReferenceResponseFileParam(ResponseFileParam responseFileParam,
+			ResponseFileModel responseFileModel) throws ParserConfigurationException, SAXException, IOException {
+		responseFileParam.setId(null);
+		responseFileParam.setStage(null);
+		responseFileParam.setPage(null);
+		fillResponseFileParam(responseFileParam);
+		fillResponseFileParam(responseFileParam, responseFileModel);
+		responseFileParam = responseFileParamRepository.save(responseFileParam);
+		fillResponseFileModel(responseFileParam, responseFileModel);
+		responseFileModelRepository.save(responseFileModel);
+		return responseFileParam;
+	}
+
 	public void deleteCascadeResponseFileParam(String id) {
 		var responseFileParam = responseFileParamRepository.findById(id).orElseThrow();
 		stageParamService.removeResponseFileParam(responseFileParam);
