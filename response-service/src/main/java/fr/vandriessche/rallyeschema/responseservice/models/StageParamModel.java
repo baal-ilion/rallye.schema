@@ -20,6 +20,7 @@ import lombok.NoArgsConstructor;
 public class StageParamModel extends RepresentationModel<StageParamModel> {
 
     private String id;
+    private Long version;
     private Integer stage;
     private String name;
     private StageGroup group;

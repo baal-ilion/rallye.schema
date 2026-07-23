@@ -19,6 +19,7 @@ export interface RallyParamDto {
 
 export interface StageParamDto {
   id?: string;
+  version?: number;
   stage: number;
   name: string;
   group?: unknown;

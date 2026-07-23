@@ -23,6 +23,7 @@ public class StageParamModelAssemblerSupport
         StageParamModel model = instantiateModel(entity);
 
         model.setId(entity.getId());
+        model.setVersion(entity.getVersion());
         model.setStage(entity.getStage());
         model.setName(entity.getName());
         model.setGroup(entity.getGroup());

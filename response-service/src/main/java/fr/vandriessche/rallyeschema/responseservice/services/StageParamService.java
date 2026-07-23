@@ -11,9 +11,16 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.annotation.PostConstruct;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
+import org.springframework.dao.OptimisticLockingFailureException;
 
 import fr.vandriessche.rallyeschema.responseservice.entities.PerformancePointParam;
 import fr.vandriessche.rallyeschema.responseservice.entities.QuestionParam;
@@ -40,6 +47,16 @@ import lombok.extern.java.Log;
 @Service
 @Log
 public class StageParamService {
+	@Autowired
+	private MongoTemplate mongoTemplate;
+
+	@PostConstruct
+	public void initializeMissingVersions() {
+		mongoTemplate.updateMulti(
+				Query.query(Criteria.where("version").exists(false)),
+				Update.update("version", 0L), StageParam.class);
+	}
+
 	@Autowired
 	private StageParamRepository stageParamRepository;
 
@@ -182,7 +199,15 @@ public class StageParamService {
 		StageParam stageParamToUpdate = Objects.nonNull(stageParam.getId())
 				? stageParamRepository.findById(stageParam.getId()).orElseThrow()
 				: stageParamRepository.findByStage(stageParam.getStage()).orElseThrow();
+		ensureCurrentVersion(stageParamToUpdate, stageParam);
 		return updateStageParam(stageParamToUpdate, stageParam);
+	}
+
+	private void ensureCurrentVersion(StageParam current, StageParam requested) {
+		if (requested.getVersion() != null && !Objects.equals(current.getVersion(), requested.getVersion())) {
+			throw new OptimisticLockingFailureException(
+					"L'\u00e9preuve a \u00e9t\u00e9 modifi\u00e9e depuis son chargement.");
+		}
 	}
 
 	public StageParam updateOrCreateStageParam(StageParam stageParam) {

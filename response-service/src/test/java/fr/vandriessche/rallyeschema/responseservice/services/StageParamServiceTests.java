@@ -2,6 +2,7 @@ package fr.vandriessche.rallyeschema.responseservice.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.OptimisticLockingFailureException;
 
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileInfo;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileParam;
@@ -54,6 +56,22 @@ class StageParamServiceTests {
 	private StageRankingRepository stageRankingRepository;
 	@Mock
 	private TeamPointRepository teamPointRepository;
+
+	@Test
+	void updateStageParamRejectsAnOutdatedVersion() {
+		StageParam current = new StageParam(45);
+		current.setId("stage-param-id");
+		current.setVersion(4L);
+
+		StageParam outdated = new StageParam(45);
+		outdated.setId(current.getId());
+		outdated.setVersion(3L);
+
+		when(stageParamRepository.findById(current.getId())).thenReturn(Optional.of(current));
+
+		assertThrows(OptimisticLockingFailureException.class,
+				() -> stageParamService.updateStageParam(outdated));
+	}
 
 	@Test
 	void updateStageParamMigratesDependentStageNumbers() {

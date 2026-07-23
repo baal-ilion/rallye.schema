@@ -733,6 +733,9 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
           generatedPages.push(await this.generateRecognitionPage(paperElements[index], index + 1, false));
         }
         await firstValueFrom(this.api.publishRecognitionPages(this.activeStage.number, generatedPages));
+        const refreshedStage = await firstValueFrom(this.api.getStage(this.activeStage.id));
+        this.stageParams.set(this.activeStage.id, refreshedStage);
+        this.hydrateDesignerPoints(this.activeStage, refreshedStage);
       }
     } finally {
       this.correctedPreview = previousPreview;
@@ -870,9 +873,15 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
 
   private handleSyncError(error: unknown, fallback: string): void {
     const status = typeof error === 'object' && error && 'status' in error ? Number(error.status) : 0;
-    this.setSyncState('error', status === 409
-      ? 'La configuration a été modifiée ailleurs. Rechargez-la avant de recommencer.'
-      : error instanceof Error && !status ? error.message : fallback);
+    if (status === 409) {
+      this.setSyncState('error', 'La configuration a été modifiée ailleurs.');
+      if (window.confirm(
+        'La configuration a été modifiée dans une autre fenêtre. Recharger la version actuelle ?')) {
+        this.loadSharedConfiguration();
+      }
+      return;
+    }
+    this.setSyncState('error', error instanceof Error && !status ? error.message : fallback);
   }
 
   async importWorkbook(files: FileList | null): Promise<void> {

@@ -350,6 +350,7 @@ export class ModifyStageParamComponent implements OnInit {
 
     this.stageParamService.updateStageParam({
       id: this.stageParam.id,
+      version: this.stageParam.version,
       stage: stageValue,
       name: this.stageParamForm.value.name,
       questionPointParams: modifiedQuestionPointParams,
@@ -361,6 +362,14 @@ export class ModifyStageParamComponent implements OnInit {
       this.stageParam = data;
       this.ngOnInit();
     }, error => {
+      if (error?.status === 409) {
+        const reload = window.confirm(
+          'Cette \u00e9preuve a \u00e9t\u00e9 modifi\u00e9e dans une autre fen\u00eatre. Recharger la version actuelle ?');
+        if (reload) {
+          this.ngOnInit();
+        }
+        return;
+      }
       console.log(error);
     });
   }

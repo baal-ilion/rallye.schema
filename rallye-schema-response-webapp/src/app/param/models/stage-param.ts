@@ -18,6 +18,7 @@ export interface QuestionParams {
 
 export interface StageParam {
   id?: string;
+  version?: number;
   stage: number;
   name: string;
   questionPointParams: QuestionPointParams;
