@@ -24,6 +24,8 @@ import org.bson.json.JsonWriterSettings;
 import org.bson.types.Binary;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.index.MongoPersistentEntityIndexResolver;
+import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -67,6 +69,7 @@ public class DatabaseMaintenanceService {
     }
 
     public void restoreFromBackup(MultipartFile file) throws IOException {
+        validateBackup(file);
         MongoDatabase database = mongoTemplate.getDb();
         dropExistingCollections(database);
 
@@ -85,11 +88,77 @@ public class DatabaseMaintenanceService {
                 entry = zis.getNextEntry();
             }
         }
+        ensureIndexes();
     }
 
     public void eraseDatabase() {
         MongoDatabase database = mongoTemplate.getDb();
         dropExistingCollections(database);
+        ensureIndexes();
+    }
+
+    private void validateBackup(MultipartFile file) throws IOException {
+        boolean collectionFound = false;
+        try (ZipInputStream zis = new ZipInputStream(file.getInputStream(), StandardCharsets.UTF_8)) {
+            ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                String name = entry.getName().replace('\\', '/');
+                if (name.startsWith("/") || name.contains("../")) {
+                    throw new IOException("Chemin interdit dans la sauvegarde : " + name);
+                }
+                if (entry.isDirectory()) {
+                    zis.closeEntry();
+                    continue;
+                }
+                if (name.endsWith(COLLECTION_FILE_EXTENSION) && !name.contains("/")) {
+                    collectionFound = true;
+                    validateCollectionEntry(name, zis);
+                } else if (name.matches("^files/[^/]+/[^/]+$")) {
+                    drainEntry(zis);
+                } else {
+                    throw new IOException("Entrée inconnue dans la sauvegarde : " + name);
+                }
+                zis.closeEntry();
+            }
+        } catch (RuntimeException exception) {
+            throw new IOException("Sauvegarde ZIP invalide", exception);
+        }
+        if (!collectionFound) {
+            throw new IOException("La sauvegarde ne contient aucune collection");
+        }
+    }
+
+    private void validateCollectionEntry(String name, ZipInputStream zis) throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(zis, StandardCharsets.UTF_8));
+        String line;
+        int lineNumber = 0;
+        while ((line = reader.readLine()) != null) {
+            lineNumber++;
+            if (line.trim().isEmpty()) {
+                continue;
+            }
+            try {
+                Document.parse(line);
+            } catch (RuntimeException exception) {
+                throw new IOException("JSON invalide dans " + name + " à la ligne " + lineNumber, exception);
+            }
+        }
+    }
+
+    private void drainEntry(ZipInputStream zis) throws IOException {
+        byte[] buffer = new byte[8192];
+        while (zis.read(buffer) != -1) {
+            // La lecture complète vérifie également l'intégrité de l'entrée ZIP.
+        }
+    }
+
+    private void ensureIndexes() {
+        MongoMappingContext mappingContext = (MongoMappingContext) mongoTemplate.getConverter().getMappingContext();
+        MongoPersistentEntityIndexResolver resolver = new MongoPersistentEntityIndexResolver(mappingContext);
+        mappingContext.getPersistentEntities().stream()
+                .filter(entity -> entity.isAnnotationPresent(org.springframework.data.mongodb.core.mapping.Document.class))
+                .forEach(entity -> resolver.resolveIndexFor(entity.getType())
+                        .forEach(index -> mongoTemplate.indexOps(entity.getType()).ensureIndex(index)));
     }
 
     private void dropExistingCollections(MongoDatabase database) {

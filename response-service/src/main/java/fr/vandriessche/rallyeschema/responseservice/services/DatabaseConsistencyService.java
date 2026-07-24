@@ -21,6 +21,7 @@ import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFile;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileInfo;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileModel;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileParam;
+import fr.vandriessche.rallyeschema.responseservice.entities.FormDesign;
 import fr.vandriessche.rallyeschema.responseservice.entities.StageParam;
 import fr.vandriessche.rallyeschema.responseservice.entities.StagePoint;
 import fr.vandriessche.rallyeschema.responseservice.entities.StageResult;
@@ -50,6 +51,7 @@ public class DatabaseConsistencyService {
     private static final String ISSUE_RESPONSE_FILE_MISSING_INFO = "RESPONSE_FILE_MISSING_INFO";
     private static final String ISSUE_RESPONSE_FILE_MISSING_FILE = "RESPONSE_FILE_MISSING_FILE";
     private static final String ISSUE_DUP_RESPONSE_FILE_PARAM = "RESPONSE_FILE_PARAM_DUP_STAGE_PAGE";
+    private static final String ISSUE_ORPHAN_FORM_DESIGN = "FORM_DESIGN_ORPHAN_STAGE";
 
     @Autowired
     private MongoTemplate mongoTemplate;
@@ -66,10 +68,22 @@ public class DatabaseConsistencyService {
                 .collect(Collectors.groupingBy(TeamInfo::getName));
         Set<Integer> knownTeams = new HashSet<>(teamsByNumber.keySet());
         Set<Integer> knownStages = getKnownStages();
+        Set<String> knownStageParamIds = mongoTemplate.findAll(StageParam.class).stream()
+                .map(StageParam::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
 
         addDuplicates(issues, ISSUE_DUP_TEAM_NUMBER, "Équipes avec le même numéro", teamsByNumber);
         addDuplicates(issues, ISSUE_DUP_TEAM_NAME, "Équipes avec le même nom", teamsByName);
         addResponseFileParamDuplicates(issues);
+        addOrphans(issues, ISSUE_ORPHAN_FORM_DESIGN,
+                "Conceptions de formulaire rattachées à une épreuve inexistante",
+                mongoTemplate.findAll(FormDesign.class).stream()
+                        .filter(design -> !FormDesign.REFERENCE_ID.equals(design.getId()))
+                        .filter(design -> design.getStageParamId() == null
+                                || !knownStageParamIds.contains(design.getStageParamId()))
+                        .map(FormDesign::getId)
+                        .collect(Collectors.toList()));
 
         addOrphans(issues, ISSUE_ORPHAN_STAGE_RESULT, "Scores sans équipe associée",
                 mongoTemplate.find(Query.query(new Criteria().orOperator(
@@ -184,7 +198,8 @@ public class DatabaseConsistencyService {
                 ISSUE_ORPHAN_RESPONSE_FILE_INFO,
                 ISSUE_RESPONSE_FILE_MISSING_INFO,
                 ISSUE_RESPONSE_FILE_MISSING_FILE,
-                ISSUE_DUP_RESPONSE_FILE_PARAM
+                ISSUE_DUP_RESPONSE_FILE_PARAM,
+                ISSUE_ORPHAN_FORM_DESIGN
         ));
     }
 
@@ -236,6 +251,9 @@ public class DatabaseConsistencyService {
                     break;
                 case ISSUE_DUP_RESPONSE_FILE_PARAM:
                     fixed += deduplicateResponseFileParamsByStageAndPage();
+                    break;
+                case ISSUE_ORPHAN_FORM_DESIGN:
+                    fixed += deleteByIds(mongoTemplate.getCollectionName(FormDesign.class), issue.getIds());
                     break;
                 default:
                     break;
