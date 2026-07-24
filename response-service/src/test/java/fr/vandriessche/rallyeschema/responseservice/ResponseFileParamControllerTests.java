@@ -37,12 +37,15 @@ import fr.vandriessche.rallyeschema.responseservice.repositories.ResponseFileMod
 import fr.vandriessche.rallyeschema.responseservice.repositories.ResponseFileParamRepository;
 import fr.vandriessche.rallyeschema.responseservice.repositories.StageParamRepository;
 
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = "server.ssl.enabled=false")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @ActiveProfiles("test")
 class ResponseFileParamControllerTests {
 	@Autowired
 	private TestRestTemplate restTemplate;
+
+	@Autowired
+	private ResponseFileParamRepository responseFileParamRepository;
 
 	@LocalServerPort
 	int randomServerPort;
@@ -176,10 +179,8 @@ class ResponseFileParamControllerTests {
 				restBody, String.class);
 
 		assertThat(result1.getStatusCode(), equalTo(HttpStatus.INTERNAL_SERVER_ERROR));
-		var body1 = JsonPath.parse(result1.getBody());
-		assertEquals(
-				"E11000 duplicate key error collection: rallye-schema-response-test.responseFileParam index: stage_1_page_1 dup key: { : 1, : 2 }; nested exception is com.mongodb.MongoWriteException: E11000 duplicate key error collection: rallye-schema-response-test.responseFileParam index: stage_1_page_1 dup key: { : 1, : 2 }",
-				body1.read("$.message"));
+		assertEquals(2, responseFileParamRepository.count(),
+				"Le second envoi ne doit pas créer de modèle en doublon.");
 	}
 
 	private String readStringResourceFile(String pathOnClassPath) throws Exception {
