@@ -627,7 +627,7 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
       await this.saveRally();
       await this.persistStages(this.project.stages);
       await this.persistReferenceForm();
-      await this.publishActiveRecognition();
+      await this.publishAllRecognitions();
       this.setSyncState('saved', 'Projet enregistré dans la configuration partagée.');
     } catch (error) {
       this.handleSyncError(error, 'Impossible d’enregistrer tout le projet.');
@@ -843,20 +843,42 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
     this.changeDetector.detectChanges();
     this.refreshPages();
     this.changeDetector.detectChanges();
-    await this.nextPaint();
+    await this.waitForOutputReady();
     try {
-      const paperElements = Array.from(document.querySelectorAll<HTMLElement>('.pages .paper'));
+      let paperElements = Array.from(document.querySelectorAll<HTMLElement>('.pages .paper'));
       if (!paperElements.length) { throw new Error('Aucune page A4 à publier.'); }
 
-      const expectedLabels = this.designerCorrectionEntries(this.activeStage)
-        .map(entry => entry.label).sort((left, right) => left.localeCompare(right, 'fr'));
-      const renderedLabels = paperElements.flatMap(paper =>
-        Array.from(paper.querySelectorAll<HTMLElement>('.correction-cells'))
-          .map(group => group.getAttribute('title') || '').filter(Boolean))
+      const expectedLabels = (this.isReferenceActive ? [] : this.designerCorrectionEntries(this.activeStage)
+        .map(entry => entry.label).filter(Boolean))
         .sort((left, right) => left.localeCompare(right, 'fr'));
-      if (expectedLabels.length !== renderedLabels.length
-        || expectedLabels.some((label, index) => label !== renderedLabels[index])) {
-        throw new Error('La prévisualisation du formulaire n’est pas à jour. La publication a été interrompue pour éviter de conserver un ancien formulaire.');
+      const renderedLabels = () => paperElements.flatMap(paper =>
+          Array.from(paper.querySelectorAll<HTMLElement>('.correction-cells'))
+            .map(group => group.getAttribute('title') || '').filter(Boolean))
+        .sort((left, right) => left.localeCompare(right, 'fr'));
+      const labelsMatch = (rendered: string[]) => expectedLabels.length === rendered.length
+        && expectedLabels.every((label, index) => label === rendered[index]);
+      let actualLabels = renderedLabels();
+      if (!labelsMatch(actualLabels)) {
+        // Lors d'une publication en série, Angular peut avoir terminé la
+        // pagination alors que quelques vues appartiennent encore au document
+        // précédent. Une reconstruction complète élimine ce faux négatif.
+        this.pages = [];
+        this.changeDetector.detectChanges();
+        this.refreshPages();
+        this.changeDetector.detectChanges();
+        await this.waitForOutputReady();
+        paperElements = Array.from(document.querySelectorAll<HTMLElement>('.pages .paper'));
+        actualLabels = renderedLabels();
+      }
+      if (!labelsMatch(actualLabels)) {
+        const missing = expectedLabels.filter(label => !actualLabels.includes(label));
+        const unexpected = actualLabels.filter(label => !expectedLabels.includes(label));
+        const details = [
+          missing.length ? `absents : ${missing.join(', ')}` : '',
+          unexpected.length ? `inattendus : ${unexpected.join(', ')}` : ''
+        ].filter(Boolean).join(' ; ');
+        throw new Error(`Le formulaire « ${this.activeStage.name} » n’est pas entièrement rendu`
+          + `${details ? ` (${details})` : ''}. La publication a été interrompue.`);
       }
       if (this.isReferenceActive) {
         await firstValueFrom(this.api.publishReferenceRecognition(
@@ -880,6 +902,33 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
     }
   }
 
+  private async publishAllRecognitions(): Promise<void> {
+    const previousStageId = this.activeStageId;
+    const previousSelectedBlockId = this.selectedBlockId;
+    const allStageIds = [
+      this.referenceStageId,
+      ...this.project.stages.filter(stage => stage.hasFormDesign).map(stage => stage.id)
+    ];
+    const stageIds = [
+      ...(allStageIds.includes(previousStageId) ? [previousStageId] : []),
+      ...allStageIds.filter(stageId => stageId !== previousStageId)
+    ];
+    try {
+      for (const stageId of stageIds) {
+        this.activeStageId = stageId;
+        this.selectedBlockId = '';
+        await this.publishActiveRecognition();
+      }
+    } finally {
+      this.activeStageId = previousStageId;
+      this.selectedBlockId = previousSelectedBlockId;
+      this.pages = [];
+      this.changeDetector.detectChanges();
+      this.refreshPages();
+      this.changeDetector.detectChanges();
+    }
+  }
+
   private async generateRecognitionPage(paper: HTMLElement, page: number | undefined,
       referenceOnly: boolean): Promise<GeneratedRecognitionPageDto> {
     // Les modèles historiques produits par FormScanner font 2481 × 3508 px.
@@ -887,22 +936,9 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
     // marqueurs ont la même échelle que les formulaires déjà reconnus par le back.
     const targetWidth = 2481;
     const targetHeight = 3508;
-    const captureScale = targetWidth / paper.offsetWidth;
     const paperRect = paper.getBoundingClientRect();
-    const capturedCanvas = await html2canvas(paper, {
-      scale: captureScale, backgroundColor: '#ffffff', useCORS: true, logging: false,
-      width: paper.offsetWidth, height: paper.offsetHeight,
-      onclone: clonedDocument => this.prepareCaptureTextOrientations(clonedDocument)
-    });
-    const canvas = document.createElement('canvas');
-    canvas.width = targetWidth;
-    canvas.height = targetHeight;
-    const context = canvas.getContext('2d');
-    if (!context) { throw new Error('Impossible de préparer le modèle FormScanner.'); }
-    context.imageSmoothingEnabled = false;
-    context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, targetWidth, targetHeight);
-    context.drawImage(capturedCanvas, 0, 0, targetWidth, targetHeight);
+    const canonicalPng = await this.capturePaperPng(paper, targetWidth, targetHeight);
+    const raster = await this.readPngRaster(canonicalPng);
     return {
       param: {
         stage: referenceOnly ? undefined : this.activeStage.number,
@@ -910,10 +946,10 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
         template: this.buildRecognitionTemplate(paper, {
           x: targetWidth / paperRect.width,
           y: targetHeight / paperRect.height
-        }, referenceOnly),
+        }, referenceOnly, raster),
         questions: {}
       },
-      modelBase64: canvas.toDataURL('image/png').split(',')[1],
+      modelBase64: canonicalPng.split(',')[1],
       modelFileType: 'image/png',
       modelFileExtension: 'png'
     };
@@ -937,7 +973,31 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
     return canvas.toDataURL('image/png');
   }
 
+  private async readPngRaster(dataUrl: string): Promise<ImageData> {
+    const image = new Image();
+    image.src = dataUrl;
+    await image.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) { throw new Error('Impossible de mesurer les repères du formulaire.'); }
+    context.drawImage(image, 0, 0);
+    return context.getImageData(0, 0, canvas.width, canvas.height);
+  }
+
   private prepareCaptureTextOrientations(clonedDocument: Document): void {
+    // html2canvas peut écarter un sous-arbre dont un ancêtre est déclaré
+    // visibility:hidden avant de résoudre la règle qui réaffiche ses images.
+    // Les styles en ligne rendent l'intention non ambiguë dans le clone :
+    // masquer les caractères de la réponse vierge, mais conserver ses images.
+    clonedDocument.querySelectorAll<HTMLElement>('.hidden-answer.keep-answer-images').forEach(answer => {
+      answer.style.setProperty('visibility', 'visible', 'important');
+      answer.querySelectorAll<HTMLElement>('img').forEach(image => {
+        image.style.setProperty('visibility', 'visible', 'important');
+        image.style.setProperty('opacity', '1', 'important');
+      });
+    });
     clonedDocument.querySelectorAll<HTMLElement>('.text-effect-rotate-left').forEach(element => {
       element.style.setProperty('display', 'inline-block');
       element.style.setProperty('transform', 'rotate(-4deg)');
@@ -951,12 +1011,17 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
   }
 
   private buildRecognitionTemplate(paper: HTMLElement, scale: { x: number; y: number },
-      referenceOnly: boolean): string {
+      referenceOnly: boolean, raster?: ImageData): string {
     const paperRect = paper.getBoundingClientRect();
     const point = (element: Element): { x: number; y: number } => {
       const rect = element.getBoundingClientRect();
-      return { x: ((rect.left + rect.width / 2) - paperRect.left) * scale.x,
+      const expected = { x: ((rect.left + rect.width / 2) - paperRect.left) * scale.x,
         y: ((rect.top + rect.height / 2) - paperRect.top) * scale.y };
+      return raster
+        ? this.refineRecognitionCenter(raster, expected, {
+          width: rect.width * scale.x, height: rect.height * scale.y
+        }, element.classList.contains('corner'), element.classList.contains('marked'))
+        : expected;
     };
     const cornerEntries = [
       ['TOP_LEFT', '.corner.top-left'], ['TOP_RIGHT', '.corner.top-right'],
@@ -968,6 +1033,20 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
       const values = identification.get(name) || [];
       values.push({ response: box.dataset['value'] || '', ...point(box) });
       identification.set(name, values);
+    });
+    // Les deux lignes d'une même grille partagent exactement les mêmes
+    // colonnes. Une case noircie peut masquer localement une bordure lors de
+    // l'analyse du PNG : la première ligne sert alors de référence géométrique
+    // pour les abscisses de la seconde.
+    identification.forEach((values, name) => {
+      const match = name.match(/^(.*?)(\d+)$/);
+      if (!match || match[2] === '1') { return; }
+      const reference = identification.get(`${match[1]}1`);
+      if (!reference) { return; }
+      values.forEach(value => {
+        const referenceValue = reference.find(candidate => candidate.response === value.response);
+        if (referenceValue) { value.x = referenceValue.x; }
+      });
     });
     const corrections = new Map<string, Array<{ response: string; x: number; y: number }>>();
     if (!referenceOnly) {
@@ -1013,6 +1092,106 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
 
   private nextPaint(): Promise<void> {
     return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+  }
+
+  private refineRecognitionCenter(raster: ImageData, expected: { x: number; y: number },
+      size: { width: number; height: number }, filled: boolean,
+      marked: boolean): { x: number; y: number } {
+    const dark = (x: number, y: number): boolean => {
+      if (x < 0 || y < 0 || x >= raster.width || y >= raster.height) { return false; }
+      const index = (Math.trunc(y) * raster.width + Math.trunc(x)) * 4;
+      return raster.data[index] + raster.data[index + 1] + raster.data[index + 2] < 420;
+    };
+    const halfWidth = Math.max(3, size.width / 2);
+    const halfHeight = Math.max(3, size.height / 2);
+    if (filled) {
+      const margin = 5;
+      let minX = Math.ceil(expected.x + halfWidth + margin);
+      let maxX = Math.floor(expected.x - halfWidth - margin);
+      let minY = Math.ceil(expected.y + halfHeight + margin);
+      let maxY = Math.floor(expected.y - halfHeight - margin);
+      for (let y = Math.floor(expected.y - halfHeight - margin);
+           y <= Math.ceil(expected.y + halfHeight + margin); y++) {
+        for (let x = Math.floor(expected.x - halfWidth - margin);
+             x <= Math.ceil(expected.x + halfWidth + margin); x++) {
+          if (!dark(x, y)) { continue; }
+          minX = Math.min(minX, x);
+          maxX = Math.max(maxX, x);
+          minY = Math.min(minY, y);
+          maxY = Math.max(maxY, y);
+        }
+      }
+      if (minX <= maxX && minY <= maxY) {
+        return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
+      }
+      return expected;
+    }
+
+    const strongestLine = (vertical: boolean, estimate: number, side: -1 | 1): number | undefined => {
+      const candidates: Array<{ coordinate: number; score: number }> = [];
+      for (let delta = -6; delta <= 6; delta++) {
+        const coordinate = Math.round(estimate + delta);
+        let score = 0;
+        const begin = Math.round((vertical ? expected.y - halfHeight : expected.x - halfWidth) + 2);
+        const end = Math.round((vertical ? expected.y + halfHeight : expected.x + halfWidth) - 2);
+        for (let position = begin; position <= end; position++) {
+          if (dark(vertical ? coordinate : position, vertical ? position : coordinate)) { score++; }
+        }
+        candidates.push({ coordinate, score });
+      }
+      const threshold = Math.max(3, Math.min(size.width, size.height) * .35);
+      const detected = candidates.filter(candidate => candidate.score >= threshold);
+      if (!detected.length) { return undefined; }
+      if (marked) {
+        return side < 0 ? detected[0].coordinate : detected[detected.length - 1].coordinate;
+      }
+      const maximum = Math.max(...detected.map(candidate => candidate.score));
+      return detected.filter(candidate => candidate.score >= maximum - 1)
+        .sort((leftCandidate, rightCandidate) =>
+          Math.abs(leftCandidate.coordinate - estimate) - Math.abs(rightCandidate.coordinate - estimate))[0].coordinate;
+    };
+    const left = strongestLine(true, expected.x - halfWidth, -1);
+    const right = strongestLine(true, expected.x + halfWidth, 1);
+    const top = strongestLine(false, expected.y - halfHeight, -1);
+    const bottom = strongestLine(false, expected.y + halfHeight, 1);
+    return {
+      x: left !== undefined && right !== undefined ? (left + right) / 2 : expected.x,
+      y: top !== undefined && bottom !== undefined ? (top + bottom) / 2 : expected.y
+    };
+  }
+
+  /**
+   * Attend toutes les ressources et la stabilisation de la mise en page avant
+   * de produire une sortie officielle (PDF ou modèle PNG de reconnaissance).
+   */
+  private async waitForOutputReady(): Promise<void> {
+    if (document.fonts?.ready) { await document.fonts.ready; }
+    const images = Array.from(document.querySelectorAll<HTMLImageElement>('.pages .paper img'));
+    await Promise.all(images.map(async image => {
+      if (!image.complete) {
+        await new Promise<void>(resolve => {
+          const done = () => resolve();
+          image.addEventListener('load', done, { once: true });
+          image.addEventListener('error', done, { once: true });
+        });
+      }
+      if (typeof image.decode === 'function') {
+        try { await image.decode(); } catch { /* Le rendu conservera l'état visible de l'image. */ }
+      }
+    }));
+
+    let previousGeometry = '';
+    for (let attempt = 0; attempt < 8; attempt++) {
+      await this.nextPaint();
+      const geometry = Array.from(document.querySelectorAll<HTMLElement>(
+        '.pages .paper, .section-title-band, .vertical-section-title, .rich-inline-image'))
+        .map(element => {
+          const rect = element.getBoundingClientRect();
+          return `${rect.x.toFixed(2)},${rect.y.toFixed(2)},${rect.width.toFixed(2)},${rect.height.toFixed(2)}`;
+        }).join('|');
+      if (geometry === previousGeometry) { return; }
+      previousGeometry = geometry;
+    }
   }
 
   private setSyncState(state: FormDesignerComponent['syncState'], message: string): void {
@@ -2110,8 +2289,7 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
       this.changeDetector.detectChanges();
       this.refreshPages();
       this.changeDetector.detectChanges();
-      if (document.fonts?.ready) { await document.fonts.ready; }
-      await this.nextPaint();
+      await this.waitForOutputReady();
 
       const papers = Array.from(document.querySelectorAll<HTMLElement>('.pages .paper'));
       if (!papers.length) { throw new Error('Aucune page A4 à exporter.'); }

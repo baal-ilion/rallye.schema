@@ -340,7 +340,24 @@
 .digit-label { height: 4.8mm; background: #e7e7e7; font-size: 3mm; font-weight: 700; line-height: 1; }
 .mark-box { width: var(--correction-cell-width, .53cm); height: var(--correction-cell-height, .53cm); background: #fff; }
 .mark-box.marked { background: #000; box-shadow: inset 0 0 0 .35mm #000; }
-.corner { position: absolute; width: 11mm; height: 11mm; border: 3.4mm solid #000; border-radius: 50%; }
+.corner {
+  position: absolute;
+  width: 11mm;
+  height: 11mm;
+  background: #000;
+  border: 0;
+  border-radius: 50%;
+}
+.corner::after {
+  content: '';
+  position: absolute;
+  top: 3.4mm;
+  left: 3.4mm;
+  width: 4.2mm;
+  height: 4.2mm;
+  background: #fff;
+  border-radius: 50%;
+}
 .top-left { top: 9mm; left: 9mm; } .top-right { top: 9mm; right: 9mm; }
 .bottom-left { bottom: 9mm; left: 9mm; } .bottom-right { bottom: 9mm; right: 9mm; }
 .page-content { min-height: 0; overflow: hidden; padding: 0; display: flex; flex-flow: row wrap; align-content: space-evenly; justify-content: flex-start; }
@@ -477,6 +494,17 @@ thead th.response-with-correction-heading, tbody td.response-with-correction { p
 :host ::ng-deep .hidden-answer.keep-answer-images img {
   visibility: visible !important;
   opacity: 1 !important;
+}
+:host ::ng-deep .hidden-answer.keep-answer-images {
+  visibility: visible !important;
+}
+:host ::ng-deep .hidden-answer.keep-answer-images,
+:host ::ng-deep .hidden-answer.keep-answer-images *:not(img) {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  -webkit-text-stroke-color: transparent !important;
+  text-decoration-color: transparent !important;
+  text-shadow: none !important;
 }
 footer { position: relative; z-index: 1; min-height: 8mm; border-top: 1px solid; padding-top: .4rem; background: white; text-align: center; }
 .empty-page { margin-top: 40mm; text-align: center; color: #aaa; }
