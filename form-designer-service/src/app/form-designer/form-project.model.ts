@@ -1,4 +1,4 @@
-export const FORM_PROJECT_SCHEMA_VERSION = 6;
+export const FORM_PROJECT_SCHEMA_VERSION = 8;
 
 export interface DesignerCorrection {
   id: string;
@@ -11,6 +11,7 @@ export interface DesignerQuestion {
   number: string;
   answer: string;
   visibleInBlankForm: boolean;
+  imagesVisibleInBlankForm: boolean;
   numberColor: string;
   answerColor: string;
   corrections: DesignerCorrection[];
@@ -20,9 +21,14 @@ export interface DesignerSection {
   id: string;
   title: string;
   showTitle: boolean;
+  verticalTitle: boolean;
   color: string;
   headerLabels: string[];
   headerColors: string[];
+  uniformNumberMedia: boolean;
+  numberMediaWidthMm: number;
+  numberMediaHeightMm: number;
+  preserveNumberMediaRatio: boolean;
   questions: DesignerQuestion[];
 }
 
@@ -55,6 +61,11 @@ export interface DesignerBlock {
   prefix: string;
   imageUrl?: string;
   imageUsage: 'illustration';
+  imageWidthMm: number;
+  imageHeightMm: number;
+  preserveImageRatio: boolean;
+  imageFit: 'contain' | 'cover';
+  imageAlignment: 'left' | 'center' | 'right';
   sectionId?: string;
   tableColumns: DesignerTableColumn[];
   tableRows: DesignerTableRow[];

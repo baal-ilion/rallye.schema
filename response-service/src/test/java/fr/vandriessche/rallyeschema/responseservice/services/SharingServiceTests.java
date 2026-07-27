@@ -1,6 +1,7 @@
 package fr.vandriessche.rallyeschema.responseservice.services;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -20,6 +21,7 @@ import java.util.zip.ZipOutputStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -103,6 +105,13 @@ class SharingServiceTests {
 		design.setId("stage-id");
 		design.setVersion(4L);
 		design.setStageParamId("stage-id");
+		design.setSchemaVersion(7);
+		design.setContent(new java.util.LinkedHashMap<>(java.util.Map.of(
+				"sections", java.util.List.of(java.util.Map.of(
+						"verticalTitle", true,
+						"numberMediaWidthMm", 8,
+						"answer", "Texte <img src=\"data:image/png;base64,AA==\">")),
+				"font", "Pirata One")));
 
 		byte[] archive = archive(rally, stage, design);
 		MockMultipartFile file = new MockMultipartFile("file", "configuration.zip",
@@ -111,7 +120,10 @@ class SharingServiceTests {
 		sharingService.uploadParamZip(file);
 
 		verify(stageParamRepository).insert(any(StageParam.class));
-		verify(formDesignRepository).insert(any(FormDesign.class));
+		ArgumentCaptor<FormDesign> restoredDesign = ArgumentCaptor.forClass(FormDesign.class);
+		verify(formDesignRepository).insert(restoredDesign.capture());
+		assertEquals(7, restoredDesign.getValue().getSchemaVersion());
+		assertEquals(design.getContent(), restoredDesign.getValue().getContent());
 		verify(rallyParamRepository).insert(any(RallyParam.class));
 	}
 
