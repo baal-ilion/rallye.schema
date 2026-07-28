@@ -1,3 +1,91 @@
+@import '@fontsource/bangers/400.css';
+@import '@fontsource/bebas-neue/400.css';
+@import '@fontsource/caveat/400.css';
+@import '@fontsource/cinzel-decorative/400.css';
+@import '@fontsource/creepster/400.css';
+@import '@fontsource/dancing-script/400.css';
+@import '@fontsource/fredericka-the-great/400.css';
+@import '@fontsource/lobster/400.css';
+@import '@fontsource/medievalsharp/400.css';
+@import '@fontsource/monoton/400.css';
+@import '@fontsource/nosifer/400.css';
+@import '@fontsource/pacifico/400.css';
+@import '@fontsource/pirata-one/400.css';
+@import '@fontsource/rye/400.css';
+@import '@fontsource/special-elite/400.css';
+@import '@fontsource/unifrakturcook/700.css';
+
+/* Les images sont créées à l'intérieur de contenus [innerHTML]. Elles ne portent
+   donc pas l'attribut d'encapsulation Angular du composant. Ces règles doivent
+   rester globales pour que les commandes du ruban agissent réellement. */
+.designer .rich-text-editor img {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: middle;
+  cursor: grab;
+}
+.designer .rich-text-editor img:active { cursor: grabbing; }
+.designer .rich-text-editor img.media-inline {
+  display: inline-block !important;
+  max-height: none;
+  margin: 0 .6mm !important;
+  vertical-align: middle;
+}
+.designer .rich-text-editor img.media-left { display: block; margin: .6mm auto .6mm 0; }
+.designer .rich-text-editor img.media-center { display: block; margin: .6mm auto; }
+.designer .rich-text-editor img.media-right { display: block; margin: .6mm 0 .6mm auto; }
+.designer .rich-text-editor img.media-fit-contain { object-fit: contain; }
+.designer .rich-text-editor img.media-fit-cover { object-fit: cover; }
+.designer .rich-text-editor img:hover { outline: 1px dashed var(--rallye-green); }
+.designer .uniform-number-media .number-editor img {
+  width: var(--number-media-width, 8mm);
+  height: var(--number-media-height, 8mm);
+  max-width: none;
+}
+.designer .uniform-number-media.preserve-number-media-ratio .number-editor img { object-fit: contain; }
+.designer .uniform-number-media:not(.preserve-number-media-ratio) .number-editor img { object-fit: fill; }
+
+/* Les classes sont conservées par la sécurisation Angular des contenus innerHTML,
+   contrairement aux attributs style appliqués dynamiquement. */
+.designer .font-size-8 { font-size: 8pt; }
+.designer .font-size-9 { font-size: 9pt; }
+.designer .font-size-10 { font-size: 10pt; }
+.designer .font-size-11 { font-size: 11pt; }
+.designer .font-size-12 { font-size: 12pt; }
+.designer .font-size-14 { font-size: 14pt; }
+.designer .font-size-16 { font-size: 16pt; }
+.designer .font-size-18 { font-size: 18pt; }
+.designer .font-size-20 { font-size: 20pt; }
+.designer .font-size-24 { font-size: 24pt; }
+.designer .font-size-28 { font-size: 28pt; }
+.designer .font-size-32 { font-size: 32pt; }
+.designer .font-size-36 { font-size: 36pt; }
+
 html, body { min-height: 100%; }
 body { margin: 0; background: #f1f3f5; font-family: Roboto, "Helvetica Neue", Arial, sans-serif; color: #212529; }
 * { box-sizing: border-box; }
+.text-effect-outline {
+  -webkit-text-stroke: .35px currentColor;
+  paint-order: stroke fill;
+}
+
+.text-effect-shadow {
+  text-shadow: 1px 1px 1px #0007;
+}
+
+.text-effect-wide {
+  letter-spacing: .08em;
+}
+
+.text-effect-rotate-left,
+.text-effect-rotate-right {
+  display: inline-block;
+}
+
+.text-effect-rotate-left {
+  transform: rotate(-4deg);
+}
+
+.text-effect-rotate-right {
+  transform: rotate(4deg);
+}

@@ -90,3 +90,7 @@ local.properties
 /response-service/src/main/resources/keystore-local.p12
 /response-service/certs/
 /rallye-schema-response-webapp/certs/
+
+# Artefacts temporaires des contrôles visuels Codex
+/.codex-chrome-pdf/
+/.pdf-analysis/

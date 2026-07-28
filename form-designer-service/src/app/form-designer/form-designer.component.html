@@ -1,5 +1,14 @@
-<div class="designer" (focusin)="rememberTextEditor($event)" (focusout)="handleRichTextBlur($event)" (mouseup)="endCellSelection()" (mouseleave)="endCellSelection()">
-  <header class="ribbon">
+<div class="designer" (focusin)="rememberTextEditor($event)" (focusout)="handleRichTextBlur($event)"
+  (click)="handleDesignerClick($event)" (dragstart)="handleImageDragStart($event)"
+  (dragover)="handleImageDragOver($event)" (drop)="handleImageDrop($event)"
+  (mouseup)="endCellSelection()" (mouseleave)="endCellSelection()">
+  <div class="image-selection-overlay" *ngIf="imageSelectionOverlay.visible"
+    [style.left.px]="imageSelectionOverlay.left" [style.top.px]="imageSelectionOverlay.top"
+    [style.width.px]="imageSelectionOverlay.width" [style.height.px]="imageSelectionOverlay.height">
+    <span class="image-resize-handle" title="Faire glisser pour redimensionner l’image"
+      (mousedown)="startSelectedImageResize($event)"></span>
+  </div>
+  <header class="ribbon" (mousedown)="preserveRibbonTextSelection($event)">
     <nav class="ribbon-tabs" aria-label="Outils">
       <div class="ribbon-brand"><img class="brand-mark" src="assets/logo-application.png" alt="Logo du Rallye"><span><strong>Rallye Schéma</strong><small>Concepteur de formulaires</small></span></div>
       <button type="button" title="Gérer le projet, les épreuves, l’import Excel et les exports PDF." [class.active]="ribbonTab === 'home'" (click)="ribbonTab = 'home'">Accueil</button>
@@ -7,7 +16,7 @@
       <button type="button" title="Régler l’affichage et le niveau de zoom de l’aperçu du document." [class.active]="ribbonTab === 'layout'" (click)="ribbonTab = 'layout'">Affichage</button>
     </nav>
 
-    <div class="ribbon-tools" *ngIf="ribbonTab === 'home'">
+    <div class="ribbon-tools home-tools" *ngIf="ribbonTab === 'home'">
       <section class="home-ribbon-group rally-group">
         <div class="home-group-content rally-content">
           <div class="rally-config">
@@ -17,6 +26,7 @@
           <div class="home-button-column">
             <button type="button" title="Recharger les données communes depuis le back." (click)="newProject()">Recharger</button>
             <button type="button" title="Enregistrer toute la configuration du Rallye dans le back." (click)="saveProject()" [disabled]="syncState === 'saving' || syncState === 'loading'">Sauver tout</button>
+            <button type="button" class="download-all-forms" title="Télécharger une archive ZIP contenant les PDF vierges et complétés de toutes les épreuves qui possèdent un formulaire." (click)="exportAllStagePdfs()" [disabled]="pdfExporting">Télécharger tous les formulaires</button>
           </div>
         </div>
         <div class="home-group-title">Rallye</div>
@@ -24,42 +34,41 @@
 
       <section class="home-ribbon-group stage-group">
         <div class="home-group-content two-row-content">
-          <label class="home-inline-field stage-picker" for="activeStage"><span>Document</span><select id="activeStage" [ngModel]="activeStageId" (ngModelChange)="selectStage($event)"><option [value]="referenceStageId">Formulaire de référence</option><option *ngFor="let projectStage of project.stages" [value]="projectStage.id">{{ projectStage.number }} – {{ projectStage.name }}</option></select></label>
+          <div class="stage-selection-row">
+            <label class="home-inline-field stage-picker" for="activeStage"><span>Épreuve</span><select id="activeStage" [ngModel]="activeStageId" (ngModelChange)="selectStage($event)"><option [value]="referenceStageId">Formulaire de référence</option><option *ngFor="let projectStage of project.stages" [value]="projectStage.id">{{ projectStage.number }} – {{ projectStage.name }}</option></select></label>
+            <label class="stage-number-field" *ngIf="!isReferenceActive"><span>N°</span><input type="number" min="1" max="99" [(ngModel)]="activeStage.number" (ngModelChange)="markModified()"></label>
+          </div>
           <div class="home-button-row stage-action-row">
-            <button type="button" title="Ajouter une nouvelle épreuve vide au projet." (click)="addStage()">Nouvelle</button>
-            <button type="button" [title]="isReferenceActive ? 'Enregistrer et publier le formulaire de référence.' : 'Enregistrer l’épreuve active et son éventuel formulaire dans le back.'" (click)="saveActiveStage()">Enregistrer</button>
-            <button type="button" *ngIf="!isReferenceActive && !activeStage.hasFormDesign" title="Créer et associer un nouveau formulaire graphique à cette épreuve." (click)="createActiveForm()">Créer</button>
-            <button class="danger" type="button" *ngIf="!isReferenceActive && activeStage.hasFormDesign" title="Supprimer seulement le formulaire et conserver l’épreuve." (click)="deleteActiveForm()">Suppr. form.</button>
-            <button class="danger" type="button" *ngIf="!isReferenceActive" title="Supprimer l’épreuve et son formulaire." (click)="deleteActiveStage()">Supprimer</button>
+            <button type="button" title="Ajouter une nouvelle épreuve vide au projet." (click)="addStage()">Nouvelle épreuve</button>
+            <button type="button" [title]="isReferenceActive ? 'Enregistrer et publier le formulaire de référence.' : 'Enregistrer l’épreuve active et son éventuel formulaire dans le back.'" (click)="saveActiveStage()">Enregistrer l’épreuve</button>
+            <button type="button" *ngIf="!isReferenceActive && !activeStage.hasFormDesign" title="Créer et associer un nouveau formulaire graphique à cette épreuve." (click)="createActiveForm()">Créer le formulaire de l’épreuve</button>
+            <button class="danger" type="button" *ngIf="!isReferenceActive" title="Supprimer l’épreuve et son formulaire." (click)="deleteActiveStage()">Supprimer l’épreuve</button>
           </div>
         </div>
         <div class="home-group-title">Épreuve</div>
       </section>
 
       <section class="home-ribbon-group edition-group">
-        <div class="home-group-content two-row-content">
-          <div class="stage-edit-fields" *ngIf="!isReferenceActive">
-            <label class="number-edit"><span>N°</span><input type="number" min="1" max="99" [(ngModel)]="activeStage.number" (ngModelChange)="markModified()"></label>
-            <label class="name-edit"><span>Nom</span><input [(ngModel)]="activeStage.name" (ngModelChange)="markModified()"></label>
-          </div>
-          <div class="home-button-row edition-action-row" *ngIf="!isReferenceActive">
-            <label class="home-file-button" title="Lire le fichier Excel de réponses et créer automatiquement les sections et questions.">Importer<input class="file-input" type="file" accept=".xlsx,.xls" (change)="importWorkbook($any($event.target).files)"></label>
-            <button type="button" title="Créer une copie du bloc sélectionné juste après l’original." (click)="duplicateSelected()" [disabled]="!selectedBlock">Dupliquer</button>
-            <button class="danger" type="button" title="Retirer du document le bloc actuellement sélectionné." (click)="deleteSelected()" [disabled]="!selectedBlock">Supprimer</button>
+        <div class="home-group-content form-content">
+          <div class="home-button-row form-action-row" *ngIf="!isReferenceActive">
+            <button type="button" title="Télécharger un classeur Excel prêt à compléter, avec exemples et formules de calcul des points." (click)="downloadExcelTemplate()">Obtenir le modèle Excel</button>
+            <button type="button" class="home-file-button" title="Importer un fichier Excel complété pour construire ou remplacer le formulaire de cette épreuve." (click)="workbookInput.click()">Importer un fichier Excel</button>
+            <input #workbookInput class="file-input" type="file" accept=".xlsx,.xls" (change)="importWorkbook($any($event.target).files); $any($event.target).value = ''">
+            <button class="danger" type="button" *ngIf="activeStage.hasFormDesign" title="Supprimer le formulaire associé à cette épreuve tout en conservant l’épreuve." (click)="deleteActiveForm()">Supprimer le formulaire de cette épreuve</button>
           </div>
         </div>
-        <div class="home-group-title">Édition</div>
+        <div class="home-group-title">Formulaire</div>
       </section>
 
       <section class="home-ribbon-group display-group">
         <div class="home-group-content two-row-content">
-          <label class="home-inline-field preview-field" title="Choisir la version du formulaire affichée dans la zone de travail."><span>Vue</span><select [ngModel]="correctedPreview ? 'completed' : 'blank'" (ngModelChange)="setCorrectedPreview($event === 'completed')"><option value="blank">Vierge</option><option value="completed">Complété</option></select></label>
+          <label class="home-inline-field preview-field" title="Choisir la version du formulaire affichée dans la zone de travail."><span>Aperçu</span><select [ngModel]="correctedPreview ? 'completed' : 'blank'" (ngModelChange)="setCorrectedPreview($event === 'completed')"><option value="blank">Formulaire vierge</option><option value="completed">Formulaire complété</option></select></label>
           <div class="home-button-row pdf-action-row">
-            <button type="button" title="Télécharger le formulaire A4 vierge destiné aux joueurs." (click)="exportPdf(false)" [disabled]="pdfExporting">Vierge</button>
-            <button type="button" title="Télécharger le formulaire A4 complété destiné aux correcteurs." (click)="exportPdf(true)" [disabled]="pdfExporting">Complété</button>
+            <button type="button" title="Télécharger le formulaire A4 vierge destiné aux joueurs." (click)="exportPdf(false)" [disabled]="pdfExporting">Télécharger le PDF vierge</button>
+            <button type="button" title="Télécharger le formulaire A4 complété destiné aux correcteurs." (click)="exportPdf(true)" [disabled]="pdfExporting">Télécharger le PDF complété</button>
           </div>
         </div>
-        <div class="home-group-title">Affichage et PDF</div>
+        <div class="home-group-title">Aperçu et export PDF</div>
       </section>
     </div>
 
@@ -70,9 +79,56 @@
     <div class="ribbon-tools edit-tools" *ngIf="ribbonTab === 'insert'">
       <section class="edit-ribbon-group block-tools-group">
         <div class="edit-group-content block-tool-grid"><button type="button" class="edit-command-button" *ngFor="let tool of blockCatalog" [title]="blockHelp(tool.type)" (click)="insertBlock(tool.type)"><span>{{ tool.icon }}</span>{{ tool.menuLabel || tool.label }}</button></div>
-        <div class="edit-group-title">Blocs du document</div>
+        <div class="edit-group-title">Blocs du formulaire</div>
       </section>
-      <section class="edit-ribbon-group font-group"><div class="edit-group-content font-content"><div class="font-selectors"><select title="Choisir la police" (change)="applyFontCommand('fontName', $any($event.target).value)"><option value="">Police</option><option *ngFor="let font of fontFamilies" [value]="font" [style.fontFamily]="font">{{ font }}</option></select><select title="Choisir la taille" (change)="changeFontSize($any($event.target).value)"><option value="">Taille</option><option *ngFor="let size of fontSizes" [value]="size">{{ size }}</option></select><button type="button" title="Agrandir la police" (click)="changeFontSizeRelative(1)">A▲</button><button type="button" title="Réduire la police" (click)="changeFontSizeRelative(-1)">A▼</button></div><div class="font-buttons"><button type="button" title="Gras" [class.active]="isFontStyleActive('bold')" (click)="applyFontCommand('bold')"><b>G</b></button><button type="button" title="Italique" [class.active]="isFontStyleActive('italic')" (click)="applyFontCommand('italic')"><i>I</i></button><button type="button" title="Souligné" [class.active]="isFontStyleActive('underline')" (click)="applyFontCommand('underline')"><u>S</u></button><button type="button" title="Barré" [class.active]="isFontStyleActive('strikeThrough')" (click)="applyFontCommand('strikeThrough')"><s>ab</s></button><button type="button" title="Indice" [class.active]="isFontStyleActive('subscript')" (click)="applyFontCommand('subscript')">X₂</button><button type="button" title="Exposant" [class.active]="isFontStyleActive('superscript')" (click)="applyFontCommand('superscript')">X²</button><button type="button" class="highlight-button" title="Surligner en jaune" (click)="applyFontCommand('hiliteColor', '#ffff00')"><span class="highlight-symbol">ab</span></button><button type="button" class="clear-format-button" title="Effacer toute la mise en forme" (click)="applyFontCommand('removeFormat')">A×</button></div></div><div class="edit-group-title">Police et effets</div></section>
+      <section class="edit-ribbon-group media-group">
+        <div class="edit-group-content media-tools">
+          <div class="media-action-buttons">
+            <label class="edit-command-button media-file-button" title="Insérer une image au curseur ou dans la cellule sélectionnée." (mousedown)="prepareRichContentInsertion()"><span>▧</span>Insérer<input type="file" accept="image/*" (change)="insertImageInContent($any($event.target).files); $any($event.target).value = ''"></label>
+            <label class="edit-command-button media-file-button" [class.disabled]="!hasSelectedImage" title="Remplacer l’image sélectionnée en conservant ses dimensions et sa position."><span>↻</span>Remplacer<input type="file" accept="image/*" [disabled]="!hasSelectedImage" (change)="replaceSelectedImage($any($event.target).files); $any($event.target).value = ''"></label>
+            <button type="button" class="edit-command-button" title="Insérer un pictogramme comme un caractère dans le contenu." (click)="showPictogramPalette = !showPictogramPalette"><span>★</span>Picto</button>
+          </div>
+          <div class="image-format-panel" [class.disabled]="!hasSelectedImage">
+            <label class="image-size-field" title="Largeur imprimée en millimètres."><span>L</span><input type="number" min="2" [max]="selectedImageDimensionMax('width')" step="0.5" [ngModel]="selectedImageWidthMm" [disabled]="!hasSelectedImage" (input)="updateSelectedImageDimension('width', $any($event.target).value)">mm</label>
+            <label class="image-size-field" title="Hauteur imprimée en millimètres."><span>H</span><input type="number" min="2" [max]="selectedImageDimensionMax('height')" step="0.5" [ngModel]="selectedImageHeightMm" [disabled]="!hasSelectedImage" (input)="updateSelectedImageDimension('height', $any($event.target).value)">mm</label>
+            <label class="image-ratio-field" title="Conserver les proportions originales."><input type="checkbox" [(ngModel)]="preserveSelectedImageRatio" [disabled]="!hasSelectedImage" (ngModelChange)="applySelectedImageSize()">Proportions</label>
+            <select title="Position de l’image dans le texte." [disabled]="!hasSelectedImage" (change)="alignSelectedImage($any($event.target).value)">
+              <option value="inline">Dans le texte</option><option value="left">À gauche</option>
+              <option value="center">Centrée</option><option value="right">À droite</option>
+            </select>
+            <select title="Adapter l’image ou remplir son cadre en la recadrant." [disabled]="!hasSelectedImage" [(ngModel)]="selectedImageFit" (ngModelChange)="setSelectedImageFit($event)">
+              <option value="contain">Contenir</option><option value="cover">Recadrer</option>
+            </select>
+            <button type="button" class="danger" [disabled]="!hasSelectedImage" title="Supprimer l’image sélectionnée." (click)="removeSelectedContentImage()">Supprimer</button>
+          </div>
+        </div>
+        <div class="pictogram-palette" *ngIf="showPictogramPalette">
+          <div class="pictogram-toolbar">
+            <input type="search" [(ngModel)]="pictogramSearch" placeholder="Rechercher un émoji…" aria-label="Rechercher un émoji">
+            <select [(ngModel)]="selectedPictogramGroup" aria-label="Catégorie d’émojis">
+              <option value="all">Toutes les catégories</option>
+              <option *ngFor="let group of pictogramGroups" [value]="group.slug">{{ group.label }}</option>
+            </select>
+          </div>
+          <div class="pictogram-grid">
+            <button type="button" *ngFor="let pictogram of filteredPictograms"
+              [title]="pictogram.name" (click)="insertPictogram(pictogram.emoji)">{{ pictogram.emoji }}</button>
+            <p *ngIf="!filteredPictograms.length">Aucun émoji trouvé.</p>
+          </div>
+        </div>
+        <div class="edit-group-title">Image et pictogramme</div>
+      </section>
+      <section class="edit-ribbon-group font-group"><div class="edit-group-content font-content"><div class="font-selectors"><select title="Choisir la police" (change)="applyFontCommand('fontName', $any($event.target).value)"><option value="">Police</option><option *ngFor="let font of fontFamilies" [value]="font" [style.fontFamily]="font">{{ font }}</option></select><select title="Choisir la taille" (change)="changeFontSize($any($event.target).value)"><option value="">Taille</option><option *ngFor="let size of fontSizes" [value]="size">{{ size }}</option></select><button type="button" title="Agrandir la police" (mousedown)="$event.preventDefault()" (click)="changeFontSizeRelative(1)">A▲</button><button type="button" title="Réduire la police" (mousedown)="$event.preventDefault()" (click)="changeFontSizeRelative(-1)">A▼</button></div><div class="font-buttons"><button type="button" title="Gras" [class.active]="isFontStyleActive('bold')" (click)="applyFontCommand('bold')"><b>G</b></button><button type="button" title="Italique" [class.active]="isFontStyleActive('italic')" (click)="applyFontCommand('italic')"><i>I</i></button><button type="button" title="Souligné" [class.active]="isFontStyleActive('underline')" (click)="applyFontCommand('underline')"><u>S</u></button><button type="button" title="Barré" [class.active]="isFontStyleActive('strikeThrough')" (click)="applyFontCommand('strikeThrough')"><s>ab</s></button><button type="button" title="Indice" [class.active]="isFontStyleActive('subscript')" (click)="applyFontCommand('subscript')">X₂</button><button type="button" title="Exposant" [class.active]="isFontStyleActive('superscript')" (click)="applyFontCommand('superscript')">X²</button><button type="button" class="highlight-button" title="Surligner en jaune" (click)="applyFontCommand('hiliteColor', '#ffff00')"><span class="highlight-symbol">ab</span></button><button type="button" class="clear-format-button" title="Effacer toute la mise en forme" (click)="applyFontCommand('removeFormat')">A×</button></div></div><div class="edit-group-title">Police et effets</div></section>
+      <section class="edit-ribbon-group text-effects-group">
+        <div class="edit-group-content text-effects-buttons">
+          <button type="button" title="Ajouter ou retirer un contour au texte." [class.active]="isTextEffectActive('outline')" (click)="applyTextEffect('outline')">Contour</button>
+          <button type="button" title="Ajouter ou retirer une ombre au texte." [class.active]="isTextEffectActive('shadow')" (click)="applyTextEffect('shadow')">Ombre</button>
+          <button type="button" title="Espacer davantage les caractères." [class.active]="isTextEffectActive('wide')" (click)="applyTextEffect('wide')">Espacé</button>
+          <button type="button" title="Incliner le texte vers la gauche." [class.active]="isTextEffectActive('rotate-left')" (click)="applyTextEffect('rotate-left')">↶ Texte</button>
+          <button type="button" title="Incliner le texte vers la droite." [class.active]="isTextEffectActive('rotate-right')" (click)="applyTextEffect('rotate-right')">Texte ↷</button>
+        </div>
+        <div class="edit-group-title">Effets de texte</div>
+      </section>
       <section class="edit-ribbon-group alignment-group"><div class="edit-group-content alignment-buttons"><button type="button" title="Aligner le texte à gauche" [class.active]="isAlignmentActive('justifyLeft')" (click)="applyFontCommand('justifyLeft')"><span class="align-icon align-left">☰</span>Gauche</button><button type="button" title="Centrer le texte" [class.active]="isAlignmentActive('justifyCenter')" (click)="applyFontCommand('justifyCenter')"><span class="align-icon align-center">☰</span>Centre</button><button type="button" title="Aligner le texte à droite" [class.active]="isAlignmentActive('justifyRight')" (click)="applyFontCommand('justifyRight')"><span class="align-icon align-right">☰</span>Droite</button></div><div class="edit-group-title">Alignement</div></section>
       <section class="edit-ribbon-group word-color-group"><div class="edit-group-content color-tool-content"><button type="button" class="word-color-button" [disabled]="!selectedCellIds.size" title="Choisir la couleur de fond des cellules sélectionnées." (click)="showCellColorPalette = !showCellColorPalette"><span class="paint-bucket">▨</span><span>Fond</span><i></i><small>▼</small></button></div>
         <div class="word-color-palette" *ngIf="showCellColorPalette"><button type="button" class="no-color" (click)="chooseSelectedCellColor('#ffffff')"><span>×</span> Sans couleur</button><h3>Couleurs du thème</h3><div class="theme-color-grid"><div class="theme-color-column" *ngFor="let column of themeColorColumns"><button type="button" *ngFor="let color of column" [style.backgroundColor]="color" [title]="color" (click)="chooseSelectedCellColor(color)"></button></div></div><h3>Couleurs standard</h3><div class="standard-color-grid"><button type="button" *ngFor="let color of standardColors" [style.backgroundColor]="color" [title]="color" (click)="chooseSelectedCellColor(color)"></button></div><label class="more-colors">Autres couleurs…<input type="color" (change)="chooseSelectedCellColor($any($event.target).value)"></label></div>
@@ -87,7 +143,7 @@
 
   <div class="editor-shell">
     <aside class="document-outline">
-      <h2>Plan du document</h2>
+      <h2>Plan du formulaire</h2>
       <div class="outline-list fixed-outline-list">
         <div class="outline-node fixed-outline-node">
           <button type="button" [class.selected]="isIdentificationBlockSelected" (click)="selectFixedHeaderBlock(identificationBlockId)"><span class="fixed-block-icon" title="Bloc fixe">🔒</span><small>Fixe · position 1</small>Grilles d’identification</button>
@@ -101,12 +157,18 @@
           <button type="button" [class.selected]="block.id === selectedBlockId" (click)="selectBlock(block.id)">
             <span cdkDragHandle>⋮⋮</span><small>{{ block.type }}</small>{{ displayText(block.title) }}
           </button>
+          <button type="button" class="outline-delete" title="Supprimer ce bloc"
+            (mousedown)="$event.stopPropagation()" (click)="deleteBlockFromOutline(block.id, $event)">×</button>
           <div class="outline-container" *ngIf="block.type === 'columns'">
             <div class="outline-column" *ngFor="let childColumn of block.childColumns; let columnIndex = index"
               [id]="columnDropId(block, columnIndex)" cdkDropList [cdkDropListData]="childColumn"
               [cdkDropListConnectedTo]="dropListIds" (cdkDropListDropped)="dropBlock($event)">
               <small>Colonne {{ columnIndex + 1 }}</small>
-              <button type="button" *ngFor="let child of childColumn" cdkDrag [cdkDragData]="child" [class.selected]="child.id === selectedBlockId" (click)="selectBlock(child.id)"><span cdkDragHandle>⋮⋮</span>{{ displayText(child.title) }}</button>
+              <div class="outline-child-node" *ngFor="let child of childColumn" cdkDrag [cdkDragData]="child">
+                <button type="button" [class.selected]="child.id === selectedBlockId" (click)="selectBlock(child.id)"><span cdkDragHandle>⋮⋮</span>{{ displayText(child.title) }}</button>
+                <button type="button" class="outline-delete" title="Supprimer ce bloc"
+                  (mousedown)="$event.stopPropagation()" (click)="deleteBlockFromOutline(child.id, $event)">×</button>
+              </div>
               <em *ngIf="!childColumn.length">Déposer ici</em>
             </div>
           </div>
@@ -115,12 +177,12 @@
       <p *ngIf="!blocks.length">Ajoutez un bloc depuis l’onglet Édition.</p>
     </aside>
 
-    <div class="workspace">
+    <div class="workspace" (scroll)="refreshImageSelectionPosition()">
       <ng-template #freeBlock let-block>
         <article class="designer-block" [class.selected]="block.id === selectedBlockId" [style.order]="documentOrder(block)" [style.width]="blockWidth(block)" [style.margin-left]="blockMarginLeft(block)" [style.margin-right]="blockMarginRight(block)" [style.marginTop.mm]="block.spacingBefore" [style.marginBottom.mm]="block.spacingAfter" [style.color]="block.textColor" [style.font-weight]="block.fontWeight" [style.font-style]="block.fontStyle" [style.text-decoration]="block.textDecoration" (click)="selectBlock(block.id)">
           <strong *ngIf="block.type !== 'text' && block.type !== 'image' && block.type !== 'separator' && block.type !== 'custom-table'" [style.color]="block.textColor" [style.backgroundColor]="block.color" [style.fontWeight]="block.fontWeight" [style.fontStyle]="block.fontStyle" [style.textDecoration]="block.textDecoration" [innerHTML]="block.title"></strong>
           <div *ngIf="block.text" class="rich-text-editor" data-rich-text-context="free" contenteditable="true" [class.instruction-content]="block.textStyle === 'instruction'" [class.title-content]="block.textStyle === 'title'" [class.boxed-content]="block.textStyle === 'boxed'" [innerHTML]="block.text" (input)="updateRichText(block, 'text', $event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></div>
-          <div class="form-image" *ngIf="block.imageUrl"><img [src]="block.imageUrl" alt=""></div>
+          <div class="form-image" *ngIf="block.imageUrl" [class.align-left]="block.imageAlignment === 'left'" [class.align-center]="block.imageAlignment === 'center'" [class.align-right]="block.imageAlignment === 'right'"><img [src]="block.imageUrl" alt="" [style.width.mm]="block.imageWidthMm" [style.height]="block.preserveImageRatio ? 'auto' : block.imageHeightMm + 'mm'" [style.object-fit]="block.imageFit"></div>
           <hr *ngIf="block.type === 'separator'">
           <div class="page-break-preview" *ngIf="block.type === 'page-break'">Saut de page A4</div>
           <div class="columns-preview" *ngIf="block.type === 'columns'">
@@ -171,9 +233,10 @@
             </div>
           </div>
           <div class="page-content">
-            <div class="form-heading" *ngIf="currentPage.number === 1" [style.margin-top.mm]="project.titleSpacingBeforeMm" [style.margin-bottom.mm]="project.titleSpacingAfterMm" [class.selected-fixed-header]="isTitleBlockSelected" (click)="selectFixedHeaderBlock(titleBlockId)"><img *ngIf="project.showLogo" [src]="project.logoUrl" alt="Logo du Rallye"><h1 class="rich-text-editor" data-rich-text-context="free" contenteditable="true" [style.width.mm]="stageTitleWidthMm" [innerHTML]="activeStage.headerTitle" (input)="updateRichText(activeStage, 'headerTitle', $event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></h1></div>
+            <div class="form-heading" *ngIf="currentPage.number === 1" [style.margin-top.mm]="project.titleSpacingBeforeMm" [style.margin-bottom.mm]="project.titleSpacingAfterMm" [class.selected-fixed-header]="isTitleBlockSelected" (click)="selectFixedHeaderBlock(titleBlockId)"><img *ngIf="project.showLogo" [src]="project.logoUrl" alt="Logo du Rallye"><h1 class="rich-text-editor" data-rich-text-context="free" contenteditable="true" [style.width.mm]="stageTitleWidthMm" [innerHTML]="activeStage.headerTitle" (input)="updateStageHeaderTitle($event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></h1></div>
             <ng-container *ngFor="let block of freeBlocksForPage(currentPage.number)" [ngTemplateOutlet]="freeBlock" [ngTemplateOutletContext]="{ $implicit: block }"></ng-container>
             <section class="question-section" *ngFor="let fragment of currentPage.sections"
+              [attr.data-section-id]="fragment.section.id"
               [style.order]="sectionDocumentOrder(fragment.section)"
               [class.selected-section]="selectedBlock?.sectionId === fragment.section.id"
               [style.width]="sectionWidth(fragment.section)"
@@ -187,10 +250,15 @@
               [style.text-decoration]="blockForSection(fragment.section)?.textDecoration"
               [style.--section-row-height.mm]="blockForSection(fragment.section)?.rowHeight"
               [style.--section-correction-width]="sectionCorrectionWidth(fragment.section)"
+              [style.--number-media-width.mm]="fragment.section.numberMediaWidthMm"
+              [style.--number-media-height.mm]="fragment.section.numberMediaHeightMm"
+              [class.vertical-section-title]="fragment.section.showTitle && fragment.section.verticalTitle"
+              [class.uniform-number-media]="fragment.section.uniformNumberMedia"
+              [class.preserve-number-media-ratio]="fragment.section.preserveNumberMediaRatio"
               (click)="selectSectionBlock(fragment.section)">
               <div class="section-editor" *ngIf="fragment.section.showTitle" [style.backgroundColor]="fragment.section.color" [class.cell-selected]="isCellSelected('section-title-' + fragment.section.id)" (mousedown)="startCellSelection($event, 'section-' + fragment.section.id, 0, 0, 'section-title-' + fragment.section.id)" (mouseenter)="extendCellSelection($event, 'section-' + fragment.section.id, 0, 0, 'section-title-' + fragment.section.id)"><div class="rich-text-editor section-title-editor" [attr.contenteditable]="isTextEditing('section-title-' + fragment.section.id)" [innerHTML]="fragment.section.title" (dblclick)="beginTextEditing($event, 'section-title-' + fragment.section.id)" (click)="handleRichTextClick($event, 'section-title-' + fragment.section.id)" (input)="updateRichText(fragment.section, 'title', $event); selectSectionBlock(fragment.section); updateSelectedSectionTitle(fragment.section.title)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></div><span *ngIf="fragment.continued">(suite)</span></div>
               <table><thead *ngIf="!fragment.continued || blockForSection(fragment.section)?.repeatHeader !== false"><tr><th [style.backgroundColor]="fragment.section.headerColors[0]" [class.cell-selected]="isCellSelected('section-header-' + fragment.section.id + '-0')" (mousedown)="startCellSelection($event, 'section-' + fragment.section.id, 1, 0, 'section-header-' + fragment.section.id + '-0')" (mouseenter)="extendCellSelection($event, 'section-' + fragment.section.id, 1, 0, 'section-header-' + fragment.section.id + '-0')"><div class="rich-text-editor" [attr.contenteditable]="isTextEditing('section-header-' + fragment.section.id + '-0')" [innerHTML]="fragment.section.headerLabels[0]" (dblclick)="beginTextEditing($event, 'section-header-' + fragment.section.id + '-0')" (click)="handleRichTextClick($event, 'section-header-' + fragment.section.id + '-0')" (input)="updateRichTextArray(fragment.section.headerLabels, 0, $event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></div></th><th class="response-with-correction-heading"><div><span [style.backgroundColor]="fragment.section.headerColors[1]" [class.cell-selected]="isCellSelected('section-header-' + fragment.section.id + '-1')" (mousedown)="startCellSelection($event, 'section-' + fragment.section.id, 1, 1, 'section-header-' + fragment.section.id + '-1')" (mouseenter)="extendCellSelection($event, 'section-' + fragment.section.id, 1, 1, 'section-header-' + fragment.section.id + '-1')"><span class="rich-text-editor" [attr.contenteditable]="isTextEditing('section-header-' + fragment.section.id + '-1')" [innerHTML]="fragment.section.headerLabels[1]" (dblclick)="beginTextEditing($event, 'section-header-' + fragment.section.id + '-1')" (click)="handleRichTextClick($event, 'section-header-' + fragment.section.id + '-1')" (input)="updateRichTextArray(fragment.section.headerLabels, 1, $event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></span></span><span [style.backgroundColor]="fragment.section.headerColors[2]" [class.cell-selected]="isCellSelected('section-header-' + fragment.section.id + '-2')" (mousedown)="startCellSelection($event, 'section-' + fragment.section.id, 1, 2, 'section-header-' + fragment.section.id + '-2')" (mouseenter)="extendCellSelection($event, 'section-' + fragment.section.id, 1, 2, 'section-header-' + fragment.section.id + '-2')"><span class="rich-text-editor" [attr.contenteditable]="isTextEditing('section-header-' + fragment.section.id + '-2')" [innerHTML]="fragment.section.headerLabels[2]" (dblclick)="beginTextEditing($event, 'section-header-' + fragment.section.id + '-2')" (click)="handleRichTextClick($event, 'section-header-' + fragment.section.id + '-2')" (input)="updateRichTextArray(fragment.section.headerLabels, 2, $event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></span></span></div></th></tr></thead><tbody>
-                <tr *ngFor="let question of fragment.questions; trackBy: trackQuestion"><td [style.backgroundColor]="question.numberColor" [class.cell-selected]="isCellSelected('question-' + question.id + '-0')" (mousedown)="startCellSelection($event, 'section-' + fragment.section.id, questionCellRow(fragment.section, question), 0, 'question-' + question.id + '-0')" (mouseenter)="extendCellSelection($event, 'section-' + fragment.section.id, questionCellRow(fragment.section, question), 0, 'question-' + question.id + '-0')"><div class="rich-text-editor number-editor" [attr.contenteditable]="isTextEditing('question-' + question.id + '-0')" [innerHTML]="question.number" (dblclick)="beginTextEditing($event, 'question-' + question.id + '-0')" (click)="handleRichTextClick($event, 'question-' + question.id + '-0')" (input)="updateRichText(question, 'number', $event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></div></td><td class="response-with-correction" [style.backgroundColor]="question.answerColor"><div class="response-cell-layout"><div class="response-cell" [class.cell-selected]="isCellSelected('question-' + question.id + '-1')" (mousedown)="startCellSelection($event, 'section-' + fragment.section.id, questionCellRow(fragment.section, question), 1, 'question-' + question.id + '-1')" (mouseenter)="extendCellSelection($event, 'section-' + fragment.section.id, questionCellRow(fragment.section, question), 1, 'question-' + question.id + '-1')"><div class="rich-text-editor answer" [attr.contenteditable]="isTextEditing('question-' + question.id + '-1')" [innerHTML]="question.answer" (dblclick)="beginTextEditing($event, 'question-' + question.id + '-1')" (click)="handleRichTextClick($event, 'question-' + question.id + '-1')" (input)="updateRichText(question, 'answer', $event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()" [class.hidden-answer]="!correctedPreview && !question.visibleInBlankForm"></div></div><div class="correction-groups"><div class="correction-cells" *ngFor="let correction of question.corrections; trackBy: trackCorrection" [attr.aria-label]="'Cases de correction pour ' + correction.label" [title]="correction.label"><span aria-label="O"></span><span aria-label="N"></span><span aria-label="Y"></span></div></div></div></td></tr>
+                <tr *ngFor="let question of fragment.questions; trackBy: trackQuestion"><td [style.backgroundColor]="question.numberColor" [class.cell-selected]="isCellSelected('question-' + question.id + '-0')" (mousedown)="startCellSelection($event, 'section-' + fragment.section.id, questionCellRow(fragment.section, question), 0, 'question-' + question.id + '-0')" (mouseenter)="extendCellSelection($event, 'section-' + fragment.section.id, questionCellRow(fragment.section, question), 0, 'question-' + question.id + '-0')"><div class="rich-text-editor number-editor" [attr.contenteditable]="isTextEditing('question-' + question.id + '-0')" [innerHTML]="question.number" (dblclick)="beginTextEditing($event, 'question-' + question.id + '-0')" (click)="handleRichTextClick($event, 'question-' + question.id + '-0')" (input)="updateRichText(question, 'number', $event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></div></td><td class="response-with-correction" [style.backgroundColor]="question.answerColor"><div class="response-cell-layout"><div class="response-cell" [class.cell-selected]="isCellSelected('question-' + question.id + '-1')" (mousedown)="startCellSelection($event, 'section-' + fragment.section.id, questionCellRow(fragment.section, question), 1, 'question-' + question.id + '-1')" (mouseenter)="extendCellSelection($event, 'section-' + fragment.section.id, questionCellRow(fragment.section, question), 1, 'question-' + question.id + '-1')"><div class="rich-text-editor answer" [attr.contenteditable]="isTextEditing('question-' + question.id + '-1')" [innerHTML]="question.answer" (dblclick)="beginTextEditing($event, 'question-' + question.id + '-1')" (click)="handleRichTextClick($event, 'question-' + question.id + '-1')" (input)="updateRichText(question, 'answer', $event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()" [class.hidden-answer]="!correctedPreview && !question.visibleInBlankForm" [class.keep-answer-images]="!correctedPreview && !question.visibleInBlankForm && question.imagesVisibleInBlankForm"></div></div><div class="correction-groups"><div class="correction-cells" *ngFor="let correction of question.corrections; trackBy: trackCorrection" [attr.aria-label]="'Cases de correction pour ' + correction.label" [title]="correction.label" (mousedown)="focusQuestionProperties($event, fragment.section, question)"><span aria-label="O"></span><span aria-label="N"></span><span aria-label="Y"></span></div></div></div></td></tr>
               </tbody></table>
             </section>
             <div class="empty-page" *ngIf="!currentPage.sections.length && !freeBlocksForPage(currentPage.number).length">Ajoutez une section ou importez un fichier Excel.</div>
@@ -209,7 +277,10 @@
             <label *ngIf="block.type === 'section'">Titre<div class="inspector-rich-text rich-text-editor" contenteditable="true" [innerHTML]="selectedSection?.title || block.title" (input)="updateRichText(selectedSection || block, 'title', $event); updateSelectedSectionTitle((selectedSection?.title || block.title))" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></div></label>
             <label *ngIf="block.type === 'text'">Texte<div class="inspector-rich-text rich-text-editor" data-rich-text-context="free" contenteditable="true" [innerHTML]="block.text" (input)="updateRichText(block, 'text', $event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></div></label>
             <label *ngIf="block.type === 'text'">Présentation<select [(ngModel)]="block.textStyle"><option value="normal">Texte normal</option><option value="instruction">Consigne</option><option value="title">Titre</option><option value="boxed">Encadré</option></select></label>
-            <button class="property-button secondary" type="button" *ngIf="selectedSection" (click)="selectedSection.showTitle = !selectedSection.showTitle; questionEdited()">{{ selectedSection.showTitle ? 'Masquer le titre' : 'Afficher le titre' }}</button>
+            <div class="property-toggles section-title-options" *ngIf="selectedSection">
+              <label class="check-label"><input type="checkbox" [(ngModel)]="selectedSection.showTitle" (ngModelChange)="questionEdited()"><span>Afficher le titre</span></label>
+              <label class="check-label"><input type="checkbox" [(ngModel)]="selectedSection.verticalTitle" [disabled]="!selectedSection.showTitle" (ngModelChange)="questionEdited()"><span>Titre vertical à gauche</span></label>
+            </div>
             <label *ngIf="block.type === 'image'">Fichier image<input type="file" accept="image/*" (change)="attachImage($any($event.target).files)"></label>
           </section>
 
@@ -252,24 +323,35 @@
           <section class="property-card" *ngIf="block.type === 'section'">
             <header class="property-card-header"><h3>Numérotation</h3></header>
             <div class="property-grid two-columns"><label>Mode<select [(ngModel)]="block.numbering" (ngModelChange)="applyNumbering()"><option value="numeric">1, 2, 3</option><option value="alpha">A, B, C</option><option value="roman">I, II, III</option><option value="manual">Libre</option></select></label><label>Préfixe<input [(ngModel)]="block.prefix" (ngModelChange)="applyNumbering()" placeholder="Q, P, B…"></label></div>
+            <div class="media-number-options" *ngIf="selectedSection">
+              <label class="check-label"><input type="checkbox" [(ngModel)]="selectedSection.uniformNumberMedia" (ngModelChange)="questionEdited()"><span>Uniformiser les images et pictogrammes</span></label>
+              <div class="property-grid two-columns">
+                <label>Largeur <span class="field-unit">mm</span><input type="number" min="2" [max]="numberMediaDimensionMax('width', selectedSection)" step="0.5" [ngModel]="selectedSection.numberMediaWidthMm" (input)="updateNumberMediaDimension('width', $any($event.target).value)"></label>
+                <label>Hauteur <span class="field-unit">mm</span><input type="number" min="2" [max]="numberMediaDimensionMax('height', selectedSection)" step="0.5" [ngModel]="selectedSection.numberMediaHeightMm" (input)="updateNumberMediaDimension('height', $any($event.target).value)"></label>
+              </div>
+              <label class="check-label"><input type="checkbox" [(ngModel)]="selectedSection.preserveNumberMediaRatio" (ngModelChange)="questionEdited()"><span>Conserver les proportions</span></label>
+            </div>
           </section>
         </div>
         <section class="question-editor" *ngIf="selectedSection as editableSection">
           <div class="question-editor-title"><strong>Propriétés des questions</strong><button type="button" title="Ajouter une nouvelle réponse à la fin de cette section." (click)="addQuestion(editableSection)">＋ Ajouter</button></div>
-          <article class="editable-question" *ngFor="let question of editableSection.questions; let questionIndex = index; trackBy: trackQuestion">
+          <article class="editable-question" *ngFor="let question of editableSection.questions; let questionIndex = index; trackBy: trackQuestion"
+            [attr.data-question-id]="question.id">
             <header class="question-card-header"><strong>Ligne de réponse {{ questionIndex + 1 }}</strong><div class="question-actions"><button type="button" title="Monter cette ligne." (click)="moveQuestion(editableSection, question, -1)">↑</button><button type="button" title="Descendre cette ligne." (click)="moveQuestion(editableSection, question, 1)">↓</button><button type="button" class="delete-question" title="Supprimer cette ligne et recalculer les pages." (click)="removeQuestion(editableSection, question)">×</button></div></header>
             <div class="question-main-fields"><label class="number-field">N°<div class="inspector-rich-text rich-text-editor" contenteditable="true" [innerHTML]="question.number" (input)="updateRichText(question, 'number', $event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></div></label><label class="answer-field">Réponse<div class="inspector-rich-text rich-text-editor answer-property-editor" contenteditable="true" [innerHTML]="question.answer" (input)="updateRichText(question, 'answer', $event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></div></label></div>
-            <label class="blank-form-visibility" title="La réponse reste toujours visible dans le formulaire complété."><input type="checkbox" [(ngModel)]="question.visibleInBlankForm"> Afficher le texte dans le formulaire vierge</label>
+            <div class="property-toggles section-title-options answer-visibility-options">
+              <label class="check-label" title="La réponse reste toujours visible dans le formulaire complété."><input type="checkbox" [(ngModel)]="question.visibleInBlankForm"><span>Afficher le texte dans le formulaire vierge</span></label>
+              <label class="check-label" title="En mode vierge, conserve les images de cette réponse même lorsque son texte est masqué."><input type="checkbox" [(ngModel)]="question.imagesVisibleInBlankForm"><span>Afficher les images dans le formulaire vierge</span></label>
+            </div>
             <section class="question-corrections"><div class="corrections-heading"><strong>Cases de correction</strong><span>Une ligne par label du logiciel de correction</span></div>
               <div class="correction-editor" *ngFor="let correction of question.corrections; trackBy: trackCorrection"><label title="Nom exact de la question dans l'application de correction.">Label<input [(ngModel)]="correction.label" (ngModelChange)="questionEdited()"></label><label title="Nombre de points associé à cette correction.">Points<input type="number" step="0.5" [(ngModel)]="correction.points" (ngModelChange)="questionEdited()"></label><button type="button" title="Supprimer ces cases de correction." [disabled]="question.corrections.length === 1" (click)="removeCorrection(question, correction)">×</button></div>
               <button class="add-correction" type="button" title="Ajouter un groupe de cases à noircir pour corriger cette réponse." (click)="addCorrection(question)">＋ Ajouter des cases de correction</button>
             </section>
           </article>
         </section>
-        <div class="inspector-actions"><button (click)="duplicateSelected()">Dupliquer</button><button class="danger" (click)="deleteSelected()">Supprimer</button></div>
       </ng-container><ng-template #noSelection>
         <fieldset class="header-properties" *ngIf="isTitleBlockSelected"><legend>Logo et titre</legend>
-          <label>Titre de l’épreuve<div class="inspector-rich-text rich-text-editor" data-rich-text-context="free" contenteditable="true" [innerHTML]="activeStage.headerTitle" (input)="updateRichText(activeStage, 'headerTitle', $event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></div></label>
+          <label>Titre de l’épreuve<div class="inspector-rich-text rich-text-editor" data-rich-text-context="free" contenteditable="true" [innerHTML]="activeStage.headerTitle" (input)="updateStageHeaderTitle($event)" (mouseup)="rememberRichTextSelection()" (keyup)="rememberRichTextSelection()"></div></label>
           <label class="check-label"><input type="checkbox" [(ngModel)]="project.showLogo"> Afficher le logo</label>
           <label>Remplacer le logo<input type="file" accept="image/*" (change)="replaceProjectLogo($any($event.target).files)"></label>
           <button type="button" class="section-title-toggle" (click)="restoreDefaultLogo()">Restaurer le logo par défaut</button>

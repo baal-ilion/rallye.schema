@@ -1,9 +1,11 @@
-import { AfterViewChecked, ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { AfterViewChecked, ChangeDetectorRef, Component, HostListener, OnInit } from '@angular/core';
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { firstValueFrom, forkJoin, switchMap } from 'rxjs';
 import * as XLSX from 'xlsx';
+import * as JSZip from 'jszip';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import emojiGroupsData from 'unicode-emoji-json/data-by-group.json';
 import { DesignerBlock, DesignerBlockType, DesignerCorrection, DesignerQuestion, DesignerSection, DesignerStage, FORM_PROJECT_SCHEMA_VERSION,
   FormProject } from './form-project.model';
 import { FormDesignerApiService, FormDesignDto, GeneratedRecognitionPageDto, QuestionParamDto, QuestionPointParamDto,
@@ -22,6 +24,9 @@ interface DesignerPage {
 }
 
 interface CellPosition { gridId: string; row: number; column: number; id: string; }
+type ImportedCellMedia = Map<string, string[]>;
+interface PictogramEntry { emoji: string; name: string; slug: string; }
+interface PictogramGroup { name: string; slug: string; emojis: PictogramEntry[]; }
 
 @Component({
   selector: 'app-form-designer',
@@ -46,6 +51,9 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
   zoom = 85;
   showCellColorPalette = false;
   showTextColorPalette = false;
+  showPictogramPalette = false;
+  pictogramSearch = '';
+  selectedPictogramGroup = 'smileys_emotion';
   pdfExporting = false;
   readonly selectedCellIds = new Set<string>();
   private cellSelectionAnchor?: CellPosition;
@@ -63,11 +71,39 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
     ['#264478', '#d9e1f2', '#b4c6e7', '#8faadc', '#203864', '#172b4d']
   ];
   readonly standardColors = ['#c00000', '#ff0000', '#ffc000', '#ffff00', '#92d050', '#00b050', '#00b0f0', '#0070c0', '#002060', '#7030a0'];
-  readonly fontFamilies = ['Arial', 'Calibri', 'Cambria', 'Georgia', 'Tahoma', 'Times New Roman', 'Verdana'];
+  readonly fontFamilies = [
+    'Arial', 'Arial Black', 'Bahnschrift', 'Book Antiqua', 'Calibri', 'Cambria', 'Candara',
+    'Century Gothic', 'Comic Sans MS', 'Consolas', 'Constantia', 'Corbel', 'Courier New',
+    'Franklin Gothic Medium', 'Garamond', 'Georgia', 'Gill Sans', 'Impact', 'Lucida Console',
+    'Lucida Sans Unicode', 'Palatino Linotype', 'Segoe Print', 'Segoe Script', 'Segoe UI',
+    'Tahoma', 'Times New Roman', 'Trebuchet MS', 'Verdana',
+    'Bangers', 'Bebas Neue', 'Caveat', 'Cinzel Decorative', 'Creepster', 'Dancing Script',
+    'Fredericka the Great', 'Lobster', 'MedievalSharp', 'Monoton', 'Nosifer', 'Pacifico',
+    'Pirata One', 'Rye', 'Special Elite', 'UnifrakturCook'
+  ];
   readonly fontSizes = ['8', '9', '10', '11', '12', '14', '16', '18', '20', '24', '28', '32', '36'];
+  readonly pictogramGroups = (emojiGroupsData as PictogramGroup[]).map(group => ({
+    ...group,
+    label: this.pictogramGroupLabel(group.slug)
+  }));
   readonly identificationDigits = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
   private richTextEditor: HTMLElement | null = null;
   private richTextRange: Range | null = null;
+  private preserveRichTextInsertion = false;
+  private pendingRichTextInsertion?: {
+    editor: HTMLElement;
+    offsets: { start: number; end: number };
+  };
+  selectedContentImage: HTMLImageElement | null = null;
+  private selectedContentEditorKey = '';
+  private selectedContentImageIndex = 0;
+  private draggedContentImage: HTMLImageElement | null = null;
+  private draggedImageSourceEditor: HTMLElement | null = null;
+  imageSelectionOverlay = { visible: false, left: 0, top: 0, width: 0, height: 0 };
+  selectedImageWidthMm = 20;
+  selectedImageHeightMm = 20;
+  preserveSelectedImageRatio = true;
+  selectedImageFit: 'contain' | 'cover' = 'contain';
   private activeTextEditingCellId = '';
   private titleWidthCache?: { text: string; showLogo: boolean; widthMm: number };
   private rallyParam?: RallyParamDto;
@@ -78,7 +114,7 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
     { type: 'section', label: 'Section de réponses', menuLabel: 'Section', icon: '▦' },
     { type: 'custom-table', label: 'Tableau', icon: '▤' },
     { type: 'text', label: 'Texte', icon: 'T' },
-    { type: 'image', label: 'Image', icon: '▧' },
+    { type: 'image', label: 'Image', menuLabel: 'Bloc image', icon: '▧' },
     { type: 'columns', label: 'Conteneur colonnes', menuLabel: 'Colonnes', icon: '▥' },
     { type: 'separator', label: 'Séparateur', icon: '―' },
     { type: 'page-break', label: 'Saut de page', menuLabel: 'Saut page', icon: '↵' }
@@ -90,12 +126,100 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
     this.loadSharedConfiguration();
   }
 
+  @HostListener('window:scroll')
+  @HostListener('window:resize')
+  refreshImageSelectionPosition(): void {
+    if (this.imageSelectionOverlay.visible) { this.refreshSelectedImageOverlay(); }
+  }
+
   ngAfterViewChecked(): void {
     document.querySelectorAll<HTMLElement>('.correction-groups').forEach(group => {
       const cellsHeight = Array.from(group.querySelectorAll<HTMLElement>(':scope > .correction-cells'))
         .reduce((height, cells) => height + cells.getBoundingClientRect().height, 0);
       const hasSpaceBelow = group.getBoundingClientRect().height > cellsHeight + 0.5;
       group.classList.toggle('ends-before-row', hasSpaceBelow);
+    });
+    this.adjustVerticalSectionTitleWidths();
+  }
+
+  private adjustVerticalSectionTitleWidths(): void {
+    document.querySelectorAll<HTMLElement>('.question-section.vertical-section-title').forEach(section => {
+      const titleBand = section.querySelector<HTMLElement>(':scope > .section-editor');
+      const title = titleBand?.querySelector<HTMLElement>('.section-title-editor');
+      const table = section.querySelector<HTMLElement>(':scope > table');
+      if (!titleBand || !title || !table) { return; }
+      const titleStyle = getComputedStyle(title);
+      const signature = [
+        title.innerHTML,
+        titleStyle.fontFamily,
+        titleStyle.fontSize,
+        titleStyle.fontWeight,
+        titleStyle.fontStyle,
+        titleStyle.letterSpacing,
+        table.offsetHeight,
+        section.offsetWidth
+      ].join('|');
+      if (titleBand.dataset['widthSignature'] === signature) { return; }
+
+      const millimetreInPixels = 96 / 25.4;
+      const minimumBandWidth = 10 * millimetreInPixels;
+      titleBand.style.width = `${minimumBandWidth}px`;
+      titleBand.style.minWidth = `${minimumBandWidth}px`;
+
+      let previousRequiredWidth = 0;
+      for (let pass = 0; pass < 10; pass++) {
+        const availableLength = Math.max(1, titleBand.clientHeight - 2 * millimetreInPixels);
+        title.style.setProperty('position', 'absolute');
+        title.style.setProperty('inset', 'auto');
+        title.style.setProperty('left', '0');
+        title.style.setProperty('top', '0');
+        title.style.setProperty('width', `${availableLength}px`);
+        title.style.setProperty('height', 'auto');
+        title.style.setProperty('min-width', '0');
+        title.style.setProperty('max-width', 'none');
+        title.style.setProperty('display', 'block');
+        title.style.setProperty('writing-mode', 'horizontal-tb');
+        title.style.setProperty('white-space', 'normal', 'important');
+        title.style.setProperty('overflow-wrap', 'anywhere');
+        title.style.setProperty('text-align', 'center');
+        title.style.setProperty('transform-origin', '0 0');
+        title.style.setProperty('transform', 'none');
+
+        const renderedHeight = title.offsetHeight;
+        const requiredWidth = Math.max(minimumBandWidth, renderedHeight + 2 * millimetreInPixels);
+        titleBand.style.width = `${Math.ceil(requiredWidth)}px`;
+        titleBand.style.minWidth = `${Math.ceil(requiredWidth)}px`;
+        titleBand.getBoundingClientRect();
+        if (Math.abs(requiredWidth - previousRequiredWidth) < 0.5) { break; }
+        previousRequiredWidth = requiredWidth;
+      }
+
+      const availableLength = Math.max(1, titleBand.clientHeight - 2 * millimetreInPixels);
+      title.style.setProperty('width', `${availableLength}px`);
+      title.style.setProperty('transform', 'none');
+      const renderedHeight = title.offsetHeight;
+      const finalRequiredWidth = Math.max(minimumBandWidth, renderedHeight + 2 * millimetreInPixels);
+      if (finalRequiredWidth > titleBand.clientWidth + 0.5) {
+        titleBand.style.width = `${Math.ceil(finalRequiredWidth)}px`;
+        titleBand.style.minWidth = `${Math.ceil(finalRequiredWidth)}px`;
+        titleBand.getBoundingClientRect();
+      }
+      const finalAvailableLength = Math.max(1, titleBand.clientHeight - 2 * millimetreInPixels);
+      title.style.setProperty('width', `${finalAvailableLength}px`);
+      const finalRenderedHeight = title.offsetHeight;
+      title.style.setProperty('left', `${titleBand.clientWidth / 2 - finalRenderedHeight / 2}px`);
+      title.style.setProperty('top', `${titleBand.clientHeight / 2 + finalAvailableLength / 2}px`);
+      title.style.setProperty('transform', 'rotate(-90deg)');
+      titleBand.dataset['widthSignature'] = [
+        title.innerHTML,
+        titleStyle.fontFamily,
+        titleStyle.fontSize,
+        titleStyle.fontWeight,
+        titleStyle.fontStyle,
+        titleStyle.letterSpacing,
+        table.offsetHeight,
+        section.offsetWidth
+      ].join('|');
     });
   }
 
@@ -292,7 +416,15 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
   get questionColumnWidth(): string {
     const maxLength = this.sections.reduce((length, section) => Math.max(length,
       ...section.questions.map(question => this.plainText(question.number).length)), 2);
-    return `calc(${maxLength}ch + 5mm)`;
+    const mediaWidth = this.sections.reduce((width, section) => Math.max(width,
+      section.uniformNumberMedia && section.questions.some(question =>
+        /<img[\s>]|inline-pictogram/i.test(question.number))
+        ? section.numberMediaWidthMm + 3 : 0), 0);
+    return `max(calc(${maxLength}ch + 5mm), ${mediaWidth}mm)`;
+  }
+
+  get hasSelectedImage(): boolean {
+    return !!this.selectedContentImage || this.selectedBlock?.type === 'image';
   }
 
   newProject(): void {
@@ -384,6 +516,7 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
   }
 
   private async saveReferenceForm(): Promise<void> {
+    const restoreView = await this.freezeVisibleInterface('Enregistrement du formulaire de référence');
     this.setSyncState('saving', 'Enregistrement du formulaire de référence…');
     try {
       await this.saveRally();
@@ -392,6 +525,8 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
       this.setSyncState('saved', 'Formulaire de référence enregistré et publié.');
     } catch (error) {
       this.handleSyncError(error, 'Impossible d’enregistrer le formulaire de référence.');
+    } finally {
+      restoreView();
     }
   }
 
@@ -467,6 +602,7 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
         this.referenceStage = referenceDesign?.content
           ? this.clone(referenceDesign.content)
           : this.makeReferenceStage();
+        this.normalizeStageDesign(this.referenceStage);
         this.referenceStage.id = this.referenceStageId;
         this.referenceStage.name = 'Formulaire de référence';
         this.referenceStage.hasFormDesign = true;
@@ -488,29 +624,36 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
   }
 
   private async saveAll(): Promise<void> {
+    const restoreView = await this.freezeVisibleInterface('Enregistrement de tout le projet');
     this.setSyncState('saving', 'Enregistrement de tout le projet…');
     try {
-      this.validateDesignerQuestions(this.project.stages);
+      this.validateStagesBeforeSave(this.project.stages);
       await this.saveRally();
       await this.persistStages(this.project.stages);
       await this.persistReferenceForm();
-      await this.publishActiveRecognition();
+      await this.publishAllRecognitions();
       this.setSyncState('saved', 'Projet enregistré dans la configuration partagée.');
     } catch (error) {
       this.handleSyncError(error, 'Impossible d’enregistrer tout le projet.');
+    } finally {
+      restoreView();
     }
   }
 
   private async saveStages(stages: DesignerStage[]): Promise<void> {
+    const restoreView = await this.freezeVisibleInterface(
+      stages.length === 1 ? 'Enregistrement de l’épreuve' : 'Enregistrement des épreuves');
     this.setSyncState('saving', stages.length === 1 ? 'Enregistrement de l’épreuve…' : 'Enregistrement des épreuves…');
     try {
-      this.validateDesignerQuestions(stages);
+      this.validateStagesBeforeSave(stages);
       await this.saveRally();
       await this.persistStages(stages);
       if (stages.some(stage => stage.id === this.activeStage.id)) { await this.publishActiveRecognition(); }
       this.setSyncState('saved', stages.length === 1 ? 'Épreuve enregistrée.' : 'Épreuves enregistrées.');
     } catch (error) {
       this.handleSyncError(error, 'Impossible d’enregistrer la configuration.');
+    } finally {
+      restoreView();
     }
   }
 
@@ -583,10 +726,13 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
 
   private stageFromSharedData(stageParam: StageParamDto, design?: FormDesignDto): DesignerStage {
     const stage = design?.content ? this.clone(design.content) : this.makeStageFromParam(stageParam);
+    this.normalizeStageDesign(stage);
     stage.id = stageParam.id || stage.id;
     stage.number = stageParam.stage;
     stage.name = stageParam.name;
-    stage.headerTitle ||= stageParam.name;
+    if (this.plainText(stage.headerTitle).trim() !== stageParam.name.trim()) {
+      stage.headerTitle = stageParam.name;
+    }
     stage.sections ||= [];
     stage.blocks ||= [];
     stage.hasFormDesign = !!design;
@@ -709,20 +855,42 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
     this.changeDetector.detectChanges();
     this.refreshPages();
     this.changeDetector.detectChanges();
-    await this.nextPaint();
+    await this.waitForOutputReady();
     try {
-      const paperElements = Array.from(document.querySelectorAll<HTMLElement>('.pages .paper'));
+      let paperElements = Array.from(document.querySelectorAll<HTMLElement>('.pages .paper'));
       if (!paperElements.length) { throw new Error('Aucune page A4 à publier.'); }
 
-      const expectedLabels = this.designerCorrectionEntries(this.activeStage)
-        .map(entry => entry.label).sort((left, right) => left.localeCompare(right, 'fr'));
-      const renderedLabels = paperElements.flatMap(paper =>
-        Array.from(paper.querySelectorAll<HTMLElement>('.correction-cells'))
-          .map(group => group.getAttribute('title') || '').filter(Boolean))
+      const expectedLabels = (this.isReferenceActive ? [] : this.designerCorrectionEntries(this.activeStage)
+        .map(entry => entry.label).filter(Boolean))
         .sort((left, right) => left.localeCompare(right, 'fr'));
-      if (expectedLabels.length !== renderedLabels.length
-        || expectedLabels.some((label, index) => label !== renderedLabels[index])) {
-        throw new Error('La prévisualisation du formulaire n’est pas à jour. La publication a été interrompue pour éviter de conserver un ancien formulaire.');
+      const renderedLabels = () => paperElements.flatMap(paper =>
+          Array.from(paper.querySelectorAll<HTMLElement>('.correction-cells'))
+            .map(group => group.getAttribute('title') || '').filter(Boolean))
+        .sort((left, right) => left.localeCompare(right, 'fr'));
+      const labelsMatch = (rendered: string[]) => expectedLabels.length === rendered.length
+        && expectedLabels.every((label, index) => label === rendered[index]);
+      let actualLabels = renderedLabels();
+      if (!labelsMatch(actualLabels)) {
+        // Lors d'une publication en série, Angular peut avoir terminé la
+        // pagination alors que quelques vues appartiennent encore au document
+        // précédent. Une reconstruction complète élimine ce faux négatif.
+        this.pages = [];
+        this.changeDetector.detectChanges();
+        this.refreshPages();
+        this.changeDetector.detectChanges();
+        await this.waitForOutputReady();
+        paperElements = Array.from(document.querySelectorAll<HTMLElement>('.pages .paper'));
+        actualLabels = renderedLabels();
+      }
+      if (!labelsMatch(actualLabels)) {
+        const missing = expectedLabels.filter(label => !actualLabels.includes(label));
+        const unexpected = actualLabels.filter(label => !expectedLabels.includes(label));
+        const details = [
+          missing.length ? `absents : ${missing.join(', ')}` : '',
+          unexpected.length ? `inattendus : ${unexpected.join(', ')}` : ''
+        ].filter(Boolean).join(' ; ');
+        throw new Error(`Le formulaire « ${this.activeStage.name} » n’est pas entièrement rendu`
+          + `${details ? ` (${details})` : ''}. La publication a été interrompue.`);
       }
       if (this.isReferenceActive) {
         await firstValueFrom(this.api.publishReferenceRecognition(
@@ -746,6 +914,60 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
     }
   }
 
+  private validateStagesBeforeSave(stages: DesignerStage[]): void {
+    for (const stage of this.project.stages) {
+      if (!Number.isInteger(stage.number) || stage.number < 1 || stage.number > 99) {
+        throw new Error(`Le numéro de l’épreuve « ${stage.name || 'sans nom'} » doit être un entier compris entre 1 et 99.`);
+      }
+      if (!stage.name.trim()) {
+        throw new Error(`L’épreuve n° ${stage.number} ne peut pas être enregistrée sans titre.`);
+      }
+    }
+
+    const stagesByNumber = new Map<number, DesignerStage[]>();
+    this.project.stages.forEach(stage => {
+      const sameNumber = stagesByNumber.get(stage.number) || [];
+      sameNumber.push(stage);
+      stagesByNumber.set(stage.number, sameNumber);
+    });
+    const duplicate = Array.from(stagesByNumber.entries())
+      .find(([, matchingStages]) => matchingStages.length > 1);
+    if (duplicate) {
+      const [number, matchingStages] = duplicate;
+      const names = matchingStages.map(stage => `« ${stage.name} »`).join(' et ');
+      throw new Error(`Le numéro d’épreuve ${number} est déjà utilisé par ${names}. Choisissez un numéro différent.`);
+    }
+
+    this.validateDesignerQuestions(stages);
+  }
+
+  private async publishAllRecognitions(): Promise<void> {
+    const previousStageId = this.activeStageId;
+    const previousSelectedBlockId = this.selectedBlockId;
+    const allStageIds = [
+      this.referenceStageId,
+      ...this.project.stages.filter(stage => stage.hasFormDesign).map(stage => stage.id)
+    ];
+    const stageIds = [
+      ...(allStageIds.includes(previousStageId) ? [previousStageId] : []),
+      ...allStageIds.filter(stageId => stageId !== previousStageId)
+    ];
+    try {
+      for (const stageId of stageIds) {
+        this.activeStageId = stageId;
+        this.selectedBlockId = '';
+        await this.publishActiveRecognition();
+      }
+    } finally {
+      this.activeStageId = previousStageId;
+      this.selectedBlockId = previousSelectedBlockId;
+      this.pages = [];
+      this.changeDetector.detectChanges();
+      this.refreshPages();
+      this.changeDetector.detectChanges();
+    }
+  }
+
   private async generateRecognitionPage(paper: HTMLElement, page: number | undefined,
       referenceOnly: boolean): Promise<GeneratedRecognitionPageDto> {
     // Les modèles historiques produits par FormScanner font 2481 × 3508 px.
@@ -753,21 +975,9 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
     // marqueurs ont la même échelle que les formulaires déjà reconnus par le back.
     const targetWidth = 2481;
     const targetHeight = 3508;
-    const captureScale = targetWidth / paper.offsetWidth;
     const paperRect = paper.getBoundingClientRect();
-    const capturedCanvas = await html2canvas(paper, {
-      scale: captureScale, backgroundColor: '#ffffff', useCORS: true, logging: false,
-      width: paper.offsetWidth, height: paper.offsetHeight
-    });
-    const canvas = document.createElement('canvas');
-    canvas.width = targetWidth;
-    canvas.height = targetHeight;
-    const context = canvas.getContext('2d');
-    if (!context) { throw new Error('Impossible de préparer le modèle FormScanner.'); }
-    context.imageSmoothingEnabled = false;
-    context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, targetWidth, targetHeight);
-    context.drawImage(capturedCanvas, 0, 0, targetWidth, targetHeight);
+    const canonicalPng = await this.capturePaperPng(paper, targetWidth, targetHeight);
+    const raster = await this.readPngRaster(canonicalPng);
     return {
       param: {
         stage: referenceOnly ? undefined : this.activeStage.number,
@@ -775,10 +985,10 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
         template: this.buildRecognitionTemplate(paper, {
           x: targetWidth / paperRect.width,
           y: targetHeight / paperRect.height
-        }, referenceOnly),
+        }, referenceOnly, raster),
         questions: {}
       },
-      modelBase64: canvas.toDataURL('image/png').split(',')[1],
+      modelBase64: canonicalPng.split(',')[1],
       modelFileType: 'image/png',
       modelFileExtension: 'png'
     };
@@ -787,7 +997,8 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
   private async capturePaperPng(paper: HTMLElement, targetWidth = 2481, targetHeight = 3508): Promise<string> {
     const capturedCanvas = await html2canvas(paper, {
       scale: targetWidth / paper.offsetWidth, backgroundColor: '#ffffff', useCORS: true, logging: false,
-      width: paper.offsetWidth, height: paper.offsetHeight
+      width: paper.offsetWidth, height: paper.offsetHeight,
+      onclone: clonedDocument => this.prepareCaptureTextOrientations(clonedDocument)
     });
     const canvas = document.createElement('canvas');
     canvas.width = targetWidth;
@@ -801,13 +1012,71 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
     return canvas.toDataURL('image/png');
   }
 
+  private async readPngRaster(dataUrl: string): Promise<ImageData> {
+    const image = new Image();
+    image.src = dataUrl;
+    await image.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) { throw new Error('Impossible de mesurer les repères du formulaire.'); }
+    context.drawImage(image, 0, 0);
+    return context.getImageData(0, 0, canvas.width, canvas.height);
+  }
+
+  private prepareCaptureTextOrientations(clonedDocument: Document): void {
+    // Les variables CSS du composant sont correctement visibles dans le
+    // navigateur, mais leur résolution par html2canvas peut varier. Figer les
+    // dimensions calculées sur chaque image garantit un rendu identique dans
+    // l'aperçu, le PDF et le PNG publié vers le front.
+    clonedDocument.querySelectorAll<HTMLElement>('.uniform-number-media').forEach(section => {
+      const width = section.style.getPropertyValue('--number-media-width').trim() || '8mm';
+      const height = section.style.getPropertyValue('--number-media-height').trim() || '8mm';
+      const preserveRatio = section.classList.contains('preserve-number-media-ratio');
+      section.querySelectorAll<HTMLElement>('.number-editor img').forEach(image => {
+        image.style.setProperty('width', width, 'important');
+        image.style.setProperty('height', height, 'important');
+        image.style.setProperty('max-width', 'none', 'important');
+        image.style.setProperty('object-fit', preserveRatio ? 'contain' : 'fill', 'important');
+      });
+    });
+
+    // html2canvas peut écarter un sous-arbre dont un ancêtre est déclaré
+    // visibility:hidden avant de résoudre la règle qui réaffiche ses images.
+    // Les styles en ligne rendent l'intention non ambiguë dans le clone :
+    // masquer les caractères de la réponse vierge, mais conserver ses images.
+    clonedDocument.querySelectorAll<HTMLElement>('.hidden-answer.keep-answer-images').forEach(answer => {
+      answer.style.setProperty('visibility', 'visible', 'important');
+      answer.querySelectorAll<HTMLElement>('img').forEach(image => {
+        image.style.setProperty('visibility', 'visible', 'important');
+        image.style.setProperty('opacity', '1', 'important');
+      });
+    });
+    clonedDocument.querySelectorAll<HTMLElement>('.text-effect-rotate-left').forEach(element => {
+      element.style.setProperty('display', 'inline-block');
+      element.style.setProperty('transform', 'rotate(-4deg)');
+      element.style.setProperty('transform-origin', 'center center');
+    });
+    clonedDocument.querySelectorAll<HTMLElement>('.text-effect-rotate-right').forEach(element => {
+      element.style.setProperty('display', 'inline-block');
+      element.style.setProperty('transform', 'rotate(4deg)');
+      element.style.setProperty('transform-origin', 'center center');
+    });
+  }
+
   private buildRecognitionTemplate(paper: HTMLElement, scale: { x: number; y: number },
-      referenceOnly: boolean): string {
+      referenceOnly: boolean, raster?: ImageData): string {
     const paperRect = paper.getBoundingClientRect();
     const point = (element: Element): { x: number; y: number } => {
       const rect = element.getBoundingClientRect();
-      return { x: ((rect.left + rect.width / 2) - paperRect.left) * scale.x,
+      const expected = { x: ((rect.left + rect.width / 2) - paperRect.left) * scale.x,
         y: ((rect.top + rect.height / 2) - paperRect.top) * scale.y };
+      return raster
+        ? this.refineRecognitionCenter(raster, expected, {
+          width: rect.width * scale.x, height: rect.height * scale.y
+        }, element.classList.contains('corner'), element.classList.contains('marked'))
+        : expected;
     };
     const cornerEntries = [
       ['TOP_LEFT', '.corner.top-left'], ['TOP_RIGHT', '.corner.top-right'],
@@ -819,6 +1088,20 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
       const values = identification.get(name) || [];
       values.push({ response: box.dataset['value'] || '', ...point(box) });
       identification.set(name, values);
+    });
+    // Les deux lignes d'une même grille partagent exactement les mêmes
+    // colonnes. Une case noircie peut masquer localement une bordure lors de
+    // l'analyse du PNG : la première ligne sert alors de référence géométrique
+    // pour les abscisses de la seconde.
+    identification.forEach((values, name) => {
+      const match = name.match(/^(.*?)(\d+)$/);
+      if (!match || match[2] === '1') { return; }
+      const reference = identification.get(`${match[1]}1`);
+      if (!reference) { return; }
+      values.forEach(value => {
+        const referenceValue = reference.find(candidate => candidate.response === value.response);
+        if (referenceValue) { value.x = referenceValue.x; }
+      });
     });
     const corrections = new Map<string, Array<{ response: string; x: number; y: number }>>();
     if (!referenceOnly) {
@@ -866,6 +1149,106 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
   }
 
+  private refineRecognitionCenter(raster: ImageData, expected: { x: number; y: number },
+      size: { width: number; height: number }, filled: boolean,
+      marked: boolean): { x: number; y: number } {
+    const dark = (x: number, y: number): boolean => {
+      if (x < 0 || y < 0 || x >= raster.width || y >= raster.height) { return false; }
+      const index = (Math.trunc(y) * raster.width + Math.trunc(x)) * 4;
+      return raster.data[index] + raster.data[index + 1] + raster.data[index + 2] < 420;
+    };
+    const halfWidth = Math.max(3, size.width / 2);
+    const halfHeight = Math.max(3, size.height / 2);
+    if (filled) {
+      const margin = 5;
+      let minX = Math.ceil(expected.x + halfWidth + margin);
+      let maxX = Math.floor(expected.x - halfWidth - margin);
+      let minY = Math.ceil(expected.y + halfHeight + margin);
+      let maxY = Math.floor(expected.y - halfHeight - margin);
+      for (let y = Math.floor(expected.y - halfHeight - margin);
+           y <= Math.ceil(expected.y + halfHeight + margin); y++) {
+        for (let x = Math.floor(expected.x - halfWidth - margin);
+             x <= Math.ceil(expected.x + halfWidth + margin); x++) {
+          if (!dark(x, y)) { continue; }
+          minX = Math.min(minX, x);
+          maxX = Math.max(maxX, x);
+          minY = Math.min(minY, y);
+          maxY = Math.max(maxY, y);
+        }
+      }
+      if (minX <= maxX && minY <= maxY) {
+        return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
+      }
+      return expected;
+    }
+
+    const strongestLine = (vertical: boolean, estimate: number, side: -1 | 1): number | undefined => {
+      const candidates: Array<{ coordinate: number; score: number }> = [];
+      for (let delta = -6; delta <= 6; delta++) {
+        const coordinate = Math.round(estimate + delta);
+        let score = 0;
+        const begin = Math.round((vertical ? expected.y - halfHeight : expected.x - halfWidth) + 2);
+        const end = Math.round((vertical ? expected.y + halfHeight : expected.x + halfWidth) - 2);
+        for (let position = begin; position <= end; position++) {
+          if (dark(vertical ? coordinate : position, vertical ? position : coordinate)) { score++; }
+        }
+        candidates.push({ coordinate, score });
+      }
+      const threshold = Math.max(3, Math.min(size.width, size.height) * .35);
+      const detected = candidates.filter(candidate => candidate.score >= threshold);
+      if (!detected.length) { return undefined; }
+      if (marked) {
+        return side < 0 ? detected[0].coordinate : detected[detected.length - 1].coordinate;
+      }
+      const maximum = Math.max(...detected.map(candidate => candidate.score));
+      return detected.filter(candidate => candidate.score >= maximum - 1)
+        .sort((leftCandidate, rightCandidate) =>
+          Math.abs(leftCandidate.coordinate - estimate) - Math.abs(rightCandidate.coordinate - estimate))[0].coordinate;
+    };
+    const left = strongestLine(true, expected.x - halfWidth, -1);
+    const right = strongestLine(true, expected.x + halfWidth, 1);
+    const top = strongestLine(false, expected.y - halfHeight, -1);
+    const bottom = strongestLine(false, expected.y + halfHeight, 1);
+    return {
+      x: left !== undefined && right !== undefined ? (left + right) / 2 : expected.x,
+      y: top !== undefined && bottom !== undefined ? (top + bottom) / 2 : expected.y
+    };
+  }
+
+  /**
+   * Attend toutes les ressources et la stabilisation de la mise en page avant
+   * de produire une sortie officielle (PDF ou modèle PNG de reconnaissance).
+   */
+  private async waitForOutputReady(): Promise<void> {
+    if (document.fonts?.ready) { await document.fonts.ready; }
+    const images = Array.from(document.querySelectorAll<HTMLImageElement>('.pages .paper img'));
+    await Promise.all(images.map(async image => {
+      if (!image.complete) {
+        await new Promise<void>(resolve => {
+          const done = () => resolve();
+          image.addEventListener('load', done, { once: true });
+          image.addEventListener('error', done, { once: true });
+        });
+      }
+      if (typeof image.decode === 'function') {
+        try { await image.decode(); } catch { /* Le rendu conservera l'état visible de l'image. */ }
+      }
+    }));
+
+    let previousGeometry = '';
+    for (let attempt = 0; attempt < 8; attempt++) {
+      await this.nextPaint();
+      const geometry = Array.from(document.querySelectorAll<HTMLElement>(
+        '.pages .paper, .section-title-band, .vertical-section-title, .rich-inline-image'))
+        .map(element => {
+          const rect = element.getBoundingClientRect();
+          return `${rect.x.toFixed(2)},${rect.y.toFixed(2)},${rect.width.toFixed(2)},${rect.height.toFixed(2)}`;
+        }).join('|');
+      if (geometry === previousGeometry) { return; }
+      previousGeometry = geometry;
+    }
+  }
+
   private setSyncState(state: FormDesignerComponent['syncState'], message: string): void {
     this.syncState = state;
     this.syncMessage = message;
@@ -873,7 +1256,12 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
 
   private handleSyncError(error: unknown, fallback: string): void {
     const status = typeof error === 'object' && error && 'status' in error ? Number(error.status) : 0;
-    if (status === 409) {
+    const serverMessage = this.serverErrorMessage(error);
+    const normalizedMessage = serverMessage.toLocaleLowerCase('fr');
+    const simultaneousModification = status === 409
+      && /(simultan|modifi|version|optimistic|recharge)/i.test(normalizedMessage)
+      && !/(duplicate|doublon|déjà utilisé|already|e11000)/i.test(normalizedMessage);
+    if (simultaneousModification) {
       this.setSyncState('error', 'La configuration a été modifiée ailleurs.');
       if (window.confirm(
         'La configuration a été modifiée dans une autre fenêtre. Recharger la version actuelle ?')) {
@@ -881,7 +1269,47 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
       }
       return;
     }
-    this.setSyncState('error', error instanceof Error && !status ? error.message : fallback);
+    if (error instanceof Error && !('status' in error)) {
+      this.setSyncState('error', error.message);
+      return;
+    }
+    if (/(duplicate|doublon|déjà utilisé|already|e11000)/i.test(normalizedMessage)
+        && /(stage|épreuve)/i.test(normalizedMessage)) {
+      this.setSyncState('error',
+        `Le numéro d’épreuve ${this.activeStage.number} est déjà utilisé. Choisissez un numéro différent.`);
+      return;
+    }
+    const reason = serverMessage || this.httpSaveFailureReason(status);
+    this.setSyncState('error', reason ? `${fallback.replace(/\.$/, '')} Motif : ${reason}` : fallback);
+  }
+
+  private serverErrorMessage(error: unknown): string {
+    if (!error || typeof error !== 'object' || !('error' in error)) { return ''; }
+    const payload = (error as { error?: unknown }).error;
+    if (typeof payload === 'string') { return payload.trim(); }
+    if (!payload || typeof payload !== 'object') { return ''; }
+    for (const key of ['message', 'detail', 'error', 'reason']) {
+      const value = (payload as Record<string, unknown>)[key];
+      if (typeof value === 'string' && value.trim()) { return value.trim(); }
+    }
+    return '';
+  }
+
+  private httpSaveFailureReason(status: number): string {
+    switch (status) {
+      case 0: return 'le service de configuration est inaccessible. Vérifiez que le back est démarré et que la connexion fonctionne.';
+      case 400: return 'certaines données sont invalides ou incomplètes.';
+      case 401: return 'votre session n’est plus authentifiée.';
+      case 403: return 'vous n’avez pas l’autorisation d’effectuer cette opération.';
+      case 404: return 'la configuration concernée n’existe plus dans le back. Rechargez les données.';
+      case 409: return 'une donnée est déjà utilisée ou la configuration a été modifiée ailleurs. Rechargez puis réessayez.';
+      case 412: return 'la configuration affichée n’est plus à jour. Rechargez-la avant de recommencer.';
+      case 413: return 'le formulaire ou l’une de ses images dépasse la taille acceptée par le serveur.';
+      case 422: return 'le serveur refuse une ou plusieurs valeurs de la configuration.';
+      default: return status >= 500
+        ? 'le serveur a rencontré une erreur interne pendant l’enregistrement.'
+        : '';
+    }
   }
 
   async importWorkbook(files: FileList | null): Promise<void> {
@@ -891,10 +1319,12 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     }
     this.importError = '';
     try {
-      const workbook = XLSX.read(await this.readFile(file), { type: 'array' });
+      const fileContent = await this.readFile(file);
+      const workbook = XLSX.read(fileContent, { type: 'array' });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, raw: false, defval: '' });
-      const sections = this.parseSections(rows, sheet);
+      const media = await this.extractWorkbookMedia(fileContent, 0);
+      const sections = this.parseSections(rows, sheet, media);
 
       if (!sections.some(section => section.questions.length)) {
         throw new Error('Aucune réponse trouvée à partir de la ligne 11.');
@@ -920,9 +1350,14 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
       id: `section-${Date.now()}`,
       title: `Section ${index}`,
       showTitle: true,
+      verticalTitle: false,
       color: '#d9eaf2',
       headerLabels: ['N°', 'Réponse', 'Corrigé'],
       headerColors: ['#d9eaf2', '#d9eaf2', '#d9eaf2'],
+      uniformNumberMedia: true,
+      numberMediaWidthMm: 8,
+      numberMediaHeightMm: 8,
+      preserveNumberMediaRatio: true,
       questions: [this.makeQuestion(1)]
     });
     this.blocks.push(this.makeBlock('section', `Section ${index}`, this.sections[this.sections.length - 1].id));
@@ -938,9 +1373,11 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     this.selectedBlockId = block.id;
     if (type === 'section') {
       const section: DesignerSection = {
-        id: this.newId('section'), title: block.title, showTitle: true, color: block.color,
+        id: this.newId('section'), title: block.title, showTitle: true, verticalTitle: false, color: block.color,
         headerLabels: ['N°', 'Réponse', 'Corrigé'],
         headerColors: [block.color, block.color, block.color],
+        uniformNumberMedia: true, numberMediaWidthMm: 8, numberMediaHeightMm: 8,
+        preserveNumberMediaRatio: true,
         questions: [this.makeQuestion(1)]
       };
       block.sectionId = section.id;
@@ -957,7 +1394,10 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     event.stopPropagation();
     if (event.button !== 0) { return; }
     this.activeTextEditingCellId = '';
+    this.richTextEditor = null;
+    this.richTextRange = null;
     const cell = { gridId, row, column, id: cellId };
+    this.focusInspectorForCell(gridId, cellId);
     if (event.shiftKey && this.cellSelectionAnchor?.gridId === gridId) {
       this.selectCellRange(this.cellSelectionAnchor, cell, event.ctrlKey || event.metaKey);
       return;
@@ -971,6 +1411,94 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     this.selectedCellIds.add(cellId);
     this.cellSelectionAnchor = cell;
     this.draggingCellSelection = true;
+  }
+
+  private focusInspectorForCell(gridId: string, cellId: string): void {
+    const sectionId = gridId.startsWith('section-') ? gridId.substring('section-'.length) : '';
+    const tableBlockId = gridId.startsWith('table-') ? gridId.substring('table-'.length) : '';
+    if (sectionId) {
+      const sectionBlock = this.allBlocks.find(block => block.sectionId === sectionId);
+      if (sectionBlock) { this.selectedBlockId = sectionBlock.id; }
+    } else if (tableBlockId && this.allBlocks.some(block => block.id === tableBlockId)) {
+      this.selectedBlockId = tableBlockId;
+    }
+
+    const questionMatch = /^question-(.+)-(?:0|1)$/.exec(cellId);
+    const questionId = questionMatch?.[1];
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const inspector = document.querySelector<HTMLElement>('.inspector');
+      if (!inspector) { return; }
+      const target = questionId
+        ? Array.from(inspector.querySelectorAll<HTMLElement>('.editable-question'))
+          .find(element => element.dataset['questionId'] === questionId)
+        : inspector.querySelector<HTMLElement>('.block-properties');
+      if (!target) { return; }
+      const stickyHeader = inspector.querySelector<HTMLElement>(':scope > h2');
+      const headerHeight = stickyHeader?.getBoundingClientRect().height || 0;
+      const targetTop = inspector.scrollTop
+        + target.getBoundingClientRect().top
+        - inspector.getBoundingClientRect().top
+        - headerHeight
+        - 8;
+      inspector.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+    }));
+  }
+
+  focusQuestionProperties(event: MouseEvent, section: DesignerSection, question: DesignerQuestion): void {
+    if (event.button !== 0) { return; }
+    event.stopPropagation();
+    this.clearCellSelection();
+    this.selectSectionBlock(section);
+    this.focusInspectorForCell(`section-${section.id}`, `question-${question.id}-1`);
+  }
+
+  updateNumberMediaDimension(dimension: 'width' | 'height', rawValue: number | string): void {
+    const section = this.selectedSection;
+    const value = Number(rawValue);
+    if (!section || !Number.isFinite(value)) { return; }
+
+    const previousWidth = Math.max(.1, section.numberMediaWidthMm || 8);
+    const previousHeight = Math.max(.1, section.numberMediaHeightMm || 8);
+    const ratio = previousWidth / previousHeight;
+    let width = dimension === 'width' ? value : previousWidth;
+    let height = dimension === 'height' ? value : previousHeight;
+    if (section.preserveNumberMediaRatio) {
+      if (dimension === 'width') { height = width / ratio; }
+      else { width = height * ratio; }
+      ({ width, height } = this.fitNumberMediaDimensions(width, height));
+    } else {
+      width = Math.max(2, Math.min(40, width));
+      height = Math.max(2, Math.min(40, height));
+    }
+    section.numberMediaWidthMm = this.roundDimension(width);
+    section.numberMediaHeightMm = this.roundDimension(height);
+    this.questionEdited();
+  }
+
+  numberMediaDimensionMax(dimension: 'width' | 'height', section: DesignerSection): number {
+    if (!section.preserveNumberMediaRatio) { return 40; }
+    const width = Math.max(.1, section.numberMediaWidthMm || 8);
+    const height = Math.max(.1, section.numberMediaHeightMm || 8);
+    const ratio = width / height;
+    return this.roundDimension(dimension === 'width'
+      ? Math.min(40, 40 * ratio)
+      : Math.min(40, 40 / ratio));
+  }
+
+  private fitNumberMediaDimensions(width: number, height: number): { width: number; height: number } {
+    const minimum = 2;
+    const maximum = 40;
+    if (width > maximum || height > maximum) {
+      const scale = Math.min(maximum / width, maximum / height);
+      width *= scale;
+      height *= scale;
+    }
+    if (width < minimum || height < minimum) {
+      const scale = Math.max(minimum / width, minimum / height);
+      width *= scale;
+      height *= scale;
+    }
+    return { width, height };
   }
 
   extendCellSelection(event: MouseEvent, gridId: string, row: number, column: number, cellId: string): void {
@@ -1112,12 +1640,31 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     if (this.richTextEditor.contains(range.commonAncestorContainer)) { this.richTextRange = range.cloneRange(); }
   }
 
+  preserveRibbonTextSelection(event: MouseEvent): void {
+    const target = event.target;
+    if (!(target instanceof Element)) { return; }
+    const button = target.closest('button');
+    if (!button) { return; }
+    const preservesTextSelection = !!button.closest(
+      '.font-group, .text-effects-group, .alignment-group, .text-color-group, .pictogram-grid'
+    ) || button.title.includes('pictogramme comme un caract');
+    if (!preservesTextSelection) { return; }
+    this.rememberRichTextSelection();
+    event.preventDefault();
+  }
+
   updateRichText(target: any, property: string, event: Event): void {
     const editor = event.currentTarget as HTMLElement;
     const selectionOffsets = this.selectionOffsetsInEditor(editor);
     target[property] = editor.innerHTML;
     this.markModified();
     if (selectionOffsets) { this.scheduleSelectionRestore(editor, selectionOffsets); }
+  }
+
+  updateStageHeaderTitle(event: Event): void {
+    this.updateRichText(this.activeStage, 'headerTitle', event);
+    this.activeStage.name = this.plainText(this.activeStage.headerTitle)
+      .replace(/\s+/g, ' ').trim();
   }
 
   updateRichTextArray(values: string[], index: number, event: Event): void {
@@ -1141,6 +1688,7 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
   handleRichTextBlur(event: FocusEvent): void {
     const editor = event.target;
     if (!(editor instanceof HTMLElement) || !editor.isContentEditable) { return; }
+    if (this.preserveRichTextInsertion) { return; }
     const next = event.relatedTarget;
     if (next instanceof Element && next.closest('.ribbon')) { return; }
     setTimeout(() => {
@@ -1402,7 +1950,78 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
   }
 
   changeFontSizeRelative(delta: -1 | 1): void {
+    const selection = window.getSelection();
+    if (selection?.rangeCount) {
+      const selectedRange = selection.getRangeAt(0);
+      const selectedNode = selectedRange.commonAncestorContainer;
+      const selectedElement = selectedNode instanceof Element ? selectedNode : selectedNode.parentElement;
+      const selectedEditor = selectedElement?.closest<HTMLElement>('[contenteditable="true"]');
+      if (selectedEditor && !selectedRange.collapsed) {
+        this.richTextEditor = selectedEditor;
+        this.richTextRange = selectedRange.cloneRange();
+        this.applyRelativeFontSizeToTextSelection(delta);
+        return;
+      }
+    }
+    if (this.richTextEditor?.isConnected && this.richTextRange
+      && !this.richTextRange.collapsed
+      && this.richTextEditor.contains(this.richTextRange.commonAncestorContainer)) {
+      this.applyRelativeFontSizeToTextSelection(delta);
+      return;
+    }
     this.applyFontCommand(delta > 0 ? 'increaseFontSize' : 'decreaseFontSize');
+  }
+
+  private applyRelativeFontSizeToTextSelection(delta: -1 | 1): void {
+    const editor = this.richTextEditor;
+    const range = this.richTextRange;
+    if (!editor || !range || range.collapsed || !editor.contains(range.commonAncestorContainer)) {
+      this.importError = 'Sélectionnez le texte ou le caractère dont vous voulez modifier la taille.';
+      return;
+    }
+    const selectionOffsets = this.captureSelectionOffsets(editor, range);
+    let textOffset = 0;
+    let selectedTextElement: HTMLElement | null = null;
+    const textNodes = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+    let textNode = textNodes.nextNode();
+    while (textNode) {
+      const nodeEnd = textOffset + (textNode.textContent?.length || 0);
+      if (selectionOffsets.start < nodeEnd && selectionOffsets.end > textOffset) {
+        selectedTextElement = textNode.parentElement;
+        break;
+      }
+      textOffset = nodeEnd;
+      textNode = textNodes.nextNode();
+    }
+    const startElement = selectedTextElement || (range.startContainer instanceof Element
+      ? range.startContainer as HTMLElement : range.startContainer.parentElement);
+    const currentPixels = Number.parseFloat(startElement ? getComputedStyle(startElement).fontSize : '');
+    const currentPoints = Number.isFinite(currentPixels) ? currentPixels * .75 : 11;
+    const availableSizes = this.fontSizes.map(Number);
+    const targetSize = delta > 0
+      ? availableSizes.find(size => size > currentPoints + .1) || availableSizes[availableSizes.length - 1]
+      : [...availableSizes].reverse().find(size => size < currentPoints - .1) || availableSizes[0];
+    const span = document.createElement('span');
+    span.className = `font-size-${targetSize}`;
+    span.append(range.extractContents());
+    span.querySelectorAll<HTMLElement>('[class*="font-size-"]').forEach(element => {
+      Array.from(element.classList)
+        .filter(className => className.startsWith('font-size-'))
+        .forEach(className => element.classList.remove(className));
+      if (!element.className) { element.removeAttribute('class'); }
+      if (!element.attributes.length) { element.replaceWith(...Array.from(element.childNodes)); }
+    });
+    range.insertNode(span);
+    editor.querySelectorAll<HTMLElement>('span[class*="font-size-"]').forEach(element => {
+      if (!element.textContent && !element.querySelector('img')) { element.remove(); }
+    });
+    range.selectNodeContents(span);
+    this.richTextRange = range.cloneRange();
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    editor.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'formatFontSize' }));
+    this.scheduleSelectionRestore(editor, selectionOffsets);
   }
 
   private fontSizeCommandValue(points: number): string {
@@ -1553,36 +2172,11 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     this.synchronizeSectionOrder();
   }
 
-  duplicateSelected(): void {
-    const block = this.selectedBlock;
-    if (!block) { return; }
-    const copy = this.clone(block);
-    copy.id = this.newId('block');
-    copy.title += ' (copie)';
-    if (block.sectionId) {
-      const sourceSection = this.sections.find(section => section.id === block.sectionId);
-      if (sourceSection) {
-        const sectionCopy = this.clone(sourceSection);
-        sectionCopy.id = this.newId('section');
-        sectionCopy.title += ' (copie)';
-        sectionCopy.questions.forEach(question => question.id = this.newId('question'));
-        this.sections.push(sectionCopy);
-        copy.sectionId = sectionCopy.id;
-        copy.title = sectionCopy.title;
-        this.refreshPages();
-      }
-    }
-    const list = this.findBlockList(block.id) || this.blocks;
-    const index = list.indexOf(block);
-    list.splice(index + 1, 0, copy);
-    this.selectedBlockId = copy.id;
-    this.synchronizeSectionOrder();
-  }
-
-  deleteSelected(): void {
-    const list = this.findBlockList(this.selectedBlockId);
+  deleteBlockFromOutline(blockId: string, event: Event): void {
+    event.stopPropagation();
+    const list = this.findBlockList(blockId);
     if (!list) { return; }
-    const index = list.findIndex(block => block.id === this.selectedBlockId);
+    const index = list.findIndex(block => block.id === blockId);
     if (index < 0) { return; }
     const [removed] = list.splice(index, 1);
     if (removed.type === 'columns') {
@@ -1592,7 +2186,9 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
       const sectionIndex = this.sections.findIndex(section => section.id === removed.sectionId);
       if (sectionIndex >= 0) { this.sections.splice(sectionIndex, 1); this.refreshPages(); }
     }
-    this.selectedBlockId = list[Math.min(index, list.length - 1)]?.id || '';
+    if (this.selectedBlockId === blockId) {
+      this.selectedBlockId = list[Math.min(index, list.length - 1)]?.id || '';
+    }
     this.synchronizeSectionOrder();
   }
 
@@ -1810,12 +2406,8 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
   async attachImage(files: FileList | null): Promise<void> {
     const file = files?.item(0);
     if (!file || !this.selectedBlock) { return; }
-    this.selectedBlock.imageUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result));
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
+    this.selectedBlock.imageUrl = await this.fileAsDataUrl(file);
+    this.questionEdited();
   }
 
   async replaceProjectLogo(files: FileList | null): Promise<void> {
@@ -1853,6 +2445,8 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
 
   async exportPdf(corrected: boolean): Promise<void> {
     if (this.pdfExporting || !this.activeStage.hasFormDesign) { return; }
+    const restoreView = await this.freezeVisibleInterface(
+      `Génération du PDF ${corrected ? 'complété' : 'vierge'}`);
     const previousPreview = this.correctedPreview;
     const previousZoom = this.zoom;
     const previousSelectedBlockId = this.selectedBlockId;
@@ -1860,25 +2454,11 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     this.pdfExporting = true;
     this.importError = '';
     try {
-      this.correctedPreview = corrected;
       this.zoom = 100;
       this.selectedBlockId = '';
       this.selectedCellIds.clear();
       if (document.activeElement instanceof HTMLElement) { document.activeElement.blur(); }
-      this.pages = [];
-      this.changeDetector.detectChanges();
-      this.refreshPages();
-      this.changeDetector.detectChanges();
-      if (document.fonts?.ready) { await document.fonts.ready; }
-      await this.nextPaint();
-
-      const papers = Array.from(document.querySelectorAll<HTMLElement>('.pages .paper'));
-      if (!papers.length) { throw new Error('Aucune page A4 à exporter.'); }
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
-      for (let index = 0; index < papers.length; index++) {
-        if (index > 0) { pdf.addPage('a4', 'portrait'); }
-        pdf.addImage(await this.capturePaperPng(papers[index]), 'PNG', 0, 0, 210, 297, undefined, 'FAST');
-      }
+      const pdf = await this.createActivePdf(corrected);
       const mode = corrected ? 'complété' : 'vierge';
       const stageName = this.pdfFileName(`${this.activeStage.number} - ${this.activeStage.name}`);
       pdf.save(`${stageName} - Formulaire ${mode}.pdf`);
@@ -1892,7 +2472,215 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
       this.refreshPages();
       this.changeDetector.detectChanges();
       this.pdfExporting = false;
+      restoreView();
     }
+  }
+
+  async exportAllStagePdfs(): Promise<void> {
+    if (this.pdfExporting) { return; }
+    const stages = this.project.stages.filter(stage => stage.hasFormDesign)
+      .sort((left, right) => left.number - right.number);
+    if (!stages.length) {
+      this.importError = 'Aucune épreuve du rallye ne possède de formulaire à télécharger.';
+      return;
+    }
+    const restoreView = await this.freezeVisibleInterface('Génération de tous les formulaires du rallye');
+    const previousStageId = this.activeStageId;
+    const previousPreview = this.correctedPreview;
+    const previousZoom = this.zoom;
+    const previousSelectedBlockId = this.selectedBlockId;
+    const previousSelectedCellIds = [...this.selectedCellIds];
+    this.pdfExporting = true;
+    this.importError = '';
+    try {
+      const archive = new JSZip();
+      this.zoom = 100;
+      this.selectedBlockId = '';
+      this.selectedCellIds.clear();
+      if (document.activeElement instanceof HTMLElement) { document.activeElement.blur(); }
+      for (const stage of stages) {
+        this.activeStageId = stage.id;
+        this.changeDetector.detectChanges();
+        const stageName = this.pdfFileName(`${stage.number} - ${stage.name}`);
+        for (const corrected of [false, true]) {
+          const pdf = await this.createActivePdf(corrected);
+          const mode = corrected ? 'complété' : 'vierge';
+          archive.file(`${stageName} - Formulaire ${mode}.pdf`, pdf.output('arraybuffer'));
+        }
+      }
+      const content = await archive.generateAsync({
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 6 }
+      });
+      this.downloadBlob(content,
+        `${this.pdfFileName(this.project.rallyTitle || 'Rallye')} - Tous les formulaires.zip`);
+    } catch (error) {
+      this.importError = error instanceof Error
+        ? `Impossible de télécharger tous les formulaires. Motif : ${error.message}`
+        : 'Impossible de télécharger tous les formulaires.';
+    } finally {
+      this.activeStageId = previousStageId;
+      this.correctedPreview = previousPreview;
+      this.zoom = previousZoom;
+      this.selectedBlockId = previousSelectedBlockId;
+      this.selectedCellIds.clear();
+      previousSelectedCellIds.forEach(id => this.selectedCellIds.add(id));
+      this.pages = [];
+      this.changeDetector.detectChanges();
+      this.refreshPages();
+      this.changeDetector.detectChanges();
+      this.pdfExporting = false;
+      restoreView();
+    }
+  }
+
+  private async createActivePdf(corrected: boolean): Promise<jsPDF> {
+    this.correctedPreview = corrected;
+    this.pages = [];
+    this.changeDetector.detectChanges();
+    this.refreshPages();
+    this.changeDetector.detectChanges();
+    await this.waitForOutputReady();
+
+    const papers = Array.from(document.querySelectorAll<HTMLElement>('.pages .paper'));
+    if (!papers.length) { throw new Error(`Aucune page A4 pour l’épreuve « ${this.activeStage.name} ».`); }
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+    for (let index = 0; index < papers.length; index++) {
+      if (index > 0) { pdf.addPage('a4', 'portrait'); }
+      pdf.addImage(await this.capturePaperPng(papers[index]), 'PNG', 0, 0, 210, 297, undefined, 'FAST');
+    }
+    return pdf;
+  }
+
+  private downloadBlob(content: Blob, fileName: string): void {
+    const url = URL.createObjectURL(content);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
+  /**
+   * La publication reconstruit temporairement les pages A4 à 100 %, parfois
+   * pour plusieurs épreuves. Cette capture fige l'interface visible pendant ce
+   * rendu interne, puis restitue exactement les positions de défilement.
+   */
+  private async freezeVisibleInterface(actionLabel: string): Promise<() => void> {
+    const windowScrollX = window.scrollX;
+    const windowScrollY = window.scrollY;
+    const scrollPositions = ['.workspace', '.document-outline', '.inspector']
+      .map(selector => document.querySelector<HTMLElement>(selector))
+      .map(element => ({
+        element,
+        left: element?.scrollLeft || 0,
+        top: element?.scrollTop || 0
+      }));
+    const focusedElement = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : undefined;
+
+    let frozenView: HTMLDivElement | undefined;
+    try {
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      const canvas = await html2canvas(document.body, {
+        backgroundColor: '#ffffff',
+        logging: false,
+        useCORS: true,
+        x: windowScrollX,
+        y: windowScrollY,
+        width: window.innerWidth,
+        height: window.innerHeight,
+        scrollX: 0,
+        scrollY: 0
+      });
+      frozenView = document.createElement('div');
+      const frozenImage = document.createElement('img');
+      frozenImage.src = canvas.toDataURL('image/png');
+      frozenImage.alt = '';
+      frozenImage.setAttribute('aria-hidden', 'true');
+      Object.assign(frozenImage.style, {
+        position: 'absolute',
+        inset: '0',
+        width: '100%',
+        height: '100%',
+        objectFit: 'fill'
+      });
+
+      const progressMessage = document.createElement('div');
+      progressMessage.setAttribute('role', 'status');
+      progressMessage.setAttribute('aria-live', 'polite');
+      progressMessage.innerHTML = `
+        <span class="operation-progress-spinner" aria-hidden="true"></span>
+        <span><strong>${this.escapeHtml(actionLabel)} en cours…</strong>
+        <small>Le traitement peut prendre quelques instants. Merci de patienter.</small></span>`;
+      Object.assign(progressMessage.style, {
+        position: 'absolute',
+        left: '50%',
+        top: '50%',
+        transform: 'translate(-50%, -50%)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '14px',
+        minWidth: '360px',
+        maxWidth: 'min(520px, calc(100vw - 40px))',
+        padding: '18px 22px',
+        color: '#212529',
+        background: '#ffffff',
+        border: '1px solid #a66f00',
+        borderLeft: '5px solid #a66f00',
+        borderRadius: '6px',
+        boxShadow: '0 8px 28px rgba(0, 0, 0, .28)',
+        fontFamily: 'Arial, sans-serif'
+      });
+      const spinner = progressMessage.querySelector<HTMLElement>('.operation-progress-spinner');
+      if (spinner) {
+        Object.assign(spinner.style, {
+          flex: '0 0 28px',
+          width: '28px',
+          height: '28px',
+          border: '4px solid #e2e3e5',
+          borderTopColor: '#5b8734',
+          borderRadius: '50%'
+        });
+        spinner.animate(
+          [{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }],
+          { duration: 850, iterations: Infinity }
+        );
+      }
+      const messageText = progressMessage.querySelector<HTMLElement>('span:last-child');
+      const messageTitle = progressMessage.querySelector<HTMLElement>('strong');
+      const messageDetail = progressMessage.querySelector<HTMLElement>('small');
+      if (messageText) { Object.assign(messageText.style, { display: 'grid', gap: '4px' }); }
+      if (messageTitle) { Object.assign(messageTitle.style, { fontSize: '15px', color: '#416326' }); }
+      if (messageDetail) { Object.assign(messageDetail.style, { display: 'block', fontSize: '12px', color: '#5c636a' }); }
+      frozenView.append(frozenImage, progressMessage);
+      Object.assign(frozenView.style, {
+        position: 'fixed',
+        inset: '0',
+        width: '100vw',
+        height: '100vh',
+        zIndex: '2147483647',
+        pointerEvents: 'auto',
+        userSelect: 'none'
+      });
+      document.body.appendChild(frozenView);
+    } catch {
+      // Une image externe non compatible CORS ne doit jamais empêcher
+      // l'enregistrement : la restauration des défilements reste assurée.
+    }
+
+    return () => {
+      scrollPositions.forEach(position => {
+        if (!position.element) { return; }
+        position.element.scrollLeft = position.left;
+        position.element.scrollTop = position.top;
+      });
+      window.scrollTo(windowScrollX, windowScrollY);
+      frozenView?.remove();
+      if (focusedElement?.isConnected) { focusedElement.focus({ preventScroll: true }); }
+    };
   }
 
   private pdfFileName(value: string): string {
@@ -1924,7 +2712,7 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     this.questionEdited();
   }
 
-  private parseSections(rows: any[][], sheet: XLSX.WorkSheet): DesignerSection[] {
+  private parseSections(rows: any[][], sheet: XLSX.WorkSheet, media: ImportedCellMedia = new Map()): DesignerSection[] {
     const sectionHeader = String(rows[8]?.[0] ?? '').trim().toLocaleLowerCase('fr');
     if (sectionHeader !== 'section (optionnelle)') {
       throw new Error('Format invalide : la cellule A9 doit contenir « Section (optionnelle) ».');
@@ -1939,7 +2727,9 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     let anonymousIndex = 0;
     for (let rowIndex = 10; rowIndex < rows.length;) {
       const row = rows[rowIndex] || [];
-      if (![1, 2, 3, 4, 5].some(column => String(row[column] ?? '').trim())) {
+      // La colonne E contient une formule sur toutes les lignes du modèle. Elle
+      // ne suffit donc pas, à elle seule, à matérialiser une question.
+      if (![1, 2, 3, 5].some(column => String(row[column] ?? '').trim())) {
         current = null;
         currentKey = '';
         rowIndex++;
@@ -1956,9 +2746,14 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
           id: `section-${sections.length + 1}`,
           title: sectionName || `Section sans titre ${anonymousIndex}`,
           showTitle: !!sectionName,
+          verticalTitle: false,
           color: this.sectionColor(sectionName),
           headerLabels: ['N°', 'Réponse', 'Corrigé'],
           headerColors: [this.sectionColor(sectionName), this.sectionColor(sectionName), this.sectionColor(sectionName)],
+          uniformNumberMedia: true,
+          numberMediaWidthMm: 8,
+          numberMediaHeightMm: 8,
+          preserveNumberMediaRatio: true,
           questions: []
         };
         sections.push(current);
@@ -1966,7 +2761,7 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
       }
       const responseMerge = responseMerges.find(range => range.s.r === rowIndex);
       const groupEnd = responseMerge ? responseMerge.e.r : rowIndex;
-      current.questions.push(this.toQuestion(rows, rowIndex, groupEnd, questionIndex++));
+      current.questions.push(this.toQuestion(rows, rowIndex, groupEnd, questionIndex++, media));
       rowIndex = groupEnd + 1;
     }
     const labels = sections.flatMap(section => section.questions.flatMap(question =>
@@ -1976,10 +2771,13 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     return sections;
   }
 
-  private toQuestion(rows: any[][], start: number, end: number, index: number): DesignerQuestion {
+  private toQuestion(rows: any[][], start: number, end: number, index: number,
+      media: ImportedCellMedia): DesignerQuestion {
     const row = rows[start] || [];
-    const number = String(row[1] ?? '').trim();
-    const answer = String(row[2] ?? '').trim();
+    const number = this.importedNumberContent(String(row[1] ?? '').trim(), media.get(`${start},1`) || []);
+    const responseMedia = Array.from({ length: end - start + 1 }, (_, offset) =>
+      media.get(`${start + offset},2`) || []).flat();
+    const answer = this.importedRichContent(String(row[2] ?? '').trim(), responseMedia);
     const corrections = [] as DesignerCorrection[];
     for (let rowIndex = start; rowIndex <= end; rowIndex++) {
       const correctionRow = rows[rowIndex] || [];
@@ -1994,6 +2792,7 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
       number,
       answer,
       visibleInBlankForm: false,
+      imagesVisibleInBlankForm: false,
       numberColor: '#ffffff',
       answerColor: '#ffffff',
       corrections
@@ -2117,6 +2916,8 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
       fontWeight: 'normal', fontStyle: 'normal',
       textDecoration: 'none', numbering: 'numeric', prefix: '', sectionId,
       imageUsage: 'illustration',
+      imageWidthMm: 80, imageHeightMm: 50, preserveImageRatio: true,
+      imageFit: 'contain', imageAlignment: 'center',
       tableColumns: type === 'custom-table'
         ? [1, 2, 3].map(index => ({
           id: this.newId('column'), title: '', width: index === 3 ? 33.334 : 33.333,
@@ -2138,6 +2939,7 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
   private makeQuestion(index: number): DesignerQuestion {
     return {
       id: this.newId('question'), number: String(index), answer: '', visibleInBlankForm: false,
+      imagesVisibleInBlankForm: false,
       numberColor: '#ffffff', answerColor: '#ffffff',
       corrections: [this.makeCorrection()]
     };
@@ -2145,6 +2947,717 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
 
   private makeCorrection(): DesignerCorrection {
     return { id: this.newId('correction'), label: '', points: 0 };
+  }
+
+  applyTextEffect(effect: 'outline' | 'shadow' | 'wide' | 'rotate-left' | 'rotate-right'): void {
+    const className = `text-effect-${effect}`;
+    if (!this.activeTextEditingCellId && this.selectedCellIds.size) {
+      this.transformSelectedCellContents(html => this.toggleHtmlClass(html, className));
+      return;
+    }
+    if (!this.richTextEditor || !this.richTextRange) {
+      this.importError = 'Sélectionnez du texte ou des cellules.';
+      return;
+    }
+    const editor = this.richTextEditor;
+    const selectionOffsets = this.captureSelectionOffsets(editor, this.richTextRange);
+    const node = this.richTextRange.commonAncestorContainer;
+    const existing = (node instanceof Element ? node : node.parentElement)
+      ?.closest<HTMLElement>(`.${className}`);
+    if (existing && this.richTextEditor.contains(existing)) {
+      existing.replaceWith(...Array.from(existing.childNodes));
+    } else {
+      const span = document.createElement('span');
+      span.className = className;
+      span.append(this.richTextRange.extractContents());
+      this.richTextRange.insertNode(span);
+      this.richTextRange.selectNodeContents(span);
+    }
+    editor.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'formatSetBlockTextDirection' }));
+    this.scheduleSelectionRestore(editor, selectionOffsets);
+  }
+
+  isTextEffectActive(effect: 'outline' | 'shadow' | 'wide' | 'rotate-left' | 'rotate-right'): boolean {
+    const className = `text-effect-${effect}`;
+    if (this.activeTextEditingCellId && this.richTextRange) {
+      const node = this.richTextRange.commonAncestorContainer;
+      return !!(node instanceof Element ? node : node.parentElement)?.closest(`.${className}`);
+    }
+    const contents = this.selectedCellContents();
+    return contents.length > 0 && contents.every(html => {
+      const container = document.createElement('div');
+      container.innerHTML = html;
+      return container.childElementCount === 1 && container.firstElementChild?.classList.contains(className);
+    });
+  }
+
+  private transformSelectedCellContents(transform: (html: string) => string): void {
+    for (const section of this.sections) {
+      if (this.selectedCellIds.has(`section-title-${section.id}`)) { section.title = transform(section.title); }
+      section.headerLabels = section.headerLabels.map((value, index) =>
+        this.selectedCellIds.has(`section-header-${section.id}-${index}`) ? transform(value) : value);
+      section.questions.forEach(question => {
+        if (this.selectedCellIds.has(`question-${question.id}-0`)) { question.number = transform(question.number); }
+        if (this.selectedCellIds.has(`question-${question.id}-1`)) { question.answer = transform(question.answer); }
+      });
+    }
+    this.allBlocks.filter(block => block.type === 'custom-table').forEach(block => {
+      block.tableColumns.forEach(column => {
+        if (this.selectedCellIds.has(`table-header-${column.id}`)) { column.title = transform(column.title); }
+      });
+      block.tableRows.forEach(row => {
+        row.cells = row.cells.map((value, index) =>
+          this.selectedCellIds.has(`table-cell-${row.id}-${index}`) ? transform(value) : value);
+      });
+    });
+    this.questionEdited();
+  }
+
+  private toggleHtmlClass(html: string, className: string): string {
+    const container = document.createElement('div');
+    container.innerHTML = html;
+    const wrapper = container.firstElementChild;
+    if (wrapper?.classList.contains(className) && container.childElementCount === 1) {
+      wrapper.replaceWith(...Array.from(wrapper.childNodes));
+      return container.innerHTML;
+    }
+    return `<span class="${className}">${html}</span>`;
+  }
+
+  handleDesignerClick(event: MouseEvent): void {
+    const target = event.target;
+    if (!(target instanceof Element)) { return; }
+    const image = target.closest<HTMLImageElement>('.rich-text-editor img');
+    if (image) {
+      this.selectContentImage(image);
+      this.ribbonTab = 'insert';
+      const pixelsPerMm = 96 / 25.4;
+      const imageStyle = getComputedStyle(image);
+      this.selectedImageWidthMm = this.roundDimension(
+        (Number.parseFloat(imageStyle.width) || Number(image.getAttribute('width')) || 1) / pixelsPerMm);
+      this.selectedImageHeightMm = this.roundDimension(
+        (Number.parseFloat(imageStyle.height) || Number(image.getAttribute('height')) || 1) / pixelsPerMm);
+      this.preserveSelectedImageRatio = !image.hasAttribute('height');
+      this.selectedImageFit = image.classList.contains('media-fit-cover') ? 'cover' : 'contain';
+      this.richTextEditor = image.closest<HTMLElement>('.rich-text-editor');
+      return;
+    }
+    const blockImage = target.closest<HTMLImageElement>('.form-image img');
+    if (blockImage && this.selectedBlock?.type === 'image') {
+      const block = this.selectedBlock;
+      this.selectedContentImage = null;
+      this.selectedImageWidthMm = block.imageWidthMm;
+      this.selectedImageHeightMm = block.imageHeightMm;
+      this.preserveSelectedImageRatio = block.preserveImageRatio;
+      this.selectedImageFit = block.imageFit;
+      this.showImageSelectionOverlay(blockImage);
+      this.ribbonTab = 'insert';
+      return;
+    }
+    if (!target.closest('.media-group') && !target.closest('.image-selection-overlay')) {
+      this.clearSelectedContentImage();
+    }
+  }
+
+  applySelectedImageSize(): void {
+    const block = this.selectedBlock?.type === 'image' ? this.selectedBlock : undefined;
+    if (!this.selectedContentImage && block) {
+      block.imageWidthMm = this.selectedImageWidthMm;
+      block.imageHeightMm = this.selectedImageHeightMm;
+      block.preserveImageRatio = this.preserveSelectedImageRatio;
+      this.questionEdited();
+      setTimeout(() => this.refreshSelectedImageOverlay());
+      return;
+    }
+    const image = this.currentContentImage();
+    if (!image) { return; }
+    const uniformSection = this.uniformNumberMediaSection(image);
+    if (uniformSection) {
+      uniformSection.numberMediaWidthMm = this.selectedImageWidthMm;
+      uniformSection.numberMediaHeightMm = this.selectedImageHeightMm;
+      uniformSection.preserveNumberMediaRatio = this.preserveSelectedImageRatio;
+      this.questionEdited();
+      setTimeout(() => this.restoreSelectedContentImage());
+      return;
+    }
+    const pixelsPerMm = 96 / 25.4;
+    image.setAttribute('width', String(Math.max(1, Math.round(this.selectedImageWidthMm * pixelsPerMm))));
+    if (this.preserveSelectedImageRatio) {
+      image.removeAttribute('height');
+    } else {
+      image.setAttribute('height', String(Math.max(1, Math.round(this.selectedImageHeightMm * pixelsPerMm))));
+    }
+    this.commitSelectedImageChange();
+  }
+
+  updateSelectedImageDimension(dimension: 'width' | 'height', rawValue: number | string): void {
+    const value = Number(rawValue);
+    if (!Number.isFinite(value) || !this.hasSelectedImage) { return; }
+    const previousWidth = Math.max(.1, this.selectedImageWidthMm || 20);
+    const previousHeight = Math.max(.1, this.selectedImageHeightMm || 20);
+    const ratio = previousWidth / previousHeight;
+    const limits = this.selectedImageDimensionLimits();
+    let width = dimension === 'width' ? value : previousWidth;
+    let height = dimension === 'height' ? value : previousHeight;
+    if (this.preserveSelectedImageRatio) {
+      if (dimension === 'width') { height = width / ratio; }
+      else { width = height * ratio; }
+      ({ width, height } = this.fitDimensions(width, height, limits.width, limits.height));
+    } else {
+      width = Math.max(2, Math.min(limits.width, width));
+      height = Math.max(2, Math.min(limits.height, height));
+    }
+    this.selectedImageWidthMm = this.roundDimension(width);
+    this.selectedImageHeightMm = this.roundDimension(height);
+    this.applySelectedImageSize();
+  }
+
+  selectedImageDimensionMax(dimension: 'width' | 'height'): number {
+    const limits = this.selectedImageDimensionLimits();
+    if (!this.preserveSelectedImageRatio) {
+      return dimension === 'width' ? limits.width : limits.height;
+    }
+    const width = Math.max(.1, this.selectedImageWidthMm || 20);
+    const height = Math.max(.1, this.selectedImageHeightMm || 20);
+    const ratio = width / height;
+    return this.roundDimension(dimension === 'width'
+      ? Math.min(limits.width, limits.height * ratio)
+      : Math.min(limits.height, limits.width / ratio));
+  }
+
+  private selectedImageDimensionLimits(): { width: number; height: number } {
+    const image = this.currentContentImage();
+    return image && this.uniformNumberMediaSection(image)
+      ? { width: 40, height: 40 }
+      : { width: 180, height: 240 };
+  }
+
+  private fitDimensions(width: number, height: number, maximumWidth: number,
+      maximumHeight: number): { width: number; height: number } {
+    if (width > maximumWidth || height > maximumHeight) {
+      const scale = Math.min(maximumWidth / width, maximumHeight / height);
+      width *= scale;
+      height *= scale;
+    }
+    if (width < 2 || height < 2) {
+      const scale = Math.max(2 / width, 2 / height);
+      width *= scale;
+      height *= scale;
+    }
+    return { width, height };
+  }
+
+  alignSelectedImage(alignment: 'inline' | 'left' | 'center' | 'right'): void {
+    const block = this.selectedBlock?.type === 'image' ? this.selectedBlock : undefined;
+    if (!this.selectedContentImage && block) {
+      block.imageAlignment = alignment === 'inline' ? 'center' : alignment;
+      this.questionEdited();
+      return;
+    }
+    const image = this.currentContentImage();
+    if (!image) { return; }
+    image.classList.remove('media-inline', 'media-left', 'media-center', 'media-right');
+    image.classList.add(`media-${alignment}`);
+    this.commitSelectedImageChange();
+  }
+
+  setSelectedImageFit(fit: 'contain' | 'cover'): void {
+    const block = this.selectedBlock?.type === 'image' ? this.selectedBlock : undefined;
+    if (!this.selectedContentImage && block) {
+      this.selectedImageFit = fit;
+      block.imageFit = fit;
+      this.questionEdited();
+      return;
+    }
+    const image = this.currentContentImage();
+    if (!image) { return; }
+    this.selectedImageFit = fit;
+    image.classList.toggle('media-fit-cover', fit === 'cover');
+    image.classList.toggle('media-fit-contain', fit === 'contain');
+    this.commitSelectedImageChange();
+  }
+
+  removeSelectedContentImage(): void {
+    const block = this.selectedBlock?.type === 'image' ? this.selectedBlock : undefined;
+    if (!this.selectedContentImage && block) {
+      block.imageUrl = undefined;
+      this.questionEdited();
+      this.imageSelectionOverlay.visible = false;
+      return;
+    }
+    const image = this.currentContentImage();
+    if (!image) { return; }
+    const editor = image.closest<HTMLElement>('.rich-text-editor');
+    image.remove();
+    this.clearSelectedContentImage();
+    editor?.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'deleteContent' }));
+    this.questionEdited();
+  }
+
+  private commitSelectedImageChange(): void {
+    const editor = this.currentContentImage()?.closest<HTMLElement>('.rich-text-editor');
+    editor?.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'formatSetBlockTextDirection' }));
+    this.questionEdited();
+    setTimeout(() => this.restoreSelectedContentImage());
+  }
+
+  async replaceSelectedImage(files: FileList | null): Promise<void> {
+    const file = files?.item(0);
+    if (!file || !file.type.startsWith('image/')) {
+      if (file) { this.importError = 'Le fichier sélectionné doit être une image.'; }
+      return;
+    }
+    const source = await this.fileAsDataUrl(file);
+    const block = this.selectedBlock?.type === 'image' ? this.selectedBlock : undefined;
+    if (!this.currentContentImage() && block) {
+      block.imageUrl = source;
+      this.questionEdited();
+      setTimeout(() => this.refreshSelectedImageOverlay());
+      return;
+    }
+    const image = this.currentContentImage();
+    if (!image) { return; }
+    image.src = source;
+    image.alt = file.name;
+    this.commitSelectedImageChange();
+  }
+
+  startSelectedImageResize(event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const image = this.currentContentImage();
+    const block = this.selectedBlock?.type === 'image' ? this.selectedBlock : undefined;
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const startWidth = this.selectedImageWidthMm;
+    const startHeight = this.selectedImageHeightMm;
+    const ratio = Math.max(.01, startWidth / Math.max(.01, startHeight));
+    const pixelsPerMm = 96 / 25.4;
+    const move = (moveEvent: MouseEvent) => {
+      const width = Math.max(2, Math.min(180, startWidth + (moveEvent.clientX - startX) / pixelsPerMm));
+      const freeHeight = Math.max(2, Math.min(240, startHeight + (moveEvent.clientY - startY) / pixelsPerMm));
+      this.selectedImageWidthMm = this.roundDimension(width);
+      this.selectedImageHeightMm = this.roundDimension(this.preserveSelectedImageRatio ? width / ratio : freeHeight);
+      if (image) {
+        const uniformSection = this.uniformNumberMediaSection(image);
+        if (uniformSection) {
+          uniformSection.numberMediaWidthMm = this.selectedImageWidthMm;
+          uniformSection.numberMediaHeightMm = this.selectedImageHeightMm;
+          uniformSection.preserveNumberMediaRatio = this.preserveSelectedImageRatio;
+        }
+        image.setAttribute('width', String(Math.round(this.selectedImageWidthMm * pixelsPerMm)));
+        if (this.preserveSelectedImageRatio) {
+          image.removeAttribute('height');
+        } else {
+          image.setAttribute('height', String(Math.round(this.selectedImageHeightMm * pixelsPerMm)));
+        }
+        this.showImageSelectionOverlay(image);
+      } else if (block) {
+        block.imageWidthMm = this.selectedImageWidthMm;
+        block.imageHeightMm = this.selectedImageHeightMm;
+        block.preserveImageRatio = this.preserveSelectedImageRatio;
+      }
+    };
+    const end = () => {
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', end);
+      this.applySelectedImageSize();
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', end);
+  }
+
+  handleImageDragStart(event: DragEvent): void {
+    const target = event.target;
+    const image = target instanceof Element ? target.closest<HTMLImageElement>('.rich-text-editor img') : null;
+    if (!image) { return; }
+    this.selectContentImage(image);
+    this.draggedContentImage = image;
+    this.draggedImageSourceEditor = image.closest<HTMLElement>('.rich-text-editor');
+    event.dataTransfer?.setData('text/plain', this.selectedContentEditorKey || 'designer-image');
+    if (event.dataTransfer) { event.dataTransfer.effectAllowed = 'move'; }
+  }
+
+  handleImageDragOver(event: DragEvent): void {
+    const target = event.target;
+    if (this.draggedContentImage && target instanceof Element && target.closest('.rich-text-editor')) {
+      event.preventDefault();
+      if (event.dataTransfer) { event.dataTransfer.dropEffect = 'move'; }
+    }
+  }
+
+  handleImageDrop(event: DragEvent): void {
+    const target = event.target;
+    const editor = target instanceof Element ? target.closest<HTMLElement>('.rich-text-editor') : null;
+    const image = this.draggedContentImage;
+    if (!editor || !image) { return; }
+    event.preventDefault();
+    const documentWithCaret = document as Document & {
+      caretRangeFromPoint?: (x: number, y: number) => Range | null;
+    };
+    const range = documentWithCaret.caretRangeFromPoint?.(event.clientX, event.clientY);
+    if (!range || !editor.contains(range.commonAncestorContainer)) { return; }
+    const sourceEditor = this.draggedImageSourceEditor;
+    range.insertNode(image);
+    sourceEditor?.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'deleteByDrag' }));
+    if (editor !== sourceEditor) {
+      editor.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertFromDrop' }));
+    }
+    this.richTextEditor = editor;
+    this.draggedContentImage = null;
+    this.draggedImageSourceEditor = null;
+    this.questionEdited();
+    setTimeout(() => this.restoreSelectedContentImage());
+  }
+
+  private selectContentImage(image: HTMLImageElement): void {
+    const section = image.closest<HTMLElement>('.question-section');
+    if (section?.dataset['sectionId']) {
+      this.selectedContentEditorKey = `section:${section.dataset['sectionId']}`;
+      this.selectedContentImageIndex = Array.from(section.querySelectorAll('img')).indexOf(image);
+    } else if (image.closest('.form-heading')) {
+      this.selectedContentEditorKey = 'stage-title';
+      this.selectedContentImageIndex = Array.from(
+        image.closest('.form-heading')?.querySelectorAll('img') || []).indexOf(image);
+    } else {
+      this.selectedContentEditorKey = `block:${this.selectedBlockId}`;
+      const block = image.closest<HTMLElement>('.designer-block') || image.closest<HTMLElement>('.inspector');
+      this.selectedContentImageIndex = block ? Array.from(block.querySelectorAll('img')).indexOf(image) : 0;
+    }
+    this.selectedContentImage = image;
+    image.draggable = true;
+    this.showImageSelectionOverlay(image);
+  }
+
+  private currentContentImage(): HTMLImageElement | null {
+    if (this.selectedContentImage?.isConnected) { return this.selectedContentImage; }
+    if (!this.selectedContentEditorKey) { return null; }
+    let container: HTMLElement | null = null;
+    if (this.selectedContentEditorKey.startsWith('section:')) {
+      const sectionId = this.selectedContentEditorKey.slice('section:'.length);
+      container = document.querySelector<HTMLElement>(`.paper .question-section[data-section-id="${sectionId}"]`);
+    } else if (this.selectedContentEditorKey === 'stage-title') {
+      container = document.querySelector<HTMLElement>('.paper .form-heading');
+    } else {
+      container = document.querySelector<HTMLElement>('.designer-block.selected');
+    }
+    return container?.querySelectorAll<HTMLImageElement>('img')[this.selectedContentImageIndex] || null;
+  }
+
+  private restoreSelectedContentImage(): void {
+    const image = this.currentContentImage();
+    this.selectedContentImage = image;
+    if (image) {
+      image.draggable = true;
+      this.showImageSelectionOverlay(image);
+    } else {
+      this.imageSelectionOverlay.visible = false;
+    }
+  }
+
+  private clearSelectedContentImage(): void {
+    this.selectedContentImage = null;
+    this.selectedContentEditorKey = '';
+    this.selectedContentImageIndex = 0;
+    if (this.selectedBlock?.type !== 'image') { this.imageSelectionOverlay.visible = false; }
+  }
+
+  private refreshSelectedImageOverlay(): void {
+    const image = this.currentContentImage()
+      || (this.selectedBlock?.type === 'image'
+        ? document.querySelector<HTMLImageElement>(`.designer-block.selected .form-image img`) : null);
+    if (image) { this.showImageSelectionOverlay(image); }
+  }
+
+  private showImageSelectionOverlay(image: HTMLImageElement): void {
+    const rect = image.getBoundingClientRect();
+    this.imageSelectionOverlay = {
+      visible: rect.width > 0 && rect.height > 0,
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height
+    };
+  }
+
+  private uniformNumberMediaSection(image: HTMLImageElement): DesignerSection | undefined {
+    if (!image.closest('.number-editor')) { return undefined; }
+    const sectionId = image.closest<HTMLElement>('.question-section')?.dataset['sectionId'];
+    return sectionId ? this.sections.find(section => section.id === sectionId && section.uniformNumberMedia) : undefined;
+  }
+
+  private roundDimension(value: number): number {
+    return Math.round(value * 10) / 10;
+  }
+
+  downloadExcelTemplate(): void {
+    const link = document.createElement('a');
+    link.href = 'assets/Modele-Reponses-et-bareme.xlsx';
+    link.download = 'Modèle - Réponses et barème - Designer.xlsx';
+    link.click();
+  }
+
+  private toBoolean(value: unknown, fallback: boolean): boolean {
+    const normalized = String(value ?? '').trim().toLocaleLowerCase('fr-FR');
+    if (!normalized) { return fallback; }
+    if (['oui', 'o', 'yes', 'y', 'vrai', 'true', '1'].includes(normalized)) { return true; }
+    if (['non', 'n', 'no', 'faux', 'false', '0'].includes(normalized)) { return false; }
+    return fallback;
+  }
+
+  private importedRichContent(text: string, images: string[]): string {
+    const escaped = this.escapeHtml(text).replace(/\r?\n/g, '<br>');
+    return escaped + images.map(source =>
+      `<img class="media-inline" width="76" src="${source}" alt="">`).join('');
+  }
+
+  private importedNumberContent(text: string, images: string[]): string {
+    const content = this.importedRichContent(text, images);
+    const isShortSymbol = !!text && text.length <= 4 && !/^[\p{L}\p{N}]+$/u.test(text);
+    return isShortSymbol && !images.length ? `<span class="inline-pictogram">${content}</span>` : content;
+  }
+
+  private escapeHtml(value: string): string {
+    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+  }
+
+  private async extractWorkbookMedia(content: ArrayBuffer, sheetIndex: number): Promise<ImportedCellMedia> {
+    const result: ImportedCellMedia = new Map();
+    const zip = await JSZip.loadAsync(content);
+    const sheetNumber = sheetIndex + 1;
+    const sheetRelationsPath = `xl/worksheets/_rels/sheet${sheetNumber}.xml.rels`;
+    const sheetRelations = zip.file(sheetRelationsPath);
+    if (!sheetRelations) { return result; }
+    const relationsDocument = new DOMParser().parseFromString(await sheetRelations.async('text'), 'application/xml');
+    const drawingRelation = Array.from(relationsDocument.getElementsByTagNameNS('*', 'Relationship'))
+      .find(relation => String(relation.getAttribute('Type')).endsWith('/drawing'));
+    const drawingTarget = drawingRelation?.getAttribute('Target');
+    if (!drawingTarget) { return result; }
+    const drawingPath = this.resolveZipPath('xl/worksheets', drawingTarget);
+    const drawingFile = zip.file(drawingPath);
+    const drawingRelationsFile = zip.file(
+      `${drawingPath.slice(0, drawingPath.lastIndexOf('/'))}/_rels/${drawingPath.slice(drawingPath.lastIndexOf('/') + 1)}.rels`);
+    if (!drawingFile || !drawingRelationsFile) { return result; }
+    const drawingDocument = new DOMParser().parseFromString(await drawingFile.async('text'), 'application/xml');
+    const drawingRelationsDocument = new DOMParser().parseFromString(
+      await drawingRelationsFile.async('text'), 'application/xml');
+    const mediaByRelationship = new Map(Array.from(
+      drawingRelationsDocument.getElementsByTagNameNS('*', 'Relationship'))
+      .map(relation => [relation.getAttribute('Id') || '', relation.getAttribute('Target') || '']));
+    for (const anchor of Array.from(drawingDocument.getElementsByTagNameNS('*', 'twoCellAnchor'))
+      .concat(Array.from(drawingDocument.getElementsByTagNameNS('*', 'oneCellAnchor')))) {
+      const from = anchor.getElementsByTagNameNS('*', 'from')[0];
+      const row = Number(from?.getElementsByTagNameNS('*', 'row')[0]?.textContent);
+      const column = Number(from?.getElementsByTagNameNS('*', 'col')[0]?.textContent);
+      const blip = anchor.getElementsByTagNameNS('*', 'blip')[0];
+      const relationshipId = blip?.getAttributeNS(
+        'http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'embed')
+        || blip?.getAttribute('r:embed');
+      const mediaTarget = relationshipId ? mediaByRelationship.get(relationshipId) : undefined;
+      if (!mediaTarget || !Number.isFinite(row) || !Number.isFinite(column)) { continue; }
+      const mediaPath = this.resolveZipPath(drawingPath.slice(0, drawingPath.lastIndexOf('/')), mediaTarget);
+      const mediaFile = zip.file(mediaPath);
+      if (!mediaFile) { continue; }
+      const extension = mediaPath.split('.').pop()?.toLowerCase() || 'png';
+      const mime = extension === 'jpg' || extension === 'jpeg' ? 'image/jpeg'
+        : extension === 'svg' ? 'image/svg+xml' : extension === 'gif' ? 'image/gif' : 'image/png';
+      const data = await mediaFile.async('base64');
+      const key = `${row},${column}`;
+      result.set(key, [...(result.get(key) || []), `data:${mime};base64,${data}`]);
+    }
+    return result;
+  }
+
+  private resolveZipPath(base: string, target: string): string {
+    const normalizedTarget = target.replace(/\\/g, '/');
+    const parts = (normalizedTarget.startsWith('/') ? normalizedTarget.slice(1)
+      : `${base}/${normalizedTarget}`).split('/');
+    const resolved: string[] = [];
+    parts.forEach(part => {
+      if (!part || part === '.') { return; }
+      if (part === '..') { resolved.pop(); } else { resolved.push(part); }
+    });
+    return resolved.join('/');
+  }
+
+  async insertImageInContent(files: FileList | null): Promise<void> {
+    const file = files?.item(0);
+    if (!file) {
+      this.preserveRichTextInsertion = false;
+      this.pendingRichTextInsertion = undefined;
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      this.preserveRichTextInsertion = false;
+      this.pendingRichTextInsertion = undefined;
+      this.importError = 'Le fichier sélectionné doit être une image.';
+      return;
+    }
+    const source = await this.fileAsDataUrl(file);
+    this.preserveRichTextInsertion = false;
+    const pendingInsertion = this.pendingRichTextInsertion;
+    if (pendingInsertion?.editor.isConnected) {
+      this.restoreSelectionOffsets(pendingInsertion.editor, pendingInsertion.offsets);
+    }
+    this.pendingRichTextInsertion = undefined;
+    this.insertRichContent(
+      `<img class="media-inline" width="76" src="${source}" alt="${this.escapeAttribute(file.name)}">`);
+  }
+
+  prepareRichContentInsertion(): void {
+    this.rememberRichTextSelection();
+    this.pendingRichTextInsertion = this.richTextEditor?.isConnected && this.richTextRange
+      ? {
+        editor: this.richTextEditor,
+        offsets: this.captureSelectionOffsets(this.richTextEditor, this.richTextRange)
+      }
+      : undefined;
+    this.preserveRichTextInsertion = !!(this.activeTextEditingCellId
+      && this.pendingRichTextInsertion);
+    if (!this.preserveRichTextInsertion) { return; }
+    window.addEventListener('focus', () => {
+      setTimeout(() => { this.preserveRichTextInsertion = false; });
+    }, { once: true });
+  }
+
+  insertPictogram(pictogram: string): void {
+    this.insertRichContent(`<span class="inline-pictogram">${this.escapeHtml(pictogram)}</span>`);
+    this.showPictogramPalette = false;
+  }
+
+  get filteredPictograms(): PictogramEntry[] {
+    const query = this.pictogramSearch.trim().toLocaleLowerCase('fr-FR');
+    const groups = this.selectedPictogramGroup === 'all'
+      ? this.pictogramGroups
+      : this.pictogramGroups.filter(group => group.slug === this.selectedPictogramGroup);
+    const pictograms = groups.flatMap(group => group.emojis);
+    if (!query) { return pictograms; }
+    return pictograms.filter(pictogram =>
+      pictogram.emoji.includes(query)
+      || pictogram.name.toLocaleLowerCase('en-US').includes(query)
+      || pictogram.slug.replace(/_/g, ' ').includes(query));
+  }
+
+  private pictogramGroupLabel(slug: string): string {
+    return ({
+      smileys_emotion: 'Émotions',
+      people_body: 'Personnes',
+      animals_nature: 'Animaux et nature',
+      food_drink: 'Aliments',
+      travel_places: 'Voyages et lieux',
+      activities: 'Activités',
+      objects: 'Objets',
+      symbols: 'Symboles',
+      flags: 'Drapeaux'
+    } as Record<string, string>)[slug] || slug.replace(/_/g, ' ');
+  }
+
+  private insertRichContent(html: string): void {
+    if (!this.activeTextEditingCellId && this.selectedCellIds.size === 1) {
+      this.appendToSelectedCell(html);
+      this.questionEdited();
+      return;
+    }
+    if (this.richTextEditor?.isConnected && this.richTextRange
+      && this.richTextEditor.contains(this.richTextRange.commonAncestorContainer)) {
+      this.richTextEditor.focus();
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(this.richTextRange);
+      this.richTextRange.deleteContents();
+      const fragment = this.richTextRange.createContextualFragment(html);
+      const lastNode = fragment.lastChild;
+      this.richTextRange.insertNode(fragment);
+      if (lastNode) {
+        this.richTextRange.setStartAfter(lastNode);
+        this.richTextRange.collapse(true);
+        selection?.removeAllRanges();
+        selection?.addRange(this.richTextRange);
+      }
+      this.richTextEditor.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertContent' }));
+      this.rememberRichTextSelection();
+      return;
+    }
+    if (this.selectedCellIds.size === 1) {
+      this.appendToSelectedCell(html);
+      this.questionEdited();
+      return;
+    }
+    this.importError = 'Sélectionnez une cellule ou placez le curseur dans un texte.';
+  }
+
+  private appendToSelectedCell(html: string): void {
+    const selected = Array.from(this.selectedCellIds)[0];
+    for (const section of this.sections) {
+      if (selected === `section-title-${section.id}`) { section.title += html; return; }
+      const headerIndex = section.headerLabels.findIndex((_, index) => selected === `section-header-${section.id}-${index}`);
+      if (headerIndex >= 0) { section.headerLabels[headerIndex] += html; return; }
+      for (const question of section.questions) {
+        if (selected === `question-${question.id}-0`) { question.number += html; return; }
+        if (selected === `question-${question.id}-1`) { question.answer += html; return; }
+      }
+    }
+    for (const block of this.allBlocks.filter(item => item.type === 'custom-table')) {
+      const header = block.tableColumns.find(column => selected === `table-header-${column.id}`);
+      if (header) { header.title += html; return; }
+      for (const row of block.tableRows) {
+        const index = row.cells.findIndex((_, column) => selected === `table-cell-${row.id}-${column}`);
+        if (index >= 0) { row.cells[index] += html; return; }
+      }
+    }
+  }
+
+  private fileAsDataUrl(file: File): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  private escapeAttribute(value: string): string {
+    return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  private normalizeStageDesign(stage: DesignerStage): void {
+    stage.sections ||= [];
+    stage.blocks ||= [];
+    stage.sections.forEach(section => {
+      section.showTitle ??= true;
+      section.verticalTitle ??= false;
+      section.uniformNumberMedia ??= true;
+      section.numberMediaWidthMm ||= 8;
+      section.numberMediaHeightMm ||= 8;
+      section.preserveNumberMediaRatio ??= true;
+      if (section.preserveNumberMediaRatio) {
+        const fitted = this.fitNumberMediaDimensions(section.numberMediaWidthMm, section.numberMediaHeightMm);
+        section.numberMediaWidthMm = this.roundDimension(fitted.width);
+        section.numberMediaHeightMm = this.roundDimension(fitted.height);
+      } else {
+        section.numberMediaWidthMm = this.roundDimension(
+          Math.max(2, Math.min(40, section.numberMediaWidthMm)));
+        section.numberMediaHeightMm = this.roundDimension(
+          Math.max(2, Math.min(40, section.numberMediaHeightMm)));
+      }
+      section.headerLabels ||= ['N°', 'Réponse', 'Corrigé'];
+      section.headerColors ||= [
+        section.color || '#d9eaf2', section.color || '#d9eaf2', section.color || '#d9eaf2'
+      ];
+      section.questions ||= [];
+      section.questions.forEach(question => {
+        question.visibleInBlankForm ??= false;
+        question.imagesVisibleInBlankForm ??= false;
+      });
+    });
+    this.flattenBlocks(stage.blocks).forEach(block => {
+      block.imageWidthMm ||= 80;
+      block.imageHeightMm ||= 50;
+      block.preserveImageRatio ??= true;
+      block.imageFit ||= 'contain';
+      block.imageAlignment ||= 'center';
+    });
   }
 
   private synchronizeSectionOrder(): void {
@@ -2353,7 +3866,7 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
       const completeHeight = Math.max(...unit.map(section => {
         const block = this.blockForSection(section);
         return this.sectionOverhead(section, block)
-          + section.questions.reduce((height, question) => height + this.questionRowHeight(block, question), 0);
+          + section.questions.reduce((height, question) => height + this.questionRowHeight(section, block, question), 0);
       }));
       const totalUnitHeight = Math.max(completeHeight, freeHeight);
       const keepTogether = unitBlocks.every(block => block.keepTogether !== false);
@@ -2368,7 +3881,7 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
           const block = this.blockForSection(section);
           const offset = offsets.get(section.id) || 0;
           return this.sectionOverhead(section, block)
-            + this.questionRowHeight(block, section.questions[offset]);
+            + this.questionRowHeight(section, block, section.questions[offset]);
         }));
         if (remainingMm < minimumHeight) { pushPage(); }
         let consumedHeight = 0;
@@ -2380,7 +3893,7 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
           let rowsHeight = 0;
           const availableHeight = Math.max(0, remainingMm - overhead);
           while (offset + questionCount < section.questions.length) {
-            const nextHeight = this.questionRowHeight(block, section.questions[offset + questionCount]);
+            const nextHeight = this.questionRowHeight(section, block, section.questions[offset + questionCount]);
             if (questionCount > 0 && rowsHeight + nextHeight > availableHeight) { break; }
             rowsHeight += nextHeight;
             questionCount++;
@@ -2441,22 +3954,36 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
   }
 
   private sectionOverhead(section: DesignerSection, block?: DesignerBlock): number {
-    const titleHeight = section.showTitle ? Math.max(6, this.richTextHeightMm(section.title, 70)) : 0;
+    const titleHeight = section.showTitle && !section.verticalTitle
+      ? Math.max(6, this.richTextHeightMm(section.title, 70)) : 0;
     const headerHeight = Math.max(6, ...section.headerLabels.map(label => this.richTextHeightMm(label, 28)));
     const titleAndHeaderHeight = titleHeight + headerHeight;
     return titleAndHeaderHeight + (block?.spacingBefore || 0) + (block?.spacingAfter || 0);
   }
 
-  private questionRowHeight(block: DesignerBlock | undefined, question: DesignerQuestion): number {
+  private questionRowHeight(section: DesignerSection, block: DesignerBlock | undefined,
+      question: DesignerQuestion): number {
     const placement = block ? this.findContainerPlacement(block.id) : undefined;
     const columnCount = placement?.container.childColumns.length || 1;
     const charactersPerLine = Math.max(18, Math.floor(78 / columnCount));
     const visualLineCount = Math.max(1, this.plainText(question.answer || '').split('\n')
       .reduce((count, line) => count + Math.max(1, Math.ceil(line.length / charactersPerLine)), 0));
     const correctionHeight = Math.max(1, question.corrections.length) * this.project.correctionCellHeightCm * 10;
-    const textHeight = visualLineCount * this.richTextLineHeightMm(question.answer) + 1.1;
-    const numberHeight = this.richTextHeightMm(question.number, 8) + 1.1;
+    const textHeight = Math.max(visualLineCount * this.richTextLineHeightMm(question.answer),
+      this.richMediaHeightMm(question.answer)) + 1.1;
+    const configuredNumberMediaHeight = section.uniformNumberMedia
+      && /<img[\s>]|inline-pictogram/i.test(question.number) ? section.numberMediaHeightMm : 0;
+    const numberHeight = Math.max(this.richTextHeightMm(question.number, 8),
+      this.richMediaHeightMm(question.number), configuredNumberMediaHeight) + 1.1;
     return Math.max(this.sectionRowHeight(block), textHeight, numberHeight, correctionHeight);
+  }
+
+  private richMediaHeightMm(html: string): number {
+    const container = document.createElement('div');
+    container.innerHTML = html || '';
+    const pixelsPerMm = 96 / 25.4;
+    return Math.max(0, ...Array.from(container.querySelectorAll('img')).map(image =>
+      (Number(image.getAttribute('height')) || Number(image.getAttribute('width')) || 0) / pixelsPerMm));
   }
 
   private richTextHeightMm(html: string, charactersPerLine: number): number {
