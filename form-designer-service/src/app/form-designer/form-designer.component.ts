@@ -516,6 +516,7 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
   }
 
   private async saveReferenceForm(): Promise<void> {
+    const restoreView = await this.freezeVisibleInterface('Enregistrement du formulaire de référence');
     this.setSyncState('saving', 'Enregistrement du formulaire de référence…');
     try {
       await this.saveRally();
@@ -524,6 +525,8 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
       this.setSyncState('saved', 'Formulaire de référence enregistré et publié.');
     } catch (error) {
       this.handleSyncError(error, 'Impossible d’enregistrer le formulaire de référence.');
+    } finally {
+      restoreView();
     }
   }
 
@@ -621,9 +624,10 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
   }
 
   private async saveAll(): Promise<void> {
+    const restoreView = await this.freezeVisibleInterface('Enregistrement de tout le projet');
     this.setSyncState('saving', 'Enregistrement de tout le projet…');
     try {
-      this.validateDesignerQuestions(this.project.stages);
+      this.validateStagesBeforeSave(this.project.stages);
       await this.saveRally();
       await this.persistStages(this.project.stages);
       await this.persistReferenceForm();
@@ -631,19 +635,25 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
       this.setSyncState('saved', 'Projet enregistré dans la configuration partagée.');
     } catch (error) {
       this.handleSyncError(error, 'Impossible d’enregistrer tout le projet.');
+    } finally {
+      restoreView();
     }
   }
 
   private async saveStages(stages: DesignerStage[]): Promise<void> {
+    const restoreView = await this.freezeVisibleInterface(
+      stages.length === 1 ? 'Enregistrement de l’épreuve' : 'Enregistrement des épreuves');
     this.setSyncState('saving', stages.length === 1 ? 'Enregistrement de l’épreuve…' : 'Enregistrement des épreuves…');
     try {
-      this.validateDesignerQuestions(stages);
+      this.validateStagesBeforeSave(stages);
       await this.saveRally();
       await this.persistStages(stages);
       if (stages.some(stage => stage.id === this.activeStage.id)) { await this.publishActiveRecognition(); }
       this.setSyncState('saved', stages.length === 1 ? 'Épreuve enregistrée.' : 'Épreuves enregistrées.');
     } catch (error) {
       this.handleSyncError(error, 'Impossible d’enregistrer la configuration.');
+    } finally {
+      restoreView();
     }
   }
 
@@ -720,7 +730,9 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
     stage.id = stageParam.id || stage.id;
     stage.number = stageParam.stage;
     stage.name = stageParam.name;
-    stage.headerTitle ||= stageParam.name;
+    if (this.plainText(stage.headerTitle).trim() !== stageParam.name.trim()) {
+      stage.headerTitle = stageParam.name;
+    }
     stage.sections ||= [];
     stage.blocks ||= [];
     stage.hasFormDesign = !!design;
@@ -902,6 +914,33 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
     }
   }
 
+  private validateStagesBeforeSave(stages: DesignerStage[]): void {
+    for (const stage of this.project.stages) {
+      if (!Number.isInteger(stage.number) || stage.number < 1 || stage.number > 99) {
+        throw new Error(`Le numéro de l’épreuve « ${stage.name || 'sans nom'} » doit être un entier compris entre 1 et 99.`);
+      }
+      if (!stage.name.trim()) {
+        throw new Error(`L’épreuve n° ${stage.number} ne peut pas être enregistrée sans titre.`);
+      }
+    }
+
+    const stagesByNumber = new Map<number, DesignerStage[]>();
+    this.project.stages.forEach(stage => {
+      const sameNumber = stagesByNumber.get(stage.number) || [];
+      sameNumber.push(stage);
+      stagesByNumber.set(stage.number, sameNumber);
+    });
+    const duplicate = Array.from(stagesByNumber.entries())
+      .find(([, matchingStages]) => matchingStages.length > 1);
+    if (duplicate) {
+      const [number, matchingStages] = duplicate;
+      const names = matchingStages.map(stage => `« ${stage.name} »`).join(' et ');
+      throw new Error(`Le numéro d’épreuve ${number} est déjà utilisé par ${names}. Choisissez un numéro différent.`);
+    }
+
+    this.validateDesignerQuestions(stages);
+  }
+
   private async publishAllRecognitions(): Promise<void> {
     const previousStageId = this.activeStageId;
     const previousSelectedBlockId = this.selectedBlockId;
@@ -987,6 +1026,22 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
   }
 
   private prepareCaptureTextOrientations(clonedDocument: Document): void {
+    // Les variables CSS du composant sont correctement visibles dans le
+    // navigateur, mais leur résolution par html2canvas peut varier. Figer les
+    // dimensions calculées sur chaque image garantit un rendu identique dans
+    // l'aperçu, le PDF et le PNG publié vers le front.
+    clonedDocument.querySelectorAll<HTMLElement>('.uniform-number-media').forEach(section => {
+      const width = section.style.getPropertyValue('--number-media-width').trim() || '8mm';
+      const height = section.style.getPropertyValue('--number-media-height').trim() || '8mm';
+      const preserveRatio = section.classList.contains('preserve-number-media-ratio');
+      section.querySelectorAll<HTMLElement>('.number-editor img').forEach(image => {
+        image.style.setProperty('width', width, 'important');
+        image.style.setProperty('height', height, 'important');
+        image.style.setProperty('max-width', 'none', 'important');
+        image.style.setProperty('object-fit', preserveRatio ? 'contain' : 'fill', 'important');
+      });
+    });
+
     // html2canvas peut écarter un sous-arbre dont un ancêtre est déclaré
     // visibility:hidden avant de résoudre la règle qui réaffiche ses images.
     // Les styles en ligne rendent l'intention non ambiguë dans le clone :
@@ -1201,7 +1256,12 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
 
   private handleSyncError(error: unknown, fallback: string): void {
     const status = typeof error === 'object' && error && 'status' in error ? Number(error.status) : 0;
-    if (status === 409) {
+    const serverMessage = this.serverErrorMessage(error);
+    const normalizedMessage = serverMessage.toLocaleLowerCase('fr');
+    const simultaneousModification = status === 409
+      && /(simultan|modifi|version|optimistic|recharge)/i.test(normalizedMessage)
+      && !/(duplicate|doublon|déjà utilisé|already|e11000)/i.test(normalizedMessage);
+    if (simultaneousModification) {
       this.setSyncState('error', 'La configuration a été modifiée ailleurs.');
       if (window.confirm(
         'La configuration a été modifiée dans une autre fenêtre. Recharger la version actuelle ?')) {
@@ -1209,7 +1269,47 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
       }
       return;
     }
-    this.setSyncState('error', error instanceof Error && !status ? error.message : fallback);
+    if (error instanceof Error && !('status' in error)) {
+      this.setSyncState('error', error.message);
+      return;
+    }
+    if (/(duplicate|doublon|déjà utilisé|already|e11000)/i.test(normalizedMessage)
+        && /(stage|épreuve)/i.test(normalizedMessage)) {
+      this.setSyncState('error',
+        `Le numéro d’épreuve ${this.activeStage.number} est déjà utilisé. Choisissez un numéro différent.`);
+      return;
+    }
+    const reason = serverMessage || this.httpSaveFailureReason(status);
+    this.setSyncState('error', reason ? `${fallback.replace(/\.$/, '')} Motif : ${reason}` : fallback);
+  }
+
+  private serverErrorMessage(error: unknown): string {
+    if (!error || typeof error !== 'object' || !('error' in error)) { return ''; }
+    const payload = (error as { error?: unknown }).error;
+    if (typeof payload === 'string') { return payload.trim(); }
+    if (!payload || typeof payload !== 'object') { return ''; }
+    for (const key of ['message', 'detail', 'error', 'reason']) {
+      const value = (payload as Record<string, unknown>)[key];
+      if (typeof value === 'string' && value.trim()) { return value.trim(); }
+    }
+    return '';
+  }
+
+  private httpSaveFailureReason(status: number): string {
+    switch (status) {
+      case 0: return 'le service de configuration est inaccessible. Vérifiez que le back est démarré et que la connexion fonctionne.';
+      case 400: return 'certaines données sont invalides ou incomplètes.';
+      case 401: return 'votre session n’est plus authentifiée.';
+      case 403: return 'vous n’avez pas l’autorisation d’effectuer cette opération.';
+      case 404: return 'la configuration concernée n’existe plus dans le back. Rechargez les données.';
+      case 409: return 'une donnée est déjà utilisée ou la configuration a été modifiée ailleurs. Rechargez puis réessayez.';
+      case 412: return 'la configuration affichée n’est plus à jour. Rechargez-la avant de recommencer.';
+      case 413: return 'le formulaire ou l’une de ses images dépasse la taille acceptée par le serveur.';
+      case 422: return 'le serveur refuse une ou plusieurs valeurs de la configuration.';
+      default: return status >= 500
+        ? 'le serveur a rencontré une erreur interne pendant l’enregistrement.'
+        : '';
+    }
   }
 
   async importWorkbook(files: FileList | null): Promise<void> {
@@ -1297,6 +1397,7 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     this.richTextEditor = null;
     this.richTextRange = null;
     const cell = { gridId, row, column, id: cellId };
+    this.focusInspectorForCell(gridId, cellId);
     if (event.shiftKey && this.cellSelectionAnchor?.gridId === gridId) {
       this.selectCellRange(this.cellSelectionAnchor, cell, event.ctrlKey || event.metaKey);
       return;
@@ -1310,6 +1411,94 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     this.selectedCellIds.add(cellId);
     this.cellSelectionAnchor = cell;
     this.draggingCellSelection = true;
+  }
+
+  private focusInspectorForCell(gridId: string, cellId: string): void {
+    const sectionId = gridId.startsWith('section-') ? gridId.substring('section-'.length) : '';
+    const tableBlockId = gridId.startsWith('table-') ? gridId.substring('table-'.length) : '';
+    if (sectionId) {
+      const sectionBlock = this.allBlocks.find(block => block.sectionId === sectionId);
+      if (sectionBlock) { this.selectedBlockId = sectionBlock.id; }
+    } else if (tableBlockId && this.allBlocks.some(block => block.id === tableBlockId)) {
+      this.selectedBlockId = tableBlockId;
+    }
+
+    const questionMatch = /^question-(.+)-(?:0|1)$/.exec(cellId);
+    const questionId = questionMatch?.[1];
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const inspector = document.querySelector<HTMLElement>('.inspector');
+      if (!inspector) { return; }
+      const target = questionId
+        ? Array.from(inspector.querySelectorAll<HTMLElement>('.editable-question'))
+          .find(element => element.dataset['questionId'] === questionId)
+        : inspector.querySelector<HTMLElement>('.block-properties');
+      if (!target) { return; }
+      const stickyHeader = inspector.querySelector<HTMLElement>(':scope > h2');
+      const headerHeight = stickyHeader?.getBoundingClientRect().height || 0;
+      const targetTop = inspector.scrollTop
+        + target.getBoundingClientRect().top
+        - inspector.getBoundingClientRect().top
+        - headerHeight
+        - 8;
+      inspector.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+    }));
+  }
+
+  focusQuestionProperties(event: MouseEvent, section: DesignerSection, question: DesignerQuestion): void {
+    if (event.button !== 0) { return; }
+    event.stopPropagation();
+    this.clearCellSelection();
+    this.selectSectionBlock(section);
+    this.focusInspectorForCell(`section-${section.id}`, `question-${question.id}-1`);
+  }
+
+  updateNumberMediaDimension(dimension: 'width' | 'height', rawValue: number | string): void {
+    const section = this.selectedSection;
+    const value = Number(rawValue);
+    if (!section || !Number.isFinite(value)) { return; }
+
+    const previousWidth = Math.max(.1, section.numberMediaWidthMm || 8);
+    const previousHeight = Math.max(.1, section.numberMediaHeightMm || 8);
+    const ratio = previousWidth / previousHeight;
+    let width = dimension === 'width' ? value : previousWidth;
+    let height = dimension === 'height' ? value : previousHeight;
+    if (section.preserveNumberMediaRatio) {
+      if (dimension === 'width') { height = width / ratio; }
+      else { width = height * ratio; }
+      ({ width, height } = this.fitNumberMediaDimensions(width, height));
+    } else {
+      width = Math.max(2, Math.min(40, width));
+      height = Math.max(2, Math.min(40, height));
+    }
+    section.numberMediaWidthMm = this.roundDimension(width);
+    section.numberMediaHeightMm = this.roundDimension(height);
+    this.questionEdited();
+  }
+
+  numberMediaDimensionMax(dimension: 'width' | 'height', section: DesignerSection): number {
+    if (!section.preserveNumberMediaRatio) { return 40; }
+    const width = Math.max(.1, section.numberMediaWidthMm || 8);
+    const height = Math.max(.1, section.numberMediaHeightMm || 8);
+    const ratio = width / height;
+    return this.roundDimension(dimension === 'width'
+      ? Math.min(40, 40 * ratio)
+      : Math.min(40, 40 / ratio));
+  }
+
+  private fitNumberMediaDimensions(width: number, height: number): { width: number; height: number } {
+    const minimum = 2;
+    const maximum = 40;
+    if (width > maximum || height > maximum) {
+      const scale = Math.min(maximum / width, maximum / height);
+      width *= scale;
+      height *= scale;
+    }
+    if (width < minimum || height < minimum) {
+      const scale = Math.max(minimum / width, minimum / height);
+      width *= scale;
+      height *= scale;
+    }
+    return { width, height };
   }
 
   extendCellSelection(event: MouseEvent, gridId: string, row: number, column: number, cellId: string): void {
@@ -1470,6 +1659,12 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     target[property] = editor.innerHTML;
     this.markModified();
     if (selectionOffsets) { this.scheduleSelectionRestore(editor, selectionOffsets); }
+  }
+
+  updateStageHeaderTitle(event: Event): void {
+    this.updateRichText(this.activeStage, 'headerTitle', event);
+    this.activeStage.name = this.plainText(this.activeStage.headerTitle)
+      .replace(/\s+/g, ' ').trim();
   }
 
   updateRichTextArray(values: string[], index: number, event: Event): void {
@@ -1977,36 +2172,11 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     this.synchronizeSectionOrder();
   }
 
-  duplicateSelected(): void {
-    const block = this.selectedBlock;
-    if (!block) { return; }
-    const copy = this.clone(block);
-    copy.id = this.newId('block');
-    copy.title += ' (copie)';
-    if (block.sectionId) {
-      const sourceSection = this.sections.find(section => section.id === block.sectionId);
-      if (sourceSection) {
-        const sectionCopy = this.clone(sourceSection);
-        sectionCopy.id = this.newId('section');
-        sectionCopy.title += ' (copie)';
-        sectionCopy.questions.forEach(question => question.id = this.newId('question'));
-        this.sections.push(sectionCopy);
-        copy.sectionId = sectionCopy.id;
-        copy.title = sectionCopy.title;
-        this.refreshPages();
-      }
-    }
-    const list = this.findBlockList(block.id) || this.blocks;
-    const index = list.indexOf(block);
-    list.splice(index + 1, 0, copy);
-    this.selectedBlockId = copy.id;
-    this.synchronizeSectionOrder();
-  }
-
-  deleteSelected(): void {
-    const list = this.findBlockList(this.selectedBlockId);
+  deleteBlockFromOutline(blockId: string, event: Event): void {
+    event.stopPropagation();
+    const list = this.findBlockList(blockId);
     if (!list) { return; }
-    const index = list.findIndex(block => block.id === this.selectedBlockId);
+    const index = list.findIndex(block => block.id === blockId);
     if (index < 0) { return; }
     const [removed] = list.splice(index, 1);
     if (removed.type === 'columns') {
@@ -2016,7 +2186,9 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
       const sectionIndex = this.sections.findIndex(section => section.id === removed.sectionId);
       if (sectionIndex >= 0) { this.sections.splice(sectionIndex, 1); this.refreshPages(); }
     }
-    this.selectedBlockId = list[Math.min(index, list.length - 1)]?.id || '';
+    if (this.selectedBlockId === blockId) {
+      this.selectedBlockId = list[Math.min(index, list.length - 1)]?.id || '';
+    }
     this.synchronizeSectionOrder();
   }
 
@@ -2273,6 +2445,8 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
 
   async exportPdf(corrected: boolean): Promise<void> {
     if (this.pdfExporting || !this.activeStage.hasFormDesign) { return; }
+    const restoreView = await this.freezeVisibleInterface(
+      `Génération du PDF ${corrected ? 'complété' : 'vierge'}`);
     const previousPreview = this.correctedPreview;
     const previousZoom = this.zoom;
     const previousSelectedBlockId = this.selectedBlockId;
@@ -2280,24 +2454,11 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     this.pdfExporting = true;
     this.importError = '';
     try {
-      this.correctedPreview = corrected;
       this.zoom = 100;
       this.selectedBlockId = '';
       this.selectedCellIds.clear();
       if (document.activeElement instanceof HTMLElement) { document.activeElement.blur(); }
-      this.pages = [];
-      this.changeDetector.detectChanges();
-      this.refreshPages();
-      this.changeDetector.detectChanges();
-      await this.waitForOutputReady();
-
-      const papers = Array.from(document.querySelectorAll<HTMLElement>('.pages .paper'));
-      if (!papers.length) { throw new Error('Aucune page A4 à exporter.'); }
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
-      for (let index = 0; index < papers.length; index++) {
-        if (index > 0) { pdf.addPage('a4', 'portrait'); }
-        pdf.addImage(await this.capturePaperPng(papers[index]), 'PNG', 0, 0, 210, 297, undefined, 'FAST');
-      }
+      const pdf = await this.createActivePdf(corrected);
       const mode = corrected ? 'complété' : 'vierge';
       const stageName = this.pdfFileName(`${this.activeStage.number} - ${this.activeStage.name}`);
       pdf.save(`${stageName} - Formulaire ${mode}.pdf`);
@@ -2311,7 +2472,215 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
       this.refreshPages();
       this.changeDetector.detectChanges();
       this.pdfExporting = false;
+      restoreView();
     }
+  }
+
+  async exportAllStagePdfs(): Promise<void> {
+    if (this.pdfExporting) { return; }
+    const stages = this.project.stages.filter(stage => stage.hasFormDesign)
+      .sort((left, right) => left.number - right.number);
+    if (!stages.length) {
+      this.importError = 'Aucune épreuve du rallye ne possède de formulaire à télécharger.';
+      return;
+    }
+    const restoreView = await this.freezeVisibleInterface('Génération de tous les formulaires du rallye');
+    const previousStageId = this.activeStageId;
+    const previousPreview = this.correctedPreview;
+    const previousZoom = this.zoom;
+    const previousSelectedBlockId = this.selectedBlockId;
+    const previousSelectedCellIds = [...this.selectedCellIds];
+    this.pdfExporting = true;
+    this.importError = '';
+    try {
+      const archive = new JSZip();
+      this.zoom = 100;
+      this.selectedBlockId = '';
+      this.selectedCellIds.clear();
+      if (document.activeElement instanceof HTMLElement) { document.activeElement.blur(); }
+      for (const stage of stages) {
+        this.activeStageId = stage.id;
+        this.changeDetector.detectChanges();
+        const stageName = this.pdfFileName(`${stage.number} - ${stage.name}`);
+        for (const corrected of [false, true]) {
+          const pdf = await this.createActivePdf(corrected);
+          const mode = corrected ? 'complété' : 'vierge';
+          archive.file(`${stageName} - Formulaire ${mode}.pdf`, pdf.output('arraybuffer'));
+        }
+      }
+      const content = await archive.generateAsync({
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 6 }
+      });
+      this.downloadBlob(content,
+        `${this.pdfFileName(this.project.rallyTitle || 'Rallye')} - Tous les formulaires.zip`);
+    } catch (error) {
+      this.importError = error instanceof Error
+        ? `Impossible de télécharger tous les formulaires. Motif : ${error.message}`
+        : 'Impossible de télécharger tous les formulaires.';
+    } finally {
+      this.activeStageId = previousStageId;
+      this.correctedPreview = previousPreview;
+      this.zoom = previousZoom;
+      this.selectedBlockId = previousSelectedBlockId;
+      this.selectedCellIds.clear();
+      previousSelectedCellIds.forEach(id => this.selectedCellIds.add(id));
+      this.pages = [];
+      this.changeDetector.detectChanges();
+      this.refreshPages();
+      this.changeDetector.detectChanges();
+      this.pdfExporting = false;
+      restoreView();
+    }
+  }
+
+  private async createActivePdf(corrected: boolean): Promise<jsPDF> {
+    this.correctedPreview = corrected;
+    this.pages = [];
+    this.changeDetector.detectChanges();
+    this.refreshPages();
+    this.changeDetector.detectChanges();
+    await this.waitForOutputReady();
+
+    const papers = Array.from(document.querySelectorAll<HTMLElement>('.pages .paper'));
+    if (!papers.length) { throw new Error(`Aucune page A4 pour l’épreuve « ${this.activeStage.name} ».`); }
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+    for (let index = 0; index < papers.length; index++) {
+      if (index > 0) { pdf.addPage('a4', 'portrait'); }
+      pdf.addImage(await this.capturePaperPng(papers[index]), 'PNG', 0, 0, 210, 297, undefined, 'FAST');
+    }
+    return pdf;
+  }
+
+  private downloadBlob(content: Blob, fileName: string): void {
+    const url = URL.createObjectURL(content);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
+  /**
+   * La publication reconstruit temporairement les pages A4 à 100 %, parfois
+   * pour plusieurs épreuves. Cette capture fige l'interface visible pendant ce
+   * rendu interne, puis restitue exactement les positions de défilement.
+   */
+  private async freezeVisibleInterface(actionLabel: string): Promise<() => void> {
+    const windowScrollX = window.scrollX;
+    const windowScrollY = window.scrollY;
+    const scrollPositions = ['.workspace', '.document-outline', '.inspector']
+      .map(selector => document.querySelector<HTMLElement>(selector))
+      .map(element => ({
+        element,
+        left: element?.scrollLeft || 0,
+        top: element?.scrollTop || 0
+      }));
+    const focusedElement = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : undefined;
+
+    let frozenView: HTMLDivElement | undefined;
+    try {
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      const canvas = await html2canvas(document.body, {
+        backgroundColor: '#ffffff',
+        logging: false,
+        useCORS: true,
+        x: windowScrollX,
+        y: windowScrollY,
+        width: window.innerWidth,
+        height: window.innerHeight,
+        scrollX: 0,
+        scrollY: 0
+      });
+      frozenView = document.createElement('div');
+      const frozenImage = document.createElement('img');
+      frozenImage.src = canvas.toDataURL('image/png');
+      frozenImage.alt = '';
+      frozenImage.setAttribute('aria-hidden', 'true');
+      Object.assign(frozenImage.style, {
+        position: 'absolute',
+        inset: '0',
+        width: '100%',
+        height: '100%',
+        objectFit: 'fill'
+      });
+
+      const progressMessage = document.createElement('div');
+      progressMessage.setAttribute('role', 'status');
+      progressMessage.setAttribute('aria-live', 'polite');
+      progressMessage.innerHTML = `
+        <span class="operation-progress-spinner" aria-hidden="true"></span>
+        <span><strong>${this.escapeHtml(actionLabel)} en cours…</strong>
+        <small>Le traitement peut prendre quelques instants. Merci de patienter.</small></span>`;
+      Object.assign(progressMessage.style, {
+        position: 'absolute',
+        left: '50%',
+        top: '50%',
+        transform: 'translate(-50%, -50%)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '14px',
+        minWidth: '360px',
+        maxWidth: 'min(520px, calc(100vw - 40px))',
+        padding: '18px 22px',
+        color: '#212529',
+        background: '#ffffff',
+        border: '1px solid #a66f00',
+        borderLeft: '5px solid #a66f00',
+        borderRadius: '6px',
+        boxShadow: '0 8px 28px rgba(0, 0, 0, .28)',
+        fontFamily: 'Arial, sans-serif'
+      });
+      const spinner = progressMessage.querySelector<HTMLElement>('.operation-progress-spinner');
+      if (spinner) {
+        Object.assign(spinner.style, {
+          flex: '0 0 28px',
+          width: '28px',
+          height: '28px',
+          border: '4px solid #e2e3e5',
+          borderTopColor: '#5b8734',
+          borderRadius: '50%'
+        });
+        spinner.animate(
+          [{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }],
+          { duration: 850, iterations: Infinity }
+        );
+      }
+      const messageText = progressMessage.querySelector<HTMLElement>('span:last-child');
+      const messageTitle = progressMessage.querySelector<HTMLElement>('strong');
+      const messageDetail = progressMessage.querySelector<HTMLElement>('small');
+      if (messageText) { Object.assign(messageText.style, { display: 'grid', gap: '4px' }); }
+      if (messageTitle) { Object.assign(messageTitle.style, { fontSize: '15px', color: '#416326' }); }
+      if (messageDetail) { Object.assign(messageDetail.style, { display: 'block', fontSize: '12px', color: '#5c636a' }); }
+      frozenView.append(frozenImage, progressMessage);
+      Object.assign(frozenView.style, {
+        position: 'fixed',
+        inset: '0',
+        width: '100vw',
+        height: '100vh',
+        zIndex: '2147483647',
+        pointerEvents: 'auto',
+        userSelect: 'none'
+      });
+      document.body.appendChild(frozenView);
+    } catch {
+      // Une image externe non compatible CORS ne doit jamais empêcher
+      // l'enregistrement : la restauration des défilements reste assurée.
+    }
+
+    return () => {
+      scrollPositions.forEach(position => {
+        if (!position.element) { return; }
+        position.element.scrollLeft = position.left;
+        position.element.scrollTop = position.top;
+      });
+      window.scrollTo(windowScrollX, windowScrollY);
+      frozenView?.remove();
+      if (focusedElement?.isConnected) { focusedElement.focus({ preventScroll: true }); }
+    };
   }
 
   private pdfFileName(value: string): string {
@@ -2719,6 +3088,63 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
       image.setAttribute('height', String(Math.max(1, Math.round(this.selectedImageHeightMm * pixelsPerMm))));
     }
     this.commitSelectedImageChange();
+  }
+
+  updateSelectedImageDimension(dimension: 'width' | 'height', rawValue: number | string): void {
+    const value = Number(rawValue);
+    if (!Number.isFinite(value) || !this.hasSelectedImage) { return; }
+    const previousWidth = Math.max(.1, this.selectedImageWidthMm || 20);
+    const previousHeight = Math.max(.1, this.selectedImageHeightMm || 20);
+    const ratio = previousWidth / previousHeight;
+    const limits = this.selectedImageDimensionLimits();
+    let width = dimension === 'width' ? value : previousWidth;
+    let height = dimension === 'height' ? value : previousHeight;
+    if (this.preserveSelectedImageRatio) {
+      if (dimension === 'width') { height = width / ratio; }
+      else { width = height * ratio; }
+      ({ width, height } = this.fitDimensions(width, height, limits.width, limits.height));
+    } else {
+      width = Math.max(2, Math.min(limits.width, width));
+      height = Math.max(2, Math.min(limits.height, height));
+    }
+    this.selectedImageWidthMm = this.roundDimension(width);
+    this.selectedImageHeightMm = this.roundDimension(height);
+    this.applySelectedImageSize();
+  }
+
+  selectedImageDimensionMax(dimension: 'width' | 'height'): number {
+    const limits = this.selectedImageDimensionLimits();
+    if (!this.preserveSelectedImageRatio) {
+      return dimension === 'width' ? limits.width : limits.height;
+    }
+    const width = Math.max(.1, this.selectedImageWidthMm || 20);
+    const height = Math.max(.1, this.selectedImageHeightMm || 20);
+    const ratio = width / height;
+    return this.roundDimension(dimension === 'width'
+      ? Math.min(limits.width, limits.height * ratio)
+      : Math.min(limits.height, limits.width / ratio));
+  }
+
+  private selectedImageDimensionLimits(): { width: number; height: number } {
+    const image = this.currentContentImage();
+    return image && this.uniformNumberMediaSection(image)
+      ? { width: 40, height: 40 }
+      : { width: 180, height: 240 };
+  }
+
+  private fitDimensions(width: number, height: number, maximumWidth: number,
+      maximumHeight: number): { width: number; height: number } {
+    if (width > maximumWidth || height > maximumHeight) {
+      const scale = Math.min(maximumWidth / width, maximumHeight / height);
+      width *= scale;
+      height *= scale;
+    }
+    if (width < 2 || height < 2) {
+      const scale = Math.max(2 / width, 2 / height);
+      width *= scale;
+      height *= scale;
+    }
+    return { width, height };
   }
 
   alignSelectedImage(alignment: 'inline' | 'left' | 'center' | 'right'): void {
@@ -3205,6 +3631,16 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
       section.numberMediaWidthMm ||= 8;
       section.numberMediaHeightMm ||= 8;
       section.preserveNumberMediaRatio ??= true;
+      if (section.preserveNumberMediaRatio) {
+        const fitted = this.fitNumberMediaDimensions(section.numberMediaWidthMm, section.numberMediaHeightMm);
+        section.numberMediaWidthMm = this.roundDimension(fitted.width);
+        section.numberMediaHeightMm = this.roundDimension(fitted.height);
+      } else {
+        section.numberMediaWidthMm = this.roundDimension(
+          Math.max(2, Math.min(40, section.numberMediaWidthMm)));
+        section.numberMediaHeightMm = this.roundDimension(
+          Math.max(2, Math.min(40, section.numberMediaHeightMm)));
+      }
       section.headerLabels ||= ['N°', 'Réponse', 'Corrigé'];
       section.headerColors ||= [
         section.color || '#d9eaf2', section.color || '#d9eaf2', section.color || '#d9eaf2'
