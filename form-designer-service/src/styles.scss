@@ -36,6 +36,7 @@
 .designer .rich-text-editor img.media-right { display: block; margin: .6mm 0 .6mm auto; }
 .designer .rich-text-editor img.media-fit-contain { object-fit: contain; }
 .designer .rich-text-editor img.media-fit-cover { object-fit: cover; }
+.designer .rich-text-editor img.media-free-ratio.media-fit-contain { object-fit: fill; }
 .designer .rich-text-editor img:hover { outline: 1px dashed var(--rallye-green); }
 .designer .uniform-number-media .number-editor img {
   width: var(--number-media-width, 8mm);
@@ -44,6 +45,7 @@
 }
 .designer .uniform-number-media.preserve-number-media-ratio .number-editor img { object-fit: contain; }
 .designer .uniform-number-media:not(.preserve-number-media-ratio) .number-editor img { object-fit: fill; }
+.designer .uniform-number-media .number-editor img.media-fit-cover { object-fit: cover; }
 
 /* Les classes sont conservées par la sécurisation Angular des contenus innerHTML,
    contrairement aux attributs style appliqués dynamiquement. */

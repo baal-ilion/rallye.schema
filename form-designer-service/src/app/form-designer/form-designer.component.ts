@@ -2,7 +2,7 @@ import { AfterViewChecked, ChangeDetectorRef, Component, HostListener, OnInit } 
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { firstValueFrom, forkJoin, switchMap } from 'rxjs';
 import * as XLSX from 'xlsx';
-import * as JSZip from 'jszip';
+import JSZip from 'jszip';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import emojiGroupsData from 'unicode-emoji-json/data-by-group.json';
@@ -34,6 +34,9 @@ interface PictogramGroup { name: string; slug: string; emojis: PictogramEntry[];
   styleUrls: ['./form-designer.component.scss']
 })
 export class FormDesignerComponent implements OnInit, AfterViewChecked {
+  private readonly forcedPageBreakBeforeBlockIds = new Set<string>();
+  private overflowCorrectionPending = false;
+
   readonly referenceStageId = '__reference_form__';
   readonly identificationBlockId = '__fixed_form_identification__';
   readonly titleBlockId = '__fixed_form_title__';
@@ -140,6 +143,34 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
       group.classList.toggle('ends-before-row', hasSpaceBelow);
     });
     this.adjustVerticalSectionTitleWidths();
+    this.correctRenderedPageOverflow();
+  }
+
+  private correctRenderedPageOverflow(): void {
+    if (this.overflowCorrectionPending) { return; }
+    let overflowingBlockId = '';
+    document.querySelectorAll<HTMLElement>('.paper').forEach(paper => {
+      if (overflowingBlockId) { return; }
+      const content = paper.querySelector<HTMLElement>(':scope > .page-content');
+      if (!content) { return; }
+      const contentBottom = content.getBoundingClientRect().bottom;
+      const overflowingSection = Array.from(
+        content.querySelectorAll<HTMLElement>(':scope > .question-section[data-section-id]')
+      ).find(section => section.getBoundingClientRect().bottom > contentBottom + 0.5);
+      const sectionId = overflowingSection?.dataset['sectionId'];
+      const block = sectionId ? this.allBlocks.find(candidate => candidate.sectionId === sectionId) : undefined;
+      if (block && !this.forcedPageBreakBeforeBlockIds.has(block.id)) {
+        overflowingBlockId = block.id;
+      }
+    });
+    if (!overflowingBlockId) { return; }
+    this.forcedPageBreakBeforeBlockIds.add(overflowingBlockId);
+    this.overflowCorrectionPending = true;
+    queueMicrotask(() => {
+      this.overflowCorrectionPending = false;
+      this.refreshPages();
+      this.changeDetector.detectChanges();
+    });
   }
 
   private adjustVerticalSectionTitleWidths(): void {
@@ -526,7 +557,7 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
     } catch (error) {
       this.handleSyncError(error, 'Impossible d’enregistrer le formulaire de référence.');
     } finally {
-      restoreView();
+      await restoreView();
     }
   }
 
@@ -636,7 +667,7 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
     } catch (error) {
       this.handleSyncError(error, 'Impossible d’enregistrer tout le projet.');
     } finally {
-      restoreView();
+      await restoreView();
     }
   }
 
@@ -653,7 +684,7 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
     } catch (error) {
       this.handleSyncError(error, 'Impossible d’enregistrer la configuration.');
     } finally {
-      restoreView();
+      await restoreView();
     }
   }
 
@@ -857,7 +888,7 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
     this.changeDetector.detectChanges();
     await this.waitForOutputReady();
     try {
-      let paperElements = Array.from(document.querySelectorAll<HTMLElement>('.pages .paper'));
+      let paperElements = this.liveOutputElements('.pages .paper');
       if (!paperElements.length) { throw new Error('Aucune page A4 à publier.'); }
 
       const expectedLabels = (this.isReferenceActive ? [] : this.designerCorrectionEntries(this.activeStage)
@@ -879,7 +910,7 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
         this.refreshPages();
         this.changeDetector.detectChanges();
         await this.waitForOutputReady();
-        paperElements = Array.from(document.querySelectorAll<HTMLElement>('.pages .paper'));
+        paperElements = this.liveOutputElements('.pages .paper');
         actualLabels = renderedLabels();
       }
       if (!labelsMatch(actualLabels)) {
@@ -995,21 +1026,127 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
   }
 
   private async capturePaperPng(paper: HTMLElement, targetWidth = 2481, targetHeight = 3508): Promise<string> {
+    const captureScale = targetWidth / paper.offsetWidth;
     const capturedCanvas = await html2canvas(paper, {
-      scale: targetWidth / paper.offsetWidth, backgroundColor: '#ffffff', useCORS: true, logging: false,
+      scale: captureScale, backgroundColor: '#ffffff', useCORS: true, logging: false,
       width: paper.offsetWidth, height: paper.offsetHeight,
-      onclone: clonedDocument => this.prepareCaptureTextOrientations(clonedDocument)
+      onclone: clonedDocument => {
+        // Le zoom ne sert qu'à l'aperçu dans l'éditeur. Il ne doit jamais
+        // influencer les sorties canoniques PDF et PNG.
+        clonedDocument.querySelectorAll<HTMLElement>('.pages').forEach(pages => {
+          pages.style.setProperty('transform', 'none', 'important');
+          pages.style.setProperty('transform-origin', 'top left', 'important');
+        });
+        this.freezeCaptureImageDimensions(paper, clonedDocument);
+        this.prepareCaptureTextOrientations(clonedDocument);
+      }
     });
     const canvas = document.createElement('canvas');
     canvas.width = targetWidth;
     canvas.height = targetHeight;
     const context = canvas.getContext('2d');
     if (!context) { throw new Error('Impossible de préparer la page A4.'); }
-    context.imageSmoothingEnabled = false;
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
     context.fillStyle = '#ffffff';
     context.fillRect(0, 0, targetWidth, targetHeight);
     context.drawImage(capturedCanvas, 0, 0, targetWidth, targetHeight);
+    this.drawOriginalImagesOnCapture(context, paper, targetWidth, targetHeight);
     return canvas.toDataURL('image/png');
+  }
+
+  private freezeCaptureImageDimensions(sourcePaper: HTMLElement, clonedDocument: Document): void {
+    const sourcePapers = this.liveOutputElements('.pages .paper');
+    const paperIndex = Math.max(0, sourcePapers.indexOf(sourcePaper));
+    const clonedPaper = clonedDocument.querySelectorAll<HTMLElement>('.pages .paper')[paperIndex];
+    if (!clonedPaper) { return; }
+    const sourceImages = Array.from(sourcePaper.querySelectorAll<HTMLImageElement>('img'));
+    const clonedImages = Array.from(clonedPaper.querySelectorAll<HTMLImageElement>('img'));
+    sourceImages.forEach((sourceImage, index) => {
+      const clonedImage = clonedImages[index];
+      if (!clonedImage) { return; }
+      const style = getComputedStyle(sourceImage);
+      clonedImage.style.setProperty('width', style.width, 'important');
+      clonedImage.style.setProperty('height', style.height, 'important');
+      clonedImage.style.setProperty('max-width', style.maxWidth, 'important');
+      clonedImage.style.setProperty('object-fit', style.objectFit, 'important');
+      clonedImage.style.setProperty('display', style.display, 'important');
+      clonedImage.style.setProperty('margin-top', style.marginTop, 'important');
+      clonedImage.style.setProperty('margin-right', style.marginRight, 'important');
+      clonedImage.style.setProperty('margin-bottom', style.marginBottom, 'important');
+      clonedImage.style.setProperty('margin-left', style.marginLeft, 'important');
+      // Le clone conserve une boîte transparente pour préserver exactement la
+      // mise en page. La source originale sera dessinée ensuite, directement
+      // sur le raster final, sans passer par une vignette à la résolution écran.
+      const frozenBox = clonedDocument.createElement('span');
+      frozenBox.className = clonedImage.className;
+      frozenBox.dataset['frozenCaptureImage'] = 'true';
+      frozenBox.setAttribute('aria-hidden', 'true');
+      frozenBox.style.setProperty('box-sizing', 'border-box', 'important');
+      frozenBox.style.setProperty('display',
+        style.display === 'block' ? 'block' : 'inline-block', 'important');
+      frozenBox.style.setProperty('width', style.width, 'important');
+      frozenBox.style.setProperty('height', style.height, 'important');
+      frozenBox.style.setProperty('min-width', style.width, 'important');
+      frozenBox.style.setProperty('min-height', style.height, 'important');
+      frozenBox.style.setProperty('max-width', style.width, 'important');
+      frozenBox.style.setProperty('max-height', style.height, 'important');
+      frozenBox.style.setProperty('flex', '0 0 auto', 'important');
+      frozenBox.style.setProperty('vertical-align', style.verticalAlign, 'important');
+      frozenBox.style.setProperty('margin-top', style.marginTop, 'important');
+      frozenBox.style.setProperty('margin-right', style.marginRight, 'important');
+      frozenBox.style.setProperty('margin-bottom', style.marginBottom, 'important');
+      frozenBox.style.setProperty('margin-left', style.marginLeft, 'important');
+      clonedImage.replaceWith(frozenBox);
+    });
+  }
+
+  private drawOriginalImagesOnCapture(context: CanvasRenderingContext2D, paper: HTMLElement,
+      targetWidth: number, targetHeight: number): void {
+    const paperRect = paper.getBoundingClientRect();
+    if (!paperRect.width || !paperRect.height) { return; }
+    const scaleX = targetWidth / paperRect.width;
+    const scaleY = targetHeight / paperRect.height;
+    context.save();
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+    Array.from(paper.querySelectorAll<HTMLImageElement>('img')).forEach(image => {
+      if (!image.complete || !image.naturalWidth || !image.naturalHeight) { return; }
+      const style = getComputedStyle(image);
+      if (style.visibility === 'hidden' || style.display === 'none' || Number(style.opacity) === 0) { return; }
+      const rect = image.getBoundingClientRect();
+      const x = (rect.left - paperRect.left) * scaleX;
+      const y = (rect.top - paperRect.top) * scaleY;
+      const width = rect.width * scaleX;
+      const height = rect.height * scaleY;
+      if (width <= 0 || height <= 0) { return; }
+
+      if (style.objectFit === 'contain') {
+        const ratio = Math.min(width / image.naturalWidth, height / image.naturalHeight);
+        const drawnWidth = image.naturalWidth * ratio;
+        const drawnHeight = image.naturalHeight * ratio;
+        context.drawImage(image, x + (width - drawnWidth) / 2, y + (height - drawnHeight) / 2,
+          drawnWidth, drawnHeight);
+      } else if (style.objectFit === 'cover') {
+        const targetRatio = width / height;
+        const sourceRatio = image.naturalWidth / image.naturalHeight;
+        let sourceX = 0;
+        let sourceY = 0;
+        let sourceWidth = image.naturalWidth;
+        let sourceHeight = image.naturalHeight;
+        if (sourceRatio > targetRatio) {
+          sourceWidth = image.naturalHeight * targetRatio;
+          sourceX = (image.naturalWidth - sourceWidth) / 2;
+        } else {
+          sourceHeight = image.naturalWidth / targetRatio;
+          sourceY = (image.naturalHeight - sourceHeight) / 2;
+        }
+        context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, x, y, width, height);
+      } else {
+        context.drawImage(image, x, y, width, height);
+      }
+    });
+    context.restore();
   }
 
   private async readPngRaster(dataUrl: string): Promise<ImageData> {
@@ -1048,7 +1185,7 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
     // masquer les caractères de la réponse vierge, mais conserver ses images.
     clonedDocument.querySelectorAll<HTMLElement>('.hidden-answer.keep-answer-images').forEach(answer => {
       answer.style.setProperty('visibility', 'visible', 'important');
-      answer.querySelectorAll<HTMLElement>('img').forEach(image => {
+      answer.querySelectorAll<HTMLElement>('img, [data-frozen-capture-image="true"]').forEach(image => {
         image.style.setProperty('visibility', 'visible', 'important');
         image.style.setProperty('opacity', '1', 'important');
       });
@@ -1219,9 +1356,14 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
    * Attend toutes les ressources et la stabilisation de la mise en page avant
    * de produire une sortie officielle (PDF ou modèle PNG de reconnaissance).
    */
+  private liveOutputElements<T extends HTMLElement>(selector: string): T[] {
+    return Array.from(document.querySelectorAll<T>(selector))
+      .filter(element => !element.closest('.operation-interface-freeze'));
+  }
+
   private async waitForOutputReady(): Promise<void> {
     if (document.fonts?.ready) { await document.fonts.ready; }
-    const images = Array.from(document.querySelectorAll<HTMLImageElement>('.pages .paper img'));
+    const images = this.liveOutputElements<HTMLImageElement>('.pages .paper img');
     await Promise.all(images.map(async image => {
       if (!image.complete) {
         await new Promise<void>(resolve => {
@@ -1238,8 +1380,8 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     let previousGeometry = '';
     for (let attempt = 0; attempt < 8; attempt++) {
       await this.nextPaint();
-      const geometry = Array.from(document.querySelectorAll<HTMLElement>(
-        '.pages .paper, .section-title-band, .vertical-section-title, .rich-inline-image'))
+      const geometry = this.liveOutputElements(
+        '.pages .paper, .section-title-band, .vertical-section-title, .rich-inline-image')
         .map(element => {
           const rect = element.getBoundingClientRect();
           return `${rect.x.toFixed(2)},${rect.y.toFixed(2)},${rect.width.toFixed(2)},${rect.height.toFixed(2)}`;
@@ -2039,7 +2181,7 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
   }
 
   selectSectionBlock(section: DesignerSection): void {
-    const existing = this.blocks.find(block => block.sectionId === section.id);
+    const existing = this.allBlocks.find(block => block.sectionId === section.id);
     if (existing) {
       this.selectedBlockId = existing.id;
       return;
@@ -2169,6 +2311,7 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
       transferArrayItem(event.previousContainer.data, event.container.data,
         event.previousIndex, event.currentIndex);
     }
+    this.activeStage.blocks = this.deduplicateBlockTree(this.activeStage.blocks ?? []);
     this.synchronizeSectionOrder();
   }
 
@@ -2472,7 +2615,7 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
       this.refreshPages();
       this.changeDetector.detectChanges();
       this.pdfExporting = false;
-      restoreView();
+      await restoreView();
     }
   }
 
@@ -2531,7 +2674,7 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
       this.refreshPages();
       this.changeDetector.detectChanges();
       this.pdfExporting = false;
-      restoreView();
+      await restoreView();
     }
   }
 
@@ -2543,7 +2686,7 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     this.changeDetector.detectChanges();
     await this.waitForOutputReady();
 
-    const papers = Array.from(document.querySelectorAll<HTMLElement>('.pages .paper'));
+    const papers = this.liveOutputElements('.pages .paper');
     if (!papers.length) { throw new Error(`Aucune page A4 pour l’épreuve « ${this.activeStage.name} ».`); }
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
     for (let index = 0; index < papers.length; index++) {
@@ -2564,19 +2707,21 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
 
   /**
    * La publication reconstruit temporairement les pages A4 à 100 %, parfois
-   * pour plusieurs épreuves. Cette capture fige l'interface visible pendant ce
-   * rendu interne, puis restitue exactement les positions de défilement.
+   * pour plusieurs épreuves. Une copie DOM des zones visibles protège
+   * l'interface de ces changements internes sans la rasteriser.
    */
-  private async freezeVisibleInterface(actionLabel: string): Promise<() => void> {
+  private async freezeVisibleInterface(actionLabel: string): Promise<() => Promise<void>> {
     const windowScrollX = window.scrollX;
     const windowScrollY = window.scrollY;
     const scrollPositions = ['.workspace', '.document-outline', '.inspector']
-      .map(selector => document.querySelector<HTMLElement>(selector))
-      .map(element => ({
-        element,
-        left: element?.scrollLeft || 0,
-        top: element?.scrollTop || 0
-      }));
+      .map(selector => {
+        const element = document.querySelector<HTMLElement>(selector);
+        return {
+          selector,
+          left: element?.scrollLeft || 0,
+          top: element?.scrollTop || 0
+        };
+      });
     const focusedElement = document.activeElement instanceof HTMLElement
       ? document.activeElement
       : undefined;
@@ -2584,28 +2729,126 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     let frozenView: HTMLDivElement | undefined;
     try {
       await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-      const canvas = await html2canvas(document.body, {
-        backgroundColor: '#ffffff',
-        logging: false,
-        useCORS: true,
-        x: windowScrollX,
-        y: windowScrollY,
-        width: window.innerWidth,
-        height: window.innerHeight,
-        scrollX: 0,
-        scrollY: 0
-      });
       frozenView = document.createElement('div');
-      const frozenImage = document.createElement('img');
-      frozenImage.src = canvas.toDataURL('image/png');
-      frozenImage.alt = '';
-      frozenImage.setAttribute('aria-hidden', 'true');
-      Object.assign(frozenImage.style, {
+      // La classe `designer` maintient aussi les sélecteurs globaux qui
+      // dépendent de cet ancêtre (contenus riches, médias et décorations).
+      frozenView.className = 'operation-interface-freeze designer';
+      frozenView.setAttribute('aria-hidden', 'true');
+      const pendingCloneScrolls: Array<{ source: HTMLElement; copy: HTMLElement }> = [];
+
+      const copyInteractiveValues = (source: HTMLElement, copy: HTMLElement) => {
+        const selector = 'input, textarea, select';
+        const sourceFields = source.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(selector);
+        const copyFields = copy.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(selector);
+        sourceFields.forEach((field, index) => {
+          const copiedField = copyFields[index];
+          if (!copiedField) { return; }
+          copiedField.value = field.value;
+          if (field instanceof HTMLInputElement && copiedField instanceof HTMLInputElement) {
+            copiedField.checked = field.checked;
+          }
+          if (field instanceof HTMLSelectElement && copiedField instanceof HTMLSelectElement) {
+            copiedField.selectedIndex = field.selectedIndex;
+          }
+        });
+      };
+      const sanitizeClone = (copy: HTMLElement) => {
+        copy.removeAttribute('id');
+        copy.querySelectorAll<HTMLElement>('[id]').forEach(element => element.removeAttribute('id'));
+        copy.querySelectorAll<HTMLElement>('[contenteditable]').forEach(element => {
+          element.removeAttribute('contenteditable');
+        });
+      };
+      const copyScrollPositions = (source: HTMLElement, copy: HTMLElement) => {
+        const sourceElements = [source, ...Array.from(source.querySelectorAll<HTMLElement>('*'))];
+        const copiedElements = [copy, ...Array.from(copy.querySelectorAll<HTMLElement>('*'))];
+        sourceElements.forEach((element, index) => {
+          const copiedElement = copiedElements[index];
+          if (!copiedElement) { return; }
+          pendingCloneScrolls.push({ source: element, copy: copiedElement });
+        });
+      };
+      const applyCloneScrollPositions = () => {
+        pendingCloneScrolls.forEach(({ source, copy }) => {
+          copy.scrollLeft = source.scrollLeft;
+          copy.scrollTop = source.scrollTop;
+        });
+      };
+      const cloneRegion = (source: HTMLElement): HTMLElement => {
+        const copy = source.cloneNode(true) as HTMLElement;
+        const rect = source.getBoundingClientRect();
+        const computedStyle = getComputedStyle(source);
+        sanitizeClone(copy);
+        copyInteractiveValues(source, copy);
+        Object.assign(copy.style, {
+          position: 'absolute',
+          zIndex: '2',
+          top: `${rect.top}px`,
+          left: `${rect.left}px`,
+          width: `${rect.width}px`,
+          height: `${rect.height}px`,
+          maxWidth: 'none',
+          margin: '0',
+          // getBoundingClientRect fournit la boîte extérieure. Sans
+          // border-box, les padding et bordures du plan s'ajoutent une seconde
+          // fois et décalent les trois panneaux au début du traitement.
+          boxSizing: 'border-box',
+          minWidth: `${rect.width}px`,
+          minHeight: `${rect.height}px`,
+          maxHeight: `${rect.height}px`,
+          flex: 'none',
+          // Ne jamais masquer artificiellement les ombres ou les ascenseurs.
+          // Les valeurs calculées reproduisent le comportement de la région
+          // originale, y compris overflow:auto pour les deux panneaux.
+          overflowX: computedStyle.overflowX,
+          overflowY: computedStyle.overflowY,
+          pointerEvents: 'none',
+          transform: 'none'
+        });
+        frozenView!.appendChild(copy);
+        copyScrollPositions(source, copy);
+        return copy;
+      };
+
+      const sourceDesigner = document.querySelector<HTMLElement>('.designer');
+      if (!sourceDesigner) { throw new Error('Interface du designer introuvable.'); }
+      // Les régions sticky sont clonées directement sous le calque, donc hors
+      // de `.designer`. Recopier les propriétés personnalisées garantit que
+      // toute la charte (or, vert, gris, bordures…) reste héritée à l'identique.
+      const designerComputedStyle = getComputedStyle(sourceDesigner);
+      Array.from(designerComputedStyle)
+        .filter(property => property.startsWith('--'))
+        .forEach(property => {
+          frozenView!.style.setProperty(property, designerComputedStyle.getPropertyValue(property));
+        });
+      const designerCopy = sourceDesigner.cloneNode(true) as HTMLElement;
+      const designerRect = sourceDesigner.getBoundingClientRect();
+      sanitizeClone(designerCopy);
+      copyInteractiveValues(sourceDesigner, designerCopy);
+      designerCopy.querySelectorAll<HTMLElement>('.ribbon, .document-outline, .inspector')
+        .forEach(element => { element.style.visibility = 'hidden'; });
+      Object.assign(designerCopy.style, {
         position: 'absolute',
-        inset: '0',
-        width: '100%',
-        height: '100%',
-        objectFit: 'fill'
+        zIndex: '1',
+        top: `${designerRect.top}px`,
+        left: `${designerRect.left}px`,
+        width: `${designerRect.width}px`,
+        minHeight: `${designerRect.height}px`,
+        margin: '0',
+        pointerEvents: 'none',
+        transform: 'none'
+      });
+      frozenView.appendChild(designerCopy);
+      copyScrollPositions(sourceDesigner, designerCopy);
+      ['.ribbon', '.document-outline', '.inspector'].forEach(selector => {
+        const source = document.querySelector<HTMLElement>(selector);
+        if (source) {
+          const regionCopy = cloneRegion(source);
+          // Dans l'interface réelle, le ruban (z-index 20) surplombe les
+          // panneaux. Reproduire cette hiérarchie empêche leurs fonds de
+          // recouvrir l'ombre portée sous la ligne de statut.
+          regionCopy.style.zIndex = selector === '.ribbon' ? '4' : '2';
+        }
       });
 
       const progressMessage = document.createElement('div');
@@ -2617,6 +2860,7 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
         <small>Le traitement peut prendre quelques instants. Merci de patienter.</small></span>`;
       Object.assign(progressMessage.style, {
         position: 'absolute',
+        zIndex: '5',
         left: '50%',
         top: '50%',
         transform: 'translate(-50%, -50%)',
@@ -2655,7 +2899,7 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
       if (messageText) { Object.assign(messageText.style, { display: 'grid', gap: '4px' }); }
       if (messageTitle) { Object.assign(messageTitle.style, { fontSize: '15px', color: '#416326' }); }
       if (messageDetail) { Object.assign(messageDetail.style, { display: 'block', fontSize: '12px', color: '#5c636a' }); }
-      frozenView.append(frozenImage, progressMessage);
+      frozenView.appendChild(progressMessage);
       Object.assign(frozenView.style, {
         position: 'fixed',
         inset: '0',
@@ -2663,22 +2907,48 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
         height: '100vh',
         zIndex: '2147483647',
         pointerEvents: 'auto',
-        userSelect: 'none'
+        userSelect: 'none',
+        visibility: 'hidden'
       });
       document.body.appendChild(frozenView);
+      // Les scrollTop/scrollLeft sont ignorés ou bornés à zéro tant que les
+      // clones sont détachés. Forcer leur mise en page, appliquer les positions
+      // réelles, attendre une frame puis les confirmer avant de révéler le
+      // calque évite tout flash des ascenseurs en haut.
+      void frozenView.offsetHeight;
+      applyCloneScrollPositions();
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      applyCloneScrollPositions();
+      frozenView.style.visibility = 'visible';
     } catch {
-      // Une image externe non compatible CORS ne doit jamais empêcher
-      // l'enregistrement : la restauration des défilements reste assurée.
+      // La protection visuelle ne doit jamais empêcher l'enregistrement :
+      // la restauration des défilements reste assurée.
     }
 
-    return () => {
-      scrollPositions.forEach(position => {
-        if (!position.element) { return; }
-        position.element.scrollLeft = position.left;
-        position.element.scrollTop = position.top;
-      });
-      window.scrollTo(windowScrollX, windowScrollY);
+    return async () => {
+      const restoreScrollPositions = () => {
+        scrollPositions.forEach(position => {
+          const element = document.querySelector<HTMLElement>(position.selector);
+          if (!element) { return; }
+          element.scrollLeft = position.left;
+          element.scrollTop = position.top;
+        });
+        window.scrollTo(windowScrollX, windowScrollY);
+      };
+
+      // La pagination et le changement de mode d'aperçu peuvent encore
+      // provoquer une mise en page pendant les frames qui suivent le rendu.
+      // Garder le calque figé durant ces frames évite que l'utilisateur voie
+      // l'ascenseur revenir brièvement en haut avant sa restauration.
+      restoreScrollPositions();
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      restoreScrollPositions();
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      restoreScrollPositions();
       frozenView?.remove();
+      restoreScrollPositions();
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      restoreScrollPositions();
       if (focusedElement?.isConnected) { focusedElement.focus({ preventScroll: true }); }
     };
   }
@@ -2858,6 +3128,7 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
       this.importError = `Pagination incomplète : ${paginatedCount} question(s) sur ${expectedCount}.`;
       return;
     }
+    if (this.importError.startsWith('Pagination incompl')) { this.importError = ''; }
     this.pages = pages;
   }
 
@@ -3037,7 +3308,8 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
         (Number.parseFloat(imageStyle.width) || Number(image.getAttribute('width')) || 1) / pixelsPerMm);
       this.selectedImageHeightMm = this.roundDimension(
         (Number.parseFloat(imageStyle.height) || Number(image.getAttribute('height')) || 1) / pixelsPerMm);
-      this.preserveSelectedImageRatio = !image.hasAttribute('height');
+      this.preserveSelectedImageRatio = image.classList.contains('media-preserve-ratio')
+        || (!image.classList.contains('media-free-ratio') && !image.hasAttribute('height'));
       this.selectedImageFit = image.classList.contains('media-fit-cover') ? 'cover' : 'contain';
       this.richTextEditor = image.closest<HTMLElement>('.rich-text-editor');
       return;
@@ -3082,12 +3354,16 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     }
     const pixelsPerMm = 96 / 25.4;
     image.setAttribute('width', String(Math.max(1, Math.round(this.selectedImageWidthMm * pixelsPerMm))));
-    if (this.preserveSelectedImageRatio) {
-      image.removeAttribute('height');
-    } else {
-      image.setAttribute('height', String(Math.max(1, Math.round(this.selectedImageHeightMm * pixelsPerMm))));
-    }
+    image.setAttribute('height', String(Math.max(1, Math.round(this.selectedImageHeightMm * pixelsPerMm))));
+    image.classList.toggle('media-preserve-ratio', this.preserveSelectedImageRatio);
+    image.classList.toggle('media-free-ratio', !this.preserveSelectedImageRatio);
+    image.classList.toggle('media-fit-cover', this.selectedImageFit === 'cover');
+    image.classList.toggle('media-fit-contain', this.selectedImageFit === 'contain');
     this.commitSelectedImageChange();
+  }
+
+  effectiveImageFit(preserveRatio: boolean, fit: 'contain' | 'cover'): 'contain' | 'cover' | 'fill' {
+    return !preserveRatio && fit === 'contain' ? 'fill' : fit;
   }
 
   updateSelectedImageDimension(dimension: 'width' | 'height', rawValue: number | string): void {
@@ -3624,6 +3900,7 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
   private normalizeStageDesign(stage: DesignerStage): void {
     stage.sections ||= [];
     stage.blocks ||= [];
+    stage.blocks = this.deduplicateBlockTree(stage.blocks);
     stage.sections.forEach(section => {
       section.showTitle ??= true;
       section.verticalTitle ??= false;
@@ -3658,6 +3935,29 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
       block.imageFit ||= 'contain';
       block.imageAlignment ||= 'center';
     });
+  }
+
+  /**
+   * Un bloc ne peut occuper qu'un seul emplacement dans le plan. Une ancienne
+   * opération de déplacement pouvait laisser le même bloc dans un conteneur et
+   * à la racine. La pagination comptait alors deux fois ses questions et
+   * refusait de remplacer l'aperçu A4.
+   */
+  private deduplicateBlockTree(blocks: DesignerBlock[]): DesignerBlock[] {
+    const seenBlockIds = new Set<string>();
+    const seenSectionIds = new Set<string>();
+    const visit = (items: DesignerBlock[]): DesignerBlock[] => items.filter(block => {
+      if (!block?.id || seenBlockIds.has(block.id)
+        || (!!block.sectionId && seenSectionIds.has(block.sectionId))) {
+        return false;
+      }
+      seenBlockIds.add(block.id);
+      if (block.sectionId) { seenSectionIds.add(block.sectionId); }
+      block.childColumns ||= [];
+      block.childColumns = block.childColumns.map(column => visit(column || []));
+      return true;
+    });
+    return visit(blocks);
   }
 
   private synchronizeSectionOrder(): void {
@@ -3732,6 +4032,9 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     // La hauteur des lignes est fixe en CSS. Cette capacité laisse la place au
     // cartouche, aux titres de section, au pied de page et aux quatre repères.
     // Toutes les mesures correspondent aux dimensions physiques du rendu A4.
+    // Conserver entre le dernier bloc et le pied la même respiration minimale
+    // qu'entre deux blocs. Sans cette réserve, les arrondis CSS et les polices
+    // peuvent laisser un bloc toucher, voire franchir, le séparateur du pied.
     const continuationPageCapacityMm = 211.5;
     const firstPageCapacityMm = continuationPageCapacityMm - this.titleBlockHeightMm
       - Math.max(0, this.project.titleSpacingBeforeMm || 0)
@@ -3788,6 +4091,10 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     const documentUnits = this.documentBlockUnits(this.blocks);
 
     for (const unitBlocks of documentUnits) {
+      if (unitBlocks.some(block => this.forcedPageBreakBeforeBlockIds.has(block.id))
+        && (current.blocks.length > 0 || current.sections.length > 0)) {
+        pushPage();
+      }
       if (unitBlocks.length === 1 && unitBlocks[0].type === 'page-break') {
           pushPage();
           continue;
@@ -3969,8 +4276,8 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     const visualLineCount = Math.max(1, this.plainText(question.answer || '').split('\n')
       .reduce((count, line) => count + Math.max(1, Math.ceil(line.length / charactersPerLine)), 0));
     const correctionHeight = Math.max(1, question.corrections.length) * this.project.correctionCellHeightCm * 10;
-    const textHeight = Math.max(visualLineCount * this.richTextLineHeightMm(question.answer),
-      this.richMediaHeightMm(question.answer)) + 1.1;
+    const textHeight = this.richContentHeightMm(question.answer,
+      visualLineCount * this.richTextLineHeightMm(question.answer)) + 1.1;
     const configuredNumberMediaHeight = section.uniformNumberMedia
       && /<img[\s>]|inline-pictogram/i.test(question.number) ? section.numberMediaHeightMm : 0;
     const numberHeight = Math.max(this.richTextHeightMm(question.number, 8),
@@ -3982,8 +4289,94 @@ ${referenceOnly ? '' : `        <group name="Questions">\n${xmlQuestions(correct
     const container = document.createElement('div');
     container.innerHTML = html || '';
     const pixelsPerMm = 96 / 25.4;
-    return Math.max(0, ...Array.from(container.querySelectorAll('img')).map(image =>
-      (Number(image.getAttribute('height')) || Number(image.getAttribute('width')) || 0) / pixelsPerMm));
+    return Math.max(0, ...Array.from(container.querySelectorAll('img')).map(image => {
+      const explicitHeight = Number(image.getAttribute('height')) || this.cssPixels(image.style.height);
+      if (explicitHeight > 0) { return explicitHeight / pixelsPerMm; }
+      const renderedWidth = Number(image.getAttribute('width')) || this.cssPixels(image.style.width);
+      const ratio = this.imageIntrinsicHeightRatio(image.getAttribute('src') || '');
+      return renderedWidth > 0 ? renderedWidth * ratio / pixelsPerMm : 0;
+    }));
+  }
+
+  /**
+   * Une image en ligne partage la hauteur de sa ligne avec le texte, tandis
+   * qu'une image alignée à gauche, au centre ou à droite forme sa propre ligne.
+   * Dans ce dernier cas sa hauteur doit être ajoutée à celle du texte pour que
+   * la pagination corresponde au rendu réel du navigateur.
+   */
+  private richContentHeightMm(html: string, textHeightMm: number): number {
+    const container = document.createElement('div');
+    container.innerHTML = html || '';
+    const pixelsPerMm = 96 / 25.4;
+    let inlineHeightMm = 0;
+    let blockHeightMm = 0;
+    Array.from(container.querySelectorAll('img')).forEach(image => {
+      const explicitHeight = Number(image.getAttribute('height')) || this.cssPixels(image.style.height);
+      const renderedWidth = Number(image.getAttribute('width')) || this.cssPixels(image.style.width);
+      const heightPx = explicitHeight > 0
+        ? explicitHeight
+        : renderedWidth * this.imageIntrinsicHeightRatio(image.getAttribute('src') || '');
+      const heightMm = Math.max(0, heightPx / pixelsPerMm);
+      // Seul le mode explicitement « dans la ligne » partage la hauteur du
+      // texte. Les anciennes images importées n'ont pas toujours une classe
+      // d'alignement, mais sont entourées de retours à la ligne et occupent
+      // donc une ligne autonome dans le rendu.
+      const isBlock = !image.classList.contains('media-inline');
+      if (isBlock) {
+        // Les styles globaux ajoutent .6 mm au-dessus et au-dessous.
+        blockHeightMm += heightMm + 1.2;
+      } else {
+        inlineHeightMm = Math.max(inlineHeightMm, heightMm);
+      }
+    });
+    return Math.max(textHeightMm, inlineHeightMm) + blockHeightMm;
+  }
+
+  private cssPixels(value: string): number {
+    const match = String(value || '').trim().match(/^([\d.]+)(px|mm|cm)?$/i);
+    if (!match) { return 0; }
+    const amount = Number(match[1]) || 0;
+    if (match[2]?.toLowerCase() === 'mm') { return amount * 96 / 25.4; }
+    if (match[2]?.toLowerCase() === 'cm') { return amount * 96 / 2.54; }
+    return amount;
+  }
+
+  private imageIntrinsicHeightRatio(source: string): number {
+    const match = source.match(/^data:image\/(png|gif|jpe?g);base64,(.+)$/i);
+    if (!match) { return 1; }
+    try {
+      const bytes = Uint8Array.from(atob(match[2]), character => character.charCodeAt(0));
+      const format = match[1].toLowerCase();
+      if (format === 'png' && bytes.length >= 24) {
+        const view = new DataView(bytes.buffer);
+        const width = view.getUint32(16);
+        const height = view.getUint32(20);
+        return width > 0 && height > 0 ? height / width : 1;
+      }
+      if (format === 'gif' && bytes.length >= 10) {
+        const view = new DataView(bytes.buffer);
+        const width = view.getUint16(6, true);
+        const height = view.getUint16(8, true);
+        return width > 0 && height > 0 ? height / width : 1;
+      }
+      if (format === 'jpg' || format === 'jpeg') {
+        for (let offset = 2; offset + 8 < bytes.length;) {
+          if (bytes[offset] !== 0xff) { offset++; continue; }
+          const marker = bytes[offset + 1];
+          const length = (bytes[offset + 2] << 8) + bytes[offset + 3];
+          if ([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker)) {
+            const height = (bytes[offset + 5] << 8) + bytes[offset + 6];
+            const width = (bytes[offset + 7] << 8) + bytes[offset + 8];
+            return width > 0 && height > 0 ? height / width : 1;
+          }
+          if (length < 2) { break; }
+          offset += length + 2;
+        }
+      }
+    } catch {
+      return 1;
+    }
+    return 1;
   }
 
   private richTextHeightMm(html: string, charactersPerLine: number): number {

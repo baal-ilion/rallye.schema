@@ -280,7 +280,7 @@
 .designer-block p { white-space: pre-wrap; }
 .designer-block img { display: block; max-width: 100%; max-height: 180px; margin: 6px auto; }
 .form-image { width: fit-content; max-width: 100%; margin: 6px auto; }
-.form-image img { margin: 0; }
+.form-image img { max-height: none; margin: 0; }
 .form-image.align-left { margin-right: auto; margin-left: 0; }
 .form-image.align-center { margin-right: auto; margin-left: auto; }
 .form-image.align-right { margin-right: 0; margin-left: auto; }
