@@ -95,3 +95,27 @@ def test_corrects_a_smooth_local_page_deformation():
     assert alignment.anchor_count >= 8
     assert alignment.confidence > 0.35
     assert after < before * 0.82
+
+
+def test_local_alignment_preserves_the_four_marker_regions():
+    reference = _reference_form()
+    coordinates_x, coordinates_y = np.meshgrid(
+        np.arange(WIDTH, dtype=np.float32),
+        np.arange(HEIGHT, dtype=np.float32),
+    )
+    deformed = cv2.remap(
+        reference,
+        coordinates_x + 11 * np.sin(2 * np.pi * coordinates_y / HEIGHT),
+        coordinates_y + 8 * np.sin(2 * np.pi * coordinates_x / WIDTH),
+        cv2.INTER_CUBIC,
+        borderMode=cv2.BORDER_REPLICATE,
+    )
+
+    alignment = align_locally(deformed, reference)
+    margin_x = round(WIDTH * 0.18)
+    margin_y = round(HEIGHT * 0.18)
+
+    assert np.array_equal(alignment.image[:margin_y, :], deformed[:margin_y, :])
+    assert np.array_equal(alignment.image[-margin_y:, :], deformed[-margin_y:, :])
+    assert np.array_equal(alignment.image[:, :margin_x], deformed[:, :margin_x])
+    assert np.array_equal(alignment.image[:, -margin_x:], deformed[:, -margin_x:])
