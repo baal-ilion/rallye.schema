@@ -24,6 +24,11 @@ class ProcessResponse(BaseModel):
     status: str
     automatic_marker_detection: bool
     manual_review_required: bool
+    local_alignment_applied: bool
+    local_alignment_confidence: float = Field(ge=0, le=1)
+    local_alignment_anchor_count: int = Field(ge=0)
+    local_alignment_mean_displacement: float = Field(ge=0)
+    local_alignment_maximum_displacement: float = Field(ge=0)
     source_width: int
     source_height: int
     normalized_width: int

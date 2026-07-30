@@ -21,6 +21,11 @@ public class ResponseFileInfo {
 	private String processingStatus;
 	private Boolean automaticMarkerDetection;
 	private Boolean manualReviewRequired;
+	private Boolean localAlignmentApplied;
+	private Double localAlignmentConfidence;
+	private Integer localAlignmentAnchorCount;
+	private Double localAlignmentMeanDisplacement;
+	private Double localAlignmentMaximumDisplacement;
 
 	// private Date date;
 

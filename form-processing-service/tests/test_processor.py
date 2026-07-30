@@ -5,6 +5,7 @@ import numpy as np
 
 from form_processing.markers import detect_markers
 from form_processing.processor import process_image
+from form_processing.registration import align_locally
 
 
 WIDTH = 1240
@@ -69,3 +70,28 @@ def test_normalizes_a_perspective_photo_against_reference():
     )
     assert normalized.shape[:2] == (HEIGHT, WIDTH)
 
+
+def test_corrects_a_smooth_local_page_deformation():
+    reference = _reference_form()
+    coordinates_x, coordinates_y = np.meshgrid(
+        np.arange(WIDTH, dtype=np.float32),
+        np.arange(HEIGHT, dtype=np.float32),
+    )
+    horizontal_wave = 13 * np.sin(2 * np.pi * coordinates_y / HEIGHT)
+    vertical_wave = 9 * np.sin(2 * np.pi * coordinates_x / WIDTH)
+    deformed = cv2.remap(
+        reference,
+        coordinates_x + horizontal_wave.astype(np.float32),
+        coordinates_y + vertical_wave.astype(np.float32),
+        cv2.INTER_CUBIC,
+        borderMode=cv2.BORDER_REPLICATE,
+    )
+
+    alignment = align_locally(deformed, reference)
+    before = np.mean(cv2.absdiff(deformed, reference))
+    after = np.mean(cv2.absdiff(alignment.image, reference))
+
+    assert alignment.applied
+    assert alignment.anchor_count >= 8
+    assert alignment.confidence > 0.35
+    assert after < before * 0.82

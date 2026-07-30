@@ -37,6 +37,11 @@ public class FormProcessingClient {
 		private String status;
 		private boolean automaticMarkerDetection;
 		private boolean manualReviewRequired;
+		private boolean localAlignmentApplied;
+		private double localAlignmentConfidence;
+		private int localAlignmentAnchorCount;
+		private double localAlignmentMeanDisplacement;
+		private double localAlignmentMaximumDisplacement;
 	}
 
 	@Data
@@ -52,6 +57,16 @@ public class FormProcessingClient {
 		private String normalizedContentType;
 		@JsonProperty("normalized_image_base64")
 		private String normalizedImageBase64;
+		@JsonProperty("local_alignment_applied")
+		private boolean localAlignmentApplied;
+		@JsonProperty("local_alignment_confidence")
+		private double localAlignmentConfidence;
+		@JsonProperty("local_alignment_anchor_count")
+		private int localAlignmentAnchorCount;
+		@JsonProperty("local_alignment_mean_displacement")
+		private double localAlignmentMeanDisplacement;
+		@JsonProperty("local_alignment_maximum_displacement")
+		private double localAlignmentMaximumDisplacement;
 	}
 
 	private final RestTemplate restTemplate;
@@ -94,7 +109,12 @@ public class FormProcessingClient {
 					"png",
 					response.getStatus(),
 					response.isAutomaticMarkerDetection(),
-					response.isManualReviewRequired()));
+					response.isManualReviewRequired(),
+					response.isLocalAlignmentApplied(),
+					response.getLocalAlignmentConfidence(),
+					response.getLocalAlignmentAnchorCount(),
+					response.getLocalAlignmentMeanDisplacement(),
+					response.getLocalAlignmentMaximumDisplacement()));
 		} catch (RestClientException | IllegalArgumentException | IllegalStateException error) {
 			log.warning("Service de traitement indisponible ou réponse inexploitable : utilisation du traitement "
 					+ "historique. Cause : " + error.getMessage());
