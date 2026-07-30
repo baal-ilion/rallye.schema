@@ -35,6 +35,26 @@ def _printed_edge_error(image: np.ndarray, reference: np.ndarray) -> float:
     return float(np.percentile(values, 75)) if values.size else 0.0
 
 
+def _interior_weight(width: int, height: int) -> np.ndarray:
+    """Préserve les repères et le pourtour lors du recalage non rigide.
+
+    L'homographie globale a déjà placé les quatre repères. Le recalage local
+    ne doit donc agir que sur le contenu intérieur de la feuille. Une
+    transition progressive évite de créer une cassure au bord de cette zone.
+    """
+    horizontal = np.ones(width, dtype=np.float32)
+    vertical = np.ones(height, dtype=np.float32)
+    for values, length in ((horizontal, width), (vertical, height)):
+        inner_start = max(1, round(length * 0.18))
+        full_start = max(inner_start + 1, round(length * 0.24))
+        ramp = np.linspace(0.0, 1.0, full_start - inner_start, dtype=np.float32)
+        values[:inner_start] = 0.0
+        values[inner_start:full_start] = ramp
+        values[-inner_start:] = 0.0
+        values[-full_start:-inner_start] = ramp[::-1]
+    return vertical[:, None] * horizontal[None, :]
+
+
 def align_locally(image: np.ndarray, reference: np.ndarray) -> LocalAlignment:
     """Corrige les déformations souples résiduelles après l'homographie globale.
 
@@ -104,6 +124,9 @@ def align_locally(image: np.ndarray, reference: np.ndarray) -> LocalAlignment:
     dy_grid = cv2.GaussianBlur(dy_grid, (3, 3), 0)
     dx = cv2.resize(dx_grid, (width, height), interpolation=cv2.INTER_CUBIC) / scale
     dy = cv2.resize(dy_grid, (width, height), interpolation=cv2.INTER_CUBIC) / scale
+    border_protection = _interior_weight(width, height)
+    dx *= border_protection
+    dy *= border_protection
 
     coordinates_x, coordinates_y = np.meshgrid(
         np.arange(width, dtype=np.float32),
@@ -116,6 +139,7 @@ def align_locally(image: np.ndarray, reference: np.ndarray) -> LocalAlignment:
         cv2.INTER_CUBIC,
         borderMode=cv2.BORDER_REPLICATE,
     )
+    corrected[border_protection <= 0] = image[border_protection <= 0]
     confidence = float(np.clip(np.mean(scores) * min(1.0, anchor_count / 24.0), 0.0, 1.0))
     magnitudes = np.hypot(dx_grid[valid], dy_grid[valid]) / scale
     # Never keep a deformation merely because matches were found. Printed
