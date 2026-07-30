@@ -18,6 +18,9 @@ public class ResponseFileInfo {
 	private Integer team;
 
 	private Boolean checked;
+	private String processingStatus;
+	private Boolean automaticMarkerDetection;
+	private Boolean manualReviewRequired;
 
 	// private Date date;
 

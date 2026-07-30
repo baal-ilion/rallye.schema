@@ -84,6 +84,8 @@ public class ResponseFileService {
 	@Autowired
 	private ResponseFileParamService responseFileParamService;
 	@Autowired
+	private FormProcessingClient formProcessingClient;
+	@Autowired
 	private StageParamService stageParamService;
 
 	@Autowired
@@ -96,7 +98,27 @@ public class ResponseFileService {
 			throw new IllegalArgumentException("Only image files are supported");
 		}
 
-		BufferedImage image = ImageIO.read(new ByteArrayInputStream(file.getBytes()));
+		byte[] originalContent = file.getBytes();
+		byte[] storedContent = originalContent;
+		String storedContentType = contentType;
+		String storedExtension = FilenameUtils.getExtension(file.getOriginalFilename());
+
+		var reference = responseFileParamService.getReferenceResponseFileModel().orElse(null);
+		var processed = formProcessingClient.process(
+				originalContent,
+				file.getOriginalFilename(),
+				contentType,
+				Objects.nonNull(reference) ? reference.getFile().getData() : null,
+				Objects.nonNull(reference) ? reference.getFileType() : null);
+		if (processed.isPresent()) {
+			storedContent = processed.get().getContent();
+			storedContentType = processed.get().getContentType();
+			storedExtension = processed.get().getExtension();
+			log.info("Formulaire préparé par le nouveau service : statut=" + processed.get().getStatus()
+					+ ", vérificationManuelle=" + processed.get().isManualReviewRequired());
+		}
+
+		BufferedImage image = ImageIO.read(new ByteArrayInputStream(storedContent));
 		if (image == null) {
 			throw new IllegalArgumentException("Only image files are supported");
 		}
@@ -109,14 +131,25 @@ public class ResponseFileService {
 		filledForm = makeFormTemplate(image, name, responseFileInfo.getStage(), responseFileInfo.getPage(), null, true);
 		logFormTemplate(filledForm);
 		responseFileInfo.setFilledForm(filledForm);
+		if (processed.isPresent()) {
+			var result = processed.get();
+			responseFileInfo.setProcessingStatus(result.getStatus());
+			responseFileInfo.setAutomaticMarkerDetection(result.isAutomaticMarkerDetection());
+			responseFileInfo.setManualReviewRequired(result.isManualReviewRequired());
+		}
 
 		responseFileInfo = responseFileInfoRepository.save(responseFileInfo);
 		ResponseFile responseFile = new ResponseFile();
 		responseFile.setId(responseFileInfo.getId());
 		responseFile.setInfo(responseFileInfo);
-		responseFile.setFile(new Binary(BsonBinarySubType.BINARY, file.getBytes()));
-		responseFile.setFileExtension(FilenameUtils.getExtension(file.getOriginalFilename()));
-		responseFile.setFileType(file.getContentType());
+		responseFile.setFile(new Binary(BsonBinarySubType.BINARY, storedContent));
+		responseFile.setFileExtension(storedExtension);
+		responseFile.setFileType(storedContentType);
+		if (processed.isPresent()) {
+			responseFile.setOriginalFile(new Binary(BsonBinarySubType.BINARY, originalContent));
+			responseFile.setOriginalFileExtension(FilenameUtils.getExtension(file.getOriginalFilename()));
+			responseFile.setOriginalFileType(contentType);
+		}
 		responseFile = responseFileRepository.insert(responseFile);
 		messageProducerService.sendMessage(RESPONSE_FILE_CREATE_EVENT, responseFileInfo);
 		return responseFile;

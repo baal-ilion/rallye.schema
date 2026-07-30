@@ -47,6 +47,10 @@ management:
     health:
       show-details: when_authorized
 
+form-processing:
+  enabled: ${FORM_PROCESSING_ENABLED:false}
+  url: ${FORM_PROCESSING_URL:http://localhost:8085}
+
 ---
 spring:
   profiles: test

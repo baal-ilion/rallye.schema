@@ -18,6 +18,9 @@ public class ResponseFile {
 	private Binary file;
 	private String fileType;
 	private String fileExtension;
+	private Binary originalFile;
+	private String originalFileType;
+	private String originalFileExtension;
 	@DBRef
 	private ResponseFileInfo info;
 }
