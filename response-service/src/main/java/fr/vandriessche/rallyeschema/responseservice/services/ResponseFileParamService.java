@@ -130,6 +130,10 @@ public class ResponseFileParamService {
 		return responseFileParamRepository.findByStageIsNullAndPageIsNull();
 	}
 
+	public Optional<ResponseFileModel> getReferenceResponseFileModel() {
+		return getReferenceResponseFileParam().flatMap(reference -> responseFileModelRepository.findById(reference.getId()));
+	}
+
 	public void deleteResponseFileParamsByStage(Integer stage) {
 		new ArrayList<>(responseFileParamRepository.findByStage(stage))
 				.forEach(param -> deleteCascadeResponseFileParam(param.getId()));
