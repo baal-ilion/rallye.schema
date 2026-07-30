@@ -1,0 +1,11 @@
+services:
+  rallye-schema-form-processing-service:
+    container_name: rallye-schema-form-processing-service
+    image: rallye-schema-form-processing-service:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8080"
+    restart: unless-stopped
+
