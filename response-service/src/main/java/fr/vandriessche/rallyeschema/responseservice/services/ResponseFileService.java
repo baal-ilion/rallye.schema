@@ -124,11 +124,16 @@ public class ResponseFileService {
 		}
 		String name = FilenameUtils.getBaseName(file.getOriginalFilename());
 
-		FormTemplate filledForm = makeFormTemplate(image, name, null, null, null, true);
+		HashMap<Corners, FormPoint> trustedCorners = processed
+				.filter(result -> result.isAutomaticMarkerDetection() && Objects.nonNull(result.getTargetMarkers()))
+				.map(this::makeTrustedCorners)
+				.orElse(null);
+		FormTemplate filledForm = makeFormTemplate(image, name, null, null, trustedCorners, true);
 
 		ResponseFileInfo responseFileInfo = new ResponseFileInfo();
 		fillResponseFileInfo(filledForm, responseFileInfo);
-		filledForm = makeFormTemplate(image, name, responseFileInfo.getStage(), responseFileInfo.getPage(), null, true);
+		filledForm = makeFormTemplate(image, name, responseFileInfo.getStage(), responseFileInfo.getPage(),
+				trustedCorners, true);
 		logFormTemplate(filledForm);
 		responseFileInfo.setFilledForm(filledForm);
 		if (processed.isPresent()) {
@@ -136,6 +141,8 @@ public class ResponseFileService {
 			responseFileInfo.setProcessingStatus(result.getStatus());
 			responseFileInfo.setAutomaticMarkerDetection(result.isAutomaticMarkerDetection());
 			responseFileInfo.setManualReviewRequired(result.isManualReviewRequired());
+			responseFileInfo.setDetectedRotationDegrees(result.getDetectedRotationDegrees());
+			responseFileInfo.setReferenceAlignmentError(result.getReferenceAlignmentError());
 			responseFileInfo.setLocalAlignmentApplied(result.isLocalAlignmentApplied());
 			responseFileInfo.setLocalAlignmentConfidence(result.getLocalAlignmentConfidence());
 			responseFileInfo.setLocalAlignmentAnchorCount(result.getLocalAlignmentAnchorCount());
@@ -158,6 +165,23 @@ public class ResponseFileService {
 		responseFile = responseFileRepository.insert(responseFile);
 		messageProducerService.sendMessage(RESPONSE_FILE_CREATE_EVENT, responseFileInfo);
 		return responseFile;
+	}
+
+	private HashMap<Corners, FormPoint> makeTrustedCorners(FormProcessingClient.ProcessedImage processed) {
+		var markers = processed.getTargetMarkers();
+		HashMap<Corners, FormPoint> corners = new HashMap<>();
+		corners.put(Corners.TOP_LEFT, makeFormPoint(markers.getTopLeft()));
+		corners.put(Corners.TOP_RIGHT, makeFormPoint(markers.getTopRight()));
+		corners.put(Corners.BOTTOM_RIGHT, makeFormPoint(markers.getBottomRight()));
+		corners.put(Corners.BOTTOM_LEFT, makeFormPoint(markers.getBottomLeft()));
+		return corners;
+	}
+
+	private FormPoint makeFormPoint(FormProcessingClient.MarkerPoint marker) {
+		FormPoint point = new FormPoint();
+		point.setX(marker.getX());
+		point.setY(marker.getY());
+		return point;
 	}
 
 	public void deleteByTeam(Integer team) {

@@ -24,6 +24,8 @@ class ProcessResponse(BaseModel):
     status: str
     automatic_marker_detection: bool
     manual_review_required: bool
+    detected_rotation_degrees: int
+    reference_alignment_error: float
     local_alignment_applied: bool
     local_alignment_confidence: float = Field(ge=0, le=1)
     local_alignment_anchor_count: int = Field(ge=0)

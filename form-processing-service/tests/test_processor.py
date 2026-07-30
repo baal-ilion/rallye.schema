@@ -71,6 +71,78 @@ def test_normalizes_a_perspective_photo_against_reference():
     assert normalized.shape[:2] == (HEIGHT, WIDTH)
 
 
+def test_automatically_rotates_a_sideways_photo():
+    reference = _reference_form()
+    sideways = cv2.rotate(reference, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
+    result = process_image(_encode(sideways), _encode(reference))
+    normalized = cv2.imdecode(
+        np.frombuffer(base64.b64decode(result.normalized_image_base64), dtype=np.uint8),
+        cv2.IMREAD_COLOR,
+    )
+
+    assert result.detected_rotation_degrees == 90
+    assert result.reference_alignment_error < 3.5
+    assert result.automatic_marker_detection
+    assert np.mean(cv2.absdiff(normalized, reference)) < 1.0
+
+
+def test_requires_manual_review_when_markers_do_not_frame_the_reference():
+    reference = _reference_form()
+    unrelated = np.full_like(reference, 255)
+    for point in [(120, 120), (1120, 120), (1120, 1630), (120, 1630)]:
+        cv2.circle(unrelated, point, 35, (0, 0, 0), -1)
+        cv2.circle(unrelated, point, 15, (255, 255, 255), -1)
+    cv2.putText(unrelated, "AUTRE DOCUMENT", (350, 850), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 0), 4)
+
+    result = process_image(_encode(unrelated), _encode(reference))
+
+    assert result.status == "MANUAL_REVIEW_REQUIRED"
+    assert result.manual_review_required
+    assert not result.automatic_marker_detection
+    assert result.reference_alignment_error > 3.5
+
+
+def test_keeps_the_top_page_when_another_page_protrudes_underneath():
+    reference = _reference_form()
+    canvas = np.full((2050, 1500, 3), 210, dtype=np.uint8)
+
+    underlying = cv2.rotate(reference, cv2.ROTATE_90_CLOCKWISE)
+    visible_underlying = underlying[:, :1350]
+    canvas[
+        350 : 350 + visible_underlying.shape[0],
+        150 : 150 + visible_underlying.shape[1],
+    ] = visible_underlying
+
+    source_corners = np.float32(
+        [[0, 0], [WIDTH - 1, 0], [WIDTH - 1, HEIGHT - 1], [0, HEIGHT - 1]]
+    )
+    top_corners = np.float32([[210, 170], [1280, 260], [1210, 1900], [120, 1810]])
+    transformation = cv2.getPerspectiveTransform(source_corners, top_corners)
+    top_page = cv2.warpPerspective(reference, transformation, (1500, 2050))
+    top_mask = cv2.warpPerspective(
+        np.full((HEIGHT, WIDTH), 255, dtype=np.uint8),
+        transformation,
+        (1500, 2050),
+    )
+    canvas[top_mask > 0] = top_page[top_mask > 0]
+    cv2.putText(
+        canvas,
+        "REPONSES MANUSCRITES",
+        (390, 1150),
+        cv2.FONT_HERSHEY_SCRIPT_SIMPLEX,
+        1.7,
+        (20, 20, 20),
+        5,
+    )
+
+    result = process_image(_encode(canvas), _encode(reference))
+
+    assert result.detected_rotation_degrees == 0
+    assert result.automatic_marker_detection
+    assert result.status in {"READY", "READY_WITH_WARNINGS"}
+
+
 def test_corrects_a_smooth_local_page_deformation():
     reference = _reference_form()
     coordinates_x, coordinates_y = np.meshgrid(

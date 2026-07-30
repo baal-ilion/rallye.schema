@@ -14,6 +14,7 @@ import { QrcodeComponent } from './qrcode/qrcode.component';
 import { DetailsTeamStageComponent } from './stage/details-team-stage/details-team-stage.component';
 import { ListStageComponent } from './stage/list-stage/list-stage.component';
 import { FormUploadComponent } from './upload/form-upload/form-upload.component';
+import { FormCaptureComponent } from './upload/form-capture/form-capture.component';
 import { ListUploadComponent } from './upload/list-upload/list-upload.component';
 import { TeamPresenceComponent } from './param/team-presence/team-presence.component';
 import { StageParticipationComponent } from './stage/stage-participation/stage-participation.component';
@@ -27,6 +28,7 @@ import { DatabaseMaintenanceComponent } from './database/database-maintenance/da
 const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'formUpload', component: FormUploadComponent },
+  { path: 'formCapture', component: FormCaptureComponent },
   { path: 'listUpload', component: ListUploadComponent },
   { path: 'listStage', component: ListStageComponent },
   { path: 'listPoint', component: ListPointComponent },

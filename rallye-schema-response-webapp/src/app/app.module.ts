@@ -47,6 +47,7 @@ import { ToggleSwitchComponent } from './toggle-switch/toggle-switch.component';
 import { DetailsResponseFileComponent } from './upload/details-response-file/details-response-file.component';
 import { DetailsUploadComponent } from './upload/details-upload/details-upload.component';
 import { FormUploadComponent } from './upload/form-upload/form-upload.component';
+import { FormCaptureComponent } from './upload/form-capture/form-capture.component';
 import { ListResponseFileComponent } from './upload/list-response-file/list-response-file.component';
 import { ListUploadComponent } from './upload/list-upload/list-upload.component';
 import { ModifyUploadComponent } from './upload/modify-upload/modify-upload.component';
@@ -64,6 +65,7 @@ registerLocaleData(localeFr, 'fr', localeFrExtra);
 @NgModule({ declarations: [
         AppComponent,
         FormUploadComponent,
+        FormCaptureComponent,
         ListUploadComponent,
         DetailsUploadComponent,
         DetailsStageComponent,

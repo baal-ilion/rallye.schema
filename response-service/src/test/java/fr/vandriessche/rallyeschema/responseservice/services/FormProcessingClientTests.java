@@ -28,11 +28,18 @@ class FormProcessingClientTests {
 						+ "\"status\":\"READY\","
 						+ "\"automatic_marker_detection\":true,"
 						+ "\"manual_review_required\":false,"
+						+ "\"detected_rotation_degrees\":270,"
+						+ "\"reference_alignment_error\":0.95,"
 						+ "\"local_alignment_applied\":true,"
 						+ "\"local_alignment_confidence\":0.81,"
 						+ "\"local_alignment_anchor_count\":22,"
 						+ "\"local_alignment_mean_displacement\":2.4,"
 						+ "\"local_alignment_maximum_displacement\":6.7,"
+						+ "\"target_markers\":{"
+						+ "\"top_left\":{\"x\":10,\"y\":20},"
+						+ "\"top_right\":{\"x\":90,\"y\":20},"
+						+ "\"bottom_right\":{\"x\":90,\"y\":180},"
+						+ "\"bottom_left\":{\"x\":10,\"y\":180}},"
 						+ "\"normalized_content_type\":\"image/png\","
 						+ "\"normalized_image_base64\":\"" + Base64.getEncoder().encodeToString(normalized) + "\""
 						+ "}", MediaType.APPLICATION_JSON));
@@ -44,6 +51,9 @@ class FormProcessingClientTests {
 		assertArrayEquals(normalized, result.get().getContent());
 		assertEquals("png", result.get().getExtension());
 		assertTrue(result.get().isAutomaticMarkerDetection());
+		assertEquals(270, result.get().getDetectedRotationDegrees());
+		assertEquals(0.95, result.get().getReferenceAlignmentError(), 0.001);
+		assertEquals(10, result.get().getTargetMarkers().getTopLeft().getX(), 0.001);
 		assertTrue(result.get().isLocalAlignmentApplied());
 		assertEquals(0.81, result.get().getLocalAlignmentConfidence(), 0.001);
 		assertEquals(22, result.get().getLocalAlignmentAnchorCount());

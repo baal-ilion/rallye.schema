@@ -37,11 +37,34 @@ public class FormProcessingClient {
 		private String status;
 		private boolean automaticMarkerDetection;
 		private boolean manualReviewRequired;
+		private int detectedRotationDegrees;
+		private double referenceAlignmentError;
 		private boolean localAlignmentApplied;
 		private double localAlignmentConfidence;
 		private int localAlignmentAnchorCount;
 		private double localAlignmentMeanDisplacement;
 		private double localAlignmentMaximumDisplacement;
+		private MarkerSet targetMarkers;
+	}
+
+	@Data
+	@NoArgsConstructor
+	public static class MarkerPoint {
+		private double x;
+		private double y;
+	}
+
+	@Data
+	@NoArgsConstructor
+	public static class MarkerSet {
+		@JsonProperty("top_left")
+		private MarkerPoint topLeft;
+		@JsonProperty("top_right")
+		private MarkerPoint topRight;
+		@JsonProperty("bottom_right")
+		private MarkerPoint bottomRight;
+		@JsonProperty("bottom_left")
+		private MarkerPoint bottomLeft;
 	}
 
 	@Data
@@ -53,6 +76,10 @@ public class FormProcessingClient {
 		private boolean manualReviewRequired;
 		@JsonProperty("automatic_marker_detection")
 		private boolean automaticMarkerDetection;
+		@JsonProperty("detected_rotation_degrees")
+		private int detectedRotationDegrees;
+		@JsonProperty("reference_alignment_error")
+		private double referenceAlignmentError;
 		@JsonProperty("normalized_content_type")
 		private String normalizedContentType;
 		@JsonProperty("normalized_image_base64")
@@ -67,6 +94,8 @@ public class FormProcessingClient {
 		private double localAlignmentMeanDisplacement;
 		@JsonProperty("local_alignment_maximum_displacement")
 		private double localAlignmentMaximumDisplacement;
+		@JsonProperty("target_markers")
+		private MarkerSet targetMarkers;
 	}
 
 	private final RestTemplate restTemplate;
@@ -110,11 +139,14 @@ public class FormProcessingClient {
 					response.getStatus(),
 					response.isAutomaticMarkerDetection(),
 					response.isManualReviewRequired(),
+					response.getDetectedRotationDegrees(),
+					response.getReferenceAlignmentError(),
 					response.isLocalAlignmentApplied(),
 					response.getLocalAlignmentConfidence(),
 					response.getLocalAlignmentAnchorCount(),
 					response.getLocalAlignmentMeanDisplacement(),
-					response.getLocalAlignmentMaximumDisplacement()));
+					response.getLocalAlignmentMaximumDisplacement(),
+					response.getTargetMarkers()));
 		} catch (RestClientException | IllegalArgumentException | IllegalStateException error) {
 			log.warning("Service de traitement indisponible ou réponse inexploitable : utilisation du traitement "
 					+ "historique. Cause : " + error.getMessage());

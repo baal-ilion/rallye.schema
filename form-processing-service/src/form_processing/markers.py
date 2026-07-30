@@ -100,19 +100,12 @@ def _candidate_markers(gray: np.ndarray) -> list[MarkerCandidate]:
         elif candidate.score > merged[duplicate_index].score:
             merged[duplicate_index] = candidate
 
-    corner_presence = (
-        any(candidate.x < 0.38 * width and candidate.y < 0.28 * height for candidate in merged),
-        any(candidate.x > 0.62 * width and candidate.y < 0.28 * height for candidate in merged),
-        any(candidate.x > 0.62 * width and candidate.y > 0.72 * height for candidate in merged),
-        any(candidate.x < 0.38 * width and candidate.y > 0.72 * height for candidate in merged),
-    )
-    if all(corner_presence):
-        merged.sort(key=lambda candidate: candidate.score, reverse=True)
-        return merged[:30]
-
     # A damaged or annotated ring can lose its contour hierarchy. Hough then
-    # provides a deliberately lower-confidence fallback; the page geometry
-    # below remains responsible for rejecting unrelated circles.
+    # provides complementary candidates. It must also run when four corner
+    # regions appear occupied: a checkbox can otherwise impersonate a damaged
+    # ring and prevent the real marker from ever reaching the geometry check.
+    # The page geometry below remains responsible for rejecting unrelated
+    # circles.
     min_dimension = min(width, height)
     scale = min(1.0, 1200.0 / max(width, height))
     reduced = cv2.resize(blurred, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
