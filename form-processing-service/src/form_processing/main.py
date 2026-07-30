@@ -32,6 +32,7 @@ async def process_form(
     reference: UploadFile | None = File(None),
     target_width: int | None = Form(None),
     target_height: int | None = Form(None),
+    template_xml: str | None = Form(None),
 ) -> ProcessResponse:
     if target_width is not None and not 800 <= target_width <= 6000:
         raise ProcessingError("INVALID_TARGET_SIZE", "La largeur cible doit être comprise entre 800 et 6000 pixels.")
@@ -43,5 +44,5 @@ async def process_form(
         await reference.read() if reference else None,
         target_width,
         target_height,
+        template_xml,
     )
-

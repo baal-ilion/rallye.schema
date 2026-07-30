@@ -9,6 +9,7 @@ from .markers import DetectedMarkers, detect_markers
 from .models import MarkerSet, Point, ProcessResponse
 from .quality import analyze_quality
 from .registration import LocalAlignment, align_locally
+from .identification import recognize_identification
 
 
 DEFAULT_WIDTH = 2480
@@ -122,6 +123,7 @@ def process_image(
     reference_content: bytes | None = None,
     target_width: int | None = None,
     target_height: int | None = None,
+    template_xml: str | None = None,
 ) -> ProcessResponse:
     source = decode_image(image_content)
     source_height, source_width = source.shape[:2]
@@ -221,6 +223,7 @@ def process_image(
             "vérifiez les cases dans la validation."
         )
     encoded = base64.b64encode(encode_png(normalized)).decode("ascii")
+    identification = recognize_identification(normalized, template_xml)
 
     status = (
         "MANUAL_REVIEW_REQUIRED"
@@ -245,6 +248,7 @@ def process_image(
         source_markers=_marker_model(source_detection.points),
         target_markers=_marker_model(target_markers),
         quality=quality,
+        identification=identification,
         warnings=warnings,
         normalized_image_base64=encoded,
     )

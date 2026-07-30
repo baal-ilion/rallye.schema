@@ -45,7 +45,7 @@ class FormProcessingClientTests {
 						+ "}", MediaType.APPLICATION_JSON));
 
 		FormProcessingClient client = new FormProcessingClient(restTemplate, true, "http://processor:8080/");
-		var result = client.process(new byte[] { 1, 2 }, "scan.jpg", "image/jpeg", null, null);
+		var result = client.process(new byte[] { 1, 2 }, "scan.jpg", "image/jpeg", null, null, "<template/>");
 
 		assertTrue(result.isPresent());
 		assertArrayEquals(normalized, result.get().getContent());
@@ -69,7 +69,7 @@ class FormProcessingClientTests {
 
 		FormProcessingClient client = new FormProcessingClient(restTemplate, true, "http://processor:8080");
 
-		assertFalse(client.process(new byte[] { 1 }, "scan.jpg", "image/jpeg", null, null).isPresent());
+		assertFalse(client.process(new byte[] { 1 }, "scan.jpg", "image/jpeg", null, null, null).isPresent());
 		server.verify();
 	}
 
@@ -77,6 +77,6 @@ class FormProcessingClientTests {
 	void doesNotCallTheServiceWhenDisabled() {
 		FormProcessingClient client = new FormProcessingClient(new RestTemplate(), false, "http://processor:8080");
 
-		assertFalse(client.process(new byte[] { 1 }, "scan.jpg", "image/jpeg", null, null).isPresent());
+		assertFalse(client.process(new byte[] { 1 }, "scan.jpg", "image/jpeg", null, null, null).isPresent());
 	}
 }

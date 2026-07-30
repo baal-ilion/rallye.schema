@@ -45,6 +45,16 @@ public class FormProcessingClient {
 		private double localAlignmentMeanDisplacement;
 		private double localAlignmentMaximumDisplacement;
 		private MarkerSet targetMarkers;
+		private Identification identification;
+	}
+
+	@Data
+	@NoArgsConstructor
+	public static class Identification {
+		private Integer team;
+		private Integer stage;
+		private Integer page;
+		private double confidence;
 	}
 
 	@Data
@@ -96,6 +106,7 @@ public class FormProcessingClient {
 		private double localAlignmentMaximumDisplacement;
 		@JsonProperty("target_markers")
 		private MarkerSet targetMarkers;
+		private Identification identification;
 	}
 
 	private final RestTemplate restTemplate;
@@ -117,7 +128,7 @@ public class FormProcessingClient {
 	}
 
 	public Optional<ProcessedImage> process(byte[] image, String filename, String contentType,
-			byte[] reference, String referenceContentType) {
+			byte[] reference, String referenceContentType, String templateXml) {
 		if (!enabled) {
 			return Optional.empty();
 		}
@@ -126,6 +137,9 @@ public class FormProcessingClient {
 			parts.add("image", filePart(image, filename, contentType));
 			if (reference != null && reference.length > 0) {
 				parts.add("reference", filePart(reference, "reference.png", referenceContentType));
+			}
+			if (templateXml != null && !templateXml.isBlank()) {
+				parts.add("template_xml", templateXml);
 			}
 
 			ProcessingResponse response = restTemplate.postForObject(processUrl, parts, ProcessingResponse.class);
@@ -146,7 +160,8 @@ public class FormProcessingClient {
 					response.getLocalAlignmentAnchorCount(),
 					response.getLocalAlignmentMeanDisplacement(),
 					response.getLocalAlignmentMaximumDisplacement(),
-					response.getTargetMarkers()));
+					response.getTargetMarkers(),
+					response.getIdentification()));
 		} catch (RestClientException | IllegalArgumentException | IllegalStateException error) {
 			log.warning("Service de traitement indisponible ou réponse inexploitable : utilisation du traitement "
 					+ "historique. Cause : " + error.getMessage());

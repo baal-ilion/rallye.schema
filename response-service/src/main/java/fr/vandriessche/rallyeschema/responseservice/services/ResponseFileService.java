@@ -109,7 +109,9 @@ public class ResponseFileService {
 				file.getOriginalFilename(),
 				contentType,
 				Objects.nonNull(reference) ? reference.getFile().getData() : null,
-				Objects.nonNull(reference) ? reference.getFileType() : null);
+				Objects.nonNull(reference) ? reference.getFileType() : null,
+				Objects.nonNull(reference) && Objects.nonNull(reference.getParam())
+						? reference.getParam().getTemplate() : null);
 		if (processed.isPresent()) {
 			storedContent = processed.get().getContent();
 			storedContentType = processed.get().getContentType();
@@ -128,10 +130,23 @@ public class ResponseFileService {
 				.filter(result -> result.isAutomaticMarkerDetection() && Objects.nonNull(result.getTargetMarkers()))
 				.map(this::makeTrustedCorners)
 				.orElse(null);
-		FormTemplate filledForm = makeFormTemplate(image, name, null, null, trustedCorners, true);
+		var identification = processed.map(FormProcessingClient.ProcessedImage::getIdentification)
+				.filter(value -> Objects.nonNull(value) && value.getConfidence() >= 0.60)
+				.orElse(null);
+		Integer identifiedStage = Objects.nonNull(identification) ? identification.getStage() : null;
+		Integer identifiedPage = Objects.nonNull(identification) ? identification.getPage() : null;
+		FormTemplate filledForm = makeFormTemplate(image, name, identifiedStage, identifiedPage, trustedCorners, true);
 
 		ResponseFileInfo responseFileInfo = new ResponseFileInfo();
 		fillResponseFileInfo(filledForm, responseFileInfo);
+		if (Objects.nonNull(identification)) {
+			if (Objects.nonNull(identification.getTeam()))
+				responseFileInfo.setTeam(identification.getTeam());
+			if (Objects.nonNull(identification.getStage()))
+				responseFileInfo.setStage(identification.getStage());
+			if (Objects.nonNull(identification.getPage()))
+				responseFileInfo.setPage(identification.getPage());
+		}
 		filledForm = makeFormTemplate(image, name, responseFileInfo.getStage(), responseFileInfo.getPage(),
 				trustedCorners, true);
 		logFormTemplate(filledForm);

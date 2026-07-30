@@ -19,6 +19,12 @@ class QualityMetrics(BaseModel):
     contrast: float = Field(ge=0, le=1)
     marker_confidence: float = Field(ge=0, le=1)
 
+class IdentificationResult(BaseModel):
+    team: int | None = None
+    stage: int | None = None
+    page: int | None = None
+    confidence: float = Field(ge=0, le=1)
+
 
 class ProcessResponse(BaseModel):
     status: str
@@ -38,6 +44,7 @@ class ProcessResponse(BaseModel):
     source_markers: MarkerSet
     target_markers: MarkerSet
     quality: QualityMetrics
+    identification: IdentificationResult | None = None
     warnings: list[str]
     normalized_content_type: str = "image/png"
     normalized_image_base64: str

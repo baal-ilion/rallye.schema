@@ -87,6 +87,28 @@ def test_automatically_rotates_a_sideways_photo():
     assert np.mean(cv2.absdiff(normalized, reference)) < 1.0
 
 
+def test_reads_identification_boxes_from_the_active_template():
+    reference = _reference_form()
+    cv2.rectangle(reference, (365, 275), (405, 315), (0, 0, 0), -1)
+    cv2.rectangle(reference, (455, 365), (495, 405), (0, 0, 0), -1)
+    template = """<template><fields><group>
+      <question question="Equipe1"><values>
+        <value response="2"><point x="385" y="295"/></value>
+        <value response="8"><point x="475" y="295"/></value>
+      </values></question>
+      <question question="Equipe2"><values>
+        <value response="3"><point x="475" y="385"/></value>
+        <value response="9"><point x="565" y="385"/></value>
+      </values></question>
+    </group></fields></template>"""
+
+    result = process_image(_encode(reference), _encode(reference), template_xml=template)
+
+    assert result.identification is not None
+    assert result.identification.team == 23
+    assert result.identification.confidence > 0.5
+
+
 def test_requires_manual_review_when_markers_do_not_frame_the_reference():
     reference = _reference_form()
     unrelated = np.full_like(reference, 255)
