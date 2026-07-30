@@ -15,6 +15,7 @@ import numpy as np
 from .errors import ProcessingError
 from .markers import detect_markers
 from .quality import analyze_quality
+from .registration import align_locally
 
 
 CORNER_NAMES = ("TOP_LEFT", "TOP_RIGHT", "BOTTOM_RIGHT", "BOTTOM_LEFT")
@@ -34,6 +35,16 @@ def _percentile(values: list[float], percentile: float) -> float | None:
     return float(np.percentile(values, percentile))
 
 
+def _printed_edge_error(image: np.ndarray, reference: np.ndarray) -> float:
+    source_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    reference_gray = cv2.cvtColor(reference, cv2.COLOR_BGR2GRAY)
+    source_edges = cv2.Canny(source_gray, 60, 170)
+    reference_edges = cv2.Canny(reference_gray, 60, 170)
+    distances = cv2.distanceTransform(255 - source_edges, cv2.DIST_L2, 3)
+    values = distances[reference_edges > 0]
+    return float(np.percentile(values, 75)) if values.size else 0.0
+
+
 def evaluate(corpus_root: Path, references_root: Path) -> dict:
     corpus = json.loads((corpus_root / "manifest.json").read_text(encoding="utf-8"))
     reference_manifest = json.loads((references_root / "manifest.json").read_text(encoding="utf-8-sig"))
@@ -43,6 +54,10 @@ def evaluate(corpus_root: Path, references_root: Path) -> dict:
     durations: list[float] = []
     mean_errors: list[float] = []
     max_errors: list[float] = []
+    local_confidences: list[float] = []
+    local_improvements: list[float] = []
+    local_applied = 0
+    reference_cache: dict[tuple[int, int], tuple[np.ndarray, np.ndarray]] = {}
     status_counts: Counter[str] = Counter()
     warning_counts: Counter[str] = Counter()
 
@@ -65,6 +80,27 @@ def evaluate(corpus_root: Path, references_root: Path) -> dict:
         try:
             image = _read_image(corpus_root / item["file"])
             detection = detect_markers(image)
+            reference_key = (item["stage"], item["page"])
+            if reference_key not in reference_cache:
+                reference_image = _read_image(references_root / reference["image"])
+                reference_cache[reference_key] = (reference_image, detect_markers(reference_image).points)
+            reference_image, reference_markers = reference_cache[reference_key]
+            normalized = cv2.warpPerspective(
+                image,
+                cv2.getPerspectiveTransform(detection.points, reference_markers),
+                (reference_image.shape[1], reference_image.shape[0]),
+                flags=cv2.INTER_CUBIC,
+                borderMode=cv2.BORDER_CONSTANT,
+                borderValue=(255, 255, 255),
+            )
+            before_local_error = _printed_edge_error(normalized, reference_image)
+            local = align_locally(normalized, reference_image)
+            after_local_error = _printed_edge_error(local.image, reference_image)
+            improvement = before_local_error - after_local_error
+            local_confidences.append(local.confidence)
+            local_improvements.append(improvement)
+            if local.applied:
+                local_applied += 1
             quality, warnings = analyze_quality(image, detection.confidence)
             historical = item["filledForm"]["corners"]
             expected = np.array(
@@ -87,6 +123,16 @@ def evaluate(corpus_root: Path, references_root: Path) -> dict:
                 marker_max_error_px=max_error,
                 quality=quality.model_dump(),
                 warnings=warnings,
+                local_alignment={
+                    "applied": local.applied,
+                    "confidence": local.confidence,
+                    "anchor_count": local.anchor_count,
+                    "mean_displacement": local.mean_displacement,
+                    "maximum_displacement": local.maximum_displacement,
+                    "printed_edge_error_before": before_local_error,
+                    "printed_edge_error_after": after_local_error,
+                    "printed_edge_improvement": improvement,
+                },
             )
             status_counts["DETECTED"] += 1
         except (ProcessingError, ValueError, KeyError) as error:
@@ -115,6 +161,13 @@ def evaluate(corpus_root: Path, references_root: Path) -> dict:
             "p95": _percentile(durations, 95),
         },
         "warnings": dict(warning_counts),
+        "local_alignment": {
+            "applied": local_applied,
+            "application_rate": local_applied / len(corpus["items"]) if corpus["items"] else 0,
+            "confidence_mean": statistics.fmean(local_confidences) if local_confidences else None,
+            "printed_edge_improvement_mean": statistics.fmean(local_improvements) if local_improvements else None,
+            "printed_edge_improvement_p05": _percentile(local_improvements, 5),
+        },
     }
     return {"summary": summary, "items": results}
 

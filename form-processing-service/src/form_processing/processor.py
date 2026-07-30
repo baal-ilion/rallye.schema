@@ -8,6 +8,7 @@ from .errors import ProcessingError
 from .markers import DetectedMarkers, detect_markers
 from .models import MarkerSet, Point, ProcessResponse
 from .quality import analyze_quality
+from .registration import LocalAlignment, align_locally
 
 
 DEFAULT_WIDTH = 2480
@@ -62,6 +63,7 @@ def process_image(
             "Vérifiez-les manuellement avant d’accepter le formulaire."
         )
 
+    reference = None
     if reference_content:
         reference = decode_image(reference_content)
         normalized_height, normalized_width = reference.shape[:2]
@@ -82,6 +84,12 @@ def process_image(
             borderMode=cv2.BORDER_CONSTANT,
             borderValue=(255, 255, 255),
         )
+        local_alignment = (
+            align_locally(normalized, reference)
+            if reference is not None
+            else LocalAlignment(normalized, False, 0.0, 0, 0.0, 0.0)
+        )
+        normalized = local_alignment.image
     else:
         # Preserve the untouched page for manual placement. Resizing it here
         # would make the displayed coordinates diverge from the original.
@@ -89,9 +97,20 @@ def process_image(
         normalized_width = source_width
         normalized_height = source_height
         target_markers = source_detection.points
+        local_alignment = LocalAlignment(normalized, False, 0.0, 0, 0.0, 0.0)
     quality, warnings = analyze_quality(source, source_detection.confidence)
     if marker_warning:
         warnings.insert(0, marker_warning)
+    if (
+        reference is not None
+        and automatic_marker_detection
+        and not local_alignment.applied
+        and local_alignment.confidence == 0
+    ):
+        warnings.append(
+            "Le recalage local n’a pas trouvé suffisamment de détails fiables ; "
+            "vérifiez les cases dans la validation."
+        )
     encoded = base64.b64encode(encode_png(normalized)).decode("ascii")
 
     status = (
@@ -103,6 +122,11 @@ def process_image(
         status=status,
         automatic_marker_detection=automatic_marker_detection,
         manual_review_required=not automatic_marker_detection or bool(warnings),
+        local_alignment_applied=local_alignment.applied,
+        local_alignment_confidence=local_alignment.confidence,
+        local_alignment_anchor_count=local_alignment.anchor_count,
+        local_alignment_mean_displacement=local_alignment.mean_displacement,
+        local_alignment_maximum_displacement=local_alignment.maximum_displacement,
         source_width=source_width,
         source_height=source_height,
         normalized_width=normalized_width,

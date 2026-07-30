@@ -136,6 +136,11 @@ public class ResponseFileService {
 			responseFileInfo.setProcessingStatus(result.getStatus());
 			responseFileInfo.setAutomaticMarkerDetection(result.isAutomaticMarkerDetection());
 			responseFileInfo.setManualReviewRequired(result.isManualReviewRequired());
+			responseFileInfo.setLocalAlignmentApplied(result.isLocalAlignmentApplied());
+			responseFileInfo.setLocalAlignmentConfidence(result.getLocalAlignmentConfidence());
+			responseFileInfo.setLocalAlignmentAnchorCount(result.getLocalAlignmentAnchorCount());
+			responseFileInfo.setLocalAlignmentMeanDisplacement(result.getLocalAlignmentMeanDisplacement());
+			responseFileInfo.setLocalAlignmentMaximumDisplacement(result.getLocalAlignmentMaximumDisplacement());
 		}
 
 		responseFileInfo = responseFileInfoRepository.save(responseFileInfo);
