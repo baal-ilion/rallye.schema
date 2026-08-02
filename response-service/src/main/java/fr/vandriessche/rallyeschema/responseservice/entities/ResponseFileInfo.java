@@ -1,5 +1,9 @@
 package fr.vandriessche.rallyeschema.responseservice.entities;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -28,6 +32,10 @@ public class ResponseFileInfo {
 	private Integer localAlignmentAnchorCount;
 	private Double localAlignmentMeanDisplacement;
 	private Double localAlignmentMaximumDisplacement;
+	private Map<String, Boolean> processingCorrectionValues = new LinkedHashMap<>();
+	private Map<String, Double> processingCorrectionConfidences = new LinkedHashMap<>();
+	private Map<String, List<String>> processingCorrectionMarks = new LinkedHashMap<>();
+	private List<String> processingCorrectionDifferences = new ArrayList<>();
 
 	// private Date date;
 

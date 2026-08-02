@@ -25,6 +25,18 @@ class IdentificationResult(BaseModel):
     page: int | None = None
     confidence: float = Field(ge=0, le=1)
 
+class CorrectionResult(BaseModel):
+    label: str
+    marked_values: list[str]
+    value: bool
+    confidence: float = Field(ge=0, le=1)
+
+
+class CorrectionResponse(BaseModel):
+    corrections: list[CorrectionResult] = Field(default_factory=list)
+    normalized_content_type: str = "image/png"
+    normalized_image_base64: str
+
 
 class ProcessResponse(BaseModel):
     status: str
@@ -45,6 +57,7 @@ class ProcessResponse(BaseModel):
     target_markers: MarkerSet
     quality: QualityMetrics
     identification: IdentificationResult | None = None
+    corrections: list[CorrectionResult] = Field(default_factory=list)
     warnings: list[str]
     normalized_content_type: str = "image/png"
     normalized_image_base64: str

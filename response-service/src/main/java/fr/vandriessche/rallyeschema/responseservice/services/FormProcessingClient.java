@@ -46,6 +46,7 @@ public class FormProcessingClient {
 		private double localAlignmentMaximumDisplacement;
 		private MarkerSet targetMarkers;
 		private Identification identification;
+		private java.util.List<Correction> corrections;
 	}
 
 	@Data
@@ -55,6 +56,24 @@ public class FormProcessingClient {
 		private Integer stage;
 		private Integer page;
 		private double confidence;
+	}
+
+	@Data
+	@NoArgsConstructor
+	public static class Correction {
+		private String label;
+		@JsonProperty("marked_values")
+		private java.util.List<String> markedValues;
+		private boolean value;
+		private double confidence;
+	}
+
+	@Data
+	@AllArgsConstructor
+	public static class PageRecognition {
+		private byte[] content;
+		private String contentType;
+		private java.util.List<Correction> corrections;
 	}
 
 	@Data
@@ -107,11 +126,24 @@ public class FormProcessingClient {
 		@JsonProperty("target_markers")
 		private MarkerSet targetMarkers;
 		private Identification identification;
+		private java.util.List<Correction> corrections;
+	}
+
+	@Data
+	@NoArgsConstructor
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private static class CorrectionResponse {
+		private java.util.List<Correction> corrections;
+		@JsonProperty("normalized_content_type")
+		private String normalizedContentType;
+		@JsonProperty("normalized_image_base64")
+		private String normalizedImageBase64;
 	}
 
 	private final RestTemplate restTemplate;
 	private final boolean enabled;
 	private final String processUrl;
+	private final String correctionsUrl;
 
 	@Autowired
 	public FormProcessingClient(RestTemplateBuilder builder,
@@ -124,7 +156,9 @@ public class FormProcessingClient {
 	FormProcessingClient(RestTemplate restTemplate, boolean enabled, String serviceUrl) {
 		this.restTemplate = restTemplate;
 		this.enabled = enabled;
-		this.processUrl = serviceUrl.replaceAll("/+$", "") + "/api/v1/forms/process";
+		String baseUrl = serviceUrl.replaceAll("/+$", "");
+		this.processUrl = baseUrl + "/api/v1/forms/process";
+		this.correctionsUrl = baseUrl + "/api/v1/forms/recognize-corrections";
 	}
 
 	public Optional<ProcessedImage> process(byte[] image, String filename, String contentType,
@@ -141,6 +175,10 @@ public class FormProcessingClient {
 			if (templateXml != null && !templateXml.isBlank()) {
 				parts.add("template_xml", templateXml);
 			}
+			// La référence globale sert uniquement à l'orientation et à la
+			// perspective. Le recalage non rigide est effectué ensuite avec le
+			// modèle exact de l'épreuve et de la page.
+			parts.add("apply_local_alignment", "false");
 
 			ProcessingResponse response = restTemplate.postForObject(processUrl, parts, ProcessingResponse.class);
 			if (response == null || response.getNormalizedImageBase64() == null) {
@@ -161,10 +199,37 @@ public class FormProcessingClient {
 					response.getLocalAlignmentMeanDisplacement(),
 					response.getLocalAlignmentMaximumDisplacement(),
 					response.getTargetMarkers(),
-					response.getIdentification()));
+					response.getIdentification(),
+					Optional.ofNullable(response.getCorrections()).orElse(java.util.List.of())));
 		} catch (RestClientException | IllegalArgumentException | IllegalStateException error) {
 			log.warning("Service de traitement indisponible ou réponse inexploitable : utilisation du traitement "
 					+ "historique. Cause : " + error.getMessage());
+			return Optional.empty();
+		}
+	}
+
+	public Optional<PageRecognition> recognizeCorrections(byte[] normalizedImage, String filename,
+			String contentType, String templateXml, byte[] referenceImage, String referenceContentType) {
+		if (!enabled || templateXml == null || templateXml.isBlank()) {
+			return Optional.empty();
+		}
+		try {
+			MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
+			parts.add("image", filePart(normalizedImage, filename, contentType));
+			if (referenceImage != null && referenceImage.length > 0) {
+				parts.add("reference", filePart(referenceImage, "reference.png", referenceContentType));
+			}
+			parts.add("template_xml", templateXml);
+			CorrectionResponse response = restTemplate.postForObject(correctionsUrl, parts, CorrectionResponse.class);
+			if (response == null || response.getNormalizedImageBase64() == null) {
+				return Optional.empty();
+			}
+			return Optional.of(new PageRecognition(
+					Base64.getDecoder().decode(response.getNormalizedImageBase64()),
+					Optional.ofNullable(response.getNormalizedContentType()).orElse(MediaType.IMAGE_PNG_VALUE),
+					Optional.ofNullable(response.getCorrections()).orElse(java.util.List.of())));
+		} catch (RestClientException | IllegalArgumentException | IllegalStateException error) {
+			log.warning("Lecture comparative des corrections indisponible : " + error.getMessage());
 			return Optional.empty();
 		}
 	}

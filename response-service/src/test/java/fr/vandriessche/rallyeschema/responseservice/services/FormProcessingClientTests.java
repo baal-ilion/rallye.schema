@@ -40,6 +40,8 @@ class FormProcessingClientTests {
 						+ "\"top_right\":{\"x\":90,\"y\":20},"
 						+ "\"bottom_right\":{\"x\":90,\"y\":180},"
 						+ "\"bottom_left\":{\"x\":10,\"y\":180}},"
+						+ "\"corrections\":[{\"label\":\"Q1\",\"marked_values\":[\"Y\"],"
+						+ "\"value\":true,\"confidence\":0.87}],"
 						+ "\"normalized_content_type\":\"image/png\","
 						+ "\"normalized_image_base64\":\"" + Base64.getEncoder().encodeToString(normalized) + "\""
 						+ "}", MediaType.APPLICATION_JSON));
@@ -57,6 +59,10 @@ class FormProcessingClientTests {
 		assertTrue(result.get().isLocalAlignmentApplied());
 		assertEquals(0.81, result.get().getLocalAlignmentConfidence(), 0.001);
 		assertEquals(22, result.get().getLocalAlignmentAnchorCount());
+		assertEquals(1, result.get().getCorrections().size());
+		assertEquals("Q1", result.get().getCorrections().get(0).getLabel());
+		assertTrue(result.get().getCorrections().get(0).isValue());
+		assertEquals(0.87, result.get().getCorrections().get(0).getConfidence(), 0.001);
 		assertFalse(result.get().isManualReviewRequired());
 		server.verify();
 	}
@@ -78,5 +84,29 @@ class FormProcessingClientTests {
 		FormProcessingClient client = new FormProcessingClient(new RestTemplate(), false, "http://processor:8080");
 
 		assertFalse(client.process(new byte[] { 1 }, "scan.jpg", "image/jpeg", null, null, null).isPresent());
+	}
+
+	@Test
+	void readsCorrectionsWithoutRequestingANewNormalization() {
+		RestTemplate restTemplate = new RestTemplate();
+		MockRestServiceServer server = MockRestServiceServer.createServer(restTemplate);
+		server.expect(requestTo("http://processor:8080/api/v1/forms/recognize-corrections"))
+				.andRespond(withSuccess("{\"corrections\":[{\"label\":\"Q1\","
+						+ "\"marked_values\":[\"N\",\"Y\"],\"value\":false,\"confidence\":0.75}],"
+						+ "\"normalized_content_type\":\"image/png\","
+						+ "\"normalized_image_base64\":\"AQI=\"}",
+						MediaType.APPLICATION_JSON));
+
+		FormProcessingClient client = new FormProcessingClient(restTemplate, true, "http://processor:8080");
+		var recognition = client.recognizeCorrections(new byte[] { 1 }, "normalized.png", "image/png",
+				"<template/>", new byte[] { 2 }, "image/png");
+		var corrections = recognition.orElseThrow().getCorrections();
+		assertArrayEquals(new byte[] { 1, 2 }, recognition.orElseThrow().getContent());
+
+		assertEquals(1, corrections.size());
+		assertEquals("Q1", corrections.get(0).getLabel());
+		assertEquals(java.util.List.of("N", "Y"), corrections.get(0).getMarkedValues());
+		assertFalse(corrections.get(0).isValue());
+		server.verify();
 	}
 }

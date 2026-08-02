@@ -9,7 +9,7 @@ from .markers import DetectedMarkers, detect_markers
 from .models import MarkerSet, Point, ProcessResponse
 from .quality import analyze_quality
 from .registration import LocalAlignment, align_locally
-from .identification import recognize_identification
+from .identification import recognize_corrections, recognize_identification
 
 
 DEFAULT_WIDTH = 2480
@@ -124,6 +124,7 @@ def process_image(
     target_width: int | None = None,
     target_height: int | None = None,
     template_xml: str | None = None,
+    apply_local_alignment: bool = True,
 ) -> ProcessResponse:
     source = decode_image(image_content)
     source_height, source_width = source.shape[:2]
@@ -188,8 +189,11 @@ def process_image(
                 target_markers = source_detection.points
                 local_alignment = LocalAlignment(normalized, False, 0.0, 0, 0.0, 0.0)
             else:
-                local_alignment = align_locally(normalized, reference)
-                normalized = local_alignment.image
+                if apply_local_alignment:
+                    local_alignment = align_locally(normalized, reference)
+                    normalized = local_alignment.image
+                else:
+                    local_alignment = LocalAlignment(normalized, False, 0.0, 0, 0.0, 0.0)
         else:
             transformation = cv2.getPerspectiveTransform(source_detection.points, target_markers)
             normalized = cv2.warpPerspective(
@@ -215,6 +219,7 @@ def process_image(
     if (
         reference is not None
         and automatic_marker_detection
+        and apply_local_alignment
         and not local_alignment.applied
         and local_alignment.confidence == 0
     ):
@@ -224,6 +229,7 @@ def process_image(
         )
     encoded = base64.b64encode(encode_png(normalized)).decode("ascii")
     identification = recognize_identification(normalized, template_xml)
+    corrections = recognize_corrections(normalized, template_xml)
 
     status = (
         "MANUAL_REVIEW_REQUIRED"
@@ -249,6 +255,7 @@ def process_image(
         target_markers=_marker_model(target_markers),
         quality=quality,
         identification=identification,
+        corrections=corrections,
         warnings=warnings,
         normalized_image_base64=encoded,
     )

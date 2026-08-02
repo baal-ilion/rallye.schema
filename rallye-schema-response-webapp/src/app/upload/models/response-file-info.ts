@@ -9,6 +9,9 @@ export interface ResponseFileInfo {
   team?: number;
 
   checked?: boolean;
+  processingCorrectionValues?: { [label: string]: boolean };
+  processingCorrectionConfidences?: { [label: string]: number };
+  processingCorrectionDifferences?: string[];
 
   filledForm?: FormTemplate;
   _links?: HalLinks;

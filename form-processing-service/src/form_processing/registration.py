@@ -36,23 +36,28 @@ def _printed_edge_error(image: np.ndarray, reference: np.ndarray) -> float:
 
 
 def _interior_weight(width: int, height: int) -> np.ndarray:
-    """Préserve les repères et le pourtour lors du recalage non rigide.
+    """Préserve les repères sans neutraliser les cases proches des bords."""
+    x, y = np.meshgrid(
+        np.arange(width, dtype=np.float32),
+        np.arange(height, dtype=np.float32),
+    )
+    edge_distance = np.minimum.reduce((x, width - 1 - x, y, height - 1 - y))
+    edge_start = max(1.0, min(width, height) * 0.012)
+    edge_end = max(edge_start + 1.0, min(width, height) * 0.025)
+    weight = np.clip((edge_distance - edge_start) / (edge_end - edge_start), 0.0, 1.0)
 
-    L'homographie globale a déjà placé les quatre repères. Le recalage local
-    ne doit donc agir que sur le contenu intérieur de la feuille. Une
-    transition progressive évite de créer une cassure au bord de cette zone.
-    """
-    horizontal = np.ones(width, dtype=np.float32)
-    vertical = np.ones(height, dtype=np.float32)
-    for values, length in ((horizontal, width), (vertical, height)):
-        inner_start = max(1, round(length * 0.18))
-        full_start = max(inner_start + 1, round(length * 0.24))
-        ramp = np.linspace(0.0, 1.0, full_start - inner_start, dtype=np.float32)
-        values[:inner_start] = 0.0
-        values[inner_start:full_start] = ramp
-        values[-inner_start:] = 0.0
-        values[-full_start:-inner_start] = ramp[::-1]
-    return vertical[:, None] * horizontal[None, :]
+    inner_radius = min(width, height) * 0.045
+    outer_radius = min(width, height) * 0.080
+    for center_x, center_y in (
+        (0.12 * width, 0.08 * height),
+        (0.88 * width, 0.08 * height),
+        (0.88 * width, 0.92 * height),
+        (0.12 * width, 0.92 * height),
+    ):
+        distance = np.hypot(x - center_x, y - center_y)
+        marker_weight = np.clip((distance - inner_radius) / (outer_radius - inner_radius), 0.0, 1.0)
+        weight = np.minimum(weight, marker_weight)
+    return weight
 
 
 def align_locally(image: np.ndarray, reference: np.ndarray) -> LocalAlignment:

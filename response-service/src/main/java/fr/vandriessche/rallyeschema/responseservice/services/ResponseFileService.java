@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -147,10 +148,21 @@ public class ResponseFileService {
 			if (Objects.nonNull(identification.getPage()))
 				responseFileInfo.setPage(identification.getPage());
 		}
+		var pageRecognition = refinePageImage(responseFileInfo, storedContent, storedContentType, name);
+		if (pageRecognition.isPresent()) {
+			storedContent = pageRecognition.get().getContent();
+			storedContentType = pageRecognition.get().getContentType();
+			storedExtension = "png";
+			image = ImageIO.read(new ByteArrayInputStream(storedContent));
+			if (image == null)
+				throw new IllegalStateException("Le recalage sur le modèle de page n'a retourné aucune image exploitable.");
+		}
 		filledForm = makeFormTemplate(image, name, responseFileInfo.getStage(), responseFileInfo.getPage(),
 				trustedCorners, true);
 		logFormTemplate(filledForm);
 		responseFileInfo.setFilledForm(filledForm);
+		if (pageRecognition.isPresent())
+			compareProcessingCorrections(responseFileInfo, pageRecognition.get().getCorrections());
 		if (processed.isPresent()) {
 			var result = processed.get();
 			responseFileInfo.setProcessingStatus(result.getStatus());
@@ -180,6 +192,44 @@ public class ResponseFileService {
 		responseFile = responseFileRepository.insert(responseFile);
 		messageProducerService.sendMessage(RESPONSE_FILE_CREATE_EVENT, responseFileInfo);
 		return responseFile;
+	}
+
+	private Optional<FormProcessingClient.PageRecognition> refinePageImage(ResponseFileInfo info,
+			byte[] normalizedContent, String contentType, String name) {
+		if (Objects.isNull(info.getStage()) || Objects.isNull(info.getPage()))
+			return Optional.empty();
+		var pageParam = responseFileParamService.getResponseFileParamByStageAndPage(info.getStage(), info.getPage())
+				.orElse(null);
+		if (Objects.isNull(pageParam))
+			return Optional.empty();
+		var pageModel = responseFileParamService.getResponseFileModel(pageParam.getId());
+		byte[] pageReference = Objects.nonNull(pageModel) && Objects.nonNull(pageModel.getFile())
+				? pageModel.getFile().getData()
+				: null;
+		String pageReferenceType = Objects.nonNull(pageModel) ? pageModel.getFileType() : null;
+		return formProcessingClient.recognizeCorrections(normalizedContent, name + ".png", contentType,
+				pageParam.getTemplate(), pageReference, pageReferenceType);
+	}
+
+	private void compareProcessingCorrections(ResponseFileInfo info,
+			java.util.List<FormProcessingClient.Correction> corrections) {
+		corrections.forEach(correction -> {
+				info.getProcessingCorrectionValues().put(correction.getLabel(), correction.isValue());
+				info.getProcessingCorrectionConfidences().put(correction.getLabel(), correction.getConfidence());
+				info.getProcessingCorrectionMarks().put(correction.getLabel(), correction.getMarkedValues());
+				Boolean legacy = findLegacyCorrection(info.getFilledForm(), correction.getLabel());
+				if (Objects.nonNull(legacy) && legacy.booleanValue() != correction.isValue())
+					info.getProcessingCorrectionDifferences().add(correction.getLabel());
+			});
+	}
+
+	private Boolean findLegacyCorrection(FormTemplate form, String label) {
+		return form.getGroups().values().stream()
+				.map(group -> group.getFields().get(label))
+				.filter(Objects::nonNull)
+				.findFirst()
+				.map(this::getResultValue)
+				.orElse(null);
 	}
 
 	private HashMap<Corners, FormPoint> makeTrustedCorners(FormProcessingClient.ProcessedImage processed) {

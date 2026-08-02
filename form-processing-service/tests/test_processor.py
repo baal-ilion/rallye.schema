@@ -71,6 +71,22 @@ def test_normalizes_a_perspective_photo_against_reference():
     assert normalized.shape[:2] == (HEIGHT, WIDTH)
 
 
+def test_can_reserve_local_alignment_for_the_exact_page_model():
+    reference = _reference_form()
+    photo = _damaged_perspective_photo(reference)
+
+    result = process_image(
+        _encode(photo),
+        _encode(reference),
+        apply_local_alignment=False,
+    )
+
+    assert result.automatic_marker_detection
+    assert result.local_alignment_applied is False
+    assert result.local_alignment_anchor_count == 0
+    assert not any("recalage local" in warning for warning in result.warnings)
+
+
 def test_automatically_rotates_a_sideways_photo():
     reference = _reference_form()
     sideways = cv2.rotate(reference, cv2.ROTATE_90_COUNTERCLOCKWISE)
@@ -107,6 +123,131 @@ def test_reads_identification_boxes_from_the_active_template():
     assert result.identification is not None
     assert result.identification.team == 23
     assert result.identification.confidence > 0.5
+
+
+def test_reads_correction_boxes_with_the_ony_priority_rule():
+    reference = _reference_form()
+    positions = {
+        "FAUX": {"O": (340, 520), "N": (380, 520), "Y": (420, 520)},
+        "JUSTE": {"O": (340, 610), "N": (380, 610), "Y": (420, 610)},
+        "CORRIGE_FAUX": {"O": (340, 700), "N": (380, 700), "Y": (420, 700)},
+        "CORRIGE_JUSTE": {"O": (340, 790), "N": (380, 790), "Y": (420, 790)},
+    }
+    for label, marked_values in {
+        "FAUX": (),
+        "JUSTE": ("Y",),
+        "CORRIGE_FAUX": ("Y", "N"),
+        "CORRIGE_JUSTE": ("Y", "N", "O"),
+    }.items():
+        for response in marked_values:
+            x, y = positions[label][response]
+            cv2.rectangle(reference, (x - 12, y - 12), (x + 12, y + 12), (0, 0, 0), -1)
+
+    questions = []
+    for label, values in positions.items():
+        xml_values = "".join(
+            f'<value response="{response}"><point x="{point[0]}" y="{point[1]}"/></value>'
+            for response, point in values.items()
+        )
+        questions.append(f'<question question="{label}"><values>{xml_values}</values></question>')
+    template = f"<template><fields><group>{''.join(questions)}</group></fields></template>"
+
+    result = process_image(_encode(reference), _encode(reference), template_xml=template)
+    corrections = {correction.label: correction for correction in result.corrections}
+
+    assert corrections["FAUX"].value is False
+    assert corrections["FAUX"].marked_values == []
+    assert corrections["JUSTE"].value is True
+    assert corrections["JUSTE"].marked_values == ["Y"]
+    assert corrections["CORRIGE_FAUX"].value is False
+    assert corrections["CORRIGE_FAUX"].marked_values == ["N", "Y"]
+    assert corrections["CORRIGE_JUSTE"].value is True
+    assert corrections["CORRIGE_JUSTE"].marked_values == ["O", "N", "Y"]
+
+
+def test_reads_correction_boxes_with_the_ony_priority_rule():
+    reference = _reference_form()
+    positions = {
+        "FAUX": {"O": (340, 520), "N": (380, 520), "Y": (420, 520)},
+        "JUSTE": {"O": (340, 610), "N": (380, 610), "Y": (420, 610)},
+        "CORRIGE_FAUX": {"O": (340, 700), "N": (380, 700), "Y": (420, 700)},
+        "CORRIGE_JUSTE": {"O": (340, 790), "N": (380, 790), "Y": (420, 790)},
+    }
+    for label, marked_values in {
+        "FAUX": (),
+        "JUSTE": ("Y",),
+        "CORRIGE_FAUX": ("Y", "N"),
+        "CORRIGE_JUSTE": ("Y", "N", "O"),
+    }.items():
+        for response in marked_values:
+            x, y = positions[label][response]
+            cv2.rectangle(reference, (x - 12, y - 12), (x + 12, y + 12), (0, 0, 0), -1)
+
+    questions = []
+    for label, values in positions.items():
+        xml_values = "".join(
+            f'<value response="{response}"><point x="{point[0]}" y="{point[1]}"/></value>'
+            for response, point in values.items()
+        )
+        questions.append(f'<question question="{label}"><values>{xml_values}</values></question>')
+    template = f"<template><fields><group>{''.join(questions)}</group></fields></template>"
+
+    result = process_image(_encode(reference), _encode(reference), template_xml=template)
+    corrections = {correction.label: correction for correction in result.corrections}
+
+    assert corrections["FAUX"].value is False
+    assert corrections["FAUX"].marked_values == []
+    assert corrections["JUSTE"].value is True
+    assert corrections["JUSTE"].marked_values == ["Y"]
+    assert corrections["CORRIGE_FAUX"].value is False
+    assert corrections["CORRIGE_FAUX"].marked_values == ["N", "Y"]
+    assert corrections["CORRIGE_JUSTE"].value is True
+    assert corrections["CORRIGE_JUSTE"].marked_values == ["O", "N", "Y"]
+
+
+def test_reads_correction_boxes_with_the_ony_priority_rule():
+    reference = _reference_form()
+    positions = {
+        "FAUX": {"O": (340, 520), "N": (380, 520), "Y": (420, 520)},
+        "JUSTE": {"O": (340, 610), "N": (380, 610), "Y": (420, 610)},
+        "CORRIGE_FAUX": {"O": (340, 700), "N": (380, 700), "Y": (420, 700)},
+        "CORRIGE_JUSTE": {"O": (340, 790), "N": (380, 790), "Y": (420, 790)},
+    }
+    for label, marked_values in {
+        "FAUX": (),
+        "JUSTE": ("Y",),
+        "CORRIGE_FAUX": ("Y", "N"),
+        "CORRIGE_JUSTE": ("Y", "N", "O"),
+    }.items():
+        for response in marked_values:
+            cv2.rectangle(
+                reference,
+                (positions[label][response][0] - 12, positions[label][response][1] - 12),
+                (positions[label][response][0] + 12, positions[label][response][1] + 12),
+                (0, 0, 0),
+                -1,
+            )
+
+    questions = []
+    for label, values in positions.items():
+        xml_values = "".join(
+            f'<value response="{response}"><point x="{point[0]}" y="{point[1]}"/></value>'
+            for response, point in values.items()
+        )
+        questions.append(f'<question question="{label}"><values>{xml_values}</values></question>')
+    template = f"<template><fields><group>{''.join(questions)}</group></fields></template>"
+
+    result = process_image(_encode(reference), _encode(reference), template_xml=template)
+    corrections = {correction.label: correction for correction in result.corrections}
+
+    assert corrections["FAUX"].value is False
+    assert corrections["FAUX"].marked_values == []
+    assert corrections["JUSTE"].value is True
+    assert corrections["JUSTE"].marked_values == ["Y"]
+    assert corrections["CORRIGE_FAUX"].value is False
+    assert corrections["CORRIGE_FAUX"].marked_values == ["N", "Y"]
+    assert corrections["CORRIGE_JUSTE"].value is True
+    assert corrections["CORRIGE_JUSTE"].marked_values == ["O", "N", "Y"]
 
 
 def test_requires_manual_review_when_markers_do_not_frame_the_reference():
@@ -206,10 +347,13 @@ def test_local_alignment_preserves_the_four_marker_regions():
     )
 
     alignment = align_locally(deformed, reference)
-    margin_x = round(WIDTH * 0.18)
-    margin_y = round(HEIGHT * 0.18)
-
-    assert np.array_equal(alignment.image[:margin_y, :], deformed[:margin_y, :])
-    assert np.array_equal(alignment.image[-margin_y:, :], deformed[-margin_y:, :])
-    assert np.array_equal(alignment.image[:, :margin_x], deformed[:, :margin_x])
-    assert np.array_equal(alignment.image[:, -margin_x:], deformed[:, -margin_x:])
+    radius = round(min(WIDTH, HEIGHT) * 0.04)
+    for center_x, center_y in (
+        (round(WIDTH * 0.12), round(HEIGHT * 0.08)),
+        (round(WIDTH * 0.88), round(HEIGHT * 0.08)),
+        (round(WIDTH * 0.88), round(HEIGHT * 0.92)),
+        (round(WIDTH * 0.12), round(HEIGHT * 0.92)),
+    ):
+        expected = deformed[center_y-radius:center_y+radius, center_x-radius:center_x+radius]
+        actual = alignment.image[center_y-radius:center_y+radius, center_x-radius:center_x+radius]
+        assert np.array_equal(actual, expected)
