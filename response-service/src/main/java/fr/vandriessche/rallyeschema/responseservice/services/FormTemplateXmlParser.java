@@ -14,16 +14,15 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-import com.albertoborsetta.formscanner.api.commons.Constants.CornerType;
-import com.albertoborsetta.formscanner.api.commons.Constants.Corners;
-import com.albertoborsetta.formscanner.api.commons.Constants.FieldType;
-import com.albertoborsetta.formscanner.api.commons.Constants.ShapeType;
-
+import fr.vandriessche.rallyeschema.responseservice.entities.CornerType;
+import fr.vandriessche.rallyeschema.responseservice.entities.Corners;
+import fr.vandriessche.rallyeschema.responseservice.entities.FieldType;
 import fr.vandriessche.rallyeschema.responseservice.entities.FormArea;
 import fr.vandriessche.rallyeschema.responseservice.entities.FormGroup;
 import fr.vandriessche.rallyeschema.responseservice.entities.FormPoint;
 import fr.vandriessche.rallyeschema.responseservice.entities.FormQuestion;
 import fr.vandriessche.rallyeschema.responseservice.entities.FormTemplate;
+import fr.vandriessche.rallyeschema.responseservice.entities.ShapeType;
 
 /** Lit le format XTmpl sans dépendre du moteur de reconnaissance FormScanner. */
 public class FormTemplateXmlParser {

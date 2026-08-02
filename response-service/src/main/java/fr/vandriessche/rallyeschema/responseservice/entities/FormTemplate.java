@@ -3,10 +3,6 @@ package fr.vandriessche.rallyeschema.responseservice.entities;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import com.albertoborsetta.formscanner.api.commons.Constants.CornerType;
-import com.albertoborsetta.formscanner.api.commons.Constants.Corners;
-import com.albertoborsetta.formscanner.api.commons.Constants.ShapeType;
-
 import lombok.Data;
 import lombok.NoArgsConstructor;
 

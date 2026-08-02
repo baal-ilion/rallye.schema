@@ -2,8 +2,6 @@ package fr.vandriessche.rallyeschema.responseservice.entities;
 
 import java.util.HashMap;
 
-import com.albertoborsetta.formscanner.api.commons.Constants.Corners;
-
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
