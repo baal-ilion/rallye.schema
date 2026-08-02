@@ -1,5 +1,6 @@
 import base64
 from functools import lru_cache
+from xml.etree import ElementTree
 
 import cv2
 import numpy as np
@@ -46,6 +47,46 @@ def _default_target(width: int, height: int) -> np.ndarray:
 def _decode_reference(reference_content: bytes) -> tuple[np.ndarray, np.ndarray]:
     reference = decode_image(reference_content)
     return reference, detect_markers(reference).points
+
+
+def _template_markers(template_xml: str | None) -> np.ndarray | None:
+    if not template_xml:
+        return None
+    root = ElementTree.fromstring(template_xml)
+    corners: dict[str, tuple[float, float]] = {}
+    for corner in root.findall("./corners/corner"):
+        point = corner.find("point")
+        position = corner.attrib.get("position")
+        if point is not None and position:
+            corners[position] = (float(point.attrib["x"]), float(point.attrib["y"]))
+    order = ("TOP_LEFT", "TOP_RIGHT", "BOTTOM_RIGHT", "BOTTOM_LEFT")
+    if not all(position in corners for position in order):
+        return None
+    return np.array([corners[position] for position in order], dtype=np.float32)
+
+
+def _reference_in_template_space(
+    reference: np.ndarray,
+    detected_markers: np.ndarray,
+    template_xml: str | None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Place l'image de référence dans le repère déclaré par son XML."""
+    declared_markers = _template_markers(template_xml)
+    if declared_markers is None:
+        return reference, detected_markers.copy()
+    if np.max(np.linalg.norm(detected_markers - declared_markers, axis=1)) < 0.5:
+        return reference, declared_markers
+    height, width = reference.shape[:2]
+    transformation = cv2.getPerspectiveTransform(detected_markers, declared_markers)
+    aligned_reference = cv2.warpPerspective(
+        reference,
+        transformation,
+        (width, height),
+        flags=cv2.INTER_CUBIC,
+        borderMode=cv2.BORDER_CONSTANT,
+        borderValue=(255, 255, 255),
+    )
+    return aligned_reference, declared_markers
 
 
 def _edge_map_for_orientation(image: np.ndarray) -> np.ndarray:
@@ -178,9 +219,13 @@ def process_image(
 
     reference = None
     if reference_content:
-        reference, cached_target_markers = _decode_reference(reference_content)
+        decoded_reference, cached_target_markers = _decode_reference(reference_content)
+        reference, target_markers = _reference_in_template_space(
+            decoded_reference,
+            cached_target_markers,
+            template_xml,
+        )
         normalized_height, normalized_width = reference.shape[:2]
-        target_markers = cached_target_markers.copy()
     else:
         normalized_width = target_width or DEFAULT_WIDTH
         normalized_height = target_height or DEFAULT_HEIGHT
