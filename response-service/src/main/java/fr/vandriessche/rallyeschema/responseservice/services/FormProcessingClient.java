@@ -22,10 +22,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.extern.java.Log;
 
 @Service
-@Log
 public class FormProcessingClient {
 
 	@Data
@@ -67,14 +65,6 @@ public class FormProcessingClient {
 		private java.util.List<String> markedValues;
 		private boolean value;
 		private double confidence;
-	}
-
-	@Data
-	@AllArgsConstructor
-	public static class PageRecognition {
-		private byte[] content;
-		private String contentType;
-		private java.util.List<Correction> corrections;
 	}
 
 	@Data
@@ -132,61 +122,42 @@ public class FormProcessingClient {
 		private java.util.List<Correction> corrections;
 	}
 
-	@Data
-	@NoArgsConstructor
-	@JsonIgnoreProperties(ignoreUnknown = true)
-	private static class CorrectionResponse {
-		private java.util.List<Correction> corrections;
-		@JsonProperty("normalized_content_type")
-		private String normalizedContentType;
-		@JsonProperty("normalized_image_base64")
-		private String normalizedImageBase64;
-	}
-
 	private final RestTemplate restTemplate;
-	private final boolean enabled;
 	private final String processUrl;
-	private final String correctionsUrl;
 
 	@Autowired
 	public FormProcessingClient(RestTemplateBuilder builder,
-			@Value("${form-processing.enabled:false}") boolean enabled,
 			@Value("${form-processing.url:http://localhost:8085}") String serviceUrl) {
 		this(builder.setConnectTimeout(java.time.Duration.ofSeconds(3))
-				.setReadTimeout(java.time.Duration.ofSeconds(30)).build(), enabled, serviceUrl);
+				.setReadTimeout(java.time.Duration.ofSeconds(30)).build(), serviceUrl);
 	}
 
-	FormProcessingClient(RestTemplate restTemplate, boolean enabled, String serviceUrl) {
+	FormProcessingClient(RestTemplate restTemplate, String serviceUrl) {
 		this.restTemplate = restTemplate;
-		this.enabled = enabled;
 		String baseUrl = serviceUrl.replaceAll("/+$", "");
 		this.processUrl = baseUrl + "/api/v1/forms/process";
-		this.correctionsUrl = baseUrl + "/api/v1/forms/recognize-corrections";
 	}
 
-	public Optional<ProcessedImage> process(byte[] image, String filename, String contentType,
+	public ProcessedImage process(byte[] image, String filename, String contentType,
 			byte[] reference, String referenceContentType, String templateXml) {
 		return process(image, filename, contentType, reference, referenceContentType, templateXml, null, true, true);
 	}
 
-	public Optional<ProcessedImage> processWithMarkers(byte[] image, String filename, String contentType,
+	public ProcessedImage processWithMarkers(byte[] image, String filename, String contentType,
 			byte[] reference, String referenceContentType, String templateXml, MarkerSet sourceMarkers) {
 		return process(image, filename, contentType, reference, referenceContentType, templateXml, sourceMarkers,
 				true, false);
 	}
 
-	public Optional<ProcessedImage> identifyWithMarkers(byte[] image, String filename, String contentType,
+	public ProcessedImage identifyWithMarkers(byte[] image, String filename, String contentType,
 			byte[] reference, String referenceContentType, String templateXml, MarkerSet sourceMarkers) {
 		return process(image, filename, contentType, reference, referenceContentType, templateXml, sourceMarkers,
 				false, false);
 	}
 
-	private Optional<ProcessedImage> process(byte[] image, String filename, String contentType,
+	private ProcessedImage process(byte[] image, String filename, String contentType,
 			byte[] reference, String referenceContentType, String templateXml, MarkerSet sourceMarkers,
 			boolean recognizeCorrectionMarks, boolean includeNormalizedImage) {
-		if (!enabled) {
-			return Optional.empty();
-		}
 		try {
 			MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
 			parts.add("image", filePart(image, filename, contentType));
@@ -210,7 +181,7 @@ public class FormProcessingClient {
 			if (response == null || (includeNormalizedImage && response.getNormalizedImageBase64() == null)) {
 				throw new IllegalStateException("Le service de traitement n'a retourné aucune image.");
 			}
-			return Optional.of(new ProcessedImage(
+			return new ProcessedImage(
 					response.getNormalizedImageBase64() == null ? new byte[0]
 							: Base64.getDecoder().decode(response.getNormalizedImageBase64()),
 					Optional.ofNullable(response.getNormalizedContentType()).orElse(MediaType.IMAGE_PNG_VALUE),
@@ -228,11 +199,10 @@ public class FormProcessingClient {
 					response.getTargetMarkers(),
 					response.getSourceToNormalizedTransform(),
 					response.getIdentification(),
-					Optional.ofNullable(response.getCorrections()).orElse(java.util.List.of())));
+					Optional.ofNullable(response.getCorrections()).orElse(java.util.List.of()));
 		} catch (RestClientException | IllegalArgumentException | IllegalStateException error) {
-			log.warning("Service de traitement indisponible ou réponse inexploitable : utilisation du traitement "
-					+ "historique. Cause : " + error.getMessage());
-			return Optional.empty();
+			throw new IllegalStateException("Service de traitement indisponible ou réponse inexploitable : "
+					+ error.getMessage(), error);
 		}
 	}
 
@@ -246,32 +216,6 @@ public class FormProcessingClient {
 				markers.getTopRight().getX(), markers.getTopRight().getY(),
 				markers.getBottomRight().getX(), markers.getBottomRight().getY(),
 				markers.getBottomLeft().getX(), markers.getBottomLeft().getY());
-	}
-
-	public Optional<PageRecognition> recognizeCorrections(byte[] normalizedImage, String filename,
-			String contentType, String templateXml, byte[] referenceImage, String referenceContentType) {
-		if (!enabled || templateXml == null || templateXml.isBlank()) {
-			return Optional.empty();
-		}
-		try {
-			MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
-			parts.add("image", filePart(normalizedImage, filename, contentType));
-			if (referenceImage != null && referenceImage.length > 0) {
-				parts.add("reference", filePart(referenceImage, "reference.png", referenceContentType));
-			}
-			parts.add("template_xml", templateXml);
-			CorrectionResponse response = restTemplate.postForObject(correctionsUrl, parts, CorrectionResponse.class);
-			if (response == null || response.getNormalizedImageBase64() == null) {
-				return Optional.empty();
-			}
-			return Optional.of(new PageRecognition(
-					Base64.getDecoder().decode(response.getNormalizedImageBase64()),
-					Optional.ofNullable(response.getNormalizedContentType()).orElse(MediaType.IMAGE_PNG_VALUE),
-					Optional.ofNullable(response.getCorrections()).orElse(java.util.List.of())));
-		} catch (RestClientException | IllegalArgumentException | IllegalStateException error) {
-			log.warning("Lecture comparative des corrections indisponible : " + error.getMessage());
-			return Optional.empty();
-		}
 	}
 
 	private HttpEntity<ByteArrayResource> filePart(byte[] content, String filename, String contentType) {

@@ -3,15 +3,6 @@
     <button type="button" class="btn btn-link" (click)="openModifyUpload()">
       Équipe {{fileUpload.team}} / Épreuve {{fileUpload.stage}} / Page {{fileUpload.page}}</button>
   </div>
-  <div *ngIf="comparedCorrectionCount > 0" class="row justify-content-center mb-2">
-    <div *ngIf="correctionDifferences.length === 0" class="col-8 alert alert-success py-2 mb-0 text-center">
-      Contrôle comparatif : les {{comparedCorrectionCount}} réponses reconnues concordent avec le traitement actuel.
-    </div>
-    <div *ngIf="correctionDifferences.length > 0" class="col-8 alert alert-warning py-2 mb-0 text-center">
-      Contrôle comparatif : désaccord sur {{correctionDifferences.length}} réponse(s) :
-      {{correctionDifferences.join(', ')}}. Le traitement actuel reste la référence.
-    </div>
-  </div>
   <!-- On utilise dragable pour savoir dans quel ecran on est. -->
   <div class="row justify-content-center mb-4">
     <app-details-response-file [fileUpload]="fileUpload" [dragable]="true" (endDragEvent)="endDrag($event)"

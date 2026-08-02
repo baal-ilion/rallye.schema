@@ -1,17 +1,11 @@
-import base64
 import json
-
-import cv2
 
 from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import JSONResponse
 
 from .errors import ProcessingError
-from .identification import recognize_corrections
-from .image_io import decode_image, encode_png
-from .models import CorrectionResponse, MarkerSet, ProcessResponse, ProcessingProblem
+from .models import MarkerSet, ProcessResponse, ProcessingProblem
 from .processor import process_image
-from .registration import align_locally
 
 
 app = FastAPI(
@@ -32,30 +26,6 @@ async def processing_error_handler(_: Request, error: ProcessingError) -> JSONRe
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "UP"}
-
-
-@app.post("/api/v1/forms/recognize-corrections", response_model=CorrectionResponse)
-async def recognize_form_corrections(
-    image: UploadFile = File(...),
-    reference: UploadFile | None = File(None),
-    template_xml: str = Form(...),
-) -> CorrectionResponse:
-    """Lit les cases d'une image déjà normalisée, sans la transformer à nouveau."""
-    normalized = decode_image(await image.read())
-    page_reference = None
-    if reference:
-        page_reference = decode_image(await reference.read())
-        if page_reference.shape[:2] != normalized.shape[:2]:
-            page_reference = cv2.resize(
-                page_reference,
-                (normalized.shape[1], normalized.shape[0]),
-                interpolation=cv2.INTER_AREA,
-            )
-        normalized = align_locally(normalized, page_reference).image
-    return CorrectionResponse(
-        corrections=recognize_corrections(normalized, template_xml),
-        normalized_image_base64=base64.b64encode(encode_png(normalized)).decode("ascii"),
-    )
 
 
 @app.post("/api/v1/forms/process", response_model=ProcessResponse)

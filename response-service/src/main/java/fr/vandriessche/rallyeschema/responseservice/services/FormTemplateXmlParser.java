@@ -24,7 +24,7 @@ import fr.vandriessche.rallyeschema.responseservice.entities.FormQuestion;
 import fr.vandriessche.rallyeschema.responseservice.entities.FormTemplate;
 import fr.vandriessche.rallyeschema.responseservice.entities.ShapeType;
 
-/** Lit le format XTmpl sans dépendre du moteur de reconnaissance FormScanner. */
+/** Lit le format XTmpl utilisé pour décrire les formulaires. */
 public class FormTemplateXmlParser {
 
 	public FormTemplate parse(String xml) throws ParserConfigurationException, SAXException, IOException {

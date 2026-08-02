@@ -32,12 +32,6 @@ class CorrectionResult(BaseModel):
     confidence: float = Field(ge=0, le=1)
 
 
-class CorrectionResponse(BaseModel):
-    corrections: list[CorrectionResult] = Field(default_factory=list)
-    normalized_content_type: str = "image/png"
-    normalized_image_base64: str
-
-
 class ProcessResponse(BaseModel):
     status: str
     automatic_marker_detection: bool

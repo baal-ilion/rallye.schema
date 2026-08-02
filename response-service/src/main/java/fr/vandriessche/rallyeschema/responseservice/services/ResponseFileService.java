@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -26,9 +25,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.xml.sax.SAXException;
 
-import com.albertoborsetta.formscanner.api.commons.Constants.CornerType;
-import com.albertoborsetta.formscanner.api.exceptions.FormScannerException;
-
 import fr.vandriessche.rallyeschema.responseservice.entities.Corners;
 import fr.vandriessche.rallyeschema.responseservice.entities.FormGroup;
 import fr.vandriessche.rallyeschema.responseservice.entities.FormPoint;
@@ -42,7 +38,6 @@ import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileSource;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseResult;
 import fr.vandriessche.rallyeschema.responseservice.repositories.ResponseFileInfoRepository;
 import fr.vandriessche.rallyeschema.responseservice.repositories.ResponseFileRepository;
-import fr.vandriessche.rallyeschema.responseservice.utils.ResponseFileUtil;
 import lombok.extern.java.Log;
 
 @Service
@@ -68,15 +63,6 @@ public class ResponseFileService {
 		return null;
 	}
 
-	private static Integer parseInt(String s) {
-		try {
-			return Integer.parseInt(s);
-		} catch (NumberFormatException e) {
-			log.log(Level.WARNING, "parseInt error", e);
-		}
-		return null;
-	}
-
 	@Autowired
 	private ResponseFileRepository responseFileRepository;
 
@@ -93,17 +79,13 @@ public class ResponseFileService {
 	private MessageProducerService messageProducerService;
 
 	public ResponseFile addResponseFile(MultipartFile file)
-			throws IOException, ParserConfigurationException, SAXException, FormScannerException {
+			throws IOException, ParserConfigurationException, SAXException {
 		String contentType = file.getContentType();
 		if (contentType == null || !contentType.toLowerCase().startsWith("image/")) {
 			throw new IllegalArgumentException("Only image files are supported");
 		}
 
 		byte[] originalContent = file.getBytes();
-		byte[] storedContent = originalContent;
-		String storedContentType = contentType;
-		String storedExtension = FilenameUtils.getExtension(file.getOriginalFilename());
-
 		var reference = responseFileParamService.getReferenceResponseFileModel().orElse(null);
 		var processed = formProcessingClient.process(
 				originalContent,
@@ -113,92 +95,7 @@ public class ResponseFileService {
 				Objects.nonNull(reference) ? reference.getFileType() : null,
 				Objects.nonNull(reference) && Objects.nonNull(reference.getParam())
 						? reference.getParam().getTemplate() : null);
-		if (processed.isPresent() && !templateContainsAreas(reference))
-			return addResponseFileFromProcessing(file, originalContent, processed.get());
-		if (processed.isPresent()) {
-			storedContent = processed.get().getContent();
-			storedContentType = processed.get().getContentType();
-			storedExtension = processed.get().getExtension();
-			log.info("Formulaire préparé par le nouveau service : statut=" + processed.get().getStatus()
-					+ ", vérificationManuelle=" + processed.get().isManualReviewRequired());
-		}
-
-		BufferedImage image = ImageIO.read(new ByteArrayInputStream(storedContent));
-		if (image == null) {
-			throw new IllegalArgumentException("Only image files are supported");
-		}
-		String name = FilenameUtils.getBaseName(file.getOriginalFilename());
-
-		HashMap<Corners, FormPoint> trustedCorners = processed
-				.filter(result -> result.isAutomaticMarkerDetection() && Objects.nonNull(result.getTargetMarkers()))
-				.map(this::makeTrustedCorners)
-				.orElse(null);
-		var identification = processed.map(FormProcessingClient.ProcessedImage::getIdentification)
-				.filter(value -> Objects.nonNull(value) && value.getConfidence() >= 0.60)
-				.orElse(null);
-		Integer identifiedStage = Objects.nonNull(identification) ? identification.getStage() : null;
-		Integer identifiedPage = Objects.nonNull(identification) ? identification.getPage() : null;
-		FormTemplate filledForm = makeFormTemplate(image, name, identifiedStage, identifiedPage, trustedCorners, true);
-
-		ResponseFileInfo responseFileInfo = new ResponseFileInfo();
-		fillResponseFileInfo(filledForm, responseFileInfo);
-		if (Objects.nonNull(identification)) {
-			if (Objects.nonNull(identification.getTeam()))
-				responseFileInfo.setTeam(identification.getTeam());
-			if (Objects.nonNull(identification.getStage()))
-				responseFileInfo.setStage(identification.getStage());
-			if (Objects.nonNull(identification.getPage()))
-				responseFileInfo.setPage(identification.getPage());
-		}
-		var pageRecognition = refinePageImage(responseFileInfo, storedContent, storedContentType, name);
-		if (pageRecognition.isPresent()) {
-			storedContent = pageRecognition.get().getContent();
-			storedContentType = pageRecognition.get().getContentType();
-			storedExtension = "png";
-			image = ImageIO.read(new ByteArrayInputStream(storedContent));
-			if (image == null)
-				throw new IllegalStateException("Le recalage sur le modèle de page n'a retourné aucune image exploitable.");
-		}
-		filledForm = makeFormTemplate(image, name, responseFileInfo.getStage(), responseFileInfo.getPage(),
-				trustedCorners, true);
-		logFormTemplate(filledForm);
-		responseFileInfo.setFilledForm(filledForm);
-		if (pageRecognition.isPresent())
-			applyProcessingCorrections(responseFileInfo, pageRecognition.get().getCorrections());
-		if (processed.isPresent()) {
-			var result = processed.get();
-			responseFileInfo.setProcessingStatus(result.getStatus());
-			responseFileInfo.setAutomaticMarkerDetection(result.isAutomaticMarkerDetection());
-			responseFileInfo.setManualReviewRequired(result.isManualReviewRequired());
-			responseFileInfo.setDetectedRotationDegrees(result.getDetectedRotationDegrees());
-			responseFileInfo.setReferenceAlignmentError(result.getReferenceAlignmentError());
-			responseFileInfo.setLocalAlignmentApplied(result.isLocalAlignmentApplied());
-			responseFileInfo.setLocalAlignmentConfidence(result.getLocalAlignmentConfidence());
-			responseFileInfo.setLocalAlignmentAnchorCount(result.getLocalAlignmentAnchorCount());
-			responseFileInfo.setLocalAlignmentMeanDisplacement(result.getLocalAlignmentMeanDisplacement());
-			responseFileInfo.setLocalAlignmentMaximumDisplacement(result.getLocalAlignmentMaximumDisplacement());
-		}
-
-		responseFileInfo = responseFileInfoRepository.save(responseFileInfo);
-		ResponseFile responseFile = new ResponseFile();
-		responseFile.setId(responseFileInfo.getId());
-		responseFile.setInfo(responseFileInfo);
-		responseFile.setFile(new Binary(BsonBinarySubType.BINARY, storedContent));
-		responseFile.setFileExtension(storedExtension);
-		responseFile.setFileType(storedContentType);
-		if (processed.isPresent()) {
-			responseFile.setOriginalFile(new Binary(BsonBinarySubType.BINARY, originalContent));
-			responseFile.setOriginalFileExtension(FilenameUtils.getExtension(file.getOriginalFilename()));
-			responseFile.setOriginalFileType(contentType);
-		}
-		responseFile = responseFileRepository.insert(responseFile);
-		messageProducerService.sendMessage(RESPONSE_FILE_CREATE_EVENT, responseFileInfo);
-		return responseFile;
-	}
-
-	private boolean templateContainsAreas(fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileModel model) {
-		return Objects.nonNull(model) && Objects.nonNull(model.getParam())
-				&& Objects.nonNull(model.getParam().getTemplate()) && model.getParam().getTemplate().contains("<area");
+		return addResponseFileFromProcessing(file, originalContent, processed);
 	}
 
 	private ResponseFile addResponseFileFromProcessing(MultipartFile file, byte[] originalContent,
@@ -218,17 +115,13 @@ public class ResponseFileService {
 		if (Objects.nonNull(info.getStage()) && Objects.nonNull(info.getPage())) {
 			var exactParam = responseFileParamService
 					.getResponseFileParamByStageAndPage(info.getStage(), info.getPage()).orElse(null);
-			if (Objects.nonNull(exactParam) && Objects.nonNull(exactParam.getTemplate())
-					&& !exactParam.getTemplate().contains("<area")) {
+			if (Objects.nonNull(exactParam) && Objects.nonNull(exactParam.getTemplate())) {
 				var exactModel = responseFileParamService.getResponseFileModel(exactParam.getId());
 				if (Objects.nonNull(exactModel) && Objects.nonNull(exactModel.getFile())) {
-					var exact = formProcessingClient.process(
+					pageResult = formProcessingClient.process(
 							originalContent, file.getOriginalFilename(), file.getContentType(),
 							exactModel.getFile().getData(), exactModel.getFileType(), exactParam.getTemplate());
-					if (exact.isPresent()) {
-						pageResult = exact.get();
-						exactTemplateUsed = true;
-					}
+					exactTemplateUsed = true;
 				}
 			}
 		}
@@ -282,23 +175,6 @@ public class ResponseFileService {
 		info.setLocalAlignmentMaximumDisplacement(result.getLocalAlignmentMaximumDisplacement());
 	}
 
-	private Optional<FormProcessingClient.PageRecognition> refinePageImage(ResponseFileInfo info,
-			byte[] normalizedContent, String contentType, String name) {
-		if (Objects.isNull(info.getStage()) || Objects.isNull(info.getPage()))
-			return Optional.empty();
-		var pageParam = responseFileParamService.getResponseFileParamByStageAndPage(info.getStage(), info.getPage())
-				.orElse(null);
-		if (Objects.isNull(pageParam))
-			return Optional.empty();
-		var pageModel = responseFileParamService.getResponseFileModel(pageParam.getId());
-		byte[] pageReference = Objects.nonNull(pageModel) && Objects.nonNull(pageModel.getFile())
-				? pageModel.getFile().getData()
-				: null;
-		String pageReferenceType = Objects.nonNull(pageModel) ? pageModel.getFileType() : null;
-		return formProcessingClient.recognizeCorrections(normalizedContent, name + ".png", contentType,
-				pageParam.getTemplate(), pageReference, pageReferenceType);
-	}
-
 	void applyProcessingCorrections(ResponseFileInfo info,
 			java.util.List<FormProcessingClient.Correction> corrections) {
 		applyProcessingCorrections(info, corrections, null);
@@ -306,15 +182,8 @@ public class ResponseFileService {
 
 	private void applyProcessingCorrections(ResponseFileInfo info,
 			java.util.List<FormProcessingClient.Correction> corrections, double[][] sourceToNormalizedTransform) {
-		corrections.forEach(correction -> {
-			info.getProcessingCorrectionValues().put(correction.getLabel(), correction.isValue());
-			info.getProcessingCorrectionConfidences().put(correction.getLabel(), correction.getConfidence());
-			info.getProcessingCorrectionMarks().put(correction.getLabel(), correction.getMarkedValues());
-			Boolean legacy = findLegacyCorrection(info.getFilledForm(), correction.getLabel());
-			if (Objects.nonNull(legacy) && legacy.booleanValue() != correction.isValue())
-				info.getProcessingCorrectionDifferences().add(correction.getLabel());
-			applyCorrectionMarks(info.getFilledForm(), correction, sourceToNormalizedTransform);
-		});
+		corrections.forEach(correction ->
+				applyCorrectionMarks(info.getFilledForm(), correction, sourceToNormalizedTransform));
 	}
 
 	private void applyCorrectionMarks(FormTemplate form, FormProcessingClient.Correction correction,
@@ -323,7 +192,7 @@ public class ResponseFileService {
 		if (Objects.isNull(question))
 			return;
 
-		HashMap<String, FormPoint> legacyPoints = new HashMap<>(question.getPoints());
+		HashMap<String, FormPoint> existingPoints = new HashMap<>(question.getPoints());
 		question.getPoints().clear();
 		if (Objects.isNull(correction.getMarkedValues()))
 			return;
@@ -334,7 +203,7 @@ public class ResponseFileService {
 		correction.getMarkedValues().forEach(mark -> {
 			FormPoint source = Objects.nonNull(templateQuestion) ? templateQuestion.getPoints().get(mark) : null;
 			if (Objects.isNull(source))
-				source = legacyPoints.get(mark);
+				source = existingPoints.get(mark);
 			if (Objects.nonNull(source))
 				question.getPoints().put(mark, mapToSource(source, sourceToNormalizedTransform));
 		});
@@ -382,11 +251,6 @@ public class ResponseFileService {
 				.filter(Objects::nonNull)
 				.findFirst()
 				.orElse(null);
-	}
-
-	private Boolean findLegacyCorrection(FormTemplate form, String label) {
-		FormQuestion question = findQuestion(form, label);
-		return Objects.nonNull(question) ? getResultValue(question) : null;
 	}
 
 	private HashMap<Corners, FormPoint> makeTrustedCorners(FormProcessingClient.ProcessedImage processed) {
@@ -505,7 +369,7 @@ public class ResponseFileService {
 	}
 
 	public ResponseFileInfo updateResponseFileInfo(ResponseFileInfo responseFileInfo)
-			throws ParserConfigurationException, SAXException, IOException, FormScannerException {
+			throws ParserConfigurationException, SAXException, IOException {
 		ResponseFileInfo updatedResponseFileInfo = responseFileInfoRepository.findById(responseFileInfo.getId())
 				.orElseThrow();
 		boolean manualIdentification = Objects.nonNull(responseFileInfo.getStage())
@@ -544,35 +408,6 @@ public class ResponseFileService {
 		messageProducerService.sendMessage(RESPONSE_FILE_DELETE_EVENT, responseFileInfo);
 	}
 
-	private void fillResponseFileInfo(FormTemplate filledForm, ResponseFileInfo responseFileInfo) {
-		fillResponseFileInfo(filledForm, responseFileInfo, true);
-	}
-
-	private void fillResponseFileInfo(FormTemplate filledForm, ResponseFileInfo responseFileInfo,
-			boolean useDefaultStageAndPage) {
-		HashMap<String, FormGroup> groups = filledForm.getGroups();
-		for (var group : groups.values()) {
-			var equipe1 = group.getFields().get(EQUIPE1);
-			var equipe2 = group.getFields().get(EQUIPE2);
-			if (Objects.nonNull(equipe1) && Objects.nonNull(equipe2))
-				responseFileInfo.setTeam(parseInt(equipe1.getValues() + equipe2.getValues()));
-			var etape = group.getFields().get(ETAPE);
-			var etape1 = group.getFields().get(ETAPE1);
-			var etape2 = group.getFields().get(ETAPE2);
-			if (Objects.nonNull(etape))
-				responseFileInfo.setStage(parseInt(etape.getValues()));
-			else if (Objects.nonNull(etape1) && Objects.nonNull(etape2))
-				responseFileInfo.setStage(parseInt(etape1.getValues() + etape2.getValues()));
-			var page = group.getFields().get(PAGE);
-			if (Objects.nonNull(page))
-				responseFileInfo.setPage(parseInt(page.getValues()));
-		}
-		if (useDefaultStageAndPage && Objects.isNull(responseFileInfo.getStage()))
-			responseFileInfo.setStage(1);
-		if (useDefaultStageAndPage && Objects.isNull(responseFileInfo.getPage()))
-			responseFileInfo.setPage(1);
-	}
-
 	private Boolean getResultValue(FormQuestion field) {
 		Boolean resultValue = false;
 		var pointKeys = field.getPoints().keySet();
@@ -595,103 +430,6 @@ public class ResponseFileService {
 						&& !responseFileInfo.getFilledForm().getCorners().isEmpty());
 	}
 
-	private void logFormTemplate(FormTemplate filledForm) {
-		log.info(filledForm.getName());
-		var groups = filledForm.getGroups();
-		for (var group : groups.entrySet()) {
-			log.info(group.getKey());
-
-			for (var field : group.getValue().getFields().values()) {
-				log.info(field.getName() + " : " + field.getValues());
-			}
-
-			for (var area : group.getValue().getAreas().values()) {
-				log.info(area.getName() + " : " + area.getText());
-			}
-		}
-	}
-
-	private FormTemplate makeFormTemplate(BufferedImage image, String name, Integer stage, Integer page,
-			HashMap<Corners, FormPoint> corners, boolean allowPartial)
-			throws ParserConfigurationException, SAXException, IOException, FormScannerException {
-
-		com.albertoborsetta.formscanner.api.FormTemplate formTemplate = responseFileParamService.makeFormTemplate(stage,
-				page);
-
-		Integer threshold = formTemplate.getThreshold() < 0 ? 127 : formTemplate.getThreshold();
-		Integer density = formTemplate.getDensity() < 0 ? 40 : formTemplate.getDensity();
-		Integer shapeSize = formTemplate.getSize() < 0 ? 15 : formTemplate.getSize();
-		CornerType cornerType = Objects.isNull(formTemplate.getCornerType()) ? CornerType.ROUND
-				: formTemplate.getCornerType();
-
-		HashMap<String, Integer> crop = Objects.isNull(formTemplate.getCrop()) ? new HashMap<>()
-				: formTemplate.getCrop();
-		com.albertoborsetta.formscanner.api.FormTemplate filledForm = new com.albertoborsetta.formscanner.api.FormTemplate(
-				name, formTemplate);
-
-		boolean canFindPoints = true;
-		try {
-			filledForm.findCorners(image, threshold, density, cornerType, crop);
-		} catch (FormScannerException e) {
-			if (!allowPartial) {
-				throw e;
-			}
-			log.log(Level.WARNING, "findCorners failed, response file will be saved for manual correction", e);
-			canFindPoints = false;
-		}
-		if (Objects.nonNull(corners)) {
-			for (var entry : corners.entrySet()) {
-				com.albertoborsetta.formscanner.api.FormPoint corner = new com.albertoborsetta.formscanner.api.FormPoint();
-				BeanUtils.copyProperties(entry.getValue(), corner);
-				filledForm.setCorner(
-						com.albertoborsetta.formscanner.api.commons.Constants.Corners.valueOf(entry.getKey().name()), corner);
-			}
-			filledForm.clearPoints();
-			canFindPoints = true;
-		}
-		if (!hasAllCorners(filledForm)) {
-			setDefaultCorners(filledForm, image);
-			canFindPoints = false;
-		}
-		if (canFindPoints) {
-			try {
-				filledForm.findPoints(image, threshold, density, shapeSize);
-			} catch (FormScannerException e) {
-				if (!allowPartial) {
-					throw e;
-				}
-				log.log(Level.WARNING, "findPoints failed, response file will be saved for manual correction", e);
-				canFindPoints = false;
-			}
-		}
-		if (canFindPoints) {
-			try {
-				filledForm.findAreas(image);
-			} catch (FormScannerException e) {
-				if (!allowPartial) {
-					throw e;
-				}
-				log.log(Level.WARNING, "findAreas failed, response file will be saved without detected areas", e);
-			}
-		}
-
-		FormTemplate filledForm2 = new FormTemplate();
-		ResponseFileUtil.copyProperties(filledForm, filledForm2);
-		filledForm2.setHeight(image.getHeight());
-		filledForm2.setWidth(image.getWidth());
-		if (Objects.isNull(filledForm2.getSize()) || filledForm2.getSize() < 0) {
-			filledForm2.setSize(shapeSize);
-		}
-		if (!canFindPoints) {
-			clearDetectedValues(filledForm2);
-		}
-		responseFileParamService.getResponseFileParamByStageAndPage(stage, page).ifPresent(responseFileParam -> {
-			filledForm2.getParentTemplate().setHeight(responseFileParam.getHeight());
-			filledForm2.getParentTemplate().setWidth(responseFileParam.getWidth());
-		});
-		return filledForm2;
-	}
-
 	private void clearDetectedValues(FormTemplate formTemplate) {
 		formTemplate.getPoints().clear();
 		formTemplate.getAreas().clear();
@@ -701,36 +439,9 @@ public class ResponseFileService {
 		});
 	}
 
-	private boolean hasAllCorners(com.albertoborsetta.formscanner.api.FormTemplate formTemplate) {
-		return Stream.of(
-				com.albertoborsetta.formscanner.api.commons.Constants.Corners.TOP_LEFT,
-				com.albertoborsetta.formscanner.api.commons.Constants.Corners.TOP_RIGHT,
-				com.albertoborsetta.formscanner.api.commons.Constants.Corners.BOTTOM_RIGHT,
-				com.albertoborsetta.formscanner.api.commons.Constants.Corners.BOTTOM_LEFT)
-				.allMatch(corner -> Objects.nonNull(formTemplate.getCorners().get(corner)));
-	}
-
-	private void setDefaultCorners(com.albertoborsetta.formscanner.api.FormTemplate formTemplate, BufferedImage image) {
-		setDefaultCorner(formTemplate, Corners.TOP_LEFT, image.getWidth() * 0.12, image.getHeight() * 0.08);
-		setDefaultCorner(formTemplate, Corners.TOP_RIGHT, image.getWidth() * 0.88, image.getHeight() * 0.08);
-		setDefaultCorner(formTemplate, Corners.BOTTOM_RIGHT, image.getWidth() * 0.88, image.getHeight() * 0.92);
-		setDefaultCorner(formTemplate, Corners.BOTTOM_LEFT, image.getWidth() * 0.12, image.getHeight() * 0.92);
-	}
-
-	private void setDefaultCorner(com.albertoborsetta.formscanner.api.FormTemplate formTemplate, Corners corner,
-			double x, double y) {
-		com.albertoborsetta.formscanner.api.FormPoint point = new com.albertoborsetta.formscanner.api.FormPoint();
-		point.setX(x);
-		point.setY(y);
-		formTemplate.setCorner(
-				com.albertoborsetta.formscanner.api.commons.Constants.Corners.valueOf(corner.name()), point);
-	}
-
 	private FormTemplate updateFormTemplate(ResponseFileInfo responseFileInfo, ResponseFileInfo updatedResponseFileInfo)
-			throws IOException, ParserConfigurationException, SAXException, FormScannerException {
+			throws IOException, ParserConfigurationException, SAXException {
 		ResponseFile responseFile = responseFileRepository.findById(responseFileInfo.getId()).orElseThrow();
-
-		BufferedImage image = ImageIO.read(new ByteArrayInputStream(responseFile.getFile().getData()));
 		String name = responseFile.getInfo().getFilledForm().getName();
 		Integer stage = Objects.nonNull(responseFileInfo.getStage()) ? responseFileInfo.getStage()
 				: updatedResponseFileInfo.getStage();
@@ -740,42 +451,17 @@ public class ResponseFileService {
 				? responseFileInfo.getFilledForm().getCorners()
 				: updatedResponseFileInfo.getFilledForm().getCorners();
 
-		boolean cornersWereMoved = Objects.nonNull(responseFileInfo.getFilledForm())
-				&& Objects.nonNull(responseFileInfo.getFilledForm().getCorners())
-				&& !responseFileInfo.getFilledForm().getCorners().isEmpty();
-		if (cornersWereMoved) {
-			var recalculated = recalculateFromManualCorners(responseFile, responseFileInfo,
-					updatedResponseFileInfo, name, stage, page, corners);
-			if (recalculated.isPresent())
-				return recalculated.get();
-		}
-		if (cornersWereMoved && !updatedResponseFileInfo.isIdentificationManuallyLocked()) {
-			FormTemplate identificationForm = makeFormTemplate(image, name, null, null, corners, true);
-			ResponseFileInfo identification = new ResponseFileInfo();
-			fillResponseFileInfo(identificationForm, identification, false);
-			if (Objects.nonNull(identification.getStage()) && Objects.nonNull(identification.getPage())
-					&& responseFileParamService
-							.getResponseFileParamByStageAndPage(identification.getStage(), identification.getPage())
-							.isPresent()) {
-				stage = identification.getStage();
-				page = identification.getPage();
-				responseFileInfo.setStage(stage);
-				responseFileInfo.setPage(page);
-				if (Objects.nonNull(identification.getTeam()))
-					responseFileInfo.setTeam(identification.getTeam());
-			}
-		}
-		return makeFormTemplate(image, name, stage, page,
-				corners, true);
+		return recalculateFromManualCorners(responseFile, responseFileInfo, updatedResponseFileInfo,
+				name, stage, page, corners);
 	}
 
-	private Optional<FormTemplate> recalculateFromManualCorners(ResponseFile responseFile,
+	private FormTemplate recalculateFromManualCorners(ResponseFile responseFile,
 			ResponseFileInfo requestedInfo, ResponseFileInfo storedInfo, String name, Integer stage, Integer page,
 			HashMap<Corners, FormPoint> corners)
 			throws ParserConfigurationException, SAXException, IOException {
 		var reference = responseFileParamService.getReferenceResponseFileModel().orElse(null);
 		if (Objects.isNull(reference) || Objects.isNull(reference.getFile()))
-			return Optional.empty();
+			throw new IllegalStateException("Aucun formulaire de référence n'est configuré.");
 
 		byte[] recalculationSource = responseFile.getFile().getData();
 		String recalculationSourceType = responseFile.getFileType();
@@ -784,10 +470,7 @@ public class ResponseFileService {
 				recalculationSourceType, reference.getFile().getData(), reference.getFileType(),
 				Objects.nonNull(reference.getParam()) ? reference.getParam().getTemplate() : null,
 				makeMarkerSet(corners));
-		if (processed.isEmpty())
-			return Optional.empty();
-
-		var result = processed.get();
+		var result = processed;
 		if (!storedInfo.isIdentificationManuallyLocked() && Objects.nonNull(result.getIdentification())
 				&& result.getIdentification().getConfidence() >= 0.60) {
 			var identification = result.getIdentification();
@@ -809,30 +492,24 @@ public class ResponseFileService {
 		if (Objects.nonNull(exactParam)) {
 			var exactModel = responseFileParamService.getResponseFileModel(exactParam.getId());
 			if (Objects.nonNull(exactModel) && Objects.nonNull(exactModel.getFile())) {
-				var exactProcessing = formProcessingClient.processWithMarkers(
+				geometryResult = formProcessingClient.processWithMarkers(
 						recalculationSource, name + ".png", recalculationSourceType,
 						exactModel.getFile().getData(), exactModel.getFileType(), exactParam.getTemplate(),
 						makeMarkerSet(corners));
-				if (exactProcessing.isPresent())
-					geometryResult = exactProcessing.get();
 			}
 		}
 		java.util.List<FormProcessingClient.Correction> corrections = geometryResult.getCorrections();
 
 		BufferedImage sourceImage = ImageIO.read(new ByteArrayInputStream(recalculationSource));
 		if (Objects.isNull(sourceImage))
-			return Optional.empty();
+			throw new IllegalStateException("L'image du formulaire n'est pas exploitable.");
 		FormTemplate filledForm = makeEmptyProcessedFormTemplate(sourceImage, name, stage, page, corners);
 		storedInfo.setFilledForm(filledForm);
-		storedInfo.getProcessingCorrectionValues().clear();
-		storedInfo.getProcessingCorrectionConfidences().clear();
-		storedInfo.getProcessingCorrectionMarks().clear();
-		storedInfo.getProcessingCorrectionDifferences().clear();
 		applyProcessingCorrections(storedInfo, corrections, geometryResult.getSourceToNormalizedTransform());
 		Integer effectiveTeam = Objects.nonNull(requestedInfo.getTeam()) ? requestedInfo.getTeam() : storedInfo.getTeam();
 		applyIdentificationMarks(filledForm, effectiveTeam, stage, page,
 				geometryResult.getSourceToNormalizedTransform());
-		return Optional.of(filledForm);
+		return filledForm;
 	}
 
 	private void applyIdentificationMarks(FormTemplate form, Integer team, Integer stage, Integer page,

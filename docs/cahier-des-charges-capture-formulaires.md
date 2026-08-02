@@ -74,7 +74,7 @@ Le redressement et la normalisation des photographies sont des traitements techn
 - Les erreurs de reconnaissance peuvent aboutir à une réponse HTTP peu explicite : le contrôleur journalise certaines exceptions puis renvoie `null`.
 - Le traitement multiple existant peut réussir partiellement sans compte rendu détaillé par fichier.
 - L’image originale est conservée telle quelle ; aucune version redressée n’est produite.
-- FormScanner 1.1.4 utilise les repères pour la rotation et l’échelle, mais ne réalise pas une rectification projective complète. Une photo prise en biais doit donc être redressée avant reconnaissance.
+- Le service de traitement doit rectifier la perspective d’une photographie avant toute reconnaissance.
 
 ## 4. Acquisition depuis la caméra
 
@@ -128,7 +128,7 @@ Traitements envisagés :
 8. redimensionnement vers les dimensions du modèle de référence ;
 9. correction raisonnable de luminosité et de contraste ;
 10. conservation des nuances nécessaires pour distinguer une case vide d’une case noircie ;
-11. appel de FormScanner sur l’image normalisée ;
+11. reconnaissance du cartouche et des cases sur l’image normalisée ;
 12. calcul d’indicateurs de qualité et de messages exploitables.
 
 Le traitement ne doit pas appliquer un seuillage destructeur avant la reconnaissance sans validation sur des formulaires réels.
@@ -138,7 +138,7 @@ Le traitement ne doit pas appliquer un seuillage destructeur avant la reconnaiss
 Pour une photographie, conserver :
 
 - l’original envoyé, utile pour diagnostiquer un traitement ou reprendre manuellement ;
-- l’image normalisée, utilisée par FormScanner et affichée dans la vérification ;
+- l’image normalisée, utilisée pour la reconnaissance et affichée dans la vérification ;
 - le type de source : `FILE_IMPORT` ou `CAMERA_CAPTURE` ;
 - le nom d’origine ;
 - la date de capture/import ;
@@ -199,14 +199,11 @@ Le lot n’a pas besoin d’être transactionnel : une mauvaise photo ne doit pa
 
 ## 9. Architecture recommandée
 
-Ne pas créer, dans un premier temps, un nouveau service indépendant.
+Le traitement d’image et la reconnaissance sont assurés par le service indépendant
+`form-processing-service`. Le front existant assure l’acquisition et la vérification,
+tandis que `ResponseFileService` orchestre l’appel au service, le stockage et la publication.
 
-- L’interface de capture appartient au front existant.
-- Le traitement d’image appartient au back existant, au plus près de `ResponseFileService`.
-- Le traitement doit être isolé dans un composant dédié, par exemple `FormImagePreparationService`.
-- `ResponseFileService` orchestre préparation, reconnaissance, stockage et publication.
-
-Cette séparation interne permettra une extraction ultérieure en microservice si les mesures montrent :
+Cette séparation permet :
 
 - une consommation CPU ou mémoire incompatible avec le back ;
 - un besoin de traitements asynchrones massifs ;

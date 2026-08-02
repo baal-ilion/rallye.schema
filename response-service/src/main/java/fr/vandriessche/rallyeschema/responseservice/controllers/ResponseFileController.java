@@ -31,8 +31,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.xml.sax.SAXException;
 
-import com.albertoborsetta.formscanner.api.exceptions.FormScannerException;
-
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFile;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileInfo;
 import fr.vandriessche.rallyeschema.responseservice.models.ResponseFileInfoModelAssembler;
@@ -107,7 +105,7 @@ public class ResponseFileController {
 	@PatchMapping(INFO_URL)
 	public EntityModel<ResponseFileInfo> updateResponseFileInfo(@RequestBody ResponseFileInfo responseFileInfo,
 			ResponseFileInfoModelAssembler assembler)
-			throws ParserConfigurationException, SAXException, IOException, FormScannerException {
+			throws ParserConfigurationException, SAXException, IOException {
 		return assembler.toModel(responseFileService.updateResponseFileInfo(responseFileInfo));
 	}
 
@@ -117,7 +115,7 @@ public class ResponseFileController {
 		return assembler.toCollectionModel(Arrays.asList(files).stream().map(file -> {
 			try {
 				return responseFileService.addResponseFile(file).getInfo();
-			} catch (IOException | ParserConfigurationException | SAXException | FormScannerException e) {
+			} catch (IOException | ParserConfigurationException | SAXException e) {
 				log.log(Level.WARNING, "uploadMultipleResponseFiles", e);
 			}
 			return null;
@@ -129,7 +127,7 @@ public class ResponseFileController {
 			ResponseFileInfoModelAssembler assembler) {
 		try {
 			return assembler.toModel(responseFileService.addResponseFile(file).getInfo());
-		} catch (IOException | ParserConfigurationException | SAXException | FormScannerException e) {
+		} catch (IOException | ParserConfigurationException | SAXException e) {
 			log.log(Level.WARNING, "uploadResponseFile", e);
 		}
 		return null;

@@ -1,7 +1,6 @@
 package fr.vandriessche.rallyeschema.responseservice.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
@@ -17,7 +16,7 @@ import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileInfo;
 class ResponseFileServiceTests {
 
 	@Test
-	void makesModernCorrectionMarksAuthoritativeWithoutLosingTheirCoordinates() {
+	void appliesCorrectionMarksWithoutLosingTheirCoordinates() {
 		ResponseFileService service = new ResponseFileService();
 		ResponseFileInfo info = new ResponseFileInfo();
 		FormTemplate filled = formWithQuestion("Question 01", "N", new FormPoint(20, 30));
@@ -37,13 +36,10 @@ class ResponseFileServiceTests {
 		assertEquals(1, question.getPoints().size());
 		assertTrue(question.getPoints().containsKey("Y"));
 		assertEquals(new FormPoint(100, 200), question.getPoints().get("Y"));
-		assertTrue(info.getProcessingCorrectionValues().get("Question 01"));
-		assertEquals(0.92, info.getProcessingCorrectionConfidences().get("Question 01"), 0.001);
-		assertTrue(info.getProcessingCorrectionDifferences().contains("Question 01"));
 	}
 
 	@Test
-	void clearsLegacyMarksWhenTheModernServiceDetectsNoMark() {
+	void clearsMarksWhenTheServiceDetectsNoMark() {
 		ResponseFileService service = new ResponseFileService();
 		ResponseFileInfo info = new ResponseFileInfo();
 		FormTemplate filled = formWithQuestion("Question 01", "Y", new FormPoint(100, 200));
@@ -58,7 +54,6 @@ class ResponseFileServiceTests {
 		service.applyProcessingCorrections(info, Arrays.asList(correction));
 
 		assertTrue(filled.getGroups().get("Questions").getFields().get("Question 01").getPoints().isEmpty());
-		assertFalse(info.getProcessingCorrectionValues().get("Question 01"));
 	}
 
 	private FormTemplate formWithQuestion(String label, String mark, FormPoint point) {

@@ -873,7 +873,7 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
     // Le zoom ne concerne que l'aperçu. html2canvas ignore la transformation
     // du conteneur pour l'image, tandis que getBoundingClientRect peut encore
     // la refléter pour les coordonnées. Publier à 100 % garantit un référentiel
-    // unique entre le PNG et le template FormScanner.
+    // unique entre le PNG et le modèle de reconnaissance.
     this.zoom = 100;
     this.selectedBlockId = '';
     this.selectedCellIds.clear();
@@ -1001,9 +1001,8 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
 
   private async generateRecognitionPage(paper: HTMLElement, page: number | undefined,
       referenceOnly: boolean): Promise<GeneratedRecognitionPageDto> {
-    // Les modèles historiques produits par FormScanner font 2481 × 3508 px.
-    // Conserver cette résolution garantit que les coordonnées et la taille des
-    // marqueurs ont la même échelle que les formulaires déjà reconnus par le back.
+    // La résolution canonique des modèles est de 2481 × 3508 px.
+    // Elle garantit une échelle commune aux images et aux coordonnées publiées.
     const targetWidth = 2481;
     const targetHeight = 3508;
     const paperRect = paper.getBoundingClientRect();
@@ -1252,8 +1251,7 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
         corrections.set(name, values);
       });
     }
-    // Valeur native de FormScanner utilisée par tous les anciens templates.
-    // Il s'agit de la zone de détection autour du centre, pas de la dimension
+    // Taille canonique de la zone de détection autour du centre, pas de la dimension
     // graphique complète de la cellule imprimée.
     const fieldSize = 15;
     const xmlQuestions = (fields: Map<string, Array<{ response: string; x: number; y: number }>>) =>

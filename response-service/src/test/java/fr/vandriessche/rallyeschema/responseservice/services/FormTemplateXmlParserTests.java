@@ -11,7 +11,7 @@ import fr.vandriessche.rallyeschema.responseservice.entities.FieldType;
 class FormTemplateXmlParserTests {
 
 	@Test
-	void parsesCornersGroupsQuestionsAndValuesWithoutFormScanner() throws Exception {
+	void parsesCornersGroupsQuestionsAndValues() throws Exception {
 		String xml = "<template density=\"40\" threshold=\"127\" version=\"2.1\">"
 				+ "<crop top=\"1\" left=\"2\" right=\"3\" bottom=\"4\"/>"
 				+ "<rotation angle=\"0.5\"/><corners type=\"ROUND\">"

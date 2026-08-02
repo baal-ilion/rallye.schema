@@ -24,8 +24,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import org.xml.sax.SAXException;
 
-import com.albertoborsetta.formscanner.api.exceptions.FormScannerException;
-
 import fr.vandriessche.rallyeschema.responseservice.entities.StageResult;
 import fr.vandriessche.rallyeschema.responseservice.models.StageResultModelAssembler;
 import fr.vandriessche.rallyeschema.responseservice.services.StageResultService;
@@ -105,7 +103,7 @@ public class StageResultController {
 	public EntityModel<StageResult> selectResponseFile(@RequestParam Integer stage, @RequestParam Integer team,
 			@RequestParam(value = "responseFileId") String[] responseFileIds, @RequestParam Boolean delete,
 			StageResultModelAssembler assembler) throws InvalidAlgorithmParameterException,
-			ParserConfigurationException, SAXException, IOException, FormScannerException {
+			ParserConfigurationException, SAXException, IOException {
 		return assembler.toModel(stageResultService.selectResponseFile(stage, team, responseFileIds, delete));
 	}
 
