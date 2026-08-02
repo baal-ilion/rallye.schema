@@ -113,12 +113,8 @@ public class ResponseFileService {
 				Objects.nonNull(reference) ? reference.getFileType() : null,
 				Objects.nonNull(reference) && Objects.nonNull(reference.getParam())
 						? reference.getParam().getTemplate() : null);
-		if (processed.filter(result -> canImportWithoutFormScanner(reference, result)).isPresent()) {
-			var modernImport = addResponseFileFromProcessing(file, originalContent, processed.get());
-			if (modernImport.isPresent())
-				return modernImport.get();
-			log.warning("Le traitement exact par le nouveau service a échoué ; reprise par le flux FormScanner.");
-		}
+		if (processed.isPresent() && !templateContainsAreas(reference))
+			return addResponseFileFromProcessing(file, originalContent, processed.get());
 		if (processed.isPresent()) {
 			storedContent = processed.get().getContent();
 			storedContentType = processed.get().getContentType();
@@ -205,52 +201,58 @@ public class ResponseFileService {
 				&& Objects.nonNull(model.getParam().getTemplate()) && model.getParam().getTemplate().contains("<area");
 	}
 
-	private boolean canImportWithoutFormScanner(
-			fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileModel reference,
-			FormProcessingClient.ProcessedImage result) {
-		if (templateContainsAreas(reference) || !result.isAutomaticMarkerDetection()
-				|| Objects.isNull(result.getTargetMarkers()) || Objects.isNull(result.getIdentification())
-				|| Objects.isNull(result.getIdentification().getStage())
-				|| Objects.isNull(result.getIdentification().getPage()))
-			return false;
-		var exactParam = responseFileParamService.getResponseFileParamByStageAndPage(
-				result.getIdentification().getStage(), result.getIdentification().getPage()).orElse(null);
-		return Objects.nonNull(exactParam) && Objects.nonNull(exactParam.getTemplate())
-				&& !exactParam.getTemplate().contains("<area");
-	}
-
-	private Optional<ResponseFile> addResponseFileFromProcessing(MultipartFile file, byte[] originalContent,
+	private ResponseFile addResponseFileFromProcessing(MultipartFile file, byte[] originalContent,
 			FormProcessingClient.ProcessedImage genericResult)
 			throws IOException, ParserConfigurationException, SAXException {
 		String name = FilenameUtils.getBaseName(file.getOriginalFilename());
 		ResponseFileInfo info = new ResponseFileInfo();
 		var identification = genericResult.getIdentification();
-		info.setTeam(identification.getTeam());
-		info.setStage(identification.getStage());
-		info.setPage(identification.getPage());
+		if (Objects.nonNull(identification)) {
+			info.setTeam(identification.getTeam());
+			info.setStage(identification.getStage());
+			info.setPage(identification.getPage());
+		}
 
-		var exactParam = responseFileParamService.getResponseFileParamByStageAndPage(info.getStage(), info.getPage())
-				.orElse(null);
-		var exactModel = responseFileParamService.getResponseFileModel(exactParam.getId());
-		if (Objects.isNull(exactModel) || Objects.isNull(exactModel.getFile()))
-			return Optional.empty();
-		var exact = formProcessingClient.process(
-				originalContent, file.getOriginalFilename(), file.getContentType(),
-				exactModel.getFile().getData(), exactModel.getFileType(), exactParam.getTemplate());
-		if (exact.filter(result -> result.isAutomaticMarkerDetection()
-				&& Objects.nonNull(result.getTargetMarkers())).isEmpty())
-			return Optional.empty();
-		FormProcessingClient.ProcessedImage pageResult = exact.get();
+		FormProcessingClient.ProcessedImage pageResult = genericResult;
+		boolean exactTemplateUsed = false;
+		if (Objects.nonNull(info.getStage()) && Objects.nonNull(info.getPage())) {
+			var exactParam = responseFileParamService
+					.getResponseFileParamByStageAndPage(info.getStage(), info.getPage()).orElse(null);
+			if (Objects.nonNull(exactParam) && Objects.nonNull(exactParam.getTemplate())
+					&& !exactParam.getTemplate().contains("<area")) {
+				var exactModel = responseFileParamService.getResponseFileModel(exactParam.getId());
+				if (Objects.nonNull(exactModel) && Objects.nonNull(exactModel.getFile())) {
+					var exact = formProcessingClient.process(
+							originalContent, file.getOriginalFilename(), file.getContentType(),
+							exactModel.getFile().getData(), exactModel.getFileType(), exactParam.getTemplate());
+					if (exact.isPresent()) {
+						pageResult = exact.get();
+						exactTemplateUsed = true;
+					}
+				}
+			}
+		}
 
 		BufferedImage image = ImageIO.read(new ByteArrayInputStream(pageResult.getContent()));
 		if (Objects.isNull(image))
 			throw new IllegalStateException("Le service de traitement n'a retourné aucune image exploitable.");
 		HashMap<Corners, FormPoint> corners = makeTrustedCorners(pageResult);
-		FormTemplate filledForm = makeEmptyProcessedFormTemplate(image, name, info.getStage(), info.getPage(), corners);
+		FormTemplate filledForm = makeEmptyProcessedFormTemplate(image, name,
+				exactTemplateUsed ? info.getStage() : null,
+				exactTemplateUsed ? info.getPage() : null, corners);
 		info.setFilledForm(filledForm);
-		applyProcessingCorrections(info, pageResult.getCorrections());
+		if (exactTemplateUsed)
+			applyProcessingCorrections(info, pageResult.getCorrections());
 		applyIdentificationMarks(filledForm, info.getTeam(), info.getStage(), info.getPage(), null);
 		copyProcessingMetadata(info, pageResult);
+		boolean incompleteIdentification = Objects.isNull(identification)
+				|| Objects.isNull(info.getTeam()) || Objects.isNull(info.getStage()) || Objects.isNull(info.getPage())
+				|| identification.getConfidence() < 0.60 || !exactTemplateUsed;
+		if (incompleteIdentification) {
+			info.setManualReviewRequired(true);
+			if ("READY".equals(info.getProcessingStatus()))
+				info.setProcessingStatus("READY_WITH_WARNINGS");
+		}
 
 		info = responseFileInfoRepository.save(info);
 		ResponseFile responseFile = new ResponseFile();
@@ -264,7 +266,7 @@ public class ResponseFileService {
 		responseFile.setOriginalFileType(file.getContentType());
 		responseFile = responseFileRepository.insert(responseFile);
 		messageProducerService.sendMessage(RESPONSE_FILE_CREATE_EVENT, info);
-		return Optional.of(responseFile);
+		return responseFile;
 	}
 
 	private void copyProcessingMetadata(ResponseFileInfo info, FormProcessingClient.ProcessedImage result) {
