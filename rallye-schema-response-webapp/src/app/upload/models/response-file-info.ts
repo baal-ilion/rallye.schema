@@ -7,6 +7,7 @@ export interface ResponseFileInfo {
   stage?: number;
   page?: number;
   team?: number;
+  identificationManuallyLocked?: boolean;
 
   checked?: boolean;
   processingCorrectionValues?: { [label: string]: boolean };

@@ -162,7 +162,7 @@ public class ResponseFileService {
 		logFormTemplate(filledForm);
 		responseFileInfo.setFilledForm(filledForm);
 		if (pageRecognition.isPresent())
-			compareProcessingCorrections(responseFileInfo, pageRecognition.get().getCorrections());
+			applyProcessingCorrections(responseFileInfo, pageRecognition.get().getCorrections());
 		if (processed.isPresent()) {
 			var result = processed.get();
 			responseFileInfo.setProcessingStatus(result.getStatus());
@@ -211,25 +211,54 @@ public class ResponseFileService {
 				pageParam.getTemplate(), pageReference, pageReferenceType);
 	}
 
-	private void compareProcessingCorrections(ResponseFileInfo info,
+	void applyProcessingCorrections(ResponseFileInfo info,
 			java.util.List<FormProcessingClient.Correction> corrections) {
 		corrections.forEach(correction -> {
-				info.getProcessingCorrectionValues().put(correction.getLabel(), correction.isValue());
-				info.getProcessingCorrectionConfidences().put(correction.getLabel(), correction.getConfidence());
-				info.getProcessingCorrectionMarks().put(correction.getLabel(), correction.getMarkedValues());
-				Boolean legacy = findLegacyCorrection(info.getFilledForm(), correction.getLabel());
-				if (Objects.nonNull(legacy) && legacy.booleanValue() != correction.isValue())
-					info.getProcessingCorrectionDifferences().add(correction.getLabel());
-			});
+			info.getProcessingCorrectionValues().put(correction.getLabel(), correction.isValue());
+			info.getProcessingCorrectionConfidences().put(correction.getLabel(), correction.getConfidence());
+			info.getProcessingCorrectionMarks().put(correction.getLabel(), correction.getMarkedValues());
+			Boolean legacy = findLegacyCorrection(info.getFilledForm(), correction.getLabel());
+			if (Objects.nonNull(legacy) && legacy.booleanValue() != correction.isValue())
+				info.getProcessingCorrectionDifferences().add(correction.getLabel());
+			applyCorrectionMarks(info.getFilledForm(), correction);
+		});
 	}
 
-	private Boolean findLegacyCorrection(FormTemplate form, String label) {
+	private void applyCorrectionMarks(FormTemplate form, FormProcessingClient.Correction correction) {
+		FormQuestion question = findQuestion(form, correction.getLabel());
+		if (Objects.isNull(question))
+			return;
+
+		HashMap<String, FormPoint> legacyPoints = new HashMap<>(question.getPoints());
+		question.getPoints().clear();
+		if (Objects.isNull(correction.getMarkedValues()))
+			return;
+
+		FormQuestion templateQuestion = Objects.nonNull(form.getParentTemplate())
+				? findQuestion(form.getParentTemplate(), correction.getLabel())
+				: null;
+		correction.getMarkedValues().forEach(mark -> {
+			FormPoint source = Objects.nonNull(templateQuestion) ? templateQuestion.getPoints().get(mark) : null;
+			if (Objects.isNull(source))
+				source = legacyPoints.get(mark);
+			if (Objects.nonNull(source))
+				question.getPoints().put(mark, new FormPoint(source.getX(), source.getY()));
+		});
+	}
+
+	private FormQuestion findQuestion(FormTemplate form, String label) {
+		if (Objects.isNull(form) || Objects.isNull(label))
+			return null;
 		return form.getGroups().values().stream()
 				.map(group -> group.getFields().get(label))
 				.filter(Objects::nonNull)
 				.findFirst()
-				.map(this::getResultValue)
 				.orElse(null);
+	}
+
+	private Boolean findLegacyCorrection(FormTemplate form, String label) {
+		FormQuestion question = findQuestion(form, label);
+		return Objects.nonNull(question) ? getResultValue(question) : null;
 	}
 
 	private HashMap<Corners, FormPoint> makeTrustedCorners(FormProcessingClient.ProcessedImage processed) {
@@ -351,6 +380,8 @@ public class ResponseFileService {
 			throws ParserConfigurationException, SAXException, IOException, FormScannerException {
 		ResponseFileInfo updatedResponseFileInfo = responseFileInfoRepository.findById(responseFileInfo.getId())
 				.orElseThrow();
+		boolean manualIdentification = Objects.nonNull(responseFileInfo.getStage())
+				|| Objects.nonNull(responseFileInfo.getPage()) || Objects.nonNull(responseFileInfo.getTeam());
 		// NOTE : si l'etapa est renseignée, la page doit aussi l'etre
 		if (Objects.nonNull(responseFileInfo.getPage()) && Objects.isNull(responseFileInfo.getStage()))
 			// si on n'a que le n° de page on considere que l'etape ne change pas
@@ -369,6 +400,8 @@ public class ResponseFileService {
 			updatedResponseFileInfo.setPage(responseFileInfo.getPage());
 		if (Objects.nonNull(responseFileInfo.getTeam()))
 			updatedResponseFileInfo.setTeam(responseFileInfo.getTeam());
+		if (manualIdentification)
+			updatedResponseFileInfo.setIdentificationManuallyLocked(true);
 		if (Objects.nonNull(responseFileInfo.getChecked()))
 			updatedResponseFileInfo.setChecked(responseFileInfo.getChecked());
 
@@ -565,32 +598,34 @@ public class ResponseFileService {
 
 		BufferedImage image = ImageIO.read(new ByteArrayInputStream(responseFile.getFile().getData()));
 		String name = responseFile.getInfo().getFilledForm().getName();
-		FormTemplate filledForm = makeFormTemplate(image, name,
-				Objects.nonNull(responseFileInfo.getStage()) ? responseFileInfo.getStage()
-						: updatedResponseFileInfo.getStage(),
-				Objects.nonNull(responseFileInfo.getPage()) ? responseFileInfo.getPage()
-						: updatedResponseFileInfo.getPage(),
-				Objects.nonNull(responseFileInfo.getFilledForm()) ? responseFileInfo.getFilledForm().getCorners()
-						: updatedResponseFileInfo.getFilledForm().getCorners(),
-				true);
+		Integer stage = Objects.nonNull(responseFileInfo.getStage()) ? responseFileInfo.getStage()
+				: updatedResponseFileInfo.getStage();
+		Integer page = Objects.nonNull(responseFileInfo.getPage()) ? responseFileInfo.getPage()
+				: updatedResponseFileInfo.getPage();
+		HashMap<Corners, FormPoint> corners = Objects.nonNull(responseFileInfo.getFilledForm())
+				? responseFileInfo.getFilledForm().getCorners()
+				: updatedResponseFileInfo.getFilledForm().getCorners();
 
-		ResponseFileInfo info = new ResponseFileInfo();
-		fillResponseFileInfo(filledForm, info, false);
-		if (Objects.isNull(responseFileInfo.getTeam()))
-			responseFileInfo.setTeam(info.getTeam());
-		if (Objects.nonNull(responseFileInfo.getStage())) {
-			// l'etape et la page sont choisi on garde le template de cette page
-			logFormTemplate(filledForm);
-		} else {
-			if (Objects.nonNull(info.getStage()) && Objects.nonNull(info.getPage())
-					&& (!info.getStage().equals(updatedResponseFileInfo.getStage())
-							|| !info.getPage().equals(updatedResponseFileInfo.getPage()))) {
-				filledForm = makeFormTemplate(image, name, info.getStage(), info.getPage(),
-						responseFileInfo.getFilledForm().getCorners(), true);
-				responseFileInfo.setStage(info.getStage());
-				responseFileInfo.setPage(info.getPage());
+		boolean cornersWereMoved = Objects.nonNull(responseFileInfo.getFilledForm())
+				&& Objects.nonNull(responseFileInfo.getFilledForm().getCorners())
+				&& !responseFileInfo.getFilledForm().getCorners().isEmpty();
+		if (cornersWereMoved && !updatedResponseFileInfo.isIdentificationManuallyLocked()) {
+			FormTemplate identificationForm = makeFormTemplate(image, name, null, null, corners, true);
+			ResponseFileInfo identification = new ResponseFileInfo();
+			fillResponseFileInfo(identificationForm, identification, false);
+			if (Objects.nonNull(identification.getStage()) && Objects.nonNull(identification.getPage())
+					&& responseFileParamService
+							.getResponseFileParamByStageAndPage(identification.getStage(), identification.getPage())
+							.isPresent()) {
+				stage = identification.getStage();
+				page = identification.getPage();
+				responseFileInfo.setStage(stage);
+				responseFileInfo.setPage(page);
+				if (Objects.nonNull(identification.getTeam()))
+					responseFileInfo.setTeam(identification.getTeam());
 			}
 		}
-		return filledForm;
+		return makeFormTemplate(image, name, stage, page,
+				corners, true);
 	}
 }
