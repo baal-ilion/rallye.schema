@@ -1,4 +1,5 @@
 import base64
+from functools import lru_cache
 
 import cv2
 import numpy as np
@@ -39,6 +40,12 @@ def _default_target(width: int, height: int) -> np.ndarray:
         ],
         dtype=np.float32,
     )
+
+
+@lru_cache(maxsize=64)
+def _decode_reference(reference_content: bytes) -> tuple[np.ndarray, np.ndarray]:
+    reference = decode_image(reference_content)
+    return reference, detect_markers(reference).points
 
 
 def _edge_map_for_orientation(image: np.ndarray) -> np.ndarray:
@@ -125,6 +132,9 @@ def process_image(
     target_height: int | None = None,
     template_xml: str | None = None,
     apply_local_alignment: bool = True,
+    forced_source_markers: MarkerSet | None = None,
+    recognize_correction_marks: bool = True,
+    include_normalized_image: bool = True,
 ) -> ProcessResponse:
     source = decode_image(image_content)
     source_height, source_width = source.shape[:2]
@@ -132,36 +142,63 @@ def process_image(
     detected_rotation_degrees = 0
     reference_alignment_error = 0.0
     reference_column_correlation = 1.0
-    try:
-        source_detection = detect_markers(source)
-        automatic_marker_detection = True
-    except ProcessingError as error:
-        if error.code not in {"MARKERS_NOT_FOUND", "MARKER_GEOMETRY_INVALID"}:
-            raise
-        # A failed automatic detection must never discard a rally form. The
-        # verification screen can reposition these suggested corners manually.
+    source_to_normalized_transform: list[list[float]] | None = None
+    if forced_source_markers is not None:
         source_detection = DetectedMarkers(
-            _default_target(source_width, source_height),
-            0.0,
+            np.array(
+                [
+                    [forced_source_markers.top_left.x, forced_source_markers.top_left.y],
+                    [forced_source_markers.top_right.x, forced_source_markers.top_right.y],
+                    [forced_source_markers.bottom_right.x, forced_source_markers.bottom_right.y],
+                    [forced_source_markers.bottom_left.x, forced_source_markers.bottom_left.y],
+                ],
+                dtype=np.float32,
+            ),
+            1.0,
         )
         automatic_marker_detection = False
-        marker_warning = (
-            "Les quatre repères n’ont pas pu être positionnés automatiquement. "
-            "Vérifiez-les manuellement avant d’accepter le formulaire."
-        )
+    else:
+        try:
+            source_detection = detect_markers(source)
+            automatic_marker_detection = True
+        except ProcessingError as error:
+            if error.code not in {"MARKERS_NOT_FOUND", "MARKER_GEOMETRY_INVALID"}:
+                raise
+            # A failed automatic detection must never discard a rally form. The
+            # verification screen can reposition these suggested corners manually.
+            source_detection = DetectedMarkers(
+                _default_target(source_width, source_height),
+                0.0,
+            )
+            automatic_marker_detection = False
+            marker_warning = (
+                "Les quatre repères n’ont pas pu être positionnés automatiquement. "
+                "Vérifiez-les manuellement avant d’accepter le formulaire."
+            )
 
     reference = None
     if reference_content:
-        reference = decode_image(reference_content)
+        reference, cached_target_markers = _decode_reference(reference_content)
         normalized_height, normalized_width = reference.shape[:2]
-        target_detection: DetectedMarkers = detect_markers(reference)
-        target_markers = target_detection.points
+        target_markers = cached_target_markers.copy()
     else:
         normalized_width = target_width or DEFAULT_WIDTH
         normalized_height = target_height or DEFAULT_HEIGHT
         target_markers = _default_target(normalized_width, normalized_height)
 
-    if automatic_marker_detection:
+    if forced_source_markers is not None:
+        transformation = cv2.getPerspectiveTransform(source_detection.points, target_markers)
+        source_to_normalized_transform = transformation.tolist()
+        normalized = cv2.warpPerspective(
+            source,
+            transformation,
+            (normalized_width, normalized_height),
+            flags=cv2.INTER_CUBIC,
+            borderMode=cv2.BORDER_CONSTANT,
+            borderValue=(255, 255, 255),
+        )
+        local_alignment = LocalAlignment(normalized, False, 0.0, 0, 0.0, 0.0)
+    elif automatic_marker_detection:
         if reference is not None:
             (
                 normalized,
@@ -227,19 +264,27 @@ def process_image(
             "Le recalage local n’a pas trouvé suffisamment de détails fiables ; "
             "vérifiez les cases dans la validation."
         )
-    encoded = base64.b64encode(encode_png(normalized)).decode("ascii")
+    encoded = (
+        base64.b64encode(encode_png(normalized)).decode("ascii")
+        if include_normalized_image
+        else None
+    )
     identification = recognize_identification(normalized, template_xml)
-    corrections = recognize_corrections(normalized, template_xml)
+    corrections = (
+        recognize_corrections(normalized, template_xml)
+        if recognize_correction_marks
+        else []
+    )
 
     status = (
         "MANUAL_REVIEW_REQUIRED"
-        if not automatic_marker_detection
+        if not automatic_marker_detection and forced_source_markers is None
         else ("READY" if not warnings else "READY_WITH_WARNINGS")
     )
     return ProcessResponse(
         status=status,
         automatic_marker_detection=automatic_marker_detection,
-        manual_review_required=not automatic_marker_detection or bool(warnings),
+        manual_review_required=(not automatic_marker_detection and forced_source_markers is None) or bool(warnings),
         detected_rotation_degrees=detected_rotation_degrees,
         reference_alignment_error=reference_alignment_error,
         local_alignment_applied=local_alignment.applied,
@@ -253,6 +298,7 @@ def process_image(
         normalized_height=normalized_height,
         source_markers=_marker_model(source_detection.points),
         target_markers=_marker_model(target_markers),
+        source_to_normalized_transform=source_to_normalized_transform,
         quality=quality,
         identification=identification,
         corrections=corrections,

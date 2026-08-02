@@ -55,12 +55,13 @@ class ProcessResponse(BaseModel):
     normalized_height: int
     source_markers: MarkerSet
     target_markers: MarkerSet
+    source_to_normalized_transform: list[list[float]] | None = None
     quality: QualityMetrics
     identification: IdentificationResult | None = None
     corrections: list[CorrectionResult] = Field(default_factory=list)
     warnings: list[str]
     normalized_content_type: str = "image/png"
-    normalized_image_base64: str
+    normalized_image_base64: str | None = None
 
 
 class ProcessingProblem(BaseModel):

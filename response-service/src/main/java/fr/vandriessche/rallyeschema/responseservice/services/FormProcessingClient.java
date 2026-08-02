@@ -45,6 +45,7 @@ public class FormProcessingClient {
 		private double localAlignmentMeanDisplacement;
 		private double localAlignmentMaximumDisplacement;
 		private MarkerSet targetMarkers;
+		private double[][] sourceToNormalizedTransform;
 		private Identification identification;
 		private java.util.List<Correction> corrections;
 	}
@@ -125,6 +126,8 @@ public class FormProcessingClient {
 		private double localAlignmentMaximumDisplacement;
 		@JsonProperty("target_markers")
 		private MarkerSet targetMarkers;
+		@JsonProperty("source_to_normalized_transform")
+		private double[][] sourceToNormalizedTransform;
 		private Identification identification;
 		private java.util.List<Correction> corrections;
 	}
@@ -163,6 +166,24 @@ public class FormProcessingClient {
 
 	public Optional<ProcessedImage> process(byte[] image, String filename, String contentType,
 			byte[] reference, String referenceContentType, String templateXml) {
+		return process(image, filename, contentType, reference, referenceContentType, templateXml, null, true, true);
+	}
+
+	public Optional<ProcessedImage> processWithMarkers(byte[] image, String filename, String contentType,
+			byte[] reference, String referenceContentType, String templateXml, MarkerSet sourceMarkers) {
+		return process(image, filename, contentType, reference, referenceContentType, templateXml, sourceMarkers,
+				true, false);
+	}
+
+	public Optional<ProcessedImage> identifyWithMarkers(byte[] image, String filename, String contentType,
+			byte[] reference, String referenceContentType, String templateXml, MarkerSet sourceMarkers) {
+		return process(image, filename, contentType, reference, referenceContentType, templateXml, sourceMarkers,
+				false, false);
+	}
+
+	private Optional<ProcessedImage> process(byte[] image, String filename, String contentType,
+			byte[] reference, String referenceContentType, String templateXml, MarkerSet sourceMarkers,
+			boolean recognizeCorrectionMarks, boolean includeNormalizedImage) {
 		if (!enabled) {
 			return Optional.empty();
 		}
@@ -175,17 +196,23 @@ public class FormProcessingClient {
 			if (templateXml != null && !templateXml.isBlank()) {
 				parts.add("template_xml", templateXml);
 			}
+			if (sourceMarkers != null) {
+				parts.add("source_markers", markerSetJson(sourceMarkers));
+			}
+			parts.add("recognize_correction_marks", Boolean.toString(recognizeCorrectionMarks));
+			parts.add("include_normalized_image", Boolean.toString(includeNormalizedImage));
 			// La référence globale sert uniquement à l'orientation et à la
 			// perspective. Le recalage non rigide est effectué ensuite avec le
 			// modèle exact de l'épreuve et de la page.
 			parts.add("apply_local_alignment", "false");
 
 			ProcessingResponse response = restTemplate.postForObject(processUrl, parts, ProcessingResponse.class);
-			if (response == null || response.getNormalizedImageBase64() == null) {
+			if (response == null || (includeNormalizedImage && response.getNormalizedImageBase64() == null)) {
 				throw new IllegalStateException("Le service de traitement n'a retourné aucune image.");
 			}
 			return Optional.of(new ProcessedImage(
-					Base64.getDecoder().decode(response.getNormalizedImageBase64()),
+					response.getNormalizedImageBase64() == null ? new byte[0]
+							: Base64.getDecoder().decode(response.getNormalizedImageBase64()),
 					Optional.ofNullable(response.getNormalizedContentType()).orElse(MediaType.IMAGE_PNG_VALUE),
 					"png",
 					response.getStatus(),
@@ -199,6 +226,7 @@ public class FormProcessingClient {
 					response.getLocalAlignmentMeanDisplacement(),
 					response.getLocalAlignmentMaximumDisplacement(),
 					response.getTargetMarkers(),
+					response.getSourceToNormalizedTransform(),
 					response.getIdentification(),
 					Optional.ofNullable(response.getCorrections()).orElse(java.util.List.of())));
 		} catch (RestClientException | IllegalArgumentException | IllegalStateException error) {
@@ -206,6 +234,18 @@ public class FormProcessingClient {
 					+ "historique. Cause : " + error.getMessage());
 			return Optional.empty();
 		}
+	}
+
+	private String markerSetJson(MarkerSet markers) {
+		return String.format(java.util.Locale.ROOT,
+				"{\"top_left\":{\"x\":%.6f,\"y\":%.6f},"
+						+ "\"top_right\":{\"x\":%.6f,\"y\":%.6f},"
+						+ "\"bottom_right\":{\"x\":%.6f,\"y\":%.6f},"
+						+ "\"bottom_left\":{\"x\":%.6f,\"y\":%.6f}}",
+				markers.getTopLeft().getX(), markers.getTopLeft().getY(),
+				markers.getTopRight().getX(), markers.getTopRight().getY(),
+				markers.getBottomRight().getX(), markers.getBottomRight().getY(),
+				markers.getBottomLeft().getX(), markers.getBottomLeft().getY());
 	}
 
 	public Optional<PageRecognition> recognizeCorrections(byte[] normalizedImage, String filename,
