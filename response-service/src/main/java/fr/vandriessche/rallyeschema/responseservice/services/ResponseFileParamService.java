@@ -29,9 +29,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.xml.sax.SAXException;
 
-import com.albertoborsetta.formscanner.api.FormQuestion;
 import com.albertoborsetta.formscanner.api.commons.Constants.FieldType;
 
+import fr.vandriessche.rallyeschema.responseservice.entities.FormArea;
+import fr.vandriessche.rallyeschema.responseservice.entities.FormQuestion;
+import fr.vandriessche.rallyeschema.responseservice.entities.FormTemplate;
 import fr.vandriessche.rallyeschema.responseservice.entities.QuestionPageParam;
 import fr.vandriessche.rallyeschema.responseservice.entities.QuestionType;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileModel;
@@ -56,6 +58,15 @@ public class ResponseFileParamService {
 	private ResponseFileModelRepository responseFileModelRepository;
 	@Autowired
 	private StageParamService stageParamService;
+	private final FormTemplateXmlParser formTemplateXmlParser = new FormTemplateXmlParser();
+
+	public FormTemplate parseFormTemplate(Integer stage, Integer page)
+			throws ParserConfigurationException, SAXException, IOException {
+		ResponseFileParam param = getResponseFileParamByStageAndPage(stage, page)
+				.orElseGet(() -> getReferenceResponseFileParam()
+						.orElseThrow(() -> new IllegalStateException("Aucun formulaire de référence n'est configuré.")));
+		return parseFormTemplate(param);
+	}
 
 	public ResponseFileParam addResponseFileParam(ResponseFileParam responseFileParam, MultipartFile fileModel,
 			ResponseFileModel model) throws ParserConfigurationException, SAXException, IOException {
@@ -207,13 +218,13 @@ public class ResponseFileParamService {
 
 	private void fillResponseFileParam(ResponseFileParam responseFileParam)
 			throws ParserConfigurationException, SAXException, IOException {
-		var formTemplate = makeFormTemplate(responseFileParam);
+		var formTemplate = parseFormTemplate(responseFileParam);
 
 		var questions = responseFileParam.getQuestions();
 		var groups = formTemplate.getGroups();
 		for (var group : groups.entrySet()) {
 			group.getValue().getFields().values().stream()
-					.sorted(Comparator.comparing(com.albertoborsetta.formscanner.api.FormQuestion::getName))
+					.sorted(Comparator.comparing(FormQuestion::getName))
 					.forEach(field -> {
 						List<String> responses = makeResponseValues(field);
 						var question = questions.get(field.getName());
@@ -226,7 +237,7 @@ public class ResponseFileParamService {
 
 					});
 			group.getValue().getAreas().values().stream()
-					.sorted(Comparator.comparing(com.albertoborsetta.formscanner.api.FormArea::getName))
+					.sorted(Comparator.comparing(FormArea::getName))
 					.filter(area -> !questions.containsKey(area.getName()))
 					.forEach(area -> questions.put(area.getName(), new QuestionPageParam(area.getName(),
 							getTypeByName(area.getName(), QuestionType.PERFORMANCE), new ArrayList<>())));
@@ -280,6 +291,21 @@ public class ResponseFileParamService {
 		}
 	}
 
+	private FormTemplate parseFormTemplate(ResponseFileParam responseFileParam)
+			throws ParserConfigurationException, SAXException, IOException {
+		if (Objects.isNull(responseFileParam.getTemplate()))
+			return new FormTemplate();
+		try {
+			return formTemplateXmlParser.parse(responseFileParam.getTemplate());
+		} catch (SAXException ex) {
+			String recoded = new String(responseFileParam.getTemplate().getBytes(StandardCharsets.ISO_8859_1),
+					StandardCharsets.UTF_8);
+			if (!recoded.equals(responseFileParam.getTemplate()))
+				return formTemplateXmlParser.parse(recoded);
+			throw ex;
+		}
+	}
+
 	private com.albertoborsetta.formscanner.api.FormTemplate buildFormTemplate(String templateContent)
 			throws IOException, ParserConfigurationException, SAXException {
 		File templateFile = File.createTempFile("rallyeschema-", "-model.xtmpl");
@@ -318,17 +344,17 @@ public class ResponseFileParamService {
 		if (field.getType() == FieldType.QUESTIONS_BY_ROWS) {
 			field.getPoints().entrySet().stream()
 					.sorted(Map.Entry.comparingByValue(
-							Comparator.comparing(com.albertoborsetta.formscanner.api.FormPoint::getX)))
+							Comparator.comparing(fr.vandriessche.rallyeschema.responseservice.entities.FormPoint::getX)))
 					.forEach(entry -> responses.add(entry.getKey()));
 		} else if (field.getType() == FieldType.QUESTIONS_BY_COLS) {
 			field.getPoints().entrySet().stream()
 					.sorted(Map.Entry.comparingByValue(
-							Comparator.comparing(com.albertoborsetta.formscanner.api.FormPoint::getY)))
+							Comparator.comparing(fr.vandriessche.rallyeschema.responseservice.entities.FormPoint::getY)))
 					.forEach(entry -> responses.add(entry.getKey()));
 		} else if (field.getType() == FieldType.RESPONSES_BY_GRID) {
 			field.getPoints().entrySet().stream()
 					.sorted(Map.Entry.comparingByValue(
-							Comparator.comparing(com.albertoborsetta.formscanner.api.FormPoint::getY)))
+							Comparator.comparing(fr.vandriessche.rallyeschema.responseservice.entities.FormPoint::getY)))
 					.forEach(entry -> responses.add(entry.getKey()));
 		}
 		return responses;
