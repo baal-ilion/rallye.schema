@@ -884,11 +884,9 @@ public class ResponseFileService {
 	private FormTemplate makeEmptyProcessedFormTemplate(BufferedImage image, String name, Integer stage, Integer page,
 			HashMap<Corners, FormPoint> corners)
 			throws ParserConfigurationException, SAXException, IOException {
-		com.albertoborsetta.formscanner.api.FormTemplate template = responseFileParamService.makeFormTemplate(stage, page);
-		FormTemplate parent = new FormTemplate();
-		ResponseFileUtil.copyProperties(template, parent);
-		FormTemplate result = new FormTemplate();
-		ResponseFileUtil.copyProperties(template, result);
+		FormTemplate template = responseFileParamService.parseFormTemplate(stage, page);
+		FormTemplate parent = copyFormTemplate(template);
+		FormTemplate result = copyFormTemplate(template);
 		result.setParentTemplate(parent);
 		result.setName(name);
 		result.setCorners(new HashMap<>());
@@ -902,5 +900,27 @@ public class ResponseFileService {
 			result.getParentTemplate().setWidth(param.getWidth());
 		});
 		return result;
+	}
+
+	private FormTemplate copyFormTemplate(FormTemplate source) {
+		FormTemplate copy = new FormTemplate();
+		BeanUtils.copyProperties(source, copy, "groups", "corners", "points", "areas", "parentTemplate", "crop",
+				"usedGroupNames");
+		copy.setCrop(new HashMap<>(source.getCrop()));
+		copy.setUsedGroupNames(new ArrayList<>(source.getUsedGroupNames()));
+		source.getCorners().forEach((key, value) -> copy.getCorners().put(key, new FormPoint(value.getX(), value.getY())));
+		for (var groupEntry : source.getGroups().entrySet()) {
+			FormGroup groupCopy = new FormGroup();
+			groupCopy.setLastFieldIndex(groupEntry.getValue().getLastFieldIndex());
+			for (var fieldEntry : groupEntry.getValue().getFields().entrySet()) {
+				FormQuestion fieldCopy = new FormQuestion();
+				BeanUtils.copyProperties(fieldEntry.getValue(), fieldCopy, "points");
+				fieldEntry.getValue().getPoints().forEach((key, value) ->
+						fieldCopy.getPoints().put(key, new FormPoint(value.getX(), value.getY())));
+				groupCopy.getFields().put(fieldEntry.getKey(), fieldCopy);
+			}
+			copy.getGroups().put(groupEntry.getKey(), groupCopy);
+		}
+		return copy;
 	}
 }
