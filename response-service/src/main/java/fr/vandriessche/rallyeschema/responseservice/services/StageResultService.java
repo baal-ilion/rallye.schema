@@ -383,7 +383,9 @@ public class StageResultService {
 		}
 		stageResult = save(stageResult);
 		for (var responseFileInfo : toUpdate) {
-			responseFileService.updateResponseFileInfo(responseFileInfo);
+			// Le résultat vient déjà d'être sauvegardé et publié ci-dessus :
+			// ne pas provoquer un second recalcul du classement pour chaque page.
+			responseFileService.updateResponseFileInfoWithoutResultEvent(responseFileInfo);
 		}
 		if (Boolean.TRUE.equals(delete)) {
 			for (var source : initalSources) {

@@ -1,7 +1,10 @@
 package fr.vandriessche.rallyeschema.responseservice.entities;
 
+import java.time.Instant;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.index.Indexed;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,6 +23,14 @@ public class ResponseFileInfo {
 
 	private Boolean checked;
 	private String processingStatus;
+	@Indexed(unique = true, sparse = true)
+	private String uploadId;
+	private String processingError;
+	private Instant processingCreatedAt;
+	private Instant processingStartedAt;
+	private Instant processingCompletedAt;
+	private String verificationLeaseOwner;
+	private Instant verificationLeaseExpiresAt;
 	private Boolean automaticMarkerDetection;
 	private Boolean manualReviewRequired;
 	private Integer detectedRotationDegrees;

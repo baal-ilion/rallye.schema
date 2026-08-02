@@ -44,18 +44,25 @@
               <div class="progress-bar progress-bar-striped"
                 [ngClass]="{
                   'bg-danger': uploadFile.status === 'error',
-                  'bg-info': uploadFile.status !== 'error',
-                  'progress-bar-animated': uploadFile.progress.percentage != 100 && uploadFile.status !== 'error'
+                  'bg-secondary': uploadFile.status === 'queued',
+                  'bg-info': uploadFile.status === 'uploading' || uploadFile.status === 'processing' || uploadFile.status === 'done',
+                  'progress-bar-animated': uploadFile.status === 'uploading'
                 }"
                 role="progressbar"
                 [style.width.%]="uploadFile.progress.percentage"
                 style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
                 aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="uploadFile.progress.percentage">
-                {{ uploadFile.status === 'error'
-                  ? (uploadFile.file.name + ' - Erreur')
-                  : (uploadFile.file.name + ' - ' + uploadFile.progress.percentage + '%') }}
+                {{ uploadFile.file.name }} -
+                {{ uploadFile.status === 'queued' ? 'En attente' :
+                   uploadFile.status === 'uploading' ? ('Envoi et analyse ' + uploadFile.progress.percentage + '%') :
+                   uploadFile.status === 'processing' ? 'Reçu · Analyse en cours' :
+                   uploadFile.status === 'done' ? 'Prêt à vérifier' : 'Erreur' }}
               </div>
             </div>
+            <button *ngIf="uploadFile.status === 'error'" type="button" class="btn btn-sm btn-outline-danger mt-1"
+              (click)="retry(uploadFile)">
+              <i class="fas fa-redo mr-1"></i> Réessayer
+            </button>
           </div>
 
         </div>

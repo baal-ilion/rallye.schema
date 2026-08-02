@@ -1,35 +1,28 @@
 <div class="container capture-page mb-5">
-  <div class="row mt-4 text-center">
+  <div class="row mt-4 text-center capture-heading">
     <h1 class="col-12">Photographier des formulaires</h1>
     <p class="col-12 text-muted">
-      Photographiez autant de pages que nécessaire, contrôlez les aperçus, puis envoyez le lot.
+      Photographiez les pages les unes après les autres. Elles sont envoyées automatiquement.
     </p>
   </div>
 
-  <div class="card shadow-sm mb-4">
-    <div class="card-header">1. Prendre les photographies</div>
+  <div class="card shadow-sm capture-workspace">
     <div class="card-body">
-      <div class="capture-actions">
-        <input
-          #cameraInput
-          type="file"
-          class="d-none"
-          accept="image/*"
-          capture="environment"
-          multiple
-          (change)="addDevicePhotos($event.target.files)">
-        <button type="button" class="btn btn-primary" (click)="cameraInput.click()">
-          <i class="fas fa-mobile-alt mr-1"></i>
-          Appareil photo du téléphone
-        </button>
-        <button
-          *ngIf="!cameraActive"
-          type="button"
-          class="btn btn-outline-primary"
-          [disabled]="cameraStarting"
-          (click)="startCamera()">
+      <input
+        #cameraInput
+        type="file"
+        class="d-none"
+        accept="image/*"
+        capture="environment"
+        multiple
+        (change)="addDevicePhotos($event.target.files)">
+
+      <div *ngIf="!cameraActive" class="capture-start">
+        <i class="fas fa-camera capture-start-icon"></i>
+        <p>Prêt à photographier une ou plusieurs pages ?</p>
+        <button type="button" class="btn btn-primary" [disabled]="cameraStarting" (click)="startCapture()">
           <i class="fas fa-camera mr-1"></i>
-          {{ cameraStarting ? 'Ouverture…' : 'Ouvrir la caméra du PC' }}
+          {{ cameraStarting ? 'Ouverture…' : 'Commencer la prise de vue' }}
         </button>
       </div>
 
@@ -39,10 +32,8 @@
         <video #cameraVideo autoplay playsinline muted></video>
         <div class="camera-controls">
           <button type="button" class="btn btn-success" (click)="capturePhoto()">
-            <i class="fas fa-camera mr-1"></i> Photographier cette page
-          </button>
-          <button type="button" class="btn btn-outline-light" (click)="stopCamera()">
-            Fermer la caméra
+            <i class="fas fa-camera mr-1"></i>
+            {{ retakingForm ? 'Reprendre la photo' : 'Photographier cette page' }}
           </button>
         </div>
       </div>
@@ -52,26 +43,10 @@
         Posez la feuille à plat, cadrez les quatre repères noirs et évitez les reflets.
         Une page légèrement froissée reste acceptable : le traitement tentera de la redresser.
       </div>
-    </div>
-  </div>
-
-  <div class="card shadow-sm">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <span>2. Contrôler et envoyer</span>
-      <span class="badge rounded-pill bg-secondary">{{ capturedForms.length }} page(s)</span>
-    </div>
-    <div class="card-body">
-      <div *ngIf="!capturedForms.length" class="empty-captures">
-        <i class="far fa-images"></i>
-        <span>Aucune photographie pour le moment.</span>
-      </div>
-
       <div *ngIf="capturedForms.length" class="capture-grid">
         <article *ngFor="let form of capturedForms" class="capture-card" [class.capture-done]="form.status === 'done'">
           <img [src]="form.previewUrl" [alt]="form.file.name">
           <div class="capture-card-body">
-            <div class="capture-name" [title]="form.file.name">{{ form.file.name }}</div>
-            <div class="small text-muted">{{ form.file.size / 1048576 | number:'1.1-1' }} Mo</div>
             <div *ngIf="form.status === 'uploading'" class="progress mt-2">
               <div
                 class="progress-bar progress-bar-striped progress-bar-animated"
@@ -81,37 +56,46 @@
               </div>
             </div>
             <div *ngIf="form.status === 'done'" class="text-success small mt-2">
-              <i class="fas fa-check-circle"></i> Envoyée
+              <i class="fas fa-check-circle"></i> Prête
+            </div>
+            <div *ngIf="form.status === 'pending'" class="text-muted small mt-2">
+              <i class="fas fa-clock"></i> En attente dâ€™envoi
+            </div>
+            <div *ngIf="form.status === 'processing'" class="text-info small mt-2">
+              <i class="fas fa-cog fa-spin"></i> Reçue · Analyse en cours
             </div>
             <div *ngIf="form.status === 'error'" class="text-danger small mt-2">
-              <i class="fas fa-exclamation-circle"></i> {{ form.errorMessage }}
+              <i class="fas fa-exclamation-circle"></i> Photo à reprendre
+            </div>
+            <div class="capture-card-actions">
+              <button *ngIf="form.status === 'error'" type="button" class="btn btn-sm btn-outline-secondary"
+                (click)="retry(form)">
+                <i class="fas fa-upload mr-1"></i> Réessayer lâ€™envoi
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-primary"
+                [disabled]="form.status === 'uploading' || form.status === 'processing' || form.status === 'pending'" (click)="retake(form)">
+                <i class="fas fa-redo mr-1"></i> Reprendre
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-danger"
+                [disabled]="form.status === 'uploading' || form.status === 'processing' || form.status === 'pending'" (click)="remove(form)">
+                <i class="fas fa-trash-alt mr-1"></i> Supprimer
+              </button>
             </div>
           </div>
-          <button
-            type="button"
-            class="btn btn-sm btn-outline-danger capture-remove"
-            [disabled]="form.status === 'uploading'"
-            title="Retirer cette photographie"
-            aria-label="Retirer cette photographie"
-            (click)="remove(form)">
-            <i class="fas fa-times"></i>
-          </button>
         </article>
       </div>
 
       <div class="capture-footer" *ngIf="capturedForms.length">
         <button
           type="button"
-          class="btn btn-success"
-          [disabled]="pendingCount === 0 || uploading"
-          (click)="uploadAll()">
-          <i class="fas fa-cloud-upload-alt mr-1"></i>
-          Envoyer {{ pendingCount }} page(s)
+          class="btn btn-primary"
+          [disabled]="!canFinish"
+          (click)="finish()">
+          <i *ngIf="uploading" class="fas fa-spinner fa-spin mr-1"></i>
+          <i *ngIf="!uploading" class="fas fa-check mr-1"></i>
+          {{ uploading ? 'Traitement en cours…' : 'Terminer et vérifier les formulaires' }}
         </button>
-        <a *ngIf="pendingCount === 0 && !uploading" class="btn btn-primary" routerLink="/listUpload">
-          Vérifier les formulaires
-          <i class="fas fa-arrow-right ml-1"></i>
-        </a>
+        <span class="capture-summary">{{ readyCount }} page(s) prête(s)</span>
       </div>
     </div>
   </div>

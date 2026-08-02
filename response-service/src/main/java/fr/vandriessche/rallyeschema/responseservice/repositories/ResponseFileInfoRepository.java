@@ -2,8 +2,6 @@ package fr.vandriessche.rallyeschema.responseservice.repositories;
 
 import java.util.List;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
@@ -15,9 +13,9 @@ public interface ResponseFileInfoRepository extends MongoRepository<ResponseFile
 	@Query(sort = "{ team : 1, stage : 1, page : 1 }")
 	List<ResponseFileInfo> findByStageAndTeam(Integer stage, Integer team);
 
-	Page<ResponseFileInfo> findByCheckedFalseOrCheckedNull(Pageable pageable);
-
 	List<ResponseFileInfo> findByTeam(Integer team);
 
 	List<ResponseFileInfo> findByStage(Integer stage);
+
+	java.util.Optional<ResponseFileInfo> findByUploadId(String uploadId);
 }

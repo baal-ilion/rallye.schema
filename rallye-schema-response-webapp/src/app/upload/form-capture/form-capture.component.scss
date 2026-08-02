@@ -1,5 +1,27 @@
 .capture-page {
-  max-width: 1180px;
+  max-width: 1050px;
+}
+
+.capture-heading p {
+  margin-bottom: 1.5rem;
+}
+
+.capture-workspace {
+  border: 0;
+}
+
+.capture-start {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.capture-start-icon {
+  color: #8b672e;
+  font-size: 3rem;
 }
 
 .capture-actions,
@@ -40,6 +62,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: 1rem;
+  margin-top: 1.25rem;
 }
 
 .capture-card {
@@ -67,25 +90,22 @@
   padding: 0.75rem;
 }
 
-.capture-name {
-  overflow: hidden;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.capture-remove {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.94);
+.capture-card-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
 }
 
 .capture-footer {
   margin-top: 1.25rem;
   padding-top: 1rem;
   border-top: 1px solid #e3e6e8;
+}
+
+.capture-summary {
+  color: #6c757d;
+  font-size: 0.9rem;
 }
 
 .empty-captures {

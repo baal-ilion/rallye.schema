@@ -1,12 +1,16 @@
 package fr.vandriessche.rallyeschema.responseservice.services;
 
 import java.awt.image.BufferedImage;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.time.Instant;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -20,7 +24,13 @@ import org.bson.types.Binary;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.xml.sax.SAXException;
@@ -65,6 +75,8 @@ public class ResponseFileService {
 
 	@Autowired
 	private ResponseFileRepository responseFileRepository;
+	@Autowired
+	private MongoTemplate mongoTemplate;
 
 	@Autowired
 	private ResponseFileInfoRepository responseFileInfoRepository;
@@ -80,29 +92,74 @@ public class ResponseFileService {
 
 	public ResponseFile addResponseFile(MultipartFile file)
 			throws IOException, ParserConfigurationException, SAXException {
+		return addResponseFile(file, null);
+	}
+
+	public ResponseFile addResponseFile(MultipartFile file, String uploadId)
+			throws IOException, ParserConfigurationException, SAXException {
 		String contentType = file.getContentType();
 		if (contentType == null || !contentType.toLowerCase().startsWith("image/")) {
 			throw new IllegalArgumentException("Only image files are supported");
 		}
 
+		if (uploadId != null && !uploadId.isBlank()) {
+			ResponseFileInfo existing = responseFileInfoRepository.findByUploadId(uploadId).orElse(null);
+			if (existing != null)
+				return responseFileRepository.findById(existing.getId()).orElseThrow();
+		}
 		byte[] originalContent = file.getBytes();
+		ResponseFileInfo info = new ResponseFileInfo();
+		info.setUploadId(uploadId == null || uploadId.isBlank() ? null : uploadId);
+		info.setProcessingStatus("QUEUED");
+		info.setProcessingCreatedAt(Instant.now());
+		info = responseFileInfoRepository.save(info);
+		ResponseFile responseFile = new ResponseFile();
+		responseFile.setId(info.getId());
+		responseFile.setInfo(info);
+		// L'original reste disponible pendant et après le traitement.
+		responseFile.setFile(new Binary(BsonBinarySubType.BINARY, originalContent));
+		responseFile.setFileExtension(FilenameUtils.getExtension(file.getOriginalFilename()));
+		responseFile.setFileType(contentType);
+		responseFile.setOriginalFile(new Binary(BsonBinarySubType.BINARY, originalContent));
+		responseFile.setOriginalFileExtension(FilenameUtils.getExtension(file.getOriginalFilename()));
+		responseFile.setOriginalFileType(contentType);
+		return responseFileRepository.insert(responseFile);
+	}
+
+	public void processQueuedResponseFile(String id)
+			throws IOException, ParserConfigurationException, SAXException {
+		ResponseFile responseFile = responseFileRepository.findById(id).orElseThrow();
+		byte[] originalContent = responseFile.getOriginalFile().getData();
+		String originalName = id + "." + responseFile.getOriginalFileExtension();
+		String contentType = responseFile.getOriginalFileType();
 		var reference = responseFileParamService.getReferenceResponseFileModel().orElse(null);
-		var processed = formProcessingClient.process(
+		var processed = formProcessingClient.identifyInBackground(
 				originalContent,
-				file.getOriginalFilename(),
+				originalName,
 				contentType,
 				Objects.nonNull(reference) ? reference.getFile().getData() : null,
 				Objects.nonNull(reference) ? reference.getFileType() : null,
 				Objects.nonNull(reference) && Objects.nonNull(reference.getParam())
 						? reference.getParam().getTemplate() : null);
-		return addResponseFileFromProcessing(file, originalContent, processed);
+		updateResponseFileFromProcessing(responseFile, originalName, contentType, processed);
 	}
 
-	private ResponseFile addResponseFileFromProcessing(MultipartFile file, byte[] originalContent,
+	public ResponseFileInfo retryProcessing(String id) {
+		ResponseFileInfo info = responseFileInfoRepository.findById(id).orElseThrow();
+		if (!"ERROR".equals(info.getProcessingStatus()))
+			return info;
+		info.setProcessingStatus("QUEUED");
+		info.setProcessingError(null);
+		info.setProcessingStartedAt(null);
+		info.setProcessingCompletedAt(null);
+		return responseFileInfoRepository.save(info);
+	}
+
+	private void updateResponseFileFromProcessing(ResponseFile responseFile, String originalName, String contentType,
 			FormProcessingClient.ProcessedImage genericResult)
 			throws IOException, ParserConfigurationException, SAXException {
-		String name = FilenameUtils.getBaseName(file.getOriginalFilename());
-		ResponseFileInfo info = new ResponseFileInfo();
+		String name = FilenameUtils.getBaseName(originalName);
+		ResponseFileInfo info = responseFileInfoRepository.findById(responseFile.getId()).orElseThrow();
 		var identification = genericResult.getIdentification();
 		if (Objects.nonNull(identification)) {
 			info.setTeam(identification.getTeam());
@@ -118,8 +175,8 @@ public class ResponseFileService {
 			if (Objects.nonNull(exactParam) && Objects.nonNull(exactParam.getTemplate())) {
 				var exactModel = responseFileParamService.getResponseFileModel(exactParam.getId());
 				if (Objects.nonNull(exactModel) && Objects.nonNull(exactModel.getFile())) {
-					pageResult = formProcessingClient.process(
-							originalContent, file.getOriginalFilename(), file.getContentType(),
+					pageResult = formProcessingClient.processInBackground(
+							responseFile.getOriginalFile().getData(), originalName, contentType,
 							exactModel.getFile().getData(), exactModel.getFileType(), exactParam.getTemplate());
 					exactTemplateUsed = true;
 				}
@@ -147,19 +204,17 @@ public class ResponseFileService {
 				info.setProcessingStatus("READY_WITH_WARNINGS");
 		}
 
+		info.setProcessingError(null);
+		info.setProcessingCompletedAt(Instant.now());
 		info = responseFileInfoRepository.save(info);
-		ResponseFile responseFile = new ResponseFile();
-		responseFile.setId(info.getId());
 		responseFile.setInfo(info);
 		responseFile.setFile(new Binary(BsonBinarySubType.BINARY, pageResult.getContent()));
 		responseFile.setFileExtension("png");
 		responseFile.setFileType(pageResult.getContentType());
-		responseFile.setOriginalFile(new Binary(BsonBinarySubType.BINARY, originalContent));
-		responseFile.setOriginalFileExtension(FilenameUtils.getExtension(file.getOriginalFilename()));
-		responseFile.setOriginalFileType(file.getContentType());
-		responseFile = responseFileRepository.insert(responseFile);
+		responseFile.setThumbnail(new Binary(BsonBinarySubType.BINARY, makeThumbnail(image)));
+		responseFile.setThumbnailType("image/png");
+		responseFileRepository.save(responseFile);
 		messageProducerService.sendMessage(RESPONSE_FILE_CREATE_EVENT, info);
-		return responseFile;
 	}
 
 	private void copyProcessingMetadata(ResponseFileInfo info, FormProcessingClient.ProcessedImage result) {
@@ -288,8 +343,69 @@ public class ResponseFileService {
 		deleteResponseFile(responseFileInfo);
 	}
 
-	public Page<ResponseFileInfo> getNotCheckedResponseFileInfos(Pageable pageable) {
-		return responseFileInfoRepository.findByCheckedFalseOrCheckedNull(pageable);
+	public Page<ResponseFileInfo> getNotCheckedResponseFileInfos(Pageable pageable, String leaseOwner) {
+		Instant now = Instant.now();
+		Criteria unchecked = new Criteria().orOperator(Criteria.where("checked").is(false),
+				Criteria.where("checked").is(null));
+		Criteria ready = Criteria.where("processingStatus").in("READY", "READY_WITH_WARNINGS", null);
+		Criteria available = new Criteria().orOperator(Criteria.where("verificationLeaseOwner").is(null),
+				Criteria.where("verificationLeaseExpiresAt").lt(now),
+				Criteria.where("verificationLeaseOwner").is(leaseOwner));
+		Query query = Query.query(new Criteria().andOperator(unchecked, ready, available));
+		long total = mongoTemplate.count(query, ResponseFileInfo.class);
+		query.with(pageable);
+		return new PageImpl<>(mongoTemplate.find(query, ResponseFileInfo.class), pageable, total);
+	}
+
+	private byte[] makeThumbnail(BufferedImage source) throws IOException {
+		int targetWidth = Math.min(1200, source.getWidth());
+		int targetHeight = Math.max(1, (int) Math.round(source.getHeight() * (targetWidth / (double) source.getWidth())));
+		BufferedImage thumbnail = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
+		Graphics2D graphics = thumbnail.createGraphics();
+		try {
+			graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+			graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+			graphics.drawImage(source, 0, 0, targetWidth, targetHeight, null);
+		} finally {
+			graphics.dispose();
+		}
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		ImageIO.write(thumbnail, "png", output);
+		return output.toByteArray();
+	}
+
+	public ResponseFileInfo claimForVerification(String id, String owner) {
+		if (owner == null || owner.isBlank())
+			throw new IllegalArgumentException("L'identifiant de l'appareil est obligatoire.");
+		Instant now = Instant.now();
+		Query query = Query.query(new Criteria().andOperator(Criteria.where("id").is(id),
+				new Criteria().orOperator(Criteria.where("verificationLeaseOwner").is(null),
+						Criteria.where("verificationLeaseExpiresAt").lt(now),
+						Criteria.where("verificationLeaseOwner").is(owner))));
+		Update update = new Update().set("verificationLeaseOwner", owner)
+				.set("verificationLeaseExpiresAt", now.plus(90, java.time.temporal.ChronoUnit.SECONDS));
+		ResponseFileInfo claimed = mongoTemplate.findAndModify(query, update,
+				FindAndModifyOptions.options().returnNew(true), ResponseFileInfo.class);
+		if (claimed == null)
+			throw new IllegalStateException("Ce formulaire est déjà vérifié sur un autre appareil.");
+		return claimed;
+	}
+
+	public ResponseFileInfo renewVerificationLease(String id, String owner) {
+		Query query = Query.query(Criteria.where("id").is(id).and("verificationLeaseOwner").is(owner));
+		Update update = new Update().set("verificationLeaseExpiresAt",
+				Instant.now().plus(90, java.time.temporal.ChronoUnit.SECONDS));
+		ResponseFileInfo renewed = mongoTemplate.findAndModify(query, update,
+				FindAndModifyOptions.options().returnNew(true), ResponseFileInfo.class);
+		if (renewed == null)
+			throw new IllegalStateException("La réservation de ce formulaire a expiré.");
+		return renewed;
+	}
+
+	public void releaseVerificationLease(String id, String owner) {
+		Query query = Query.query(Criteria.where("id").is(id).and("verificationLeaseOwner").is(owner));
+		mongoTemplate.updateFirst(query,
+				new Update().unset("verificationLeaseOwner").unset("verificationLeaseExpiresAt"), ResponseFileInfo.class);
 	}
 
 	public List<PerformanceResult> getPerformanceResultFromResponseFile(ResponseFileInfo responseFileInfo) {
@@ -370,6 +486,16 @@ public class ResponseFileService {
 
 	public ResponseFileInfo updateResponseFileInfo(ResponseFileInfo responseFileInfo)
 			throws ParserConfigurationException, SAXException, IOException {
+		return updateResponseFileInfo(responseFileInfo, true);
+	}
+
+	ResponseFileInfo updateResponseFileInfoWithoutResultEvent(ResponseFileInfo responseFileInfo)
+			throws ParserConfigurationException, SAXException, IOException {
+		return updateResponseFileInfo(responseFileInfo, false);
+	}
+
+	private ResponseFileInfo updateResponseFileInfo(ResponseFileInfo responseFileInfo, boolean publishResultEvent)
+			throws ParserConfigurationException, SAXException, IOException {
 		ResponseFileInfo updatedResponseFileInfo = responseFileInfoRepository.findById(responseFileInfo.getId())
 				.orElseThrow();
 		boolean manualIdentification = Objects.nonNull(responseFileInfo.getStage())
@@ -398,7 +524,8 @@ public class ResponseFileService {
 			updatedResponseFileInfo.setChecked(responseFileInfo.getChecked());
 
 		updatedResponseFileInfo = responseFileInfoRepository.save(updatedResponseFileInfo);
-		messageProducerService.sendMessage(RESPONSE_FILE_UPDATE_EVENT, updatedResponseFileInfo);
+		if (publishResultEvent)
+			messageProducerService.sendMessage(RESPONSE_FILE_UPDATE_EVENT, updatedResponseFileInfo);
 		return updatedResponseFileInfo;
 	}
 

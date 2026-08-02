@@ -17,6 +17,7 @@ spring:
       database: rallye-schema-response
       host: localhost
       port: 27017
+      auto-index-creation: true
   servlet:
     multipart:
       enabled: true
@@ -49,6 +50,7 @@ management:
 
 form-processing:
   url: ${FORM_PROCESSING_URL:http://localhost:8085}
+  batch-url: ${FORM_PROCESSING_BATCH_URL:${FORM_PROCESSING_URL:http://localhost:8085}}
 
 ---
 spring:

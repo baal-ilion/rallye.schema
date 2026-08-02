@@ -10,6 +10,10 @@ export interface ResponseFileInfo {
   identificationManuallyLocked?: boolean;
 
   checked?: boolean;
+  processingStatus?: 'QUEUED' | 'PROCESSING' | 'READY' | 'READY_WITH_WARNINGS' | 'ERROR';
+  processingError?: string;
+  verificationLeaseOwner?: string;
+  verificationLeaseExpiresAt?: string;
 
   filledForm?: FormTemplate;
   _links?: HalLinks;
