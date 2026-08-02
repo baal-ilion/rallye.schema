@@ -125,6 +125,47 @@ def test_reads_identification_boxes_from_the_active_template():
     assert result.identification.confidence > 0.5
 
 
+def test_reads_identification_when_reference_image_and_xml_use_different_corner_coordinates():
+    reference = _reference_form()
+    source_markers = detect_markers(reference).points.astype(np.float32)
+    declared_markers = np.float32([
+        [210, 180], [1030, 180], [1030, 1574], [210, 1574],
+    ])
+    transformation = cv2.getPerspectiveTransform(source_markers, declared_markers)
+
+    source_positions = np.float32([[[365, 295], [475, 385]]])
+    declared_positions = cv2.perspectiveTransform(source_positions, transformation)[0]
+    cv2.rectangle(reference, (345, 275), (385, 315), (0, 0, 0), -1)
+    cv2.rectangle(reference, (455, 365), (495, 405), (0, 0, 0), -1)
+
+    corners = "".join(
+        f'<corner position="{name}"><point x="{point[0]}" y="{point[1]}"/></corner>'
+        for name, point in zip(
+            ("TOP_LEFT", "TOP_RIGHT", "BOTTOM_RIGHT", "BOTTOM_LEFT"),
+            declared_markers,
+        )
+    )
+    template = f"""<template><corners>{corners}</corners><fields><group>
+      <question question="Equipe1"><values>
+        <value response="2"><point x="{declared_positions[0][0]}" y="{declared_positions[0][1]}"/></value>
+        <value response="8"><point x="{declared_positions[0][0] + 80}" y="{declared_positions[0][1]}"/></value>
+      </values></question>
+      <question question="Equipe2"><values>
+        <value response="3"><point x="{declared_positions[1][0]}" y="{declared_positions[1][1]}"/></value>
+        <value response="9"><point x="{declared_positions[1][0] + 80}" y="{declared_positions[1][1]}"/></value>
+      </values></question>
+    </group></fields></template>"""
+
+    result = process_image(_encode(reference), _encode(reference), template_xml=template)
+
+    assert result.identification is not None
+    assert result.identification.team == 23
+    assert np.allclose(
+        [result.target_markers.top_left.x, result.target_markers.top_left.y],
+        declared_markers[0],
+    )
+
+
 def test_reads_correction_boxes_with_the_ony_priority_rule():
     reference = _reference_form()
     positions = {

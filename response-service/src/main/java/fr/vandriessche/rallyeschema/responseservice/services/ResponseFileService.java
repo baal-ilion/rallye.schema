@@ -113,6 +113,12 @@ public class ResponseFileService {
 				Objects.nonNull(reference) ? reference.getFileType() : null,
 				Objects.nonNull(reference) && Objects.nonNull(reference.getParam())
 						? reference.getParam().getTemplate() : null);
+		if (processed.filter(result -> canImportWithoutFormScanner(reference, result)).isPresent()) {
+			var modernImport = addResponseFileFromProcessing(file, originalContent, processed.get());
+			if (modernImport.isPresent())
+				return modernImport.get();
+			log.warning("Le traitement exact par le nouveau service a échoué ; reprise par le flux FormScanner.");
+		}
 		if (processed.isPresent()) {
 			storedContent = processed.get().getContent();
 			storedContentType = processed.get().getContentType();
@@ -192,6 +198,86 @@ public class ResponseFileService {
 		responseFile = responseFileRepository.insert(responseFile);
 		messageProducerService.sendMessage(RESPONSE_FILE_CREATE_EVENT, responseFileInfo);
 		return responseFile;
+	}
+
+	private boolean templateContainsAreas(fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileModel model) {
+		return Objects.nonNull(model) && Objects.nonNull(model.getParam())
+				&& Objects.nonNull(model.getParam().getTemplate()) && model.getParam().getTemplate().contains("<area");
+	}
+
+	private boolean canImportWithoutFormScanner(
+			fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileModel reference,
+			FormProcessingClient.ProcessedImage result) {
+		if (templateContainsAreas(reference) || !result.isAutomaticMarkerDetection()
+				|| Objects.isNull(result.getTargetMarkers()) || Objects.isNull(result.getIdentification())
+				|| Objects.isNull(result.getIdentification().getStage())
+				|| Objects.isNull(result.getIdentification().getPage()))
+			return false;
+		var exactParam = responseFileParamService.getResponseFileParamByStageAndPage(
+				result.getIdentification().getStage(), result.getIdentification().getPage()).orElse(null);
+		return Objects.nonNull(exactParam) && Objects.nonNull(exactParam.getTemplate())
+				&& !exactParam.getTemplate().contains("<area");
+	}
+
+	private Optional<ResponseFile> addResponseFileFromProcessing(MultipartFile file, byte[] originalContent,
+			FormProcessingClient.ProcessedImage genericResult)
+			throws IOException, ParserConfigurationException, SAXException {
+		String name = FilenameUtils.getBaseName(file.getOriginalFilename());
+		ResponseFileInfo info = new ResponseFileInfo();
+		var identification = genericResult.getIdentification();
+		info.setTeam(identification.getTeam());
+		info.setStage(identification.getStage());
+		info.setPage(identification.getPage());
+
+		var exactParam = responseFileParamService.getResponseFileParamByStageAndPage(info.getStage(), info.getPage())
+				.orElse(null);
+		var exactModel = responseFileParamService.getResponseFileModel(exactParam.getId());
+		if (Objects.isNull(exactModel) || Objects.isNull(exactModel.getFile()))
+			return Optional.empty();
+		var exact = formProcessingClient.process(
+				originalContent, file.getOriginalFilename(), file.getContentType(),
+				exactModel.getFile().getData(), exactModel.getFileType(), exactParam.getTemplate());
+		if (exact.filter(result -> result.isAutomaticMarkerDetection()
+				&& Objects.nonNull(result.getTargetMarkers())).isEmpty())
+			return Optional.empty();
+		FormProcessingClient.ProcessedImage pageResult = exact.get();
+
+		BufferedImage image = ImageIO.read(new ByteArrayInputStream(pageResult.getContent()));
+		if (Objects.isNull(image))
+			throw new IllegalStateException("Le service de traitement n'a retourné aucune image exploitable.");
+		HashMap<Corners, FormPoint> corners = makeTrustedCorners(pageResult);
+		FormTemplate filledForm = makeEmptyProcessedFormTemplate(image, name, info.getStage(), info.getPage(), corners);
+		info.setFilledForm(filledForm);
+		applyProcessingCorrections(info, pageResult.getCorrections());
+		applyIdentificationMarks(filledForm, info.getTeam(), info.getStage(), info.getPage(), null);
+		copyProcessingMetadata(info, pageResult);
+
+		info = responseFileInfoRepository.save(info);
+		ResponseFile responseFile = new ResponseFile();
+		responseFile.setId(info.getId());
+		responseFile.setInfo(info);
+		responseFile.setFile(new Binary(BsonBinarySubType.BINARY, pageResult.getContent()));
+		responseFile.setFileExtension("png");
+		responseFile.setFileType(pageResult.getContentType());
+		responseFile.setOriginalFile(new Binary(BsonBinarySubType.BINARY, originalContent));
+		responseFile.setOriginalFileExtension(FilenameUtils.getExtension(file.getOriginalFilename()));
+		responseFile.setOriginalFileType(file.getContentType());
+		responseFile = responseFileRepository.insert(responseFile);
+		messageProducerService.sendMessage(RESPONSE_FILE_CREATE_EVENT, info);
+		return Optional.of(responseFile);
+	}
+
+	private void copyProcessingMetadata(ResponseFileInfo info, FormProcessingClient.ProcessedImage result) {
+		info.setProcessingStatus(result.getStatus());
+		info.setAutomaticMarkerDetection(result.isAutomaticMarkerDetection());
+		info.setManualReviewRequired(result.isManualReviewRequired());
+		info.setDetectedRotationDegrees(result.getDetectedRotationDegrees());
+		info.setReferenceAlignmentError(result.getReferenceAlignmentError());
+		info.setLocalAlignmentApplied(result.isLocalAlignmentApplied());
+		info.setLocalAlignmentConfidence(result.getLocalAlignmentConfidence());
+		info.setLocalAlignmentAnchorCount(result.getLocalAlignmentAnchorCount());
+		info.setLocalAlignmentMeanDisplacement(result.getLocalAlignmentMeanDisplacement());
+		info.setLocalAlignmentMaximumDisplacement(result.getLocalAlignmentMaximumDisplacement());
 	}
 
 	private Optional<FormProcessingClient.PageRecognition> refinePageImage(ResponseFileInfo info,
