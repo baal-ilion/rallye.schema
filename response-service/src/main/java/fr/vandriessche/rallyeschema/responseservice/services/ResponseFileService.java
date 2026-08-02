@@ -213,6 +213,11 @@ public class ResponseFileService {
 
 	void applyProcessingCorrections(ResponseFileInfo info,
 			java.util.List<FormProcessingClient.Correction> corrections) {
+		applyProcessingCorrections(info, corrections, null);
+	}
+
+	private void applyProcessingCorrections(ResponseFileInfo info,
+			java.util.List<FormProcessingClient.Correction> corrections, double[][] sourceToNormalizedTransform) {
 		corrections.forEach(correction -> {
 			info.getProcessingCorrectionValues().put(correction.getLabel(), correction.isValue());
 			info.getProcessingCorrectionConfidences().put(correction.getLabel(), correction.getConfidence());
@@ -220,11 +225,16 @@ public class ResponseFileService {
 			Boolean legacy = findLegacyCorrection(info.getFilledForm(), correction.getLabel());
 			if (Objects.nonNull(legacy) && legacy.booleanValue() != correction.isValue())
 				info.getProcessingCorrectionDifferences().add(correction.getLabel());
-			applyCorrectionMarks(info.getFilledForm(), correction);
+			applyCorrectionMarks(info.getFilledForm(), correction, sourceToNormalizedTransform);
 		});
 	}
 
 	private void applyCorrectionMarks(FormTemplate form, FormProcessingClient.Correction correction) {
+		applyCorrectionMarks(form, correction, null);
+	}
+
+	private void applyCorrectionMarks(FormTemplate form, FormProcessingClient.Correction correction,
+			double[][] sourceToNormalizedTransform) {
 		FormQuestion question = findQuestion(form, correction.getLabel());
 		if (Objects.isNull(question))
 			return;
@@ -242,8 +252,42 @@ public class ResponseFileService {
 			if (Objects.isNull(source))
 				source = legacyPoints.get(mark);
 			if (Objects.nonNull(source))
-				question.getPoints().put(mark, new FormPoint(source.getX(), source.getY()));
+				question.getPoints().put(mark, mapToSource(source, sourceToNormalizedTransform));
 		});
+	}
+
+	private FormPoint mapToSource(FormPoint point, double[][] sourceToNormalizedTransform) {
+		if (sourceToNormalizedTransform == null || sourceToNormalizedTransform.length != 3)
+			return new FormPoint(point.getX(), point.getY());
+		double[][] inverse = invert3x3(sourceToNormalizedTransform);
+		if (inverse == null)
+			return new FormPoint(point.getX(), point.getY());
+		double denominator = inverse[2][0] * point.getX() + inverse[2][1] * point.getY() + inverse[2][2];
+		if (Math.abs(denominator) < 1e-9)
+			return new FormPoint(point.getX(), point.getY());
+		return new FormPoint(
+				(inverse[0][0] * point.getX() + inverse[0][1] * point.getY() + inverse[0][2]) / denominator,
+				(inverse[1][0] * point.getX() + inverse[1][1] * point.getY() + inverse[1][2]) / denominator);
+	}
+
+	private double[][] invert3x3(double[][] matrix) {
+		if (matrix[0].length != 3 || matrix[1].length != 3 || matrix[2].length != 3)
+			return null;
+		double determinant = matrix[0][0] * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1])
+				- matrix[0][1] * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0])
+				+ matrix[0][2] * (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0]);
+		if (Math.abs(determinant) < 1e-12)
+			return null;
+		return new double[][] {
+				{ (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1]) / determinant,
+						(matrix[0][2] * matrix[2][1] - matrix[0][1] * matrix[2][2]) / determinant,
+						(matrix[0][1] * matrix[1][2] - matrix[0][2] * matrix[1][1]) / determinant },
+				{ (matrix[1][2] * matrix[2][0] - matrix[1][0] * matrix[2][2]) / determinant,
+						(matrix[0][0] * matrix[2][2] - matrix[0][2] * matrix[2][0]) / determinant,
+						(matrix[0][2] * matrix[1][0] - matrix[0][0] * matrix[1][2]) / determinant },
+				{ (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0]) / determinant,
+						(matrix[0][1] * matrix[2][0] - matrix[0][0] * matrix[2][1]) / determinant,
+						(matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]) / determinant } };
 	}
 
 	private FormQuestion findQuestion(FormTemplate form, String label) {
@@ -609,6 +653,12 @@ public class ResponseFileService {
 		boolean cornersWereMoved = Objects.nonNull(responseFileInfo.getFilledForm())
 				&& Objects.nonNull(responseFileInfo.getFilledForm().getCorners())
 				&& !responseFileInfo.getFilledForm().getCorners().isEmpty();
+		if (cornersWereMoved) {
+			var recalculated = recalculateFromManualCorners(responseFile, responseFileInfo,
+					updatedResponseFileInfo, name, stage, page, corners);
+			if (recalculated.isPresent())
+				return recalculated.get();
+		}
 		if (cornersWereMoved && !updatedResponseFileInfo.isIdentificationManuallyLocked()) {
 			FormTemplate identificationForm = makeFormTemplate(image, name, null, null, corners, true);
 			ResponseFileInfo identification = new ResponseFileInfo();
@@ -627,5 +677,142 @@ public class ResponseFileService {
 		}
 		return makeFormTemplate(image, name, stage, page,
 				corners, true);
+	}
+
+	private Optional<FormTemplate> recalculateFromManualCorners(ResponseFile responseFile,
+			ResponseFileInfo requestedInfo, ResponseFileInfo storedInfo, String name, Integer stage, Integer page,
+			HashMap<Corners, FormPoint> corners)
+			throws ParserConfigurationException, SAXException, IOException {
+		var reference = responseFileParamService.getReferenceResponseFileModel().orElse(null);
+		if (Objects.isNull(reference) || Objects.isNull(reference.getFile()))
+			return Optional.empty();
+
+		byte[] recalculationSource = responseFile.getFile().getData();
+		String recalculationSourceType = responseFile.getFileType();
+		var processed = formProcessingClient.identifyWithMarkers(
+				recalculationSource, name + ".png",
+				recalculationSourceType, reference.getFile().getData(), reference.getFileType(),
+				Objects.nonNull(reference.getParam()) ? reference.getParam().getTemplate() : null,
+				makeMarkerSet(corners));
+		if (processed.isEmpty())
+			return Optional.empty();
+
+		var result = processed.get();
+		if (!storedInfo.isIdentificationManuallyLocked() && Objects.nonNull(result.getIdentification())
+				&& result.getIdentification().getConfidence() >= 0.60) {
+			var identification = result.getIdentification();
+			if (Objects.nonNull(identification.getStage()) && Objects.nonNull(identification.getPage())
+					&& responseFileParamService
+							.getResponseFileParamByStageAndPage(identification.getStage(), identification.getPage())
+							.isPresent()) {
+				stage = identification.getStage();
+				page = identification.getPage();
+				requestedInfo.setStage(stage);
+				requestedInfo.setPage(page);
+				if (Objects.nonNull(identification.getTeam()))
+					requestedInfo.setTeam(identification.getTeam());
+			}
+		}
+
+		FormProcessingClient.ProcessedImage geometryResult = result;
+		var exactParam = responseFileParamService.getResponseFileParamByStageAndPage(stage, page).orElse(null);
+		if (Objects.nonNull(exactParam)) {
+			var exactModel = responseFileParamService.getResponseFileModel(exactParam.getId());
+			if (Objects.nonNull(exactModel) && Objects.nonNull(exactModel.getFile())) {
+				var exactProcessing = formProcessingClient.processWithMarkers(
+						recalculationSource, name + ".png", recalculationSourceType,
+						exactModel.getFile().getData(), exactModel.getFileType(), exactParam.getTemplate(),
+						makeMarkerSet(corners));
+				if (exactProcessing.isPresent())
+					geometryResult = exactProcessing.get();
+			}
+		}
+		java.util.List<FormProcessingClient.Correction> corrections = geometryResult.getCorrections();
+
+		BufferedImage sourceImage = ImageIO.read(new ByteArrayInputStream(recalculationSource));
+		if (Objects.isNull(sourceImage))
+			return Optional.empty();
+		FormTemplate filledForm = makeEmptyProcessedFormTemplate(sourceImage, name, stage, page, corners);
+		storedInfo.setFilledForm(filledForm);
+		storedInfo.getProcessingCorrectionValues().clear();
+		storedInfo.getProcessingCorrectionConfidences().clear();
+		storedInfo.getProcessingCorrectionMarks().clear();
+		storedInfo.getProcessingCorrectionDifferences().clear();
+		applyProcessingCorrections(storedInfo, corrections, geometryResult.getSourceToNormalizedTransform());
+		Integer effectiveTeam = Objects.nonNull(requestedInfo.getTeam()) ? requestedInfo.getTeam() : storedInfo.getTeam();
+		applyIdentificationMarks(filledForm, effectiveTeam, stage, page,
+				geometryResult.getSourceToNormalizedTransform());
+		return Optional.of(filledForm);
+	}
+
+	private void applyIdentificationMarks(FormTemplate form, Integer team, Integer stage, Integer page,
+			double[][] sourceToNormalizedTransform) {
+		if (Objects.nonNull(team)) {
+			String value = String.format(java.util.Locale.ROOT, "%02d", team);
+			setIdentificationField(form, EQUIPE1, value.substring(0, 1), sourceToNormalizedTransform);
+			setIdentificationField(form, EQUIPE2, value.substring(value.length() - 1), sourceToNormalizedTransform);
+		}
+		if (Objects.nonNull(stage)) {
+			String value = String.format(java.util.Locale.ROOT, "%02d", stage);
+			setIdentificationField(form, ETAPE, Integer.toString(stage), sourceToNormalizedTransform);
+			setIdentificationField(form, ETAPE1, value.substring(0, 1), sourceToNormalizedTransform);
+			setIdentificationField(form, ETAPE2, value.substring(value.length() - 1), sourceToNormalizedTransform);
+		}
+		if (Objects.nonNull(page))
+			setIdentificationField(form, PAGE, Integer.toString(page), sourceToNormalizedTransform);
+	}
+
+	private void setIdentificationField(FormTemplate form, String fieldName, String value,
+			double[][] sourceToNormalizedTransform) {
+		FormQuestion field = findQuestion(form, fieldName);
+		FormQuestion templateField = Objects.nonNull(form.getParentTemplate())
+				? findQuestion(form.getParentTemplate(), fieldName)
+				: null;
+		if (Objects.isNull(field) || Objects.isNull(templateField))
+			return;
+		FormPoint templatePoint = templateField.getPoints().get(value);
+		if (Objects.isNull(templatePoint))
+			return;
+		field.getPoints().clear();
+		field.getPoints().put(value, mapToSource(templatePoint, sourceToNormalizedTransform));
+	}
+
+	private FormProcessingClient.MarkerSet makeMarkerSet(HashMap<Corners, FormPoint> corners) {
+		FormProcessingClient.MarkerSet markers = new FormProcessingClient.MarkerSet();
+		markers.setTopLeft(makeMarkerPoint(corners.get(Corners.TOP_LEFT)));
+		markers.setTopRight(makeMarkerPoint(corners.get(Corners.TOP_RIGHT)));
+		markers.setBottomRight(makeMarkerPoint(corners.get(Corners.BOTTOM_RIGHT)));
+		markers.setBottomLeft(makeMarkerPoint(corners.get(Corners.BOTTOM_LEFT)));
+		return markers;
+	}
+
+	private FormProcessingClient.MarkerPoint makeMarkerPoint(FormPoint point) {
+		FormProcessingClient.MarkerPoint marker = new FormProcessingClient.MarkerPoint();
+		marker.setX(point.getX());
+		marker.setY(point.getY());
+		return marker;
+	}
+
+	private FormTemplate makeEmptyProcessedFormTemplate(BufferedImage image, String name, Integer stage, Integer page,
+			HashMap<Corners, FormPoint> corners)
+			throws ParserConfigurationException, SAXException, IOException {
+		com.albertoborsetta.formscanner.api.FormTemplate template = responseFileParamService.makeFormTemplate(stage, page);
+		FormTemplate parent = new FormTemplate();
+		ResponseFileUtil.copyProperties(template, parent);
+		FormTemplate result = new FormTemplate();
+		ResponseFileUtil.copyProperties(template, result);
+		result.setParentTemplate(parent);
+		result.setName(name);
+		result.setCorners(new HashMap<>());
+		corners.forEach((position, value) ->
+				result.getCorners().put(position, new FormPoint(value.getX(), value.getY())));
+		clearDetectedValues(result);
+		result.setHeight(image.getHeight());
+		result.setWidth(image.getWidth());
+		responseFileParamService.getResponseFileParamByStageAndPage(stage, page).ifPresent(param -> {
+			result.getParentTemplate().setHeight(param.getHeight());
+			result.getParentTemplate().setWidth(param.getWidth());
+		});
+		return result;
 	}
 }

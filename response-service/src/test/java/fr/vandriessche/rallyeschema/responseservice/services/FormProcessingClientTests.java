@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
@@ -77,6 +79,35 @@ class FormProcessingClientTests {
 
 		assertFalse(client.process(new byte[] { 1 }, "scan.jpg", "image/jpeg", null, null, null).isPresent());
 		server.verify();
+	}
+
+	@Test
+	void sendsUserSuppliedMarkersForManualRecalculation() {
+		RestTemplate restTemplate = new RestTemplate();
+		MockRestServiceServer server = MockRestServiceServer.createServer(restTemplate);
+		server.expect(requestTo("http://processor:8080/api/v1/forms/process"))
+				.andExpect(content().string(containsString("name=\"source_markers\"")))
+				.andExpect(content().string(containsString("\"top_left\":{\"x\":10.000000,\"y\":20.000000}")))
+				.andRespond(withSuccess("{\"status\":\"READY\",\"normalized_image_base64\":\"AQI=\"}",
+						MediaType.APPLICATION_JSON));
+
+		FormProcessingClient.MarkerSet markers = new FormProcessingClient.MarkerSet();
+		markers.setTopLeft(marker(10, 20));
+		markers.setTopRight(marker(90, 20));
+		markers.setBottomRight(marker(90, 180));
+		markers.setBottomLeft(marker(10, 180));
+		FormProcessingClient client = new FormProcessingClient(restTemplate, true, "http://processor:8080");
+
+		assertTrue(client.processWithMarkers(new byte[] { 1 }, "scan.png", "image/png",
+				null, null, null, markers).isPresent());
+		server.verify();
+	}
+
+	private FormProcessingClient.MarkerPoint marker(double x, double y) {
+		FormProcessingClient.MarkerPoint marker = new FormProcessingClient.MarkerPoint();
+		marker.setX(x);
+		marker.setY(y);
+		return marker;
 	}
 
 	@Test

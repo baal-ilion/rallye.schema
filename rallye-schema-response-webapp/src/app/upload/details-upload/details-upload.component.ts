@@ -1,9 +1,10 @@
-import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, ViewChild } from '@angular/core';
 import { Corners } from 'src/app/response-file/common/details-template/models/corners';
 import { ResponseFileInfo } from '../models/response-file-info';
 import { ModifyUploadComponent } from '../modify-upload/modify-upload.component';
 import { UploadFileService } from '../upload-file.service';
 import { AppDialogRef, DialogService } from 'src/app/shared/dialog/dialog.service';
+import { DetailsResponseFileComponent } from '../details-response-file/details-response-file.component';
 
 @Component({
   selector: 'app-details-upload',
@@ -16,6 +17,7 @@ export class DetailsUploadComponent implements OnInit, OnChanges {
   @Input() dragable = true;
   @Output() deleteEvent = new EventEmitter<string>();
   @Output() checkedEvent = new EventEmitter<ResponseFileInfo>();
+  @ViewChild(DetailsResponseFileComponent) detailsResponseFile?: DetailsResponseFileComponent;
 
   constructor(
     private uploadService: UploadFileService,
@@ -38,17 +40,20 @@ export class DetailsUploadComponent implements OnInit, OnChanges {
   }
 
   endDrag(event: Corners) {
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
     this.uploadService.updateResponseFileInfoCorners({
       id: this.fileUpload.id,
       filledForm: {
         corners: event
       }
     }).subscribe(data => {
-      this.fileUpload = data;
-      this.ngOnInit();
+      Object.assign(this.fileUpload, data);
+      this.detailsResponseFile?.loadTemplate(this.fileUpload);
+      requestAnimationFrame(() => window.scrollTo(scrollX, scrollY));
     }, err => {
       console.log(err);
-      this.ngOnInit();
+      requestAnimationFrame(() => window.scrollTo(scrollX, scrollY));
     });
   }
 
