@@ -94,3 +94,6 @@ local.properties
 # Artefacts temporaires des contrôles visuels Codex
 /.codex-chrome-pdf/
 /.pdf-analysis/
+
+# Corpus locaux de formulaires réels (données historiques, jamais versionnées)
+/.corpus/

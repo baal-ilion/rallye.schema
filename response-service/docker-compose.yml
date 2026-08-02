@@ -35,12 +35,23 @@ services:
     depends_on:
       - mongodb
       - rabbitmq
+      - rallye-schema-form-processing-service
     restart: always
     environment:
       - "SPRING_PROFILES_ACTIVE=docker"
       - "SSL_KEYSTORE_PASSWORD=changeit"
+      - "FORM_PROCESSING_ENABLED=true"
+      - "FORM_PROCESSING_URL=http://rallye-schema-form-processing-service:8080"
     volumes:
       - ./certs:/app/certs:ro
+
+  rallye-schema-form-processing-service:
+    build:
+      context: ../form-processing-service
+      dockerfile: Dockerfile
+    image: rallye-schema-form-processing-service:local
+    container_name: "rallye-schema-form-processing-service"
+    restart: always
 
 volumes:
   mongodb_db:

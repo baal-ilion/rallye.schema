@@ -1,0 +1,114 @@
+.capture-page {
+  max-width: 1180px;
+}
+
+.capture-actions,
+.camera-controls,
+.capture-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.camera-panel {
+  padding: 1rem;
+  border: 1px solid #d7dce1;
+  border-radius: 0.5rem;
+  background: #202124;
+}
+
+.camera-panel video {
+  display: block;
+  width: 100%;
+  max-height: 65vh;
+  margin: 0 auto 1rem;
+  border-radius: 0.35rem;
+  object-fit: contain;
+  background: #000;
+}
+
+.capture-advice {
+  padding: 0.75rem 1rem;
+  border-left: 4px solid #b58a45;
+  background: #f8f5ef;
+  color: #554a3a;
+}
+
+.capture-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 1rem;
+}
+
+.capture-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #d7dce1;
+  border-radius: 0.5rem;
+  background: #fff;
+  box-shadow: 0 0.15rem 0.35rem rgba(0, 0, 0, 0.08);
+}
+
+.capture-card.capture-done {
+  border-color: #69a778;
+}
+
+.capture-card > img {
+  display: block;
+  width: 100%;
+  height: 220px;
+  object-fit: contain;
+  background: #e9ecef;
+}
+
+.capture-card-body {
+  padding: 0.75rem;
+}
+
+.capture-name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.capture-remove {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.capture-footer {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e3e6e8;
+}
+
+.empty-captures {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  color: #6c757d;
+}
+
+.empty-captures i {
+  font-size: 2.5rem;
+}
+
+@media (max-width: 575.98px) {
+  .capture-actions .btn,
+  .camera-controls .btn,
+  .capture-footer .btn {
+    width: 100%;
+  }
+
+  .capture-card > img {
+    height: 180px;
+  }
+}

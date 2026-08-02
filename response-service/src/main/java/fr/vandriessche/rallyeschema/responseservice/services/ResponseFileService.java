@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -84,6 +85,8 @@ public class ResponseFileService {
 	@Autowired
 	private ResponseFileParamService responseFileParamService;
 	@Autowired
+	private FormProcessingClient formProcessingClient;
+	@Autowired
 	private StageParamService stageParamService;
 
 	@Autowired
@@ -96,30 +99,154 @@ public class ResponseFileService {
 			throw new IllegalArgumentException("Only image files are supported");
 		}
 
-		BufferedImage image = ImageIO.read(new ByteArrayInputStream(file.getBytes()));
+		byte[] originalContent = file.getBytes();
+		byte[] storedContent = originalContent;
+		String storedContentType = contentType;
+		String storedExtension = FilenameUtils.getExtension(file.getOriginalFilename());
+
+		var reference = responseFileParamService.getReferenceResponseFileModel().orElse(null);
+		var processed = formProcessingClient.process(
+				originalContent,
+				file.getOriginalFilename(),
+				contentType,
+				Objects.nonNull(reference) ? reference.getFile().getData() : null,
+				Objects.nonNull(reference) ? reference.getFileType() : null,
+				Objects.nonNull(reference) && Objects.nonNull(reference.getParam())
+						? reference.getParam().getTemplate() : null);
+		if (processed.isPresent()) {
+			storedContent = processed.get().getContent();
+			storedContentType = processed.get().getContentType();
+			storedExtension = processed.get().getExtension();
+			log.info("Formulaire préparé par le nouveau service : statut=" + processed.get().getStatus()
+					+ ", vérificationManuelle=" + processed.get().isManualReviewRequired());
+		}
+
+		BufferedImage image = ImageIO.read(new ByteArrayInputStream(storedContent));
 		if (image == null) {
 			throw new IllegalArgumentException("Only image files are supported");
 		}
 		String name = FilenameUtils.getBaseName(file.getOriginalFilename());
 
-		FormTemplate filledForm = makeFormTemplate(image, name, null, null, null, true);
+		HashMap<Corners, FormPoint> trustedCorners = processed
+				.filter(result -> result.isAutomaticMarkerDetection() && Objects.nonNull(result.getTargetMarkers()))
+				.map(this::makeTrustedCorners)
+				.orElse(null);
+		var identification = processed.map(FormProcessingClient.ProcessedImage::getIdentification)
+				.filter(value -> Objects.nonNull(value) && value.getConfidence() >= 0.60)
+				.orElse(null);
+		Integer identifiedStage = Objects.nonNull(identification) ? identification.getStage() : null;
+		Integer identifiedPage = Objects.nonNull(identification) ? identification.getPage() : null;
+		FormTemplate filledForm = makeFormTemplate(image, name, identifiedStage, identifiedPage, trustedCorners, true);
 
 		ResponseFileInfo responseFileInfo = new ResponseFileInfo();
 		fillResponseFileInfo(filledForm, responseFileInfo);
-		filledForm = makeFormTemplate(image, name, responseFileInfo.getStage(), responseFileInfo.getPage(), null, true);
+		if (Objects.nonNull(identification)) {
+			if (Objects.nonNull(identification.getTeam()))
+				responseFileInfo.setTeam(identification.getTeam());
+			if (Objects.nonNull(identification.getStage()))
+				responseFileInfo.setStage(identification.getStage());
+			if (Objects.nonNull(identification.getPage()))
+				responseFileInfo.setPage(identification.getPage());
+		}
+		var pageRecognition = refinePageImage(responseFileInfo, storedContent, storedContentType, name);
+		if (pageRecognition.isPresent()) {
+			storedContent = pageRecognition.get().getContent();
+			storedContentType = pageRecognition.get().getContentType();
+			storedExtension = "png";
+			image = ImageIO.read(new ByteArrayInputStream(storedContent));
+			if (image == null)
+				throw new IllegalStateException("Le recalage sur le modèle de page n'a retourné aucune image exploitable.");
+		}
+		filledForm = makeFormTemplate(image, name, responseFileInfo.getStage(), responseFileInfo.getPage(),
+				trustedCorners, true);
 		logFormTemplate(filledForm);
 		responseFileInfo.setFilledForm(filledForm);
+		if (pageRecognition.isPresent())
+			compareProcessingCorrections(responseFileInfo, pageRecognition.get().getCorrections());
+		if (processed.isPresent()) {
+			var result = processed.get();
+			responseFileInfo.setProcessingStatus(result.getStatus());
+			responseFileInfo.setAutomaticMarkerDetection(result.isAutomaticMarkerDetection());
+			responseFileInfo.setManualReviewRequired(result.isManualReviewRequired());
+			responseFileInfo.setDetectedRotationDegrees(result.getDetectedRotationDegrees());
+			responseFileInfo.setReferenceAlignmentError(result.getReferenceAlignmentError());
+			responseFileInfo.setLocalAlignmentApplied(result.isLocalAlignmentApplied());
+			responseFileInfo.setLocalAlignmentConfidence(result.getLocalAlignmentConfidence());
+			responseFileInfo.setLocalAlignmentAnchorCount(result.getLocalAlignmentAnchorCount());
+			responseFileInfo.setLocalAlignmentMeanDisplacement(result.getLocalAlignmentMeanDisplacement());
+			responseFileInfo.setLocalAlignmentMaximumDisplacement(result.getLocalAlignmentMaximumDisplacement());
+		}
 
 		responseFileInfo = responseFileInfoRepository.save(responseFileInfo);
 		ResponseFile responseFile = new ResponseFile();
 		responseFile.setId(responseFileInfo.getId());
 		responseFile.setInfo(responseFileInfo);
-		responseFile.setFile(new Binary(BsonBinarySubType.BINARY, file.getBytes()));
-		responseFile.setFileExtension(FilenameUtils.getExtension(file.getOriginalFilename()));
-		responseFile.setFileType(file.getContentType());
+		responseFile.setFile(new Binary(BsonBinarySubType.BINARY, storedContent));
+		responseFile.setFileExtension(storedExtension);
+		responseFile.setFileType(storedContentType);
+		if (processed.isPresent()) {
+			responseFile.setOriginalFile(new Binary(BsonBinarySubType.BINARY, originalContent));
+			responseFile.setOriginalFileExtension(FilenameUtils.getExtension(file.getOriginalFilename()));
+			responseFile.setOriginalFileType(contentType);
+		}
 		responseFile = responseFileRepository.insert(responseFile);
 		messageProducerService.sendMessage(RESPONSE_FILE_CREATE_EVENT, responseFileInfo);
 		return responseFile;
+	}
+
+	private Optional<FormProcessingClient.PageRecognition> refinePageImage(ResponseFileInfo info,
+			byte[] normalizedContent, String contentType, String name) {
+		if (Objects.isNull(info.getStage()) || Objects.isNull(info.getPage()))
+			return Optional.empty();
+		var pageParam = responseFileParamService.getResponseFileParamByStageAndPage(info.getStage(), info.getPage())
+				.orElse(null);
+		if (Objects.isNull(pageParam))
+			return Optional.empty();
+		var pageModel = responseFileParamService.getResponseFileModel(pageParam.getId());
+		byte[] pageReference = Objects.nonNull(pageModel) && Objects.nonNull(pageModel.getFile())
+				? pageModel.getFile().getData()
+				: null;
+		String pageReferenceType = Objects.nonNull(pageModel) ? pageModel.getFileType() : null;
+		return formProcessingClient.recognizeCorrections(normalizedContent, name + ".png", contentType,
+				pageParam.getTemplate(), pageReference, pageReferenceType);
+	}
+
+	private void compareProcessingCorrections(ResponseFileInfo info,
+			java.util.List<FormProcessingClient.Correction> corrections) {
+		corrections.forEach(correction -> {
+				info.getProcessingCorrectionValues().put(correction.getLabel(), correction.isValue());
+				info.getProcessingCorrectionConfidences().put(correction.getLabel(), correction.getConfidence());
+				info.getProcessingCorrectionMarks().put(correction.getLabel(), correction.getMarkedValues());
+				Boolean legacy = findLegacyCorrection(info.getFilledForm(), correction.getLabel());
+				if (Objects.nonNull(legacy) && legacy.booleanValue() != correction.isValue())
+					info.getProcessingCorrectionDifferences().add(correction.getLabel());
+			});
+	}
+
+	private Boolean findLegacyCorrection(FormTemplate form, String label) {
+		return form.getGroups().values().stream()
+				.map(group -> group.getFields().get(label))
+				.filter(Objects::nonNull)
+				.findFirst()
+				.map(this::getResultValue)
+				.orElse(null);
+	}
+
+	private HashMap<Corners, FormPoint> makeTrustedCorners(FormProcessingClient.ProcessedImage processed) {
+		var markers = processed.getTargetMarkers();
+		HashMap<Corners, FormPoint> corners = new HashMap<>();
+		corners.put(Corners.TOP_LEFT, makeFormPoint(markers.getTopLeft()));
+		corners.put(Corners.TOP_RIGHT, makeFormPoint(markers.getTopRight()));
+		corners.put(Corners.BOTTOM_RIGHT, makeFormPoint(markers.getBottomRight()));
+		corners.put(Corners.BOTTOM_LEFT, makeFormPoint(markers.getBottomLeft()));
+		return corners;
+	}
+
+	private FormPoint makeFormPoint(FormProcessingClient.MarkerPoint marker) {
+		FormPoint point = new FormPoint();
+		point.setX(marker.getX());
+		point.setY(marker.getY());
+		return point;
 	}
 
 	public void deleteByTeam(Integer team) {
