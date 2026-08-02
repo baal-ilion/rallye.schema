@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-import com.albertoborsetta.formscanner.api.commons.Constants.Corners;
-import com.albertoborsetta.formscanner.api.commons.Constants.FieldType;
+import fr.vandriessche.rallyeschema.responseservice.entities.Corners;
+import fr.vandriessche.rallyeschema.responseservice.entities.FieldType;
 
 class FormTemplateXmlParserTests {
 

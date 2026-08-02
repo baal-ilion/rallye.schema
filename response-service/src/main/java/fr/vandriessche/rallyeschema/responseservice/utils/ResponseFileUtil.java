@@ -2,12 +2,16 @@ package fr.vandriessche.rallyeschema.responseservice.utils;
 
 import java.util.Objects;
 
+import fr.vandriessche.rallyeschema.responseservice.entities.CornerType;
+import fr.vandriessche.rallyeschema.responseservice.entities.Corners;
+import fr.vandriessche.rallyeschema.responseservice.entities.FieldType;
 import fr.vandriessche.rallyeschema.responseservice.entities.FormArea;
 import fr.vandriessche.rallyeschema.responseservice.entities.FormField;
 import fr.vandriessche.rallyeschema.responseservice.entities.FormGroup;
 import fr.vandriessche.rallyeschema.responseservice.entities.FormPoint;
 import fr.vandriessche.rallyeschema.responseservice.entities.FormQuestion;
 import fr.vandriessche.rallyeschema.responseservice.entities.FormTemplate;
+import fr.vandriessche.rallyeschema.responseservice.entities.ShapeType;
 
 public class ResponseFileUtil {
 	private static FormArea copyProperties(com.albertoborsetta.formscanner.api.FormArea source, FormArea destination) {
@@ -16,7 +20,7 @@ public class ResponseFileUtil {
 		copyProperties(source, (FormField) destination);
 
 		destination.getCorners().clear();
-		source.getCorners().entrySet().stream().forEach(entrie -> destination.getCorners().put(entrie.getKey(),
+		source.getCorners().entrySet().stream().forEach(entrie -> destination.getCorners().put(Corners.valueOf(entrie.getKey().name()),
 				copyProperties(entrie.getValue(), new FormPoint())));
 
 		destination.setText(source.getText());
@@ -28,7 +32,7 @@ public class ResponseFileUtil {
 		if (Objects.isNull(source))
 			return null;
 		destination.setName(source.getName());
-		destination.setType(source.getType());
+		destination.setType(Objects.isNull(source.getType()) ? null : FieldType.valueOf(source.getType().name()));
 		return destination;
 	}
 
@@ -80,7 +84,7 @@ public class ResponseFileUtil {
 				copyProperties(entrie.getValue(), new FormGroup())));
 
 		destination.getCorners().clear();
-		source.getCorners().entrySet().stream().forEach(entrie -> destination.getCorners().put(entrie.getKey(),
+		source.getCorners().entrySet().stream().forEach(entrie -> destination.getCorners().put(Corners.valueOf(entrie.getKey().name()),
 				copyProperties(entrie.getValue(), new FormPoint())));
 
 		destination.getPoints().clear();
@@ -96,8 +100,9 @@ public class ResponseFileUtil {
 		destination.setCrop(source.getCrop());
 		destination.setUsedGroupNames(source.getUsedGroupNames());
 
-		destination.setCornerType(source.getCornerType());
-		destination.setShape(source.getShape());
+		destination.setCornerType(Objects.isNull(source.getCornerType()) ? null
+				: CornerType.valueOf(source.getCornerType().name()));
+		destination.setShape(Objects.isNull(source.getShape()) ? null : ShapeType.valueOf(source.getShape().name()));
 		destination.setName(source.getName());
 		destination.setVersion(source.getVersion());
 		destination.setRotation(source.getRotation());

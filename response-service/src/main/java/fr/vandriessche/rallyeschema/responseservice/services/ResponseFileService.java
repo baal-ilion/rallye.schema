@@ -27,9 +27,9 @@ import org.springframework.web.multipart.MultipartFile;
 import org.xml.sax.SAXException;
 
 import com.albertoborsetta.formscanner.api.commons.Constants.CornerType;
-import com.albertoborsetta.formscanner.api.commons.Constants.Corners;
 import com.albertoborsetta.formscanner.api.exceptions.FormScannerException;
 
+import fr.vandriessche.rallyeschema.responseservice.entities.Corners;
 import fr.vandriessche.rallyeschema.responseservice.entities.FormGroup;
 import fr.vandriessche.rallyeschema.responseservice.entities.FormPoint;
 import fr.vandriessche.rallyeschema.responseservice.entities.FormQuestion;
@@ -315,10 +315,6 @@ public class ResponseFileService {
 				info.getProcessingCorrectionDifferences().add(correction.getLabel());
 			applyCorrectionMarks(info.getFilledForm(), correction, sourceToNormalizedTransform);
 		});
-	}
-
-	private void applyCorrectionMarks(FormTemplate form, FormProcessingClient.Correction correction) {
-		applyCorrectionMarks(form, correction, null);
 	}
 
 	private void applyCorrectionMarks(FormTemplate form, FormProcessingClient.Correction correction,
@@ -647,7 +643,8 @@ public class ResponseFileService {
 			for (var entry : corners.entrySet()) {
 				com.albertoborsetta.formscanner.api.FormPoint corner = new com.albertoborsetta.formscanner.api.FormPoint();
 				BeanUtils.copyProperties(entry.getValue(), corner);
-				filledForm.setCorner(entry.getKey(), corner);
+				filledForm.setCorner(
+						com.albertoborsetta.formscanner.api.commons.Constants.Corners.valueOf(entry.getKey().name()), corner);
 			}
 			filledForm.clearPoints();
 			canFindPoints = true;
@@ -705,7 +702,11 @@ public class ResponseFileService {
 	}
 
 	private boolean hasAllCorners(com.albertoborsetta.formscanner.api.FormTemplate formTemplate) {
-		return Stream.of(Corners.TOP_LEFT, Corners.TOP_RIGHT, Corners.BOTTOM_RIGHT, Corners.BOTTOM_LEFT)
+		return Stream.of(
+				com.albertoborsetta.formscanner.api.commons.Constants.Corners.TOP_LEFT,
+				com.albertoborsetta.formscanner.api.commons.Constants.Corners.TOP_RIGHT,
+				com.albertoborsetta.formscanner.api.commons.Constants.Corners.BOTTOM_RIGHT,
+				com.albertoborsetta.formscanner.api.commons.Constants.Corners.BOTTOM_LEFT)
 				.allMatch(corner -> Objects.nonNull(formTemplate.getCorners().get(corner)));
 	}
 
@@ -721,7 +722,8 @@ public class ResponseFileService {
 		com.albertoborsetta.formscanner.api.FormPoint point = new com.albertoborsetta.formscanner.api.FormPoint();
 		point.setX(x);
 		point.setY(y);
-		formTemplate.setCorner(corner, point);
+		formTemplate.setCorner(
+				com.albertoborsetta.formscanner.api.commons.Constants.Corners.valueOf(corner.name()), point);
 	}
 
 	private FormTemplate updateFormTemplate(ResponseFileInfo responseFileInfo, ResponseFileInfo updatedResponseFileInfo)

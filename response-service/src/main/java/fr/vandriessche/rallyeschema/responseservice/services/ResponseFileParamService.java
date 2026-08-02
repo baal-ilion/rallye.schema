@@ -29,8 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.xml.sax.SAXException;
 
-import com.albertoborsetta.formscanner.api.commons.Constants.FieldType;
-
+import fr.vandriessche.rallyeschema.responseservice.entities.FieldType;
 import fr.vandriessche.rallyeschema.responseservice.entities.FormArea;
 import fr.vandriessche.rallyeschema.responseservice.entities.FormQuestion;
 import fr.vandriessche.rallyeschema.responseservice.entities.FormTemplate;

@@ -1,7 +1,5 @@
 package fr.vandriessche.rallyeschema.responseservice.entities;
 
-import com.albertoborsetta.formscanner.api.commons.Constants.FieldType;
-
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
