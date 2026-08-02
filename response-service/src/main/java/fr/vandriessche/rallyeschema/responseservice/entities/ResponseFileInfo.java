@@ -20,6 +20,7 @@ public class ResponseFileInfo {
 	private Integer stage;
 	private Integer page;
 	private Integer team;
+	private boolean identificationManuallyLocked;
 
 	private Boolean checked;
 	private String processingStatus;
