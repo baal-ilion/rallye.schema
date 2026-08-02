@@ -40,7 +40,6 @@ services:
     environment:
       - "SPRING_PROFILES_ACTIVE=docker"
       - "SSL_KEYSTORE_PASSWORD=changeit"
-      - "FORM_PROCESSING_ENABLED=true"
       - "FORM_PROCESSING_URL=http://rallye-schema-form-processing-service:8080"
     volumes:
       - ./certs:/app/certs:ro

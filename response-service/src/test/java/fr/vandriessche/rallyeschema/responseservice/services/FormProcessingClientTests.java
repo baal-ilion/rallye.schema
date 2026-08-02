@@ -3,6 +3,7 @@ package fr.vandriessche.rallyeschema.responseservice.services;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
@@ -48,36 +49,36 @@ class FormProcessingClientTests {
 						+ "\"normalized_image_base64\":\"" + Base64.getEncoder().encodeToString(normalized) + "\""
 						+ "}", MediaType.APPLICATION_JSON));
 
-		FormProcessingClient client = new FormProcessingClient(restTemplate, true, "http://processor:8080/");
+		FormProcessingClient client = new FormProcessingClient(restTemplate, "http://processor:8080/");
 		var result = client.process(new byte[] { 1, 2 }, "scan.jpg", "image/jpeg", null, null, "<template/>");
 
-		assertTrue(result.isPresent());
-		assertArrayEquals(normalized, result.get().getContent());
-		assertEquals("png", result.get().getExtension());
-		assertTrue(result.get().isAutomaticMarkerDetection());
-		assertEquals(270, result.get().getDetectedRotationDegrees());
-		assertEquals(0.95, result.get().getReferenceAlignmentError(), 0.001);
-		assertEquals(10, result.get().getTargetMarkers().getTopLeft().getX(), 0.001);
-		assertTrue(result.get().isLocalAlignmentApplied());
-		assertEquals(0.81, result.get().getLocalAlignmentConfidence(), 0.001);
-		assertEquals(22, result.get().getLocalAlignmentAnchorCount());
-		assertEquals(1, result.get().getCorrections().size());
-		assertEquals("Q1", result.get().getCorrections().get(0).getLabel());
-		assertTrue(result.get().getCorrections().get(0).isValue());
-		assertEquals(0.87, result.get().getCorrections().get(0).getConfidence(), 0.001);
-		assertFalse(result.get().isManualReviewRequired());
+		assertArrayEquals(normalized, result.getContent());
+		assertEquals("png", result.getExtension());
+		assertTrue(result.isAutomaticMarkerDetection());
+		assertEquals(270, result.getDetectedRotationDegrees());
+		assertEquals(0.95, result.getReferenceAlignmentError(), 0.001);
+		assertEquals(10, result.getTargetMarkers().getTopLeft().getX(), 0.001);
+		assertTrue(result.isLocalAlignmentApplied());
+		assertEquals(0.81, result.getLocalAlignmentConfidence(), 0.001);
+		assertEquals(22, result.getLocalAlignmentAnchorCount());
+		assertEquals(1, result.getCorrections().size());
+		assertEquals("Q1", result.getCorrections().get(0).getLabel());
+		assertTrue(result.getCorrections().get(0).isValue());
+		assertEquals(0.87, result.getCorrections().get(0).getConfidence(), 0.001);
+		assertFalse(result.isManualReviewRequired());
 		server.verify();
 	}
 
 	@Test
-	void fallsBackWhenTheServiceIsUnavailable() {
+	void failsWhenTheServiceIsUnavailable() {
 		RestTemplate restTemplate = new RestTemplate();
 		MockRestServiceServer server = MockRestServiceServer.createServer(restTemplate);
 		server.expect(requestTo("http://processor:8080/api/v1/forms/process")).andRespond(withServerError());
 
-		FormProcessingClient client = new FormProcessingClient(restTemplate, true, "http://processor:8080");
+		FormProcessingClient client = new FormProcessingClient(restTemplate, "http://processor:8080");
 
-		assertFalse(client.process(new byte[] { 1 }, "scan.jpg", "image/jpeg", null, null, null).isPresent());
+		assertThrows(IllegalStateException.class,
+				() -> client.process(new byte[] { 1 }, "scan.jpg", "image/jpeg", null, null, null));
 		server.verify();
 	}
 
@@ -96,10 +97,9 @@ class FormProcessingClientTests {
 		markers.setTopRight(marker(90, 20));
 		markers.setBottomRight(marker(90, 180));
 		markers.setBottomLeft(marker(10, 180));
-		FormProcessingClient client = new FormProcessingClient(restTemplate, true, "http://processor:8080");
+		FormProcessingClient client = new FormProcessingClient(restTemplate, "http://processor:8080");
 
-		assertTrue(client.processWithMarkers(new byte[] { 1 }, "scan.png", "image/png",
-				null, null, null, markers).isPresent());
+		client.processWithMarkers(new byte[] { 1 }, "scan.png", "image/png", null, null, null, markers);
 		server.verify();
 	}
 
@@ -110,34 +110,4 @@ class FormProcessingClientTests {
 		return marker;
 	}
 
-	@Test
-	void doesNotCallTheServiceWhenDisabled() {
-		FormProcessingClient client = new FormProcessingClient(new RestTemplate(), false, "http://processor:8080");
-
-		assertFalse(client.process(new byte[] { 1 }, "scan.jpg", "image/jpeg", null, null, null).isPresent());
-	}
-
-	@Test
-	void readsCorrectionsWithoutRequestingANewNormalization() {
-		RestTemplate restTemplate = new RestTemplate();
-		MockRestServiceServer server = MockRestServiceServer.createServer(restTemplate);
-		server.expect(requestTo("http://processor:8080/api/v1/forms/recognize-corrections"))
-				.andRespond(withSuccess("{\"corrections\":[{\"label\":\"Q1\","
-						+ "\"marked_values\":[\"N\",\"Y\"],\"value\":false,\"confidence\":0.75}],"
-						+ "\"normalized_content_type\":\"image/png\","
-						+ "\"normalized_image_base64\":\"AQI=\"}",
-						MediaType.APPLICATION_JSON));
-
-		FormProcessingClient client = new FormProcessingClient(restTemplate, true, "http://processor:8080");
-		var recognition = client.recognizeCorrections(new byte[] { 1 }, "normalized.png", "image/png",
-				"<template/>", new byte[] { 2 }, "image/png");
-		var corrections = recognition.orElseThrow().getCorrections();
-		assertArrayEquals(new byte[] { 1, 2 }, recognition.orElseThrow().getContent());
-
-		assertEquals(1, corrections.size());
-		assertEquals("Q1", corrections.get(0).getLabel());
-		assertEquals(java.util.List.of("N", "Y"), corrections.get(0).getMarkedValues());
-		assertFalse(corrections.get(0).isValue());
-		server.verify();
-	}
 }

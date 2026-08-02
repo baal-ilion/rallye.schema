@@ -1,12 +1,8 @@
 package fr.vandriessche.rallyeschema.responseservice.services;
 
 import java.awt.image.BufferedImage;
-import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -190,17 +186,6 @@ public class ResponseFileParamService {
 		getReferenceResponseFileParam().ifPresent(reference -> deleteResponseFileParam(reference.getId()));
 	}
 
-	public com.albertoborsetta.formscanner.api.FormTemplate makeFormTemplate(Integer stage, Integer page)
-			throws ParserConfigurationException, SAXException, IOException {
-		var param = getResponseFileParamByStageAndPage(stage, page);
-		if (param.isEmpty()) {
-			ResponseFileParam reference = getReferenceResponseFileParam()
-					.orElseThrow(() -> new IllegalStateException("Aucun formulaire de référence n'est configuré."));
-			return makeFormTemplate(reference);
-		}
-		return makeFormTemplate(param.get());
-	}
-
 	public ResponseFileParam updateResponseFileParam(ResponseFileParam responseFileParam, MultipartFile fileModel)
 			throws ParserConfigurationException, SAXException, IOException {
 		responseFileParamRepository.findById(responseFileParam.getId()).orElseThrow();
@@ -273,23 +258,6 @@ public class ResponseFileParamService {
 		return defaultType;
 	}
 
-	private com.albertoborsetta.formscanner.api.FormTemplate makeFormTemplate(ResponseFileParam responseFileParam)
-			throws IOException, ParserConfigurationException, SAXException {
-		if (Objects.isNull(responseFileParam.getTemplate()))
-			return new com.albertoborsetta.formscanner.api.FormTemplate("");
-		try {
-			return buildFormTemplate(responseFileParam.getTemplate());
-		} catch (SAXException ex) {
-			// Certains anciens fichiers sont encodés en ISO-8859-1 : on retente en recodant
-			String recoded = new String(responseFileParam.getTemplate().getBytes(StandardCharsets.ISO_8859_1),
-					StandardCharsets.UTF_8);
-			if (!recoded.equals(responseFileParam.getTemplate())) {
-				return buildFormTemplate(recoded);
-			}
-			throw ex;
-		}
-	}
-
 	private FormTemplate parseFormTemplate(ResponseFileParam responseFileParam)
 			throws ParserConfigurationException, SAXException, IOException {
 		if (Objects.isNull(responseFileParam.getTemplate()))
@@ -302,21 +270,6 @@ public class ResponseFileParamService {
 			if (!recoded.equals(responseFileParam.getTemplate()))
 				return formTemplateXmlParser.parse(recoded);
 			throw ex;
-		}
-	}
-
-	private com.albertoborsetta.formscanner.api.FormTemplate buildFormTemplate(String templateContent)
-			throws IOException, ParserConfigurationException, SAXException {
-		File templateFile = File.createTempFile("rallyeschema-", "-model.xtmpl");
-		templateFile.deleteOnExit();
-		try (BufferedWriter bw = new BufferedWriter(
-				new OutputStreamWriter(new FileOutputStream(templateFile), StandardCharsets.UTF_8))) {
-			bw.write(templateContent);
-		}
-		try {
-			return new com.albertoborsetta.formscanner.api.FormTemplate(templateFile);
-		} finally {
-			templateFile.delete();
 		}
 	}
 

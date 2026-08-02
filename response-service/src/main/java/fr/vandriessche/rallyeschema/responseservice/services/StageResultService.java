@@ -28,8 +28,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.xml.sax.SAXException;
 
-import com.albertoborsetta.formscanner.api.exceptions.FormScannerException;
-
 import fr.vandriessche.rallyeschema.responseservice.entities.PerformanceResult;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileInfo;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileSource;
@@ -187,8 +185,7 @@ public class StageResultService {
 
 	@Transactional
 	public StageResult selectResponseFile(Integer stage, Integer team, String[] responseFileIds, Boolean delete)
-			throws InvalidAlgorithmParameterException, ParserConfigurationException, SAXException, IOException,
-			FormScannerException {
+			throws InvalidAlgorithmParameterException, ParserConfigurationException, SAXException, IOException {
 		var responseFileInfos = Stream.of(responseFileIds)
 				.map(responseFileId -> responseFileService.getResponseFileInfo(responseFileId))
 				.collect(Collectors.toList());
@@ -372,7 +369,7 @@ public class StageResultService {
 	}
 
 	private StageResult selectResponseFile(StageResult stageResult, List<ResponseFileInfo> responseFileInfos,
-			Boolean delete) throws ParserConfigurationException, SAXException, IOException, FormScannerException {
+			Boolean delete) throws ParserConfigurationException, SAXException, IOException {
 		var toUpdate = new ArrayList<ResponseFileInfo>();
 		var initalSources = stageResult.getResponseSources().stream()
 				.filter(s -> s.getClass().equals(ResponseFileSource.class)).collect(Collectors.toList());

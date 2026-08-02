@@ -31,14 +31,6 @@ export class DetailsUploadComponent implements OnInit, OnChanges {
   ngOnInit() {
   }
 
-  get comparedCorrectionCount(): number {
-    return Object.keys(this.fileUpload?.processingCorrectionValues || {}).length;
-  }
-
-  get correctionDifferences(): string[] {
-    return this.fileUpload?.processingCorrectionDifferences || [];
-  }
-
   endDrag(event: Corners) {
     const scrollX = window.scrollX;
     const scrollY = window.scrollY;
