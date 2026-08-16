@@ -5,6 +5,7 @@ import { filter, retry, switchMap, take } from 'rxjs/operators';
 import { AppConfigService } from '../app-config.service';
 import { ResponseFileInfo } from './models/response-file-info';
 import { HalCollection } from '../models/hal-collection';
+import { ResponseFileSummaryPage } from './models/response-file-summary';
 
 @Injectable({
   providedIn: 'root'
@@ -41,6 +42,16 @@ export class UploadFileService {
 
   deleteResponseFile(id: string): Observable<any> {
     return this.http.delete(AppConfigService.settings.apiUrl.rallyeSchema + '/responseFiles/' + id);
+  }
+
+  getProcessingQueue(pageNumber = 0, pageSize = 100, status?: string): Observable<ResponseFileSummaryPage> {
+    let params = new HttpParams().set('page', pageNumber.toString()).set('size', pageSize.toString())
+      .set('sort', 'processingCreatedAt,asc').set('owner', this.verificationOwner);
+    if (status) {
+      params = params.set('status', status);
+    }
+    return this.http.get<ResponseFileSummaryPage>(
+      AppConfigService.settings.apiUrl.rallyeSchema + '/responseFileInfos/processing-queue', { params });
   }
 
   retryProcessing(id: string): Observable<ResponseFileInfo> {

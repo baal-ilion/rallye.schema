@@ -10,7 +10,7 @@ export interface ResponseFileInfo {
   identificationManuallyLocked?: boolean;
 
   checked?: boolean;
-  processingStatus?: 'QUEUED' | 'PROCESSING' | 'READY' | 'READY_WITH_WARNINGS' | 'ERROR';
+  processingStatus?: 'QUEUED' | 'PROCESSING' | 'READY' | 'READY_WITH_WARNINGS' | 'MANUAL_REVIEW_REQUIRED' | 'ERROR';
   processingError?: string;
   verificationLeaseOwner?: string;
   verificationLeaseExpiresAt?: string;

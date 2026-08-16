@@ -1,8 +1,10 @@
 import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
-import { HalPage } from 'src/app/models/hal-page';
 import { DialogService } from 'src/app/shared/dialog/dialog.service';
 import { ResponseFileInfo } from '../models/response-file-info';
+import { ResponseFileSummary } from '../models/response-file-summary';
 import { UploadFileService } from '../upload-file.service';
+
+type QueueFilter = 'ALL' | 'PROCESSING' | 'QUEUED' | 'ATTENTION' | 'ERROR';
 
 @Component({
   selector: 'app-list-upload',
@@ -10,115 +12,156 @@ import { UploadFileService } from '../upload-file.service';
   styleUrls: ['./list-upload.component.scss']
 })
 export class ListUploadComponent implements OnInit, OnDestroy {
+  summaries: ResponseFileSummary[] = [];
   responseFileInfos: ResponseFileInfo[] = [];
-  page = 1;
-  pages: HalPage = { size: 0, number: -1, totalElements: 0, totalPages: 1 };
+  selectedSummary?: ResponseFileSummary;
+  filter: QueueFilter = 'ALL';
+  loading = true;
+  queueTotal = 0;
 
-  private readonly SelectedId = 'ListUploadComponent.selected';
   private leasedId?: string;
+  private refreshTimer?: ReturnType<typeof setInterval>;
   private leaseHeartbeat?: ReturnType<typeof setInterval>;
+  private refreshing = false;
 
-  constructor(
-    private uploadService: UploadFileService,
-    private dialogService: DialogService) { }
-
-  ngOnDestroy(): void {
-    sessionStorage.removeItem(this.SelectedId);
-    this.releaseCurrentLease();
-    if (this.leaseHeartbeat) {
-      clearInterval(this.leaseHeartbeat);
-    }
-  }
+  constructor(private uploadService: UploadFileService, private dialogService: DialogService) { }
 
   ngOnInit() {
+    this.refreshQueue(true);
+    this.refreshTimer = setInterval(() => this.refreshQueue(false), 3000);
     this.leaseHeartbeat = setInterval(() => this.renewCurrentLease(), 30000);
-    this.loadResponseFileInfos()
-      .then(() => { })
-      .catch(error => console.error(error));
   }
 
-  async loadResponseFileInfos() {
-    this.responseFileInfos = [];
-    this.page = 1;
-    this.pages = { size: 0, number: -1, totalElements: 0, totalPages: 1 };
-    const lastPage = Number(sessionStorage.getItem(this.SelectedId));
-    this.page = Number.isFinite(lastPage) && lastPage > 0 ? lastPage : 1;
-    await this.loadPage(this.page);
-  }
-
-  async loadPage(page: number) {
+  ngOnDestroy(): void {
     this.releaseCurrentLease();
-    const requestedPage = Math.max(1, page);
-    const files = await this.uploadService.getFiles(requestedPage - 1, 1).toPromise();
-    this.pages = files.page;
-    if (this.pages.totalElements === 0) {
-      this.page = 1;
+    if (this.refreshTimer) clearInterval(this.refreshTimer);
+    if (this.leaseHeartbeat) clearInterval(this.leaseHeartbeat);
+  }
+
+  get displayedSummaries(): ResponseFileSummary[] {
+    switch (this.filter) {
+      case 'PROCESSING': return this.summaries.filter(item => item.processingStatus === 'PROCESSING');
+      case 'QUEUED': return this.summaries.filter(item => item.processingStatus === 'QUEUED');
+      case 'ATTENTION': return this.summaries.filter(item => this.isReady(item) && !!item.manualReviewRequired);
+      case 'ERROR': return this.summaries.filter(item => item.processingStatus === 'ERROR');
+      default: return this.summaries;
+    }
+  }
+
+  count(filter: QueueFilter): number {
+    if (filter === 'ALL') return this.summaries.length;
+    if (filter === 'ATTENTION') return this.summaries.filter(item => this.isReady(item) && !!item.manualReviewRequired).length;
+    return this.summaries.filter(item => item.processingStatus === filter).length;
+  }
+
+  setFilter(filter: QueueFilter) {
+    this.filter = filter;
+    if (!this.selectedSummary || !this.displayedSummaries.some(item => item.id === this.selectedSummary?.id)) {
+      const candidate = this.displayedSummaries.find(item => this.isReady(item) && item.availableForVerification);
+      if (candidate) this.select(candidate);
+    }
+  }
+
+  async select(summary: ResponseFileSummary) {
+    this.selectedSummary = summary;
+    if (!this.isReady(summary) || !summary.availableForVerification) {
+      this.releaseCurrentLease();
       this.responseFileInfos = [];
       return;
     }
-    this.page = Math.min(requestedPage, this.pages.totalElements);
-    if (this.page !== requestedPage) {
-      return this.loadPage(this.page);
-    }
-    const available = files._embedded?.responseFileInfoes ?? [];
-    if (!available.length) {
-      this.responseFileInfos = [];
-      return;
-    }
+    if (this.leasedId === summary.id && this.responseFileInfos.length) return;
+    this.releaseCurrentLease();
+    this.responseFileInfos = [];
     try {
-      const claimed = await this.uploadService.claimForVerification(available[0].id).toPromise();
-      this.responseFileInfos = claimed ? [claimed] : [];
-      this.leasedId = claimed?.id;
+      const claimed = await this.uploadService.claimForVerification(summary.id).toPromise();
+      if (claimed) {
+        this.leasedId = claimed.id;
+        this.responseFileInfos = [claimed];
+      }
     } catch (error) {
-      console.warn('Le formulaire vient d\'être réservé par un autre appareil.', error);
-      await this.loadResponseFileInfos();
-      return;
+      console.warn('Formulaire réservé par un autre appareil.', error);
+      await this.refreshQueue(false);
     }
-    sessionStorage.setItem(this.SelectedId, String(this.page));
+  }
+
+  async refreshQueue(selectFirst: boolean) {
+    if (this.refreshing) return;
+    this.refreshing = true;
+    try {
+      const page = await this.uploadService.getProcessingQueue(0, 500).toPromise();
+      this.summaries = page?.content ?? [];
+      this.queueTotal = page?.totalElements ?? 0;
+      if (this.selectedSummary) {
+        this.selectedSummary = this.summaries.find(item => item.id === this.selectedSummary?.id);
+      }
+      if ((selectFirst || !this.selectedSummary) && !this.leasedId) {
+        const candidate = this.displayedSummaries.find(item => this.isReady(item) && item.availableForVerification)
+          ?? this.summaries.find(item => this.isReady(item) && item.availableForVerification);
+        if (candidate) await this.select(candidate);
+      }
+    } catch (error) {
+      console.error('Impossible de rafraîchir la file des formulaires.', error);
+    } finally {
+      this.loading = false;
+      this.refreshing = false;
+    }
+  }
+
+  deletePage(_: number) {
+    const previousId = this.selectedSummary?.id;
+    this.releaseCurrentLease();
+    this.responseFileInfos = [];
+    this.selectedSummary = undefined;
+    this.summaries = this.summaries.filter(item => item.id !== previousId);
+    this.refreshQueue(true);
+  }
+
+  retry(summary: ResponseFileSummary, event: Event) {
+    event.stopPropagation();
+    this.uploadService.retryProcessing(summary.id).subscribe({
+      next: () => this.refreshQueue(false),
+      error: error => console.error('Impossible de relancer le traitement.', error)
+    });
+  }
+
+  isReady(summary: ResponseFileSummary): boolean {
+    return !summary.processingStatus
+      || summary.processingStatus.startsWith('READY')
+      || summary.processingStatus === 'MANUAL_REVIEW_REQUIRED';
+  }
+
+  statusLabel(summary: ResponseFileSummary): string {
+    if (!summary.availableForVerification && this.isReady(summary)) return 'Vérifié ailleurs';
+    if (summary.processingStatus === 'QUEUED') return 'En attente';
+    if (summary.processingStatus === 'PROCESSING') return 'Analyse en cours';
+    if (summary.processingStatus === 'ERROR') return 'Échec';
+    if (summary.manualReviewRequired) return 'Attention requise';
+    return 'Prêt à vérifier';
   }
 
   @HostListener('window:keyup', ['$event'])
   keyEvent(event: KeyboardEvent) {
-    if (event.key === 'ArrowRight' && !this.dialogService.hasOpenDialogs()) {
-      this.next();
-    }
-    if (event.key === 'ArrowLeft' && !this.dialogService.hasOpenDialogs()) {
-      this.previous();
-    }
+    if (this.dialogService.hasOpenDialogs()) return;
+    if (event.key === 'ArrowRight') this.navigate(1);
+    if (event.key === 'ArrowLeft') this.navigate(-1);
   }
 
-  next() {
-    if (this.page < this.pages.totalElements) {
-      this.page++;
-      this.loadPage(this.page);
-    }
-  }
-
-  previous() {
-    if (this.page > 1) {
-      this.page--;
-      this.loadPage(this.page);
-    }
-  }
-
-  deletePage(page: number) {
-    if (page > 0 && page <= this.pages.totalElements) {
-      this.pages.totalElements--;
-      if (this.page > this.pages.totalElements)
-        this.page--;
-      this.loadPage(this.page);
-    }
+  private navigate(offset: number) {
+    const candidates = this.displayedSummaries.filter(item => this.isReady(item) && item.availableForVerification);
+    if (!candidates.length) return;
+    const current = candidates.findIndex(item => item.id === this.selectedSummary?.id);
+    const next = Math.min(candidates.length - 1, Math.max(0, current + offset));
+    this.select(candidates[next]);
   }
 
   private renewCurrentLease() {
-    if (!this.leasedId) {
-      return;
-    }
+    if (!this.leasedId) return;
     this.uploadService.renewVerificationLease(this.leasedId).subscribe({
       error: error => {
         console.warn('La réservation du formulaire a expiré.', error);
         this.leasedId = undefined;
-        this.loadResponseFileInfos();
+        this.responseFileInfos = [];
+        this.refreshQueue(true);
       }
     });
   }
@@ -126,10 +169,6 @@ export class ListUploadComponent implements OnInit, OnDestroy {
   private releaseCurrentLease() {
     const id = this.leasedId;
     this.leasedId = undefined;
-    if (id) {
-      this.uploadService.releaseVerificationLease(id).subscribe({
-        error: error => console.debug('Réservation déjà libérée.', error)
-      });
-    }
+    if (id) this.uploadService.releaseVerificationLease(id).subscribe({ error: () => undefined });
   }
 }

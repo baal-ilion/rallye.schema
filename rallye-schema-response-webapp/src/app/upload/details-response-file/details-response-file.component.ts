@@ -33,7 +33,10 @@ export class DetailsResponseFileComponent implements OnInit, OnChanges {
 
   loadTemplate(fileUpload) {
     this.template = new FormTemplate();
-    const href = fileUpload?._links?.responseFileThumbnail?.href || fileUpload?._links?.responseFile?.href;
+    // Les coordonnées des repères sont calculées sur l'image traitée complète.
+    // La miniature reste réservée à la liste : l'utiliser ici peut afficher une
+    // version redimensionnée ou périmée qui ne correspond plus aux coordonnées.
+    const href = fileUpload?._links?.responseFile?.href || fileUpload?._links?.responseFileThumbnail?.href;
     if (href) {
       // Force un src relatif via le proxy /api pour éviter le mixed-content et rester https
       let path = href;

@@ -1,14 +1,11 @@
-.default-point {
-  background: blue;
-  border: 1px solid lightcyan;
-}
-
-.valid-point {
-  background: rgb(0, 255, 0);
-  border: 1px solid lightgreen;
-}
-
-.invalid-point {
-  background: red;
-  border: 1px solid pink;
-}
+:host { display: block; }
+.verification-card { min-width: 0; }
+.verification-header { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.75rem 1rem; border-bottom:1px solid #e3ded5; background:#f8f6f2; }
+.verification-header>div { display:flex; flex-direction:column; gap:.12rem; min-width:0; }
+.verification-header strong { overflow:hidden; color:#3f3933; font-size:1rem; text-overflow:ellipsis; white-space:nowrap; }
+.verification-kicker { color:#8a796a; font-size:.7rem; font-weight:700; letter-spacing:.055em; text-transform:uppercase; }
+.verification-help { display:flex; align-items:center; gap:.55rem; margin:.7rem 1rem 0; padding:.55rem .7rem; border-left:3px solid #a8754f; border-radius:.2rem; color:#625b54; background:#f4eee7; font-size:.78rem; }
+.verification-document { display:flex; justify-content:center; min-width:0; padding:1rem; overflow:auto; }
+.verification-document app-details-response-file { display:block; width:min(100%, 900px); border:1px solid #d6d0c7; box-shadow:0 3px 12px rgba(48,42,32,.12); }
+.verification-actions { position:sticky; bottom:0; z-index:2; padding:.35rem .75rem .65rem; border-top:1px solid #e3ded5; background:rgba(255,255,255,.96); backdrop-filter:blur(4px); }
+@media(max-width:700px){.verification-header{align-items:flex-start;flex-direction:column}.verification-header .btn{width:100%}.verification-document{padding:.5rem}.verification-help{margin:.5rem}}

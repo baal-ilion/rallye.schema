@@ -1,6 +1,7 @@
 <div *ngIf="!isSelected && selecteds.length > 0" class="row">
   <div class="col bg-warning mx-auto text-center"><strong>Cette page a déjà été importée !</strong></div>
 </div>
+<div *ngIf="actionError" class="alert alert-danger mt-2 mb-2" role="alert">{{actionError}}</div>
 <div class="d-flex justify-content-center mt-2 text-center">
   <div class="btn-group d-flex justify-content-center flex-wrap">
     <button type="button" *ngIf="!responseFileInfo.checked && selecteds.length === 0" class="btn btn-success"

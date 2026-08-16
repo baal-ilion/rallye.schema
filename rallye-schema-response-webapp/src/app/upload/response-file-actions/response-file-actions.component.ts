@@ -26,6 +26,7 @@ export class ResponseFileActionsComponent implements OnInit, OnChanges {
   selecteds: ResponseFileInfo[] = [];
   selectables: ResponseFileInfo[] = [];
   actionsMenuOpen = false;
+  actionError = '';
 
   constructor(
     private uploadService: UploadFileService,
@@ -86,6 +87,7 @@ export class ResponseFileActionsComponent implements OnInit, OnChanges {
   }
 
   check() {
+	this.actionError = '';
     this.stageService.selectResponseFile(
       this.responseFileInfo.stage,
       this.responseFileInfo.team,
@@ -97,7 +99,7 @@ export class ResponseFileActionsComponent implements OnInit, OnChanges {
       this.checkedEvent.emit(this.responseFileInfo);
       this.ngOnInit();
     }, err => {
-      console.log(err);
+	  this.showActionError(err);
       this.ngOnInit();
     });
   }
@@ -117,6 +119,7 @@ export class ResponseFileActionsComponent implements OnInit, OnChanges {
   }
 
   replace() {
+	this.actionError = '';
     this.stageService.selectResponseFile(
       this.responseFileInfo.stage,
       this.responseFileInfo.team,
@@ -125,9 +128,9 @@ export class ResponseFileActionsComponent implements OnInit, OnChanges {
         this.responseFileInfo = data;
         this.checkedEvent.emit(data);
         this.ngOnInit();
-      }, err => {
-        console.log(err);
-        this.ngOnInit();
+    }, err => {
+	  this.showActionError(err);
+      this.ngOnInit();
       });
   }
 
@@ -194,5 +197,11 @@ export class ResponseFileActionsComponent implements OnInit, OnChanges {
 
   closeActionsMenu() {
     this.actionsMenuOpen = false;
+  }
+
+  private showActionError(error: any) {
+	this.actionError = error?.error?.message
+	  || 'Impossible d’accepter le formulaire. Vérifiez que l’équipe, l’épreuve et la page existent.';
+	console.error(this.actionError, error);
   }
 }
