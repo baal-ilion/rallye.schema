@@ -1,5 +1,8 @@
 ﻿<nav class="navbar fixed-top navbar-expand-lg navbar-light bg-light">
-  <a class="navbar-brand" [routerLink]="'.'" (click)="rememberUrl($event, '/')">{{ title }}</a>
+  <a class="navbar-brand rallye-brand" [routerLink]="'.'" (click)="rememberUrl($event, '/')">
+    <img src="assets/logo-rallye.png" alt="Boussole du Rallye">
+    <span><strong>Rallye Schéma</strong><small>Gestion du rallye</small></span>
+  </a>
   <button
     class="navbar-toggler"
     type="button"

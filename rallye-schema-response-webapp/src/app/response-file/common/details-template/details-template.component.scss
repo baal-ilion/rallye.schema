@@ -1,16 +1,16 @@
 .default-point {
-  background: blue;
-  border: 1px solid lightcyan;
+  background: #334c60;
+  border: 1px solid #aebdca;
 }
 
 .valid-point {
-  background: rgb(0, 255, 0);
-  border: 1px solid lightgreen;
+  background: #557b3a;
+  border: 1px solid #b7cca4;
 }
 
 .invalid-point {
-  background: red;
-  border: 1px solid pink;
+  background: #ad4545;
+  border: 1px solid #d6aaa9;
 }
 
 .response-file > img {
@@ -28,16 +28,16 @@
 }
 
 .template-overlay .default-point {
-  fill: blue;
-  stroke: lightcyan;
+  fill: #526f8a;
+  stroke: #aebdca;
 }
 
 .template-overlay .valid-point {
-  fill: rgb(0, 255, 0);
-  stroke: lightgreen;
+  fill: #4f772d;
+  stroke: #b7cca4;
 }
 
 .template-overlay .invalid-point {
-  fill: red;
-  stroke: pink;
+  fill: #a94442;
+  stroke: #d6aaa9;
 }

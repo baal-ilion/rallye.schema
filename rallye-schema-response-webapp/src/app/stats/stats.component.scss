@@ -28,39 +28,39 @@
 }
 
 .participants-group .chart-fill {
-  background: #0d6efd !important; /* blue */
+  background: #334c60 !important; /* principal / en cours */
 }
 
 .duration-group .chart-fill:nth-child(1) {
   background: #6c757d !important; /* gray for min */
 }
 .duration-group .chart-fill:nth-child(2) {
-  background: #28a745 !important; /* green for avg */
+  background: #557b3a !important; /* succès / moyenne */
 }
 .duration-group .chart-fill:nth-child(3) {
-  background: #dc3545 !important; /* red for max */
+  background: #ad4545 !important; /* danger / maximum */
 }
 
 .performance-group .chart-fill:nth-child(1) {
   background: #343a40 !important; /* dark min */
 }
 .performance-group .chart-fill:nth-child(2) {
-  background: #fd7e14 !important; /* orange avg */
+  background: #ad7d24 !important; /* or / moyenne */
 }
 .performance-group .chart-fill:nth-child(3) {
-  background: #dc3545 !important; /* red max */
+  background: #ad4545 !important; /* danger / maximum */
 }
 
 .popularity-group .chart-fill {
-  background: #28a745 !important; /* green */
+  background: #557b3a !important; /* vert boussole */
 }
 
 .group-popularity-group .chart-fill {
-  background: #ff9800 !important; /* orange */
+  background: #ad7d24 !important; /* or boussole */
 }
 
 .questions-detail-group .chart-fill {
-  background: #0dcaf0 !important; /* light blue */
+  background: #417684 !important; /* information */
 }
 
 .framed-table {

@@ -16,6 +16,30 @@ $container-max-widths: (
   xxl: 1700px,
 );
 
+// Palette fonctionnelle du front, alignée sur le designer et la boussole.
+// Les significations Bootstrap restent inchangées ; seules les teintes sont
+// harmonisées. Cette carte alimente boutons, badges, alertes, tableaux d'état,
+// bordures, textes et fonds utilitaires.
+$primary: #334c60;
+$secondary: #6c757d;
+$success: #557b3a;
+$info: #417684;
+$warning: #ad7d24;
+$danger: #ad4545;
+$light: #f8f9fa;
+$dark: #343a40;
+
+$theme-colors: (
+  "primary": $primary,
+  "secondary": $secondary,
+  "success": $success,
+  "info": $info,
+  "warning": $warning,
+  "danger": $danger,
+  "light": $light,
+  "dark": $dark,
+);
+
 // Import BT sources
 @import "bootstrap/scss/bootstrap";
 
@@ -27,6 +51,335 @@ body {
   margin: 0;
   font-family: Roboto, "Helvetica Neue", sans-serif;
   padding-top: 60px;
+  color: #212529;
+  background: #f1f3f5;
+}
+
+/*
+ * Charte commune du front.
+ *
+ * Elle ne redéfinit volontairement aucune couleur fonctionnelle Bootstrap
+ * (boutons, alertes, badges, fonds success/danger/warning/primary, etc.). Les
+ * couleurs métier et les statuts restent ainsi immédiatement reconnaissables.
+ */
+:root {
+  --rallye-ink: #212529;
+  --rallye-muted: #6c757d;
+  --rallye-primary: #6c757d;
+  --rallye-primary-dark: #5c636a;
+  --rallye-gold: #a66f00;
+  --rallye-gold-dark: #765000;
+  --rallye-gold-soft: #f7f0e1;
+  --rallye-green: #5b8734;
+  --rallye-green-dark: #416326;
+  --rallye-green-soft: #edf3e8;
+  --rallye-page: #f1f3f5;
+  --rallye-surface: #fff;
+  --rallye-surface-soft: #f8f9fa;
+  --rallye-surface-accent: #f7f0e1;
+  --rallye-border: #d5d9dd;
+  --rallye-shadow: 0 3px 12px rgba(33, 37, 41, 0.09);
+}
+
+h1, h2, h3, h4, h5, h6,
+.card-title,
+.modal-title {
+  color: var(--rallye-ink);
+}
+
+.text-muted {
+  color: var(--rallye-muted) !important;
+}
+
+/* Titres principaux de la variante claire et institutionnelle. La boussole
+ * reste dans la marque du menu afin de ne pas surcharger chaque page. */
+.container > .row:first-child h1,
+.processing-header h1,
+.intake-header h1 {
+  min-height: 3rem;
+  display: flex;
+  align-items: center;
+  margin-bottom: .75rem;
+  padding: .55rem 1rem !important;
+  border: 1px solid var(--rallye-border);
+  border-left: 4px solid var(--rallye-green);
+  border-bottom: 2px solid var(--rallye-gold);
+  border-radius: .35rem;
+  color: #263238;
+  background-color: #fff;
+  background-image: none;
+  box-shadow: 0 2px 7px rgba(33, 37, 41, .07);
+  font-size: 1.55rem;
+  font-weight: 500;
+  text-align: left !important;
+}
+
+/* Navigation principale et menus */
+.navbar.bg-light {
+  border-bottom: 1px solid var(--rallye-border);
+  background: #fff !important;
+  box-shadow: 0 2px 10px rgba(33, 37, 41, 0.12);
+}
+
+.navbar-light .navbar-brand {
+  color: var(--rallye-green-dark);
+  font-weight: 700;
+}
+
+.navbar-light .navbar-nav .nav-link {
+  color: #495057;
+}
+
+.navbar-light .navbar-nav .nav-link:hover,
+.navbar-light .navbar-nav .show > .nav-link {
+  color: var(--rallye-green-dark);
+}
+
+.dropdown-menu {
+  border-color: var(--rallye-border);
+  border-radius: 0.45rem;
+  box-shadow: 0 5px 16px rgba(33, 37, 41, 0.14);
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  color: var(--rallye-gold-dark);
+  background: var(--rallye-gold-soft);
+}
+
+.dropdown-divider {
+  border-color: var(--rallye-border);
+}
+
+/* Cartes, panneaux et fenêtres */
+.card,
+.modal-content,
+.list-group,
+.table-responsive {
+  border-color: var(--rallye-border);
+  border-radius: 0.55rem;
+}
+
+.card,
+.modal-content {
+  background: var(--rallye-surface);
+  box-shadow: 0 2px 8px rgba(33, 37, 41, .07);
+}
+
+.card-header:not([class*="bg-"]),
+.modal-header,
+.list-group-item:not([class*="list-group-item-"]) {
+  border-color: var(--rallye-border);
+  color: var(--rallye-ink);
+  background: #f1f3f5;
+}
+
+.card-header:not([class*="bg-"]) {
+  border-left: 3px solid var(--rallye-green);
+  border-bottom: 2px solid var(--rallye-gold);
+  border-top-left-radius: calc(0.55rem - 1px);
+  border-top-right-radius: calc(0.55rem - 1px);
+  font-weight: 600;
+}
+
+.card-footer:not([class*="bg-"]),
+.modal-footer {
+  border-color: var(--rallye-border);
+  background: #f8f9fa;
+}
+
+.modal-header {
+  border-top-left-radius: calc(0.55rem - 1px);
+  border-top-right-radius: calc(0.55rem - 1px);
+}
+
+/* Tableaux neutres : les lignes et cellules portant une couleur d'état ne
+ * sont pas ciblées et conservent donc leur sémantique actuelle. */
+.table {
+  color: var(--rallye-ink);
+  background: var(--rallye-surface);
+}
+
+.table thead th:not([class*="bg-"]) {
+  border-color: #cfd4d8;
+  border-bottom: 2px solid var(--rallye-gold);
+  color: #343a40;
+  background: #e9ecef;
+}
+
+.table td,
+.table th {
+  border-color: #dee2e6;
+}
+
+.table-hover tbody tr:not([class*="table-"]):hover {
+  background: var(--rallye-gold-soft);
+}
+
+/* Champs de saisie et navigation secondaire */
+.form-control,
+.custom-select,
+.custom-file-label,
+.input-group-text {
+  border-color: #cec5bb;
+}
+
+.form-control,
+.custom-select,
+.custom-file-label {
+  color: var(--rallye-ink);
+  background-color: var(--rallye-surface);
+}
+
+.input-group-text {
+  color: #495057;
+  background: #e9ecef;
+}
+
+.form-control:focus,
+.custom-select:focus,
+.custom-file-input:focus ~ .custom-file-label {
+  border-color: var(--rallye-green);
+  box-shadow: 0 0 0 0.2rem rgba(91, 135, 52, 0.17);
+}
+
+.nav-tabs {
+  border-color: var(--rallye-border);
+}
+
+.nav-tabs .nav-link {
+  color: #655b52;
+}
+
+.nav-tabs .nav-link:hover {
+  border-color: #e5dfd7 #e5dfd7 var(--rallye-border);
+  background: var(--rallye-surface-soft);
+}
+
+.nav-tabs .nav-link.active {
+  border-color: var(--rallye-border) var(--rallye-border) var(--rallye-surface);
+  color: var(--rallye-green-dark);
+  background: var(--rallye-surface);
+  box-shadow: inset 0 -3px var(--rallye-gold);
+}
+
+.page-link {
+  border-color: var(--rallye-border);
+  color: var(--rallye-green-dark);
+}
+
+.page-link:hover {
+  border-color: var(--rallye-border);
+  color: var(--rallye-gold-dark);
+  background: var(--rallye-gold-soft);
+}
+
+hr {
+  border-color: var(--rallye-border);
+}
+
+/* Grands bandeaux de titre historiques. La classe bg-secondary est aussi
+ * utilisée par des graphiques et des statuts : les sélecteurs restent donc
+ * volontairement limités aux vrais conteneurs de titre. */
+h4.bg-secondary,
+.col-12.bg-secondary,
+.active-table-title.bg-secondary {
+  border: 1px solid var(--rallye-primary-dark);
+  border-left: 4px solid var(--rallye-green);
+  border-bottom: 3px solid var(--rallye-gold);
+  border-radius: 0.25rem;
+  color: #fff !important;
+  background: var(--rallye-primary) !important;
+  box-shadow: 0 2px 6px rgba(33, 37, 41, 0.11);
+}
+
+.col-12.bg-secondary > h4,
+h4.bg-secondary.text-white,
+.active-table-title.bg-secondary.text-white {
+  color: #fff !important;
+}
+
+h4.bg-secondary,
+.col-12.bg-secondary > h4,
+.active-table-title.bg-secondary {
+  padding-top: 0.45rem !important;
+  padding-bottom: 0.45rem !important;
+  font-weight: 600;
+}
+
+/* Harmonisation des écrans récents dont les styles sont encapsulés dans
+ * leurs composants. Les couleurs d'erreur, de succès et d'avertissement ne
+ * sont pas neutralisées : seules leurs surfaces d'interface le sont. */
+.processing-page,
+.capture-shell,
+.gallery-overlay {
+  color: var(--rallye-ink) !important;
+  background: var(--rallye-page) !important;
+}
+
+.queue-filters button.active,
+.primary-capture,
+.bottom-actions button,
+.gallery-overlay > footer button {
+  color: #fff !important;
+  background: #526f8a !important;
+}
+
+.queue-item.selected {
+  border-color: var(--rallye-green) !important;
+  background: var(--rallye-green-soft) !important;
+  box-shadow: inset 3px 0 var(--rallye-gold) !important;
+}
+
+.queue-empty i,
+.selection-state > i,
+.counter-button i,
+.intake-kicker,
+.capture-topbar span:first-child {
+  color: var(--rallye-green-dark) !important;
+}
+
+.verification-help,
+.intake-tip,
+.launch-screen aside {
+  border-left-color: var(--rallye-green) !important;
+  color: #495057 !important;
+  background: var(--rallye-gold-soft) !important;
+}
+
+.drop-zone:hover,
+.drop-zone.dragging {
+  border-color: var(--rallye-green) !important;
+  background: var(--rallye-green-soft) !important;
+  box-shadow: inset 0 0 0 2px rgba(91, 135, 52, .08) !important;
+}
+
+.drop-icon,
+.launcher-icon {
+  color: #fff !important;
+  background: var(--rallye-green) !important;
+}
+
+.intake-card,
+.queue-panel,
+.verification-panel,
+.gallery-card {
+  border-color: var(--rallye-border) !important;
+  background: #fff !important;
+  box-shadow: 0 2px 8px rgba(33, 37, 41, .07) !important;
+}
+
+.upload-list > header,
+.queue-panel-title,
+.capture-topbar,
+.gallery-overlay > header {
+  border-color: var(--rallye-border) !important;
+  color: var(--rallye-ink) !important;
+  background: #f1f3f5 !important;
+}
+
+.progress-bar:not(.bg-success):not(.bg-danger):not(.bg-warning):not(.bg-info) {
+  background: #526f8a !important;
 }
 
 .toggle-row label {
@@ -65,4 +418,871 @@ body {
 
 .modal .card-footer .btn {
   margin: 0;
+}
+
+/* ========================================================================
+ * RALLYE SCHEMA — DESIGN SYSTEM GLOBAL
+ * Cette couche finale unifie les écrans historiques et les écrans récents.
+ * ====================================================================== */
+:root {
+  --rs-ink: #24323f;
+  --rs-title: #1d2b36;
+  --rs-muted: #66737e;
+  --rs-navy: #334c60;
+  --rs-navy-dark: #243b4d;
+  --rs-green: #557b3a;
+  --rs-green-dark: #3e6029;
+  --rs-green-soft: #eef4ea;
+  --rs-gold: #b18435;
+  --rs-gold-soft: #faf5e9;
+  --rs-page: #f4f5f3;
+  --rs-surface: #fff;
+  --rs-soft: #f8f9f7;
+  --rs-border: #dce1dd;
+  --rs-border-strong: #c7cfca;
+  --rs-radius: .65rem;
+  --rs-shadow: 0 4px 18px rgba(29, 43, 54, .07);
+  --rs-shadow-raised: 0 10px 30px rgba(29, 43, 54, .13);
+
+  --rallye-ink: var(--rs-ink);
+  --rallye-muted: var(--rs-muted);
+  --rallye-primary: var(--rs-navy);
+  --rallye-primary-dark: var(--rs-navy-dark);
+  --rallye-gold: var(--rs-gold);
+  --rallye-gold-dark: #806022;
+  --rallye-gold-soft: var(--rs-gold-soft);
+  --rallye-green: var(--rs-green);
+  --rallye-green-dark: var(--rs-green-dark);
+  --rallye-green-soft: var(--rs-green-soft);
+  --rallye-page: var(--rs-page);
+  --rallye-surface: var(--rs-surface);
+  --rallye-surface-soft: var(--rs-soft);
+  --rallye-surface-accent: var(--rs-gold-soft);
+  --rallye-border: var(--rs-border);
+  --rallye-shadow: var(--rs-shadow);
+}
+
+body {
+  padding-top: 72px;
+  color: var(--rs-ink);
+  background: var(--rs-page);
+  font-family: Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: .94rem;
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4, h5, h6, .card-title, .modal-title {
+  color: var(--rs-title);
+  font-weight: 650;
+  letter-spacing: -.015em;
+}
+
+.container, .container-fluid {
+  padding-right: clamp(1rem, 2vw, 2rem);
+  padding-left: clamp(1rem, 2vw, 2rem);
+}
+
+/* Titres de pages : hiérarchie légère, sans gros pavé coloré. */
+.container > .row:first-child h1,
+.container-fluid > .row:first-child h1,
+.processing-header h1,
+.intake-header h1 {
+  position: relative;
+  min-height: auto;
+  display: flex;
+  align-items: center;
+  margin: 0 0 1.1rem;
+  padding: .25rem 0 .7rem 1rem !important;
+  border: 0;
+  border-bottom: 1px solid var(--rs-border);
+  border-radius: 0;
+  color: var(--rs-title);
+  background: transparent !important;
+  box-shadow: none;
+  font-size: clamp(1.45rem, 2vw, 1.85rem);
+  font-weight: 650;
+  text-align: left !important;
+}
+
+.container > .row:first-child h1::before,
+.container-fluid > .row:first-child h1::before,
+.processing-header h1::before,
+.intake-header h1::before {
+  position: absolute;
+  top: .3rem;
+  bottom: .75rem;
+  left: 0;
+  width: 4px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, var(--rs-green) 0 68%, var(--rs-gold) 68%);
+  content: "";
+}
+
+/* Navigation */
+.navbar.bg-light {
+  min-height: 64px;
+  padding: .4rem clamp(.75rem, 2vw, 1.75rem);
+  border: 0;
+  border-bottom: 1px solid var(--rs-border);
+  background: #fff !important;
+  box-shadow: 0 3px 16px rgba(29, 43, 54, .09);
+}
+
+.navbar-light .navbar-brand { margin-right: 1.5rem; color: var(--rs-title); }
+.navbar-light .navbar-nav .nav-link {
+  margin: 0 .08rem;
+  padding: .6rem .72rem;
+  border-radius: .45rem;
+  color: #44535f;
+  font-size: .88rem;
+  font-weight: 550;
+  transition: color .15s ease, background .15s ease;
+}
+.navbar-light .navbar-nav .nav-link:hover,
+.navbar-light .navbar-nav .show > .nav-link {
+  color: var(--rs-green-dark);
+  background: var(--rs-green-soft);
+}
+
+.dropdown-menu {
+  margin-top: .45rem;
+  padding: .4rem;
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius);
+  box-shadow: var(--rs-shadow-raised);
+}
+.dropdown-item {
+  padding: .55rem .7rem;
+  border-radius: .4rem;
+  color: #364652;
+  font-size: .875rem;
+}
+.dropdown-item:hover, .dropdown-item:focus {
+  color: var(--rs-green-dark);
+  background: var(--rs-green-soft);
+}
+.dropdown-divider { margin: .35rem .45rem; border-color: var(--rs-border); }
+
+/* Panneaux, cartes et dialogues */
+.card, .modal-content {
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius);
+  background: var(--rs-surface);
+  box-shadow: var(--rs-shadow);
+}
+.card-header:not([class*="bg-"]) {
+  position: relative;
+  padding: .8rem 1rem;
+  border-color: var(--rs-border);
+  border-left: 0;
+  border-bottom: 1px solid var(--rs-border);
+  border-radius: calc(var(--rs-radius) - 1px) calc(var(--rs-radius) - 1px) 0 0;
+  color: var(--rs-title);
+  background: var(--rs-soft);
+  font-weight: 650;
+}
+.card-header:not([class*="bg-"])::after {
+  position: absolute;
+  bottom: -1px;
+  left: 1rem;
+  width: 2.75rem;
+  height: 2px;
+  background: var(--rs-gold);
+  content: "";
+}
+.card-body { padding: 1rem; }
+.card-footer:not([class*="bg-"]), .modal-footer {
+  border-color: var(--rs-border);
+  background: var(--rs-soft);
+}
+.modal-header {
+  padding: .9rem 1.1rem;
+  border-color: var(--rs-border);
+  border-radius: calc(var(--rs-radius) - 1px) calc(var(--rs-radius) - 1px) 0 0;
+  background: var(--rs-soft);
+}
+.list-group { overflow: hidden; border-color: var(--rs-border); border-radius: var(--rs-radius); }
+.list-group-item { padding: .72rem .9rem; border-color: var(--rs-border); }
+.list-group-item-action:hover { color: var(--rs-green-dark); background: var(--rs-green-soft); }
+
+/* Tableaux */
+.table-responsive {
+  overflow: auto;
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius);
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(29, 43, 54, .045);
+}
+.table { margin-bottom: 0; color: var(--rs-ink); background: #fff; }
+.table thead th:not([class*="bg-"]) {
+  padding: .72rem .75rem;
+  border-color: var(--rs-border-strong);
+  border-top: 0;
+  border-bottom: 2px solid var(--rs-green);
+  color: #31424f;
+  background: #edf0ee;
+  font-size: .79rem;
+  font-weight: 700;
+  letter-spacing: .025em;
+  text-transform: uppercase;
+}
+.table td, .table th {
+  padding: .62rem .75rem;
+  border-color: #e3e7e4;
+  vertical-align: middle;
+}
+.table-striped tbody tr:nth-of-type(odd):not([class*="table-"]) { background: #fafbf9; }
+.table-hover tbody tr:not([class*="table-"]):hover { background: var(--rs-gold-soft); }
+
+/* Formulaires */
+label { color: #43525d; font-size: .84rem; font-weight: 600; }
+.form-group { margin-bottom: 1rem; }
+.form-control, .custom-select, .custom-file-label, .input-group-text {
+  min-height: 2.35rem;
+  border-color: var(--rs-border-strong);
+  border-radius: .45rem;
+}
+.form-control, .custom-select, .custom-file-label { color: var(--rs-ink); background: #fff; }
+.input-group-text { color: #4c5b66; background: #edf0ee; }
+.form-control:focus, .custom-select:focus, .custom-file-input:focus ~ .custom-file-label {
+  border-color: var(--rs-green);
+  box-shadow: 0 0 0 .18rem rgba(85, 123, 58, .14);
+}
+.form-control:disabled, .form-control[readonly], .custom-select:disabled { background: #eef1ef; }
+
+/* Boutons : formes identiques, couleur réservée à la signification. */
+.btn {
+  min-height: 2.25rem;
+  padding: .43rem .78rem;
+  border-radius: .45rem;
+  font-size: .85rem;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(29, 43, 54, .06);
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+}
+.btn:hover:not(:disabled) { box-shadow: 0 3px 9px rgba(29, 43, 54, .13); transform: translateY(-1px); }
+.btn:active:not(:disabled) { box-shadow: none; transform: translateY(0); }
+.btn-sm { min-height: 1.9rem; padding: .3rem .58rem; font-size: .78rem; }
+.btn-lg { min-height: 2.75rem; padding: .6rem 1rem; }
+
+/* Navigation secondaire */
+.nav-tabs { gap: .2rem; border-color: var(--rs-border); }
+.nav-tabs .nav-link { padding: .6rem .85rem; color: #50606c; font-weight: 550; }
+.nav-tabs .nav-link:hover { border-color: transparent; color: var(--rs-green-dark); background: var(--rs-green-soft); }
+.nav-tabs .nav-link.active {
+  border-color: var(--rs-border) var(--rs-border) #fff;
+  color: var(--rs-green-dark);
+  background: #fff;
+  box-shadow: inset 0 -2px var(--rs-gold);
+}
+.pagination { gap: .25rem; }
+.page-link { min-width: 2.2rem; border-color: var(--rs-border); border-radius: .4rem !important; color: var(--rs-green-dark); text-align: center; }
+.page-link:hover { color: var(--rs-navy-dark); background: var(--rs-green-soft); }
+.page-item.active .page-link { border-color: var(--rs-green); background: var(--rs-green); }
+
+/* Anciens bandeaux : transformés en intertitres sobres. */
+h4.bg-secondary,
+.col-12.bg-secondary,
+.active-table-title.bg-secondary {
+  padding: .62rem .9rem !important;
+  border: 1px solid var(--rs-border) !important;
+  border-left: 4px solid var(--rs-navy) !important;
+  border-bottom: 1px solid var(--rs-border) !important;
+  border-radius: .5rem !important;
+  color: var(--rs-title) !important;
+  background: #edf0ee !important;
+  box-shadow: none !important;
+  font-weight: 650 !important;
+}
+.col-12.bg-secondary > h4,
+h4.bg-secondary.text-white,
+.active-table-title.bg-secondary.text-white { color: var(--rs-title) !important; }
+
+/* Messages et statuts */
+.alert { padding: .72rem .9rem; border-width: 1px 1px 1px 4px; border-radius: .5rem; box-shadow: 0 2px 8px rgba(29, 43, 54, .045); }
+.badge { padding: .36em .58em; border-radius: 1rem; font-weight: 650; letter-spacing: .01em; }
+.progress { overflow: hidden; border-radius: 1rem; background: #e5e9e6; box-shadow: inset 0 1px 2px rgba(29, 43, 54, .08); }
+
+/* Écrans récents : mêmes surfaces et mêmes règles que le reste du front. */
+.processing-page, .capture-shell, .gallery-overlay { color: var(--rs-ink) !important; background: var(--rs-page) !important; }
+.processing-page, .intake-page { padding-top: 1rem !important; }
+.intake-card, .queue-panel, .verification-panel, .gallery-card {
+  border: 1px solid var(--rs-border) !important;
+  border-radius: var(--rs-radius) !important;
+  background: #fff !important;
+  box-shadow: var(--rs-shadow) !important;
+}
+.upload-list > header, .queue-panel-title, .capture-topbar, .gallery-overlay > header, .verification-header {
+  border-color: var(--rs-border) !important;
+  color: var(--rs-title) !important;
+  background: var(--rs-soft) !important;
+}
+.queue-filters {
+  gap: .3rem !important;
+  padding: .3rem !important;
+  border-color: var(--rs-border) !important;
+  background: #fff !important;
+  box-shadow: 0 2px 9px rgba(29, 43, 54, .05) !important;
+}
+.queue-filters button { color: #4d5b66 !important; background: transparent !important; }
+.queue-filters button:hover { background: var(--rs-soft) !important; }
+.queue-filters button.active, .primary-capture, .bottom-actions button, .gallery-overlay > footer button {
+  color: #fff !important;
+  background: var(--rs-navy) !important;
+}
+.queue-item:hover { border-color: var(--rs-border) !important; background: var(--rs-soft) !important; }
+.queue-item.selected { border-color: #b8c9ad !important; background: var(--rs-green-soft) !important; box-shadow: inset 3px 0 var(--rs-green) !important; }
+.verification-help, .intake-tip, .launch-screen aside {
+  border-left-color: var(--rs-gold) !important;
+  color: #4d5b66 !important;
+  background: var(--rs-gold-soft) !important;
+}
+.drop-zone { border-color: var(--rs-border-strong) !important; background: var(--rs-soft) !important; }
+.drop-zone:hover, .drop-zone.dragging { border-color: var(--rs-green) !important; background: var(--rs-green-soft) !important; }
+.drop-icon, .launcher-icon { color: #fff !important; background: var(--rs-green) !important; }
+
+@media (max-width: 991.98px) {
+  body { padding-top: 66px; }
+  .navbar-collapse { margin-top: .45rem; padding: .45rem; border: 1px solid var(--rs-border); border-radius: var(--rs-radius); background: #fff; box-shadow: var(--rs-shadow); }
+  .navbar-light .navbar-nav .nav-link { margin: .08rem 0; }
+  .dropdown-menu { margin: 0 .4rem .3rem; border: 0; box-shadow: none; }
+}
+
+@media (max-width: 575.98px) {
+  .container, .container-fluid { padding-right: .75rem; padding-left: .75rem; }
+  .container > .row:first-child h1, .container-fluid > .row:first-child h1, .processing-header h1, .intake-header h1 { font-size: 1.35rem; }
+  .card-body { padding: .8rem; }
+  .table td, .table th { padding: .52rem .58rem; }
+  .btn { min-height: 2.35rem; }
+}
+
+/* ========================================================================
+ * HIÉRARCHIE DES TITRES ET TITRES INTÉGRÉS AUX TABLEAUX
+ * ====================================================================== */
+
+/* Le titre de page doit rester le point d'entrée visuel de chaque écran. */
+.container > .row:first-child h1,
+.container-fluid > .row:first-child h1,
+.processing-header h1,
+.intake-header h1 {
+  min-height: 3.55rem;
+  margin-bottom: 1.25rem;
+  padding: .72rem 1.15rem .78rem 1.35rem !important;
+  border: 1px solid #263f52;
+  border-radius: .6rem;
+  color: #fff;
+  background: linear-gradient(105deg, var(--rs-navy-dark), var(--rs-navy)) !important;
+  box-shadow: 0 5px 16px rgba(36, 59, 77, .17);
+  font-size: clamp(1.55rem, 2.1vw, 1.95rem);
+  letter-spacing: -.02em;
+}
+
+.container > .row:first-child h1::before,
+.container-fluid > .row:first-child h1::before,
+.processing-header h1::before,
+.intake-header h1::before {
+  top: .65rem;
+  bottom: .65rem;
+  left: .68rem;
+  width: 5px;
+  background: linear-gradient(180deg, #7ea45f 0 66%, #d4ac5b 66%);
+}
+
+/* Une ligne de titre immédiatement suivie d'un tableau devient son bandeau. */
+.row:has(> .bg-secondary):has(+ .row table),
+.row:has(> h4.bg-secondary):has(+ .row table) {
+  position: relative;
+  z-index: 1;
+  margin-top: 1.5rem !important;
+  margin-bottom: 0 !important;
+}
+
+.row:has(> .bg-secondary):has(+ .row table) > .bg-secondary,
+.row:has(> h4.bg-secondary):has(+ .row table) > h4.bg-secondary {
+  margin-bottom: 0 !important;
+  padding: .72rem 1rem !important;
+  border: 1px solid var(--rs-navy-dark) !important;
+  border-bottom: 0 !important;
+  border-left: 1px solid var(--rs-navy-dark) !important;
+  border-radius: var(--rs-radius) var(--rs-radius) 0 0 !important;
+  color: #fff !important;
+  background: linear-gradient(100deg, var(--rs-navy-dark), var(--rs-navy)) !important;
+  box-shadow: 0 3px 10px rgba(36, 59, 77, .11) !important;
+}
+
+.row:has(> .bg-secondary):has(+ .row table) > .bg-secondary > h4,
+.row:has(> h4.bg-secondary):has(+ .row table) > h4.bg-secondary {
+  color: #fff !important;
+  font-size: 1rem;
+  font-weight: 700 !important;
+  letter-spacing: .005em;
+  text-align: left !important;
+}
+
+.row:has(> .bg-secondary):has(+ .row table) + .row,
+.row:has(> h4.bg-secondary):has(+ .row table) + .row {
+  margin-top: 0 !important;
+}
+
+.row:has(> .bg-secondary):has(+ .row table) + .row > .table-responsive,
+.row:has(> h4.bg-secondary):has(+ .row table) + .row > .table-responsive {
+  border-top: 0;
+  border-radius: 0 0 var(--rs-radius) var(--rs-radius);
+  box-shadow: var(--rs-shadow);
+}
+
+.row:has(> .bg-secondary):has(+ .row table) + .row > table,
+.row:has(> h4.bg-secondary):has(+ .row table) + .row > table {
+  overflow: hidden;
+  margin-top: 0;
+  border: 1px solid var(--rs-border);
+  border-top: 0;
+  border-radius: 0 0 var(--rs-radius) var(--rs-radius);
+  background: #fff;
+  box-shadow: var(--rs-shadow);
+}
+
+/* Variante déjà structurée en enveloppe dédiée. */
+
+/* Un titre de carte placé juste avant un tableau est intégré à son cadre. */
+.card-body > .card-title:has(+ .table-responsive),
+.card-body > .card-title:has(+ table) {
+  margin: -1rem -1rem 0;
+  padding: .72rem 1rem;
+  border-radius: calc(var(--rs-radius) - 1px) calc(var(--rs-radius) - 1px) 0 0;
+  color: #fff;
+  background: linear-gradient(100deg, var(--rs-navy-dark), var(--rs-navy));
+  font-size: 1rem;
+}
+.card-body > .card-title + .table-responsive { margin-right: -1rem; margin-left: -1rem; border-right: 0; border-left: 0; border-radius: 0; box-shadow: none; }
+
+@media (max-width: 575.98px) {
+  .container > .row:first-child h1,
+  .container-fluid > .row:first-child h1,
+  .processing-header h1,
+  .intake-header h1 {
+    min-height: 3.15rem;
+    padding: .62rem .8rem .66rem 1.15rem !important;
+    font-size: 1.35rem;
+  }
+  .container > .row:first-child h1::before,
+  .container-fluid > .row:first-child h1::before,
+  .processing-header h1::before,
+  .intake-header h1::before { left: .52rem; }
+}
+
+/* ========================================================================
+ * FORMAT UNIQUE DE TOUS LES TABLEAUX DU FRONT
+ * Référence visuelle : tableaux de classement.
+ * ====================================================================== */
+
+table.table {
+  width: 100%;
+  margin-bottom: 0 !important;
+  border-spacing: 0;
+  color: var(--rs-ink) !important;
+  background: #fff !important;
+  font-size: .9rem;
+}
+
+table.table > thead,
+table.table > thead.bg-light,
+table.table > thead > tr,
+table.table > thead > tr[class*="bg-"] {
+  color: #31424f !important;
+  background: #edf0ee !important;
+}
+
+table.table > thead > tr > th,
+table.table > thead > tr > td,
+table.table > thead > tr[class*="bg-"] > th,
+table.table > thead > tr[class*="bg-"] > td {
+  padding: .7rem .75rem !important;
+  border-top: 0 !important;
+  border-right: 0 !important;
+  border-bottom: 2px solid var(--rs-green) !important;
+  border-left: 0 !important;
+  color: #31424f !important;
+  background: #edf0ee !important;
+  font-size: .79rem !important;
+  font-weight: 700 !important;
+  line-height: 1.25;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  vertical-align: middle !important;
+}
+
+table.table > thead > tr > th + th,
+table.table > thead > tr > td + td {
+  border-left: 1px solid #d8deda !important;
+}
+
+table.table > tbody > tr {
+  color: var(--rs-ink);
+  background: #fff;
+}
+
+table.table.table-striped > tbody > tr:nth-of-type(odd):not([class*="table-"]) {
+  background: #fafbf9 !important;
+}
+
+table.table > tbody > tr > th,
+table.table > tbody > tr > td {
+  padding: .62rem .75rem !important;
+  border-top: 1px solid #e3e7e4 !important;
+  border-right: 0 !important;
+  border-bottom: 0 !important;
+  border-left: 0 !important;
+  color: inherit;
+  background-color: transparent;
+  vertical-align: middle !important;
+}
+
+table.table > tbody > tr:first-child > th,
+table.table > tbody > tr:first-child > td {
+  border-top: 0 !important;
+}
+
+table.table > tbody > tr > th + td,
+table.table > tbody > tr > td + td {
+  border-left: 1px solid #edf0ee !important;
+}
+
+table.table-hover > tbody > tr:not([class*="table-"]):hover {
+  background: var(--rs-gold-soft) !important;
+}
+
+/* Les couleurs de statut restent portées par la ligne, avec un texte lisible. */
+table.table > tbody > tr.table-primary,
+table.table > tbody > tr.table-secondary,
+table.table > tbody > tr.table-success,
+table.table > tbody > tr.table-danger,
+table.table > tbody > tr.table-warning,
+table.table > tbody > tr.table-info {
+  color: #263540;
+}
+
+/* Cadre commun aux tableaux qui ne sont pas déjà dans un conteneur. */
+.row > table.table,
+.col-12 > table.table,
+.active-table-body > table.table {
+  overflow: hidden;
+  border: 1px solid var(--rs-border);
+  border-radius: 0 0 var(--rs-radius) var(--rs-radius);
+  box-shadow: var(--rs-shadow);
+}
+
+/* Titre et tableau présents dans la même ligne (ex. distribution des lots). */
+.row > .bg-secondary + .table-responsive {
+  border-top: 0 !important;
+  border-radius: 0 0 var(--rs-radius) var(--rs-radius) !important;
+}
+.row:has(> .bg-secondary + .table-responsive) > .bg-secondary {
+  padding: .72rem 1rem !important;
+  border: 1px solid var(--rs-navy-dark) !important;
+  border-bottom: 0 !important;
+  border-left: 1px solid var(--rs-navy-dark) !important;
+  border-radius: var(--rs-radius) var(--rs-radius) 0 0 !important;
+  color: #fff !important;
+  background: linear-gradient(100deg, var(--rs-navy-dark), var(--rs-navy)) !important;
+  box-shadow: 0 3px 10px rgba(36, 59, 77, .11) !important;
+}
+.row:has(> .bg-secondary + .table-responsive) > .bg-secondary h4 {
+  color: #fff !important;
+  font-size: 1rem;
+  text-align: left !important;
+}
+
+/* Écrans dont un message de chargement peut séparer le titre du tableau. */
+.table-title-row {
+  margin-bottom: 0 !important;
+}
+.table-title-row > .bg-secondary {
+  padding: .72rem 1rem !important;
+  border: 1px solid var(--rs-navy-dark) !important;
+  border-bottom: 0 !important;
+  border-left: 1px solid var(--rs-navy-dark) !important;
+  border-radius: var(--rs-radius) var(--rs-radius) 0 0 !important;
+  color: #fff !important;
+  background: linear-gradient(100deg, var(--rs-navy-dark), var(--rs-navy)) !important;
+  box-shadow: 0 3px 10px rgba(36, 59, 77, .11) !important;
+}
+.table-title-row > .bg-secondary h4 {
+  color: #fff !important;
+  font-size: 1rem;
+  text-align: left !important;
+}
+.table-content-row { margin-top: 0 !important; }
+.table-content-row table.table {
+  border-top: 0;
+  border-radius: 0 0 var(--rs-radius) var(--rs-radius);
+}
+
+/* Tableau imbriqué dans un bloc statistique. */
+.chart-title:has(+ .chart-group .table-responsive) {
+  margin-bottom: 0 !important;
+  padding: .72rem 1rem !important;
+  border: 1px solid var(--rs-navy-dark) !important;
+  border-bottom: 0 !important;
+  border-radius: var(--rs-radius) var(--rs-radius) 0 0 !important;
+  color: #fff !important;
+  background: linear-gradient(100deg, var(--rs-navy-dark), var(--rs-navy)) !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+}
+.chart-title:has(+ .chart-group .table-responsive) + .chart-group {
+  margin-top: 0 !important;
+  padding: 0 !important;
+  border-top: 0 !important;
+  border-radius: 0 0 var(--rs-radius) var(--rs-radius) !important;
+}
+
+/* Garantit le même axe gauche/droite entre chaque titre et son tableau. */
+.table-title-row,
+.table-content-row,
+.row:has(> .bg-secondary):has(+ .row table),
+.row:has(> .bg-secondary):has(+ .row table) + .row {
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+}
+
+.table-title-row > .col-12,
+.table-content-row > .col-12 {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Le tableau dédié ne doit plus réintroduire une palette locale. */
+@media (max-width: 575.98px) {
+  table.table { font-size: .84rem; }
+  table.table > thead > tr > th,
+  table.table > thead > tr > td { padding: .58rem .55rem !important; font-size: .72rem !important; }
+  table.table > tbody > tr > th,
+  table.table > tbody > tr > td { padding: .55rem !important; }
+}
+
+/* Bandeau de page avec action intégrée (paramétrage). */
+.container > .row:first-child.page-title-actions-row {
+  position: relative;
+  min-height: 3.55rem;
+  align-items: center;
+  margin-right: 0;
+  margin-bottom: 1.25rem;
+  margin-left: 0;
+  padding: .5rem .8rem .5rem .7rem;
+  border: 1px solid #263f52;
+  border-radius: .6rem;
+  background: linear-gradient(105deg, var(--rs-navy-dark), var(--rs-navy));
+  box-shadow: 0 5px 16px rgba(36, 59, 77, .17);
+}
+
+.container > .row:first-child.page-title-actions-row::before {
+  position: absolute;
+  top: .65rem;
+  bottom: .65rem;
+  left: .68rem;
+  width: 5px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #7ea45f 0 66%, #d4ac5b 66%);
+  content: "";
+}
+
+.page-title-actions-row h1 {
+  min-height: auto !important;
+  margin: 0 !important;
+  padding: .2rem .5rem .2rem .7rem !important;
+  border: 0 !important;
+  color: #fff !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-size: clamp(1.55rem, 2.1vw, 1.95rem) !important;
+  text-align: left !important;
+}
+
+.page-title-actions-row h1::before { display: none !important; }
+
+.page-title-actions-row > [class*="col-"] {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.page-title-actions-row > .col-3 {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.page-title-actions-row .btn-success {
+  border-color: #789b5c;
+  background: #5f8543;
+  box-shadow: 0 2px 7px rgba(15, 28, 18, .2);
+  white-space: nowrap;
+}
+
+.page-title-actions-row .btn-success:hover {
+  border-color: #8aac6d;
+  background: #6d934f;
+}
+
+/* Colonne d'actions commune aux listes de paramétrage. */
+table.table .table-actions-column {
+  width: 1%;
+  min-width: 12rem;
+  padding-right: .75rem !important;
+  padding-left: .75rem !important;
+  white-space: nowrap;
+  text-align: left !important;
+}
+
+table.table .table-action-button {
+  min-width: 5.25rem;
+  min-height: 1.95rem;
+  margin-right: 0 !important;
+  padding: .3rem .58rem;
+  font-size: .78rem;
+  text-align: center;
+}
+
+table.table .table-action-button + .table-action-button {
+  margin-left: .4rem !important;
+}
+
+table.table .table-actions-column .d-flex {
+  justify-content: flex-start !important;
+}
+
+/* Grilles de colonnes des listes et classements. */
+table.table.stage-param-table,
+table.table.team-param-table,
+table.table.ranking-table,
+table.table.prize-table {
+  table-layout: fixed;
+}
+
+table.table.stage-param-table th,
+table.table.stage-param-table td,
+table.table.team-param-table th,
+table.table.team-param-table td,
+table.table.ranking-table th,
+table.table.ranking-table td,
+table.table.prize-table th,
+table.table.prize-table td {
+  text-align: left !important;
+}
+
+table.table .compact-column {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+table.table .fluid-column { width: auto; }
+
+table.table.stage-param-table th:nth-child(1) { width: 4rem; }
+table.table.stage-param-table th:nth-child(3) { width: 9rem; }
+table.table.stage-param-table th:nth-child(4) { width: 10.5rem; }
+table.table.stage-param-table th:nth-child(5) { width: 12rem; }
+table.table.stage-param-table th:last-child { width: 12rem; }
+
+table.table.team-param-table th:nth-child(1) { width: 4rem; }
+table.table.team-param-table th:last-child { width: 12rem; }
+
+table.table.ranking-table th:nth-child(1) { width: 8rem; }
+table.table.ranking-table th:nth-child(2) { width: 8rem; }
+table.table.ranking-table .fluid-column ~ .compact-column { width: 9rem; }
+
+table.table.prize-table th:nth-child(1) { width: 10rem; }
+table.table.prize-table th:nth-child(2) { width: 8rem; }
+table.table.prize-table th:nth-child(4) { width: 5rem; }
+table.table.prize-table th:nth-child(5) { width: 6rem; }
+
+@media (max-width: 767.98px) {
+  table.table.stage-param-table,
+  table.table.team-param-table,
+  table.table.ranking-table,
+  table.table.prize-table { min-width: 720px; }
+}
+
+/* Tableaux ajustés à leur contenu : aucune colonne ne force l'étirement. */
+.data-table-fit {
+  flex: 0 1 auto !important;
+  width: fit-content !important;
+  max-width: 100%;
+  margin-right: auto !important;
+  margin-left: auto !important;
+}
+
+.data-table-fit > .row {
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+}
+
+.data-table-fit .table-responsive {
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+}
+
+table.table.stage-param-table,
+table.table.team-param-table,
+table.table.ranking-table,
+table.table.prize-table,
+.data-table-fit table.table {
+  width: max-content !important;
+  min-width: 0;
+  max-width: none;
+  table-layout: auto !important;
+  margin-right: auto !important;
+  margin-left: auto !important;
+}
+
+table.table.stage-param-table th,
+table.table.stage-param-table td,
+table.table.team-param-table th,
+table.table.team-param-table td,
+table.table.ranking-table th,
+table.table.ranking-table td,
+table.table.prize-table th,
+table.table.prize-table td,
+.data-table-fit table.table th,
+.data-table-fit table.table td {
+  width: auto !important;
+  min-width: 0;
+  max-width: none;
+  overflow: visible;
+  text-align: center !important;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.data-table-fit .table-actions-column {
+  min-width: 0;
+  text-align: center !important;
+}
+
+.data-table-fit .table-actions-column .d-flex {
+  justify-content: center !important;
+}
+
+.data-table-fit h4 { text-align: center !important; }
+
+/* Conserve une zone de respiration sous le dernier tableau de chaque page.
+ * Le padding appartient au conteneur de page : il ne s'ajoute donc pas entre
+ * plusieurs tableaux successifs et reste visible au bas de la zone de défilement. */
+.raw > .col-12 {
+  padding-bottom: 2rem;
+}
+
+@media (max-width: 575.98px) {
+  .container > .row:first-child.page-title-actions-row {
+    display: flex;
+    gap: .55rem;
+    padding: .48rem .55rem .48rem .7rem;
+  }
+  .page-title-actions-row > .col-9 { flex: 1 1 auto; width: auto; max-width: none; padding-right: .25rem; padding-left: .35rem; }
+  .page-title-actions-row > .col-3 { flex: 0 0 auto; width: auto; max-width: none; padding: 0; }
+  .page-title-actions-row > .col-12 { padding: 0 .1rem 0 .35rem; }
+  .page-title-actions-row h1 { padding-left: .35rem !important; font-size: 1.25rem !important; }
+  .page-title-actions-row .btn { min-height: 2.2rem; padding: .38rem .55rem; font-size: .75rem; }
 }

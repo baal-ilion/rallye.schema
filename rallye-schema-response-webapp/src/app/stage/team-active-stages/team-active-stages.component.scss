@@ -1,5 +1,5 @@
 .active-table {
-  width: auto;
+  width: 100%;
   table-layout: auto;
 }
 
@@ -10,35 +10,16 @@
   padding-right: 2.5rem;
 }
 
-.active-table td:last-child {
+.active-table .active-stages-cell {
   white-space: normal;
-  padding-right: 0;
+  padding-right: 1rem;
+}
+
+.active-table th:last-child {
+  padding-right: 1rem;
 }
 
 .active-stage-line + .active-stage-line {
   margin-top: 0.25rem;
 }
 
-.active-table-wrapper {
-  display: inline-block;
-  max-width: 100%;
-  width: auto;
-  border: none;
-  background: transparent;
-  box-shadow: none;
-}
-
-.active-table-title {
-  margin: 0 0 0.25rem 0;
-  width: 100%;
-  font-size: 1.5rem;
-}
-
-.active-table-header {
-  margin: 0;
-  width: 100%;
-}
-
-.active-table-body {
-  padding: 0;
-}

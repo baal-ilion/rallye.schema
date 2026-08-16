@@ -3,6 +3,42 @@
 .processing-header { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem; }
 .processing-header h1 { margin:0; color:#343a40; font-size:1.65rem; font-weight:700; }
 .processing-header p { margin:.2rem 0 0; color:#6c757d; }
+
+/* En-tête aligné sur la charte commune des pages. */
+.processing-header {
+  position: relative;
+  padding: .72rem 1.15rem .78rem 1.35rem;
+  border: 1px solid #263f52;
+  border-radius: .6rem;
+  background: linear-gradient(105deg, #243b4d, #334c60);
+  box-shadow: 0 5px 16px rgba(36, 59, 77, .17);
+}
+.processing-header::before {
+  position: absolute;
+  top: .65rem;
+  bottom: .65rem;
+  left: .68rem;
+  width: 5px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #7ea45f 0 66%, #d4ac5b 66%);
+  content: "";
+}
+.processing-header h1 {
+  min-height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  color: #fff !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-size: clamp(1.55rem, 2.1vw, 1.95rem) !important;
+}
+.processing-header h1::before { display: none !important; }
+.processing-header p { color: #dce5ea; }
+.processing-header .btn-outline-primary { border-color: #c9d5dc; color: #fff; background: rgba(255,255,255,.05); }
+.processing-header .btn-outline-primary:hover { border-color: #fff; color: #243b4d; background: #fff; }
+.processing-header .btn-primary { border-color: #6f964f; color: #fff; background: #557b3a; }
+.processing-header .btn-primary:hover { border-color: #7da35f; background: #648b48; }
 .processing-header-actions { display:flex; gap:.5rem; flex-wrap:wrap; }
 .queue-filters { display:flex; gap:.35rem; overflow-x:auto; padding:.35rem; margin-bottom:.75rem; background:#fff; border:1px solid #ddd8ce; border-radius:.6rem; box-shadow:0 2px 6px rgba(48,42,32,.07); }
 .queue-filters button { display:flex; align-items:center; gap:.45rem; border:0; border-radius:.42rem; padding:.48rem .72rem; white-space:nowrap; color:#5b5348; background:transparent; }

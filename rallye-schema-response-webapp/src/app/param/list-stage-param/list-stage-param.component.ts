@@ -4,6 +4,7 @@ import { StageParam } from '../models/stage-param';
 import { NewStageParamComponent } from '../new-stage-param/new-stage-param.component';
 import { StageParamService } from '../stage-param.service';
 import { DialogService } from 'src/app/shared/dialog/dialog.service';
+import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
 
 interface StageParamDetail {
   param: StageParam;
@@ -28,7 +29,8 @@ export class ListStageParamComponent implements OnInit {
 
   constructor(
     private stageParamService: StageParamService,
-    private dialogService: DialogService) { }
+    private dialogService: DialogService,
+    private confirmationDialogService: ConfirmationDialogService) { }
 
   ngOnInit() {
     this.loadStageParamDetails();
@@ -107,6 +109,25 @@ export class ListStageParamComponent implements OnInit {
       }
     } catch (error) {
       console.log(error);
+    }
+  }
+
+  async deleteStageParam(stageParam: StageParam): Promise<void> {
+    if (!stageParam.id) {
+      return;
+    }
+    try {
+      const confirmed = await this.confirmationDialogService.confirm(
+        'Suppression de l\'épreuve ' + stageParam.name,
+        'Cette opération est irréversible.\nVoulez-vous supprimer l\'épreuve ' + stageParam.stage + ' - ' + stageParam.name + ' ?',
+        'Oui', 'Non');
+      if (confirmed) {
+        await this.stageParamService.deleteStageParam(stageParam.id).toPromise();
+      }
+      await this.loadStageParamDetails();
+    } catch (error) {
+      console.log(error);
+      await this.loadStageParamDetails();
     }
   }
 }
