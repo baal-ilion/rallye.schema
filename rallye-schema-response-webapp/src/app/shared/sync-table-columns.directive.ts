@@ -47,6 +47,13 @@ export class TableColumnSyncRegistry {
       table.closest<HTMLElement>('.data-table-fit')?.style.removeProperty('width');
     });
 
+    // Sur smartphone, les largeurs fixes calculées sur le contenu feraient
+    // déborder les tableaux. Le CSS responsive répartit alors les colonnes
+    // dans la largeur disponible et autorise les retours à la ligne.
+    if (window.matchMedia('(max-width: 767.98px)').matches) {
+      return;
+    }
+
     requestAnimationFrame(() => {
       const columnCount = Math.max(...tables.map(table =>
         Array.from(table.rows[0]?.cells ?? []).reduce((count, cell) => count + cell.colSpan, 0)));

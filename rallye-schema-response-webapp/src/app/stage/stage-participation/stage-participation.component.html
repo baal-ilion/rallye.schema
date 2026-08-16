@@ -1,7 +1,7 @@
 <div class="container mb-5">
 
   <div class="row mt-4 text-center">
-    <h1 class="col-12">Suivi des épreuves</h1>
+    <h1 class="col-12 page-title-with-subtitle">Suivi des épreuves<span class="page-title-subtitle" *ngIf="selectedStageLabel">Épreuve sélectionnée : {{ selectedStageLabel }}</span></h1>
   </div>
 
   <div class="controls-row mt-4 d-flex flex-wrap align-items-center">
@@ -39,12 +39,6 @@
         Tout terminer
       </button>
     </div>
-  </div>
-
-  <div class="row mt-4 mb-0" *ngIf="selectedStageLabel">
-    <h4 class="col-12 px-0 py-1 bg-secondary my-auto text-center text-white">
-      Épreuve sélectionnée : {{ selectedStageLabel }}
-    </h4>
   </div>
 
   <div class="row mt-3" *ngIf="loading || error">

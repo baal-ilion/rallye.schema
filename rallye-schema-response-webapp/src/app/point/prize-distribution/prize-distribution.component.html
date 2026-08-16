@@ -1,6 +1,6 @@
 <div class="container mb-5">
   <div class="row mt-4 text-center">
-    <h1 class="col-12">Distribution des lots</h1>
+    <h1 class="col-12 page-title-with-subtitle">Distribution des lots<span class="page-title-subtitle">Lots attribués selon les classements du rallye.</span></h1>
   </div>
 
   <!-- Messages de statut -->
@@ -18,14 +18,12 @@
 
   <!-- Une seule section avec un tableau unique -->
   <div *ngIf="!loading && !error && prizes.length > 0" class="data-table-fit">
-  <div class="row mt-4">
-    <div class="col-12 px-0 py-1 bg-secondary">
-      <h4 class="my-auto text-center text-white">
-        Lots attribués
-      </h4>
+    <div class="row mt-4">
+      <h4 id="prizes_title" class="col-12 px-0 py-1 bg-secondary my-auto text-center text-white">Lots attribués</h4>
     </div>
-    <div class="col-12 px-0 table-responsive text-nowrap">
-      <table class="table table-sm align-items-center prize-table mb-0">
+    <div class="row mt-0">
+      <table class="col-12 table table-sm align-items-center prize-table mb-0"
+        aria-describedby="prizes_title" appSyncTableColumns="prizes">
         <thead class="bg-light">
           <tr>
             <th scope="col" class="align-middle compact-column">Groupe</th>
@@ -56,6 +54,5 @@
         </tbody>
       </table>
     </div>
-  </div>
   </div>
 </div>

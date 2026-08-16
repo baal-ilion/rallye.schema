@@ -2,7 +2,7 @@
 
   <div class="row mt-4 align-items-center page-title-actions-row">
     <div class="col-12 d-flex align-items-center">
-      <h1 class="flex-grow-1 mb-0 text-center">Groupes d'épreuves</h1>
+      <h1 class="flex-grow-1 mb-0 text-center page-title-with-subtitle">Groupes d'épreuves<span class="page-title-subtitle">Gestion des groupes d'épreuves</span></h1>
       <button class="btn btn-success" (click)="onCreate()">
         Ajouter un groupe
       </button>
@@ -12,12 +12,9 @@
   <div class="data-table-fit">
   <div class="row mt-4 table-title-row">
     <div class="col-12 py-1 bg-secondary">
-      <h4 class="my-auto text-center text-white">
-        Gestion des groupes d'épreuves
-      </h4>
+      <h4 class="my-auto text-center text-white">Liste des groupes d'épreuves</h4>
     </div>
   </div>
-
   <!-- Messages chargement / erreur -->
   <div class="row mt-3" *ngIf="loading || error">
     <div class="col-12">

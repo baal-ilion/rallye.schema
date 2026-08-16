@@ -1,6 +1,6 @@
 <div class="container mb-5" #scrollContainer>
   <div class="row mt-4 text-center">
-    <h1 class="col-12">{{ isStageMode ? 'Classements par épreuve' : 'Classement général' }}</h1>
+    <h1 class="col-12 page-title-with-subtitle">{{ isStageMode ? 'Classements par épreuve' : 'Classement général' }}<span class="page-title-subtitle">{{ isStageMode ? 'Consultez le classement détaillé de chaque épreuve.' : 'Consultez le classement cumulé de toutes les équipes.' }}</span></h1>
   </div>
   <div class="row d-print-none toggle-row">
     <div class="col-12 d-flex justify-content-end align-items-center">

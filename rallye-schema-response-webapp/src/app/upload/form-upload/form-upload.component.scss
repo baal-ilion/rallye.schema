@@ -33,3 +33,20 @@
 .intake-header h1::before { display: none !important; }
 .intake-header p { color: #dce5ea; }
 .intake-kicker { color: #d9b96f; }
+
+/* Le contenu reste compact, mais le bandeau suit la largeur de l'écran,
+ * comme celui de la page de traitement des formulaires. */
+.intake-header {
+  position: relative;
+  left: 50%;
+  width: calc(100vw - 2.5rem);
+  margin-right: 0;
+  margin-left: 0;
+  transform: translateX(-50%);
+}
+
+@media (max-width: 700px) {
+  .intake-header {
+    width: calc(100vw - 1.4rem);
+  }
+}

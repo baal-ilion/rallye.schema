@@ -1,4 +1,4 @@
-<main class="capture-shell" [class.camera-mode]="cameraActive"
+<main class="capture-shell" [class.camera-mode]="cameraActive" [class.gallery-mode]="galleryOpen"
   [style.position]="cameraActive || galleryOpen ? 'fixed' : 'relative'"
   [style.inset]="cameraActive || galleryOpen ? '0' : 'auto'"
   [style.z-index]="cameraActive || galleryOpen ? '2000' : 'auto'"
@@ -7,20 +7,22 @@
   <input #cameraInput type="file" class="d-none" accept="image/*" capture="environment" multiple
     (change)="addDevicePhotos($event.target.files)">
 
-  <header class="capture-topbar" [style.display]="cameraActive ? 'none' : 'flex'">
-    <div><span>Formulaires papier</span><h1>Photographier</h1></div>
-    <button *ngIf="capturedForms.length" type="button" class="counter-button" (click)="openGallery()">
-      <i class="fas fa-images"></i><strong>{{capturedForms.length}}</strong><span>page(s)</span>
-    </button>
-  </header>
+  <div class="row mb-3 text-center" [style.display]="cameraActive ? 'none' : 'flex'">
+    <h1 class="col-12 page-title-with-subtitle">Photographier des formulaires
+      <span class="page-title-subtitle">Photographiez les formulaires papier page par page depuis l'appareil disponible.</span>
+    </h1>
+  </div>
 
-  <section *ngIf="!cameraActive" class="launch-screen">
+  <section *ngIf="!cameraActive" class="launch-screen intake-card">
     <div class="launcher-icon"><i class="fas fa-camera"></i></div>
     <h2>{{capturedForms.length ? 'Prêt pour la page suivante' : 'Une page après l’autre'}}</h2>
     <p>Posez le formulaire à plat et gardez ses quatre repères noirs visibles.</p>
     <button type="button" class="primary-capture" [disabled]="cameraStarting" (click)="startCapture()">
       <i [class]="cameraStarting ? 'fas fa-spinner fa-spin' : 'fas fa-camera'"></i>
       {{cameraStarting ? 'Ouverture…' : 'Ouvrir l’appareil photo'}}
+    </button>
+    <button *ngIf="capturedForms.length" type="button" class="counter-button" (click)="openGallery()">
+      <i class="fas fa-images"></i><strong>{{capturedForms.length}}</strong><span>page(s) photographiée(s)</span>
     </button>
     <aside><i class="fas fa-lightbulb"></i> Évitez les ombres et les reflets. Le traitement redressera automatiquement la page.</aside>
   </section>

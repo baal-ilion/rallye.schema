@@ -1,25 +1,21 @@
-.active-table {
-  width: 100%;
-  table-layout: auto;
-}
-
 .active-table th,
 .active-table td {
   vertical-align: middle;
-  white-space: nowrap;
-  padding-right: 2.5rem;
 }
 
 .active-table .active-stages-cell {
   white-space: normal;
-  padding-right: 1rem;
-}
-
-.active-table th:last-child {
-  padding-right: 1rem;
 }
 
 .active-stage-line + .active-stage-line {
   margin-top: 0.25rem;
+}
+
+@media (min-width: 768px) {
+  /* Sur ordinateur, chaque colonne suit la largeur réelle de son contenu. */
+  .active-table .active-stages-cell,
+  .active-stage-line {
+    white-space: nowrap;
+  }
 }
 

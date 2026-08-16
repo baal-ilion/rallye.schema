@@ -756,6 +756,65 @@ h4.bg-secondary.text-white,
   .btn { min-height: 2.35rem; }
 }
 
+/* Accueil de la photographie : même composition que la page d'import des
+ * formulaires numérisés. Les modes appareil photo et galerie conservent leur
+ * interface plein écran spécifique. */
+app-form-capture .capture-shell:not(.camera-mode):not(.gallery-mode) {
+  position: relative !important;
+  inset: auto !important;
+  z-index: auto !important;
+  display: block !important;
+  width: auto !important;
+  max-width: 1050px !important;
+  height: auto !important;
+  min-height: 0;
+  max-height: none !important;
+  margin: 0 auto !important;
+  padding: 1.25rem !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+app-form-capture .capture-shell:not(.camera-mode):not(.gallery-mode) .intake-card {
+  position: relative;
+  display: flex;
+  min-height: 360px;
+  padding: 2rem 1rem 4.25rem;
+  border: 1px solid #ddd8ce;
+  border-radius: .7rem;
+  background: #fff;
+  box-shadow: 0 3px 12px rgba(48, 42, 32, .09);
+}
+
+app-form-capture .capture-shell:not(.camera-mode):not(.gallery-mode) .counter-button {
+  margin-top: .75rem;
+}
+
+app-form-capture .capture-shell:not(.camera-mode):not(.gallery-mode) .launch-screen aside {
+  bottom: .9rem;
+}
+
+app-form-capture .capture-shell:not(.camera-mode):not(.gallery-mode) .bottom-actions {
+  position: relative;
+  margin-top: 1rem;
+  border: 1px solid #ddd8ce;
+  border-radius: .7rem;
+  box-shadow: 0 3px 12px rgba(48, 42, 32, .09);
+}
+
+@media (max-width: 700px) {
+  app-form-capture .capture-shell:not(.camera-mode):not(.gallery-mode) {
+    padding: .7rem !important;
+  }
+
+  app-form-capture .capture-shell:not(.camera-mode):not(.gallery-mode) .intake-card {
+    min-height: 330px;
+  }
+}
+
 /* ========================================================================
  * HIÉRARCHIE DES TITRES ET TITRES INTÉGRÉS AUX TABLEAUX
  * ====================================================================== */
@@ -1272,6 +1331,151 @@ table.table.prize-table td,
  * plusieurs tableaux successifs et reste visible au bas de la zone de défilement. */
 .raw > .col-12 {
   padding-bottom: 2rem;
+}
+
+/* Sous-titre intégré au bandeau principal, sur le modèle de la page de
+ * traitement des formulaires. Le retour à la ligne reste compatible avec
+ * les titres simples et avec les bandeaux qui contiennent une action. */
+.page-title-subtitle {
+  flex: 0 0 100%;
+  display: block;
+  margin-top: .18rem;
+  color: #dce5ea;
+  font-size: .88rem;
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: 0;
+  text-align: left;
+}
+
+.page-title-with-subtitle {
+  flex-wrap: wrap;
+  align-content: center;
+}
+
+.page-title-actions-row .page-title-subtitle {
+  font-size: .82rem;
+}
+
+/* Largeur commune de tous les bandeaux principaux : ils suivent la fenêtre
+ * et ne dépendent plus de la largeur du contenu central de chaque page. */
+.page-title-with-subtitle {
+  position: relative;
+  left: 50%;
+  display: flex;
+  align-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  width: calc(100vw - 2.5rem);
+  max-width: none;
+  flex-basis: auto;
+  padding: .72rem 1.15rem .78rem 1.35rem !important;
+  border: 1px solid #263f52;
+  border-radius: .6rem;
+  color: #fff !important;
+  background: linear-gradient(105deg, var(--rs-navy-dark), var(--rs-navy)) !important;
+  box-shadow: 0 5px 16px rgba(36, 59, 77, .17);
+  font-size: clamp(1.55rem, 2.1vw, 1.95rem);
+  letter-spacing: -.02em;
+  text-align: left !important;
+  transform: translateX(-50%);
+}
+
+.page-title-with-subtitle::before {
+  position: absolute;
+  top: .65rem;
+  bottom: .65rem;
+  left: .68rem;
+  width: 5px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #7ea45f 0 66%, #d4ac5b 66%);
+  content: "";
+}
+
+.container > .row:first-child.page-title-actions-row {
+  left: 50%;
+  width: calc(100vw - 2.5rem);
+  max-width: none;
+  transform: translateX(-50%);
+}
+
+.page-title-actions-row .page-title-with-subtitle {
+  position: static;
+  left: auto;
+  width: auto;
+  max-width: 100%;
+  padding: .2rem .5rem .2rem .7rem !important;
+  border: 0;
+  background: transparent !important;
+  box-shadow: none;
+  transform: none;
+}
+
+@media (max-width: 700px) {
+  .page-title-with-subtitle,
+  .container > .row:first-child.page-title-actions-row {
+    width: calc(100vw - 1.5rem);
+  }
+}
+
+/* La structure interne des bandeaux avec action apporte déjà sa propre
+ * hauteur. On neutralise le remplissage vertical excédentaire afin qu'ils
+ * aient le même gabarit que les bandeaux sans bouton. */
+.container > .row:first-child.page-title-actions-row {
+  padding-top: .15rem;
+  padding-bottom: .15rem;
+}
+
+@media (max-width: 767.98px) {
+  /* Mode mobile : le tableau reste dans la page, avec une respiration à
+   * droite, et son contenu peut revenir à la ligne. */
+  .data-table-fit {
+    width: calc(100% - .4rem) !important;
+    max-width: calc(100% - .4rem);
+    margin-right: .4rem !important;
+    margin-left: 0 !important;
+  }
+
+  .data-table-fit .table-responsive,
+  .table-responsive {
+    width: 100% !important;
+    max-width: 100%;
+    overflow-x: hidden !important;
+  }
+
+  .data-table-fit table.table,
+  table.table {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  .data-table-fit table.table th,
+  .data-table-fit table.table td,
+  table.table th,
+  table.table td {
+    min-width: 0 !important;
+    overflow-wrap: anywhere;
+    white-space: normal !important;
+    word-break: normal;
+  }
+
+  table.table .table-actions-column {
+    min-width: 0;
+    white-space: normal;
+  }
+
+  table.table .table-actions-column .d-flex {
+    flex-wrap: wrap;
+    gap: .3rem;
+  }
+
+  table.table .table-action-button {
+    min-width: 4.4rem;
+    margin: 0 !important;
+  }
+
 }
 
 @media (max-width: 575.98px) {
