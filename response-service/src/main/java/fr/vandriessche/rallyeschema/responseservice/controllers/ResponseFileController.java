@@ -36,6 +36,7 @@ import org.xml.sax.SAXException;
 
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFile;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileInfo;
+import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileSummary;
 import fr.vandriessche.rallyeschema.responseservice.models.ResponseFileInfoModelAssembler;
 import fr.vandriessche.rallyeschema.responseservice.services.ResponseFileService;
 import lombok.extern.java.Log;
@@ -98,6 +99,12 @@ public class ResponseFileController {
 			@RequestParam(required = false) String leaseOwner,
 			PagedResourcesAssembler<ResponseFileInfo> pageAssembler, ResponseFileInfoModelAssembler assembler) {
 		return pageAssembler.toModel(responseFileService.getNotCheckedResponseFileInfos(page, leaseOwner), assembler);
+	}
+
+	@GetMapping(INFO_URL + "/processing-queue")
+	public org.springframework.data.domain.Page<ResponseFileSummary> getProcessingQueue(Pageable page,
+			@RequestParam(required = false) String status, @RequestParam(required = false) String owner) {
+		return responseFileService.getProcessingQueue(page, status, owner);
 	}
 
 	@GetMapping(URL + "/{id}/thumbnail")

@@ -45,6 +45,7 @@ import fr.vandriessche.rallyeschema.responseservice.entities.QuestionType;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFile;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileInfo;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileSource;
+import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileSummary;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseResult;
 import fr.vandriessche.rallyeschema.responseservice.repositories.ResponseFileInfoRepository;
 import fr.vandriessche.rallyeschema.responseservice.repositories.ResponseFileRepository;
@@ -355,6 +356,34 @@ public class ResponseFileService {
 		long total = mongoTemplate.count(query, ResponseFileInfo.class);
 		query.with(pageable);
 		return new PageImpl<>(mongoTemplate.find(query, ResponseFileInfo.class), pageable, total);
+	}
+
+	public Page<ResponseFileSummary> getProcessingQueue(Pageable pageable, String status, String leaseOwner) {
+		Criteria unchecked = new Criteria().orOperator(Criteria.where("checked").is(false),
+				Criteria.where("checked").is(null));
+		Query query = Query.query(unchecked);
+		if (status != null && !status.isBlank()) {
+			if ("READY".equals(status))
+				query.addCriteria(Criteria.where("processingStatus").in("READY", "READY_WITH_WARNINGS", null));
+			else
+				query.addCriteria(Criteria.where("processingStatus").is(status));
+		}
+		long total = mongoTemplate.count(query, ResponseFileInfo.class);
+		query.fields().include("stage").include("page").include("team").include("processingStatus")
+				.include("processingError").include("manualReviewRequired")
+				.include("verificationLeaseOwner").include("verificationLeaseExpiresAt");
+		query.with(pageable);
+		Instant now = Instant.now();
+		List<ResponseFileSummary> summaries = mongoTemplate.find(query, ResponseFileInfo.class).stream().map(info -> {
+			boolean leaseActive = info.getVerificationLeaseOwner() != null
+					&& info.getVerificationLeaseExpiresAt() != null
+					&& info.getVerificationLeaseExpiresAt().isAfter(now);
+			boolean mine = leaseActive && info.getVerificationLeaseOwner().equals(leaseOwner);
+			return new ResponseFileSummary(info.getId(), info.getStage(), info.getPage(), info.getTeam(),
+					info.getProcessingStatus(), info.getProcessingError(), info.getManualReviewRequired(),
+					!leaseActive || mine, mine);
+		}).collect(Collectors.toList());
+		return new PageImpl<>(summaries, pageable, total);
 	}
 
 	private byte[] makeThumbnail(BufferedImage source) throws IOException {
