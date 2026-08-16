@@ -1,9 +1,13 @@
 import { HttpEventType, HttpResponse } from '@angular/common/http';
 import { Component, ElementRef, OnDestroy, ViewChild } from '@angular/core';
-import { Router } from '@angular/router';
 import { UploadFileService } from '../upload-file.service';
 
-type CaptureStatus = 'pending' | 'uploading' | 'processing' | 'done' | 'error';
+type CaptureStatus = 'pending' | 'uploading' | 'done' | 'error';
+
+interface PendingPhoto {
+  file: File;
+  previewUrl: string;
+}
 
 interface CapturedForm {
   id: number;
@@ -33,23 +37,28 @@ export class FormCaptureComponent implements OnDestroy {
   cameraActive = false;
   cameraStarting = false;
   cameraError = '';
+  pendingPhoto?: PendingPhoto;
+  galleryOpen = false;
+  capturing = false;
   private cameraStream?: MediaStream;
   retakingForm?: CapturedForm;
   private nextId = 1;
   private readonly maxConcurrentUploads = 2;
   private activeUploads = 0;
 
-  constructor(private uploadService: UploadFileService, private router: Router) {
+  constructor(private uploadService: UploadFileService) {
   }
 
   ngOnDestroy() {
     this.stopCamera();
+    if (this.pendingPhoto) URL.revokeObjectURL(this.pendingPhoto.previewUrl);
     this.capturedForms.forEach(form => URL.revokeObjectURL(form.previewUrl));
   }
 
   addDevicePhotos(files: FileList | null) {
     if (files) {
       const photos = Array.from(files).filter(file => file.type.startsWith('image/'));
+      if (photos.length) this.playShutterSound();
       if (photos.length && this.retakingForm) {
         this.remove(this.retakingForm);
         this.retakingForm = undefined;
@@ -102,34 +111,56 @@ export class FormCaptureComponent implements OnDestroy {
   }
 
   capturePhoto() {
+    if (this.capturing || this.pendingPhoto) return;
     const video = this.cameraVideo?.nativeElement;
     if (!video || !video.videoWidth || !video.videoHeight) {
       this.cameraError = 'La caméra n’est pas encore prête. Patientez une seconde puis recommencez.';
       return;
     }
+    this.capturing = true;
     const canvas = document.createElement('canvas');
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
-    canvas.toBlob(blob => {
-      if (!blob) {
-        this.cameraError = 'La photographie n’a pas pu être créée.';
-        return;
-      }
+    try {
+      canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
+      this.playShutterSound();
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.96);
+      const blob = this.dataUrlToBlob(dataUrl);
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const file = new File([blob], `formulaire-${timestamp}.jpg`, { type: 'image/jpeg' });
-      if (this.retakingForm) {
-        const previous = this.retakingForm;
-        this.retakingForm = undefined;
-        this.remove(previous);
-      }
-      this.addFile(file);
+      if (this.pendingPhoto) URL.revokeObjectURL(this.pendingPhoto.previewUrl);
+      this.pendingPhoto = { file, previewUrl: URL.createObjectURL(file) };
       this.cameraError = '';
-    }, 'image/jpeg', 0.96);
+    } catch {
+      this.cameraError = 'La photographie n’a pas pu être créée. Veuillez recommencer.';
+    } finally {
+      this.capturing = false;
+    }
+  }
+
+  keepPhoto() {
+    if (!this.pendingPhoto) return;
+    const file = this.pendingPhoto.file;
+    URL.revokeObjectURL(this.pendingPhoto.previewUrl);
+    this.pendingPhoto = undefined;
+    if (this.retakingForm) {
+      const previous = this.retakingForm;
+      this.retakingForm = undefined;
+      this.remove(previous);
+    }
+    this.addFile(file);
+    this.resumeCameraPreview();
+  }
+
+  retakePendingPhoto() {
+    if (!this.pendingPhoto) return;
+    URL.revokeObjectURL(this.pendingPhoto.previewUrl);
+    this.pendingPhoto = undefined;
+    this.resumeCameraPreview();
   }
 
   remove(form: CapturedForm) {
-    if (form.status === 'uploading' || form.status === 'processing' || form.status === 'pending') {
+    if (form.status === 'uploading' || form.status === 'pending') {
       return;
     }
     URL.revokeObjectURL(form.previewUrl);
@@ -142,10 +173,11 @@ export class FormCaptureComponent implements OnDestroy {
   }
 
   async retake(form: CapturedForm) {
-    if (form.status === 'uploading' || form.status === 'processing' || form.status === 'pending') {
+    if (form.status === 'uploading' || form.status === 'pending') {
       return;
     }
     this.retakingForm = form;
+    this.galleryOpen = false;
     if (!this.cameraActive) {
       await this.startCapture();
     }
@@ -155,14 +187,6 @@ export class FormCaptureComponent implements OnDestroy {
     if (form.status !== 'error') {
       return;
     }
-    if (form.responseFileId) {
-      form.status = 'processing';
-      this.uploadService.retryProcessing(form.responseFileId).subscribe({
-        next: () => this.waitForProcessing(form),
-        error: error => this.markAsError(form, error)
-      });
-      return;
-    }
     form.status = 'pending';
     form.progress = 0;
     form.errorMessage = undefined;
@@ -170,16 +194,36 @@ export class FormCaptureComponent implements OnDestroy {
   }
 
   finish() {
-    if (!this.canFinish) {
-      return;
-    }
     this.stopCamera();
-    this.router.navigate(['/listUpload']);
+    if (this.pendingPhoto) URL.revokeObjectURL(this.pendingPhoto.previewUrl);
+    this.pendingPhoto = undefined;
+    this.capturedForms.forEach(form => URL.revokeObjectURL(form.previewUrl));
+    this.capturedForms = [];
+    this.retakingForm = undefined;
+    this.galleryOpen = false;
+    this.cameraError = '';
+    this.nextId = 1;
+  }
+
+  openGallery() {
+    this.galleryOpen = true;
+  }
+
+  closeGallery() {
+    this.galleryOpen = false;
   }
 
   get uploading(): boolean {
     return this.capturedForms.some(form =>
-      form.status === 'pending' || form.status === 'uploading' || form.status === 'processing');
+      form.status === 'pending' || form.status === 'uploading');
+  }
+
+  get sending(): boolean {
+    return this.capturedForms.some(form => form.status === 'pending' || form.status === 'uploading');
+  }
+
+  get receivedCount(): number {
+    return this.capturedForms.filter(form => !!form.responseFileId).length;
   }
 
   get errorCount(): number {
@@ -191,7 +235,25 @@ export class FormCaptureComponent implements OnDestroy {
   }
 
   get canFinish(): boolean {
-    return this.capturedForms.length > 0 && !this.uploading && this.errorCount === 0;
+    return this.capturedForms.length > 0 && !this.sending && this.receivedCount > 0;
+  }
+
+  isLocked(form: CapturedForm): boolean {
+    return form.status === 'uploading' || form.status === 'pending';
+  }
+
+  statusLabel(form: CapturedForm): string {
+    if (form.status === 'pending') return 'En attente';
+    if (form.status === 'uploading') return `Envoi ${form.progress} %`;
+    if (form.status === 'done') return 'Envoyée';
+    return 'Erreur d’envoi';
+  }
+
+  statusIcon(form: CapturedForm): string {
+    if (form.status === 'pending') return 'fas fa-clock';
+    if (form.status === 'uploading') return 'fas fa-spinner fa-spin';
+    if (form.status === 'done') return 'fas fa-check-circle';
+    return 'fas fa-exclamation-circle';
   }
 
   private addFile(file: File) {
@@ -233,8 +295,7 @@ export class FormCaptureComponent implements OnDestroy {
         } else if (event instanceof HttpResponse) {
           form.progress = 100;
           form.responseFileId = (event.body as any)?.id;
-          form.status = 'processing';
-          this.waitForProcessing(form);
+          form.status = 'done';
           this.uploadFinished();
         }
       },
@@ -252,16 +313,57 @@ export class FormCaptureComponent implements OnDestroy {
     this.startNextUploads();
   }
 
-  private waitForProcessing(form: CapturedForm) {
-    this.uploadService.waitForProcessing(form.responseFileId!).subscribe({
-      next: info => {
-        if (info.processingStatus === 'ERROR') {
-          this.markAsError(form, { message: info.processingError });
-        } else {
-          form.status = 'done';
+  private playShutterSound() {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const context = new AudioContextClass();
+      const now = context.currentTime;
+      const scheduleMechanicalClick = (start: number, duration: number, frequency: number, volume: number) => {
+        const frameCount = Math.max(1, Math.floor(context.sampleRate * duration));
+        const buffer = context.createBuffer(1, frameCount, context.sampleRate);
+        const samples = buffer.getChannelData(0);
+        for (let index = 0; index < frameCount; index++) {
+          const envelope = Math.pow(1 - index / frameCount, 4);
+          samples[index] = (Math.random() * 2 - 1) * envelope;
         }
-      },
-      error: error => this.markAsError(form, error)
+        const source = context.createBufferSource();
+        const filter = context.createBiquadFilter();
+        const gain = context.createGain();
+        source.buffer = buffer;
+        filter.type = 'bandpass';
+        filter.frequency.value = frequency;
+        filter.Q.value = 0.8;
+        gain.gain.setValueAtTime(volume, start);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+        source.connect(filter);
+        filter.connect(gain);
+        gain.connect(context.destination);
+        source.start(start);
+      };
+      scheduleMechanicalClick(now, 0.025, 2400, 0.75);
+      scheduleMechanicalClick(now + 0.045, 0.045, 850, 0.6);
+      window.setTimeout(() => context.close(), 180);
+    } catch {
+      // La prise de vue reste disponible si le navigateur interdit le son.
+    }
+  }
+
+  private dataUrlToBlob(dataUrl: string): Blob {
+    const parts = dataUrl.split(',');
+    const mimeType = parts[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+    const binary = atob(parts[1]);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+    return new Blob([bytes], { type: mimeType });
+  }
+
+  private resumeCameraPreview() {
+    requestAnimationFrame(() => {
+      const video = this.cameraVideo?.nativeElement;
+      if (!video || !this.cameraStream) return;
+      if (video.srcObject !== this.cameraStream) video.srcObject = this.cameraStream;
+      video.play().catch(() => undefined);
     });
   }
 

@@ -1,102 +1,82 @@
-<div class="container capture-page mb-5">
-  <div class="row mt-4 text-center capture-heading">
-    <h1 class="col-12">Photographier des formulaires</h1>
-    <p class="col-12 text-muted">
-      Photographiez les pages les unes après les autres. Elles sont envoyées automatiquement.
-    </p>
-  </div>
+<main class="capture-shell" [class.camera-mode]="cameraActive"
+  [style.position]="cameraActive || galleryOpen ? 'fixed' : 'relative'"
+  [style.inset]="cameraActive || galleryOpen ? '0' : 'auto'"
+  [style.z-index]="cameraActive || galleryOpen ? '2000' : 'auto'"
+  [style.height]="cameraActive || galleryOpen ? '100dvh' : 'calc(100dvh - 56px)'"
+  [style.grid-template-rows]="cameraActive ? 'minmax(0,1fr)' : '3.5rem minmax(0,1fr)'">
+  <input #cameraInput type="file" class="d-none" accept="image/*" capture="environment" multiple
+    (change)="addDevicePhotos($event.target.files)">
 
-  <div class="card shadow-sm capture-workspace">
-    <div class="card-body">
-      <input
-        #cameraInput
-        type="file"
-        class="d-none"
-        accept="image/*"
-        capture="environment"
-        multiple
-        (change)="addDevicePhotos($event.target.files)">
+  <header class="capture-topbar" [style.display]="cameraActive ? 'none' : 'flex'">
+    <div><span>Formulaires papier</span><h1>Photographier</h1></div>
+    <button *ngIf="capturedForms.length" type="button" class="counter-button" (click)="openGallery()">
+      <i class="fas fa-images"></i><strong>{{capturedForms.length}}</strong><span>page(s)</span>
+    </button>
+  </header>
 
-      <div *ngIf="!cameraActive" class="capture-start">
-        <i class="fas fa-camera capture-start-icon"></i>
-        <p>Prêt à photographier une ou plusieurs pages ?</p>
-        <button type="button" class="btn btn-primary" [disabled]="cameraStarting" (click)="startCapture()">
-          <i class="fas fa-camera mr-1"></i>
-          {{ cameraStarting ? 'Ouverture…' : 'Commencer la prise de vue' }}
-        </button>
-      </div>
+  <section *ngIf="!cameraActive" class="launch-screen">
+    <div class="launcher-icon"><i class="fas fa-camera"></i></div>
+    <h2>{{capturedForms.length ? 'Prêt pour la page suivante' : 'Une page après l’autre'}}</h2>
+    <p>Posez le formulaire à plat et gardez ses quatre repères noirs visibles.</p>
+    <button type="button" class="primary-capture" [disabled]="cameraStarting" (click)="startCapture()">
+      <i [class]="cameraStarting ? 'fas fa-spinner fa-spin' : 'fas fa-camera'"></i>
+      {{cameraStarting ? 'Ouverture…' : 'Ouvrir l’appareil photo'}}
+    </button>
+    <aside><i class="fas fa-lightbulb"></i> Évitez les ombres et les reflets. Le traitement redressera automatiquement la page.</aside>
+  </section>
 
-      <div *ngIf="cameraError" class="alert alert-warning mt-3 mb-0">{{ cameraError }}</div>
-
-      <div *ngIf="cameraActive" class="camera-panel mt-3">
-        <video #cameraVideo autoplay playsinline muted></video>
-        <div class="camera-controls">
-          <button type="button" class="btn btn-success" (click)="capturePhoto()">
-            <i class="fas fa-camera mr-1"></i>
-            {{ retakingForm ? 'Reprendre la photo' : 'Photographier cette page' }}
-          </button>
-        </div>
-      </div>
-
-      <div class="capture-advice mt-3">
-        <i class="fas fa-lightbulb"></i>
-        Posez la feuille à plat, cadrez les quatre repères noirs et évitez les reflets.
-        Une page légèrement froissée reste acceptable : le traitement tentera de la redresser.
-      </div>
-      <div *ngIf="capturedForms.length" class="capture-grid">
-        <article *ngFor="let form of capturedForms" class="capture-card" [class.capture-done]="form.status === 'done'">
-          <img [src]="form.previewUrl" [alt]="form.file.name">
-          <div class="capture-card-body">
-            <div *ngIf="form.status === 'uploading'" class="progress mt-2">
-              <div
-                class="progress-bar progress-bar-striped progress-bar-animated"
-                role="progressbar"
-                [style.width.%]="form.progress">
-                {{ form.progress }} %
-              </div>
-            </div>
-            <div *ngIf="form.status === 'done'" class="text-success small mt-2">
-              <i class="fas fa-check-circle"></i> Prête
-            </div>
-            <div *ngIf="form.status === 'pending'" class="text-muted small mt-2">
-              <i class="fas fa-clock"></i> En attente dâ€™envoi
-            </div>
-            <div *ngIf="form.status === 'processing'" class="text-info small mt-2">
-              <i class="fas fa-cog fa-spin"></i> Reçue · Analyse en cours
-            </div>
-            <div *ngIf="form.status === 'error'" class="text-danger small mt-2">
-              <i class="fas fa-exclamation-circle"></i> Photo à reprendre
-            </div>
-            <div class="capture-card-actions">
-              <button *ngIf="form.status === 'error'" type="button" class="btn btn-sm btn-outline-secondary"
-                (click)="retry(form)">
-                <i class="fas fa-upload mr-1"></i> Réessayer lâ€™envoi
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-primary"
-                [disabled]="form.status === 'uploading' || form.status === 'processing' || form.status === 'pending'" (click)="retake(form)">
-                <i class="fas fa-redo mr-1"></i> Reprendre
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-danger"
-                [disabled]="form.status === 'uploading' || form.status === 'processing' || form.status === 'pending'" (click)="remove(form)">
-                <i class="fas fa-trash-alt mr-1"></i> Supprimer
-              </button>
-            </div>
-          </div>
-        </article>
-      </div>
-
-      <div class="capture-footer" *ngIf="capturedForms.length">
-        <button
-          type="button"
-          class="btn btn-primary"
-          [disabled]="!canFinish"
-          (click)="finish()">
-          <i *ngIf="uploading" class="fas fa-spinner fa-spin mr-1"></i>
-          <i *ngIf="!uploading" class="fas fa-check mr-1"></i>
-          {{ uploading ? 'Traitement en cours…' : 'Terminer et vérifier les formulaires' }}
-        </button>
-        <span class="capture-summary">{{ readyCount }} page(s) prête(s)</span>
-      </div>
+  <section *ngIf="cameraActive" class="viewfinder">
+    <video #cameraVideo autoplay playsinline muted></video>
+    <div class="sheet-guide" aria-hidden="true"
+      style="top:calc(50% - 1.5rem); bottom:auto; left:50%; right:auto; width:min(calc(100% - 1rem), calc((100dvh - 8.5rem - env(safe-area-inset-bottom)) * .7071)); aspect-ratio:210 / 297; background:rgba(255,255,255,.035); box-shadow:0 0 0 100vmax rgba(0,0,0,.16), 0 0 12px rgba(0,0,0,.22); transform:translate(-50%,-50%);">
+      <i></i><i></i><i></i><i></i>
+      <span style="position:absolute; right:.35rem; bottom:.28rem; padding:.08rem .25rem; border-radius:.2rem; color:rgba(255,255,255,.9); background:rgba(0,0,0,.38); font-size:.52rem; font-weight:700; letter-spacing:.06em;">A4</span>
     </div>
-  </div>
-</div>
+    <div class="viewfinder-message">Gardez les 4 repères visibles</div>
+    <div class="camera-controls">
+      <button type="button" class="finish-camera" (click)="finish()">Terminer</button>
+      <div class="shutter-wrap">
+        <button type="button" class="shutter" [class.capturing]="capturing" [disabled]="capturing"
+          (click)="capturePhoto()" aria-label="Prendre la photo">
+          <span *ngIf="!capturing"></span><i *ngIf="capturing" class="fas fa-spinner fa-spin"></i>
+        </button>
+        <small>{{capturing ? 'Création…' : (retakingForm ? 'Reprendre' : 'Photo')}}</small>
+      </div>
+      <button type="button" class="finish-camera" style="justify-self:end" [disabled]="!capturedForms.length"
+        (click)="openGallery()"><i class="fas fa-images"></i> Pages {{capturedForms.length}}</button>
+    </div>
+
+    <section *ngIf="pendingPhoto" class="photo-review">
+      <img [src]="pendingPhoto.previewUrl" alt="Photo venant d’être prise">
+      <div class="review-title"><i class="fas fa-volume-up"></i> Photo prise</div>
+      <div class="review-actions">
+        <button type="button" class="retake-button" (click)="retakePendingPhoto()"><i class="fas fa-redo"></i><span>Reprendre</span></button>
+        <button type="button" class="keep-button" (click)="keepPhoto()"><i class="fas fa-check"></i><span>Conserver</span></button>
+      </div>
+    </section>
+  </section>
+
+  <div *ngIf="cameraError" class="capture-alert"><i class="fas fa-exclamation-triangle"></i><span>{{cameraError}}</span></div>
+
+  <footer *ngIf="capturedForms.length && !cameraActive" class="bottom-actions">
+    <div><strong>{{receivedCount}}/{{capturedForms.length}} envoyée(s)</strong><small>{{sending ? 'Envoi en cours…' : 'Envoi terminé'}}</small></div>
+    <button type="button" (click)="finish()">Terminer <i class="fas fa-arrow-right"></i></button>
+  </footer>
+
+  <section *ngIf="galleryOpen" class="gallery-overlay">
+    <header><div><strong>Pages photographiées</strong><span>{{capturedForms.length}} page(s)</span></div><button type="button" (click)="closeGallery()"><i class="fas fa-times"></i></button></header>
+    <div class="gallery-strip">
+      <article *ngFor="let form of capturedForms; let pageIndex = index" class="gallery-card" [attr.data-status]="form.status">
+        <span class="gallery-number">{{pageIndex + 1}}</span>
+        <img [src]="form.previewUrl" [alt]="'Page ' + (pageIndex + 1)">
+        <div class="gallery-state"><i [class]="statusIcon(form)"></i> {{statusLabel(form)}}</div>
+        <div class="gallery-actions" *ngIf="!isLocked(form)">
+          <button type="button" (click)="retake(form)"><i class="fas fa-redo"></i> Reprendre</button>
+          <button type="button" class="delete" (click)="remove(form)"><i class="fas fa-trash-alt"></i> Supprimer</button>
+        </div>
+        <button *ngIf="form.status === 'error'" type="button" class="retry" (click)="retry(form)">Réessayer l’envoi</button>
+      </article>
+    </div>
+    <footer><button type="button" (click)="closeGallery()">Retour à la prise de vue</button></footer>
+  </section>
+</main>
