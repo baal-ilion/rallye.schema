@@ -1,11 +1,15 @@
 <main class="processing-page">
-  <header class="processing-header">
-    <div><h1>Traitement des formulaires</h1><p>Suivez les analyses et vérifiez les formulaires prêts sans changer de page.</p></div>
-    <div class="processing-header-actions">
-      <a class="btn btn-primary btn-sm" routerLink="/formUpload"><i class="fas fa-file-import mr-1"></i> Importer des scans</a>
-      <a class="btn btn-primary btn-sm" routerLink="/formCapture"><i class="fas fa-camera mr-1"></i> Photographier</a>
+  <div class="row mt-4 page-title-actions-row">
+    <div class="col-12 d-flex align-items-center">
+      <h1 class="flex-grow-1 mb-0 page-title-with-subtitle">Traitement des formulaires
+        <span class="page-title-subtitle">Suivez les analyses et vérifiez les formulaires prêts sans changer de page.</span>
+      </h1>
+      <div class="processing-header-actions">
+        <a class="btn btn-primary btn-sm" routerLink="/formUpload"><i class="fas fa-file-import mr-1"></i> Importer des scans</a>
+        <a class="btn btn-primary btn-sm" routerLink="/formCapture"><i class="fas fa-camera mr-1"></i> Photographier</a>
+      </div>
     </div>
-  </header>
+  </div>
 
   <nav class="queue-filters" aria-label="Filtres des formulaires">
     <button type="button" [class.active]="filter === 'ALL'" (click)="setFilter('ALL')"><span>Tous</span><strong>{{queueTotal}}</strong></button>

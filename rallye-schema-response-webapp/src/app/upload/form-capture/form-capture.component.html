@@ -7,7 +7,7 @@
   <input #cameraInput type="file" class="d-none" accept="image/*" capture="environment" multiple
     (change)="addDevicePhotos($event.target.files)">
 
-  <div class="row mb-3 text-center" [style.display]="cameraActive ? 'none' : 'flex'">
+  <div class="row mt-4 mb-3 text-center" [style.display]="cameraActive ? 'none' : 'flex'">
     <h1 class="col-12 page-title-with-subtitle">Photographier des formulaires
       <span class="page-title-subtitle">Photographiez les formulaires papier page par page depuis l'appareil disponible.</span>
     </h1>

@@ -49,6 +49,7 @@ body {
 }
 body {
   margin: 0;
+  container-type: inline-size;
   font-family: Roboto, "Helvetica Neue", sans-serif;
   padding-top: 60px;
   color: #212529;
@@ -464,11 +465,30 @@ h4.bg-secondary,
 
 body {
   padding-top: 72px;
+  min-height: 100%;
+  height: auto;
   color: var(--rs-ink);
   background: var(--rs-page);
   font-family: Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: .94rem;
   line-height: 1.5;
+}
+
+html {
+  min-height: 100%;
+  background: var(--rs-page);
+}
+
+app-root {
+  display: block;
+  min-height: calc(100vh - 72px);
+  background: var(--rs-page);
+}
+
+.raw,
+.raw > .col-12 {
+  min-height: calc(100vh - 72px);
+  background: var(--rs-page);
 }
 
 h1, h2, h3, h4, h5, h6, .card-title, .modal-title {
@@ -770,7 +790,7 @@ app-form-capture .capture-shell:not(.camera-mode):not(.gallery-mode) {
   min-height: 0;
   max-height: none !important;
   margin: 0 auto !important;
-  padding: 1.25rem !important;
+  padding: 0 1.25rem 1.25rem !important;
   overflow: visible !important;
   border: 0 !important;
   border-radius: 0 !important;
@@ -807,12 +827,20 @@ app-form-capture .capture-shell:not(.camera-mode):not(.gallery-mode) .bottom-act
 
 @media (max-width: 700px) {
   app-form-capture .capture-shell:not(.camera-mode):not(.gallery-mode) {
-    padding: .7rem !important;
+    padding: 0 .7rem .7rem !important;
   }
 
   app-form-capture .capture-shell:not(.camera-mode):not(.gallery-mode) .intake-card {
     min-height: 330px;
   }
+}
+
+/* Les pages d'import et de traitement utilisent le même repère vertical
+ * que toutes les autres pages : leur marge haute est portée par la ligne du
+ * bandeau principal, jamais par le conteneur. */
+app-form-upload .intake-page,
+app-list-upload .processing-page {
+  padding-top: 0 !important;
 }
 
 /* ========================================================================
@@ -1121,7 +1149,7 @@ table.table > tbody > tr.table-info {
 }
 
 /* Bandeau de page avec action intégrée (paramétrage). */
-.container > .row:first-child.page-title-actions-row {
+.page-title-actions-row {
   position: relative;
   min-height: 3.55rem;
   align-items: center;
@@ -1135,7 +1163,7 @@ table.table > tbody > tr.table-info {
   box-shadow: 0 5px 16px rgba(36, 59, 77, .17);
 }
 
-.container > .row:first-child.page-title-actions-row::before {
+.page-title-actions-row::before {
   position: absolute;
   top: .65rem;
   bottom: .65rem;
@@ -1366,7 +1394,8 @@ table.table.prize-table td,
   align-content: center;
   align-items: center;
   flex-wrap: wrap;
-  width: calc(100vw - 2.5rem);
+  box-sizing: border-box;
+  width: calc(100cqw - 2 * 1.25rem);
   max-width: none;
   flex-basis: auto;
   padding: .72rem 1.15rem .78rem 1.35rem !important;
@@ -1392,9 +1421,10 @@ table.table.prize-table td,
   content: "";
 }
 
-.container > .row:first-child.page-title-actions-row {
+.page-title-actions-row {
+  box-sizing: border-box;
   left: 50%;
-  width: calc(100vw - 2.5rem);
+  width: calc(100cqw - 2 * 1.25rem);
   max-width: none;
   transform: translateX(-50%);
 }
@@ -1413,15 +1443,15 @@ table.table.prize-table td,
 
 @media (max-width: 700px) {
   .page-title-with-subtitle,
-  .container > .row:first-child.page-title-actions-row {
-    width: calc(100vw - 1.5rem);
+  .page-title-actions-row {
+    width: calc(100cqw - 2 * .75rem);
   }
 }
 
 /* La structure interne des bandeaux avec action apporte déjà sa propre
  * hauteur. On neutralise le remplissage vertical excédentaire afin qu'ils
  * aient le même gabarit que les bandeaux sans bouton. */
-.container > .row:first-child.page-title-actions-row {
+.page-title-actions-row {
   padding-top: .15rem;
   padding-bottom: .15rem;
 }
@@ -1479,7 +1509,7 @@ table.table.prize-table td,
 }
 
 @media (max-width: 575.98px) {
-  .container > .row:first-child.page-title-actions-row {
+  .page-title-actions-row {
     display: flex;
     gap: .55rem;
     padding: .48rem .55rem .48rem .7rem;

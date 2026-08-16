@@ -1,8 +1,10 @@
 <main class="intake-page">
-  <header class="intake-header">
-    <div><h1>Importer des formulaires numérisés</h1><p>Déposez les images produites par votre scanner. Leur import démarre automatiquement.</p></div>
-  </header>
-  <section class="intake-card">
+  <div class="row mt-4 text-center">
+    <h1 class="col-12 page-title-with-subtitle">Importer des formulaires numérisés
+      <span class="page-title-subtitle">Déposez les images produites par votre scanner. Leur import démarre automatiquement.</span>
+    </h1>
+  </div>
+  <section class="intake-card mt-3">
     <input #fileInput type="file" class="d-none" multiple id="importFile" accept="image/*" (change)="selectFile($event.target.files)">
     <div class="drop-zone" [class.dragging]="dragging" (click)="fileInput.click()" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
       <span class="drop-icon"><i class="fas fa-file-import"></i></span><h2>Déposez vos scans ici</h2><p>ou cliquez pour sélectionner plusieurs images</p><span class="supported-formats">PNG, JPEG et autres formats d’image</span>
