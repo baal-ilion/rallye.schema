@@ -56,6 +56,66 @@ def test_detects_four_ring_markers_despite_annotations():
     assert detection.confidence > 0.45
 
 
+def test_detects_form_with_large_margin_below_in_portrait_photo():
+    reference = _reference_form()
+    photo = np.full((2500, WIDTH, 3), 220, dtype=np.uint8)
+    photo[100:100 + HEIGHT, :] = reference
+
+    detection = detect_markers(photo)
+
+    assert detection.points.shape == (4, 2)
+    assert detection.points[2][1] / photo.shape[0] < 0.72
+
+
+def test_ignores_a_marker_from_a_second_sheet_visible_below_the_form():
+    reference = _reference_form()
+    photo = np.full((2250, WIDTH, 3), 220, dtype=np.uint8)
+    photo[60:60 + HEIGHT, :] = reference
+
+    # A partly visible sheet underneath contributes a plausible fifth ring.
+    # It is deliberately a little damaged, as it would be along an overlap.
+    foreign_marker = (round(WIDTH * 0.88), 2110)
+    cv2.circle(photo, foreign_marker, 25, (0, 0, 0), -1)
+    cv2.circle(photo, foreign_marker, 10, (255, 255, 255), -1)
+
+    detection = detect_markers(photo)
+
+    expected_bottom_right_y = 60 + round(HEIGHT * 0.92)
+    assert abs(float(detection.points[2][1]) - expected_bottom_right_y) < 25
+
+
+def test_detects_smaller_form_in_upper_half_of_phone_photo():
+    reference = _reference_form()
+    scale = 0.68
+    reduced = cv2.resize(reference, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+    photo = np.full((2400, 1200, 3), 210, dtype=np.uint8)
+    top, left = 220, 175
+    height, width = reduced.shape[:2]
+    photo[top:top + height, left:left + width] = reduced
+
+    detection = detect_markers(photo)
+
+    marker_area = abs(cv2.contourArea(detection.points)) / (photo.shape[0] * photo.shape[1])
+    assert detection.points.shape == (4, 2)
+    assert 0.20 < marker_area < 0.35
+
+
+def test_detects_form_regardless_of_its_occupancy_in_photo():
+    reference = _reference_form()
+    scale = 0.42
+    reduced = cv2.resize(reference, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+    photo = np.full((2600, 1800, 3), 205, dtype=np.uint8)
+    top, left = 360, 620
+    height, width = reduced.shape[:2]
+    photo[top:top + height, left:left + width] = reduced
+
+    detection = detect_markers(photo)
+
+    marker_area = abs(cv2.contourArea(detection.points)) / (photo.shape[0] * photo.shape[1])
+    assert detection.points.shape == (4, 2)
+    assert marker_area < 0.15
+
+
 def test_normalizes_a_perspective_photo_against_reference():
     reference = _reference_form()
     photo = _damaged_perspective_photo(reference)
@@ -69,6 +129,19 @@ def test_normalizes_a_perspective_photo_against_reference():
         cv2.IMREAD_COLOR,
     )
     assert normalized.shape[:2] == (HEIGHT, WIDTH)
+
+
+def test_does_not_require_review_when_global_reference_alignment_is_precise():
+    reference = _reference_form()
+    photo = np.full((2500, WIDTH, 3), 220, dtype=np.uint8)
+    photo[100:100 + HEIGHT, :] = reference
+
+    result = process_image(_encode(photo), _encode(reference))
+
+    assert result.automatic_marker_detection
+    assert result.reference_alignment_error <= 3.0
+    assert not result.manual_review_required
+    assert result.status == "READY"
 
 
 def test_can_reserve_local_alignment_for_the_exact_page_model():
@@ -101,6 +174,31 @@ def test_automatically_rotates_a_sideways_photo():
     assert result.reference_alignment_error < 3.5
     assert result.automatic_marker_detection
     assert np.mean(cv2.absdiff(normalized, reference)) < 1.0
+
+
+def test_keeps_upright_dense_form_with_a_sparse_reference():
+    reference = _reference_form()
+    # Le formulaire d'initialisation utilisé pour l'identification est bien
+    # plus vide que les formulaires réels. La profusion de traits et d'écriture
+    # ne doit pas rendre une orientation couchée artificiellement meilleure.
+    dense_form = reference.copy()
+    for x in range(285, 970, 45):
+        cv2.line(dense_form, (x, 320), (x, 1430), (0, 0, 0), 2)
+    for y in range(350, 1400, 55):
+        cv2.putText(
+            dense_form,
+            f"REPONSE {y}",
+            (300, y),
+            cv2.FONT_HERSHEY_SCRIPT_SIMPLEX,
+            0.7,
+            (0, 0, 0),
+            2,
+        )
+
+    result = process_image(_encode(dense_form), _encode(reference))
+
+    assert result.detected_rotation_degrees == 0
+    assert result.automatic_marker_detection
 
 
 def test_reads_identification_boxes_from_the_active_template():

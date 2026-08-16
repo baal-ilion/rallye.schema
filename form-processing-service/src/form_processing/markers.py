@@ -160,26 +160,22 @@ def _order_points(points: np.ndarray) -> np.ndarray:
     return ordered
 
 
-def _quad_score(points: np.ndarray, width: int, height: int, candidate_score: float) -> float:
+def _quad_score(
+    points: np.ndarray,
+    width: int,
+    height: int,
+    candidate_score: float,
+    weakest_candidate_score: float,
+) -> float:
     ordered = _order_points(points)
     if len(np.unique(ordered, axis=0)) != 4:
         return -1
 
-    # Page markers must live in their respective corner regions. Without this
-    # guard, a correction box or a digit in the header can occasionally form
-    # a plausible but dangerous quadrilateral.
-    normalized = ordered / np.array([width, height], dtype=np.float32)
-    corner_limits = (
-        normalized[0, 0] < 0.38 and normalized[0, 1] < 0.28
-        and normalized[1, 0] > 0.62 and normalized[1, 1] < 0.28
-        and normalized[2, 0] > 0.62 and normalized[2, 1] > 0.72
-        and normalized[3, 0] < 0.38 and normalized[3, 1] > 0.72
-    )
-    if not corner_limits:
+    if not cv2.isContourConvex(ordered.astype(np.int32)):
         return -1
     area = abs(cv2.contourArea(ordered))
     area_ratio = area / (width * height)
-    if area_ratio < 0.35:
+    if area <= 0:
         return -1
 
     top, right, bottom, left = (
@@ -199,7 +195,17 @@ def _quad_score(points: np.ndarray, width: int, height: int, candidate_score: fl
         dtype=np.float32,
     )
     normalized_distance = np.mean(np.linalg.norm(ordered - expected, axis=1)) / np.hypot(width, height)
-    return 2.2 * area_ratio + 0.45 * opposite_similarity + 0.25 * candidate_score - 0.8 * normalized_distance
+    # A second sheet can remain visible below the photographed form. One of its
+    # rings may enlarge an otherwise plausible quadrilateral. Reward the
+    # weakest of the four candidates so four clear rings from the same sheet
+    # win over a larger quadrilateral completed by a marginal foreign ring.
+    return (
+        2.2 * area_ratio
+        + 0.45 * opposite_similarity
+        + 0.25 * candidate_score
+        + 1.25 * weakest_candidate_score
+        - 0.8 * normalized_distance
+    )
 
 
 def detect_markers(image: np.ndarray) -> DetectedMarkers:
@@ -216,7 +222,13 @@ def detect_markers(image: np.ndarray) -> DetectedMarkers:
     best_score = -1.0
     for group in combinations(candidates, 4):
         points = np.array([[candidate.x, candidate.y] for candidate in group], dtype=np.float32)
-        score = _quad_score(points, width, height, sum(candidate.score for candidate in group) / 4)
+        score = _quad_score(
+            points,
+            width,
+            height,
+            sum(candidate.score for candidate in group) / 4,
+            min(candidate.score for candidate in group),
+        )
         if score > best_score:
             best_score = score
             best_points = _order_points(points)
