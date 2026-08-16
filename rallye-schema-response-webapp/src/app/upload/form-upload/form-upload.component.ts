@@ -18,6 +18,7 @@ export class FormUploadComponent implements OnInit {
   selectedFiles: FileList;
   uploadedFiles: UploadedFile[] = [];
   selectedNames: string[] = [];
+  dragging = false;
 
   constructor(private uploadService: UploadFileService) { }
 
@@ -28,6 +29,7 @@ export class FormUploadComponent implements OnInit {
     this.selectedFiles = files;
     if (files && files.length > 0) {
       this.selectedNames = Array.from(files).map(f => f.name);
+      this.upload();
     } else {
       this.selectedNames = [];
       if (this.fileInput) {
@@ -56,18 +58,34 @@ export class FormUploadComponent implements OnInit {
     if (uploadedFile.status !== 'error') {
       return;
     }
-    if (uploadedFile.responseFileId) {
-      uploadedFile.status = 'processing';
-      this.uploadService.retryProcessing(uploadedFile.responseFileId).subscribe({
-        next: () => this.waitForProcessing(uploadedFile),
-        error: err => this.markAsError(uploadedFile, err)
-      });
-      return;
-    }
     uploadedFile.status = 'queued';
     uploadedFile.progress.percentage = 0;
     uploadedFile.errorMessage = undefined;
     this.startNextUploads();
+  }
+
+  onDragOver(event: DragEvent) { event.preventDefault(); this.dragging = true; }
+  onDragLeave(event: DragEvent) { event.preventDefault(); this.dragging = false; }
+  onDrop(event: DragEvent) {
+    event.preventDefault();
+    this.dragging = false;
+    if (event.dataTransfer?.files?.length) this.selectFile(event.dataTransfer.files);
+  }
+
+  get completedCount(): number { return this.uploadedFiles.filter(file => file.responseFileId).length; }
+
+  statusLabel(uploadedFile: UploadedFile): string {
+    if (uploadedFile.status === 'queued') return 'En attente d’envoi';
+    if (uploadedFile.status === 'uploading') return `Envoi ${uploadedFile.progress.percentage} %`;
+    if (uploadedFile.status === 'done') return 'Importé';
+    return 'Erreur d’import';
+  }
+
+  statusIcon(uploadedFile: UploadedFile): string {
+    if (uploadedFile.status === 'uploading') return 'fas fa-spinner fa-spin';
+    if (uploadedFile.status === 'done') return 'fas fa-check-circle';
+    if (uploadedFile.status === 'error') return 'fas fa-exclamation-circle';
+    return 'fas fa-clock';
   }
 
   private enqueueFile(fileToUpload: File) {
@@ -100,9 +118,8 @@ export class FormUploadComponent implements OnInit {
         } else if (event instanceof HttpResponse) {
           uploadedFile.progress.percentage = 100;
           uploadedFile.responseFileId = (event.body as any)?.id;
-          uploadedFile.status = 'processing';
+          uploadedFile.status = 'done';
           this.uploadFinished();
-          this.waitForProcessing(uploadedFile);
         }
       },
       error: err => {
@@ -117,19 +134,6 @@ export class FormUploadComponent implements OnInit {
     this.startNextUploads();
   }
 
-  private waitForProcessing(uploadedFile: UploadedFile) {
-    this.uploadService.waitForProcessing(uploadedFile.responseFileId!).subscribe({
-      next: info => {
-        if (info.processingStatus === 'ERROR') {
-          this.markAsError(uploadedFile, { message: info.processingError });
-        } else {
-          uploadedFile.status = 'done';
-        }
-      },
-      error: err => this.markAsError(uploadedFile, err)
-    });
-  }
-
   private markAsError(uploadedFile: UploadedFile, error: any) {
     uploadedFile.progress.percentage = 100;
     uploadedFile.status = 'error';
@@ -140,7 +144,7 @@ export class FormUploadComponent implements OnInit {
 interface UploadedFile {
   file: File;
   progress: { percentage: number };
-  status: 'queued' | 'uploading' | 'processing' | 'done' | 'error';
+  status: 'queued' | 'uploading' | 'done' | 'error';
   errorMessage?: string;
   responseFileId?: string;
   uploadId: string;
