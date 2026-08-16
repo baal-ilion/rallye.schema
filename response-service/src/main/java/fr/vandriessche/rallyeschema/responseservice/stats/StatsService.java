@@ -27,6 +27,9 @@ public class StatsService {
 
     private static final DateTimeFormatter BUCKET_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static final DateTimeFormatter HEATMAP_LABEL_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter MULTI_DAY_HEATMAP_LABEL_FORMATTER = DateTimeFormatter.ofPattern("dd/MM HH:mm");
+    private static final long HEATMAP_BASE_INTERVAL_MINUTES = 15;
+    private static final long HEATMAP_MAX_BUCKETS = 96;
     private static final ZoneId DISPLAY_ZONE = ZoneId.of("Europe/Paris");
     private static final String UNGROUPED_KEY = "__ungrouped__";
     private static final String UNGROUPED_LABEL = "Sans groupe";
@@ -407,13 +410,24 @@ public class StatsService {
 
   private List<HeatmapInterval> buildHeatmapIntervals(ZonedDateTime start, ZonedDateTime end) {
     List<HeatmapInterval> intervals = new ArrayList<>();
+    long totalMinutes = Math.max(1, ChronoUnit.MINUTES.between(start, end));
+    long intervalMinutes = HEATMAP_BASE_INTERVAL_MINUTES;
+    long baseIntervalCount = (totalMinutes + HEATMAP_BASE_INTERVAL_MINUTES - 1) / HEATMAP_BASE_INTERVAL_MINUTES;
+    if (baseIntervalCount > HEATMAP_MAX_BUCKETS) {
+      long requiredMinutes = (totalMinutes + HEATMAP_MAX_BUCKETS - 1) / HEATMAP_MAX_BUCKETS;
+      intervalMinutes = ((requiredMinutes + HEATMAP_BASE_INTERVAL_MINUTES - 1) / HEATMAP_BASE_INTERVAL_MINUTES)
+              * HEATMAP_BASE_INTERVAL_MINUTES;
+    }
+    DateTimeFormatter labelFormatter = start.toLocalDate().equals(end.toLocalDate())
+            ? HEATMAP_LABEL_FORMATTER
+            : MULTI_DAY_HEATMAP_LABEL_FORMATTER;
     ZonedDateTime cursor = start;
     while (cursor.isBefore(end)) {
-      ZonedDateTime bucketEnd = cursor.plus(15, ChronoUnit.MINUTES);
+      ZonedDateTime bucketEnd = cursor.plus(intervalMinutes, ChronoUnit.MINUTES);
       if (bucketEnd.isAfter(end)) {
         bucketEnd = end;
       }
-      String label = cursor.format(HEATMAP_LABEL_FORMATTER);
+      String label = cursor.format(labelFormatter);
       intervals.add(new HeatmapInterval(cursor, bucketEnd, label));
       cursor = bucketEnd;
     }
