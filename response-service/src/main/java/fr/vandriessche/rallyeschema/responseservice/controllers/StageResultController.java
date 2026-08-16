@@ -13,6 +13,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Order;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -100,11 +101,16 @@ public class StageResultController {
 	}
 
 	@PostMapping(URL + "/responseFile")
-	public EntityModel<StageResult> selectResponseFile(@RequestParam Integer stage, @RequestParam Integer team,
+	public ResponseEntity<?> selectResponseFile(@RequestParam Integer stage, @RequestParam Integer team,
 			@RequestParam(value = "responseFileId") String[] responseFileIds, @RequestParam Boolean delete,
 			StageResultModelAssembler assembler) throws InvalidAlgorithmParameterException,
 			ParserConfigurationException, SAXException, IOException {
-		return assembler.toModel(stageResultService.selectResponseFile(stage, team, responseFileIds, delete));
+		try {
+			return ResponseEntity.ok(
+					assembler.toModel(stageResultService.selectResponseFile(stage, team, responseFileIds, delete)));
+		} catch (IllegalArgumentException exception) {
+			return ResponseEntity.badRequest().body(java.util.Map.of("message", exception.getMessage()));
+		}
 	}
 
 	@DeleteMapping(URL + "/end")

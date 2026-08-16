@@ -58,6 +58,8 @@ public class StageResultService {
 	@Autowired
 	private ResponseFileService responseFileService;
 	@Autowired
+	private ResponseFileParamService responseFileParamService;
+	@Autowired
 	private StageResponseService stageResponseService;
 	@Autowired
 	private MessageProducerService messageProducerService;
@@ -186,6 +188,7 @@ public class StageResultService {
 	@Transactional
 	public StageResult selectResponseFile(Integer stage, Integer team, String[] responseFileIds, Boolean delete)
 			throws InvalidAlgorithmParameterException, ParserConfigurationException, SAXException, IOException {
+		validateResponseFileDestination(stage, team);
 		var responseFileInfos = Stream.of(responseFileIds)
 				.map(responseFileId -> responseFileService.getResponseFileInfo(responseFileId))
 				.collect(Collectors.toList());
@@ -198,12 +201,26 @@ public class StageResultService {
 			if (responseFileInfos.stream().map(ResponseFileInfo::getPage).distinct().count() != responseFileIds.length)
 				throw new InvalidAlgorithmParameterException(
 						"the responseFileIds parameter must be for different pages");
+			for (var responseFileInfo : responseFileInfos)
+				validateResponseFilePage(stage, responseFileInfo.getPage());
 			StageResult stageResult = findOrMakeStageResultByStageAndTeam(stage, team);
-			if (Objects.nonNull(stageResult)) {
-				return selectResponseFile(stageResult, responseFileInfos, delete);
-			}
+			return selectResponseFile(stageResult, responseFileInfos, delete);
 		}
 		return null;
+	}
+
+	private void validateResponseFileDestination(Integer stage, Integer team) {
+		if (Objects.isNull(team) || Objects.isNull(teamInfoService.getTeamInfoByTeam(team)))
+			throw new IllegalArgumentException("Impossible d’accepter le formulaire : l’équipe " + team + " n’existe pas.");
+		if (Objects.isNull(stage) || Objects.isNull(stageParamService.getStageParamByStage(stage)))
+			throw new IllegalArgumentException("Impossible d’accepter le formulaire : l’épreuve " + stage + " n’existe pas.");
+	}
+
+	private void validateResponseFilePage(Integer stage, Integer page) {
+		if (Objects.isNull(page)
+				|| responseFileParamService.getResponseFileParamByStageAndPage(stage, page).isEmpty())
+			throw new IllegalArgumentException("Impossible d’accepter le formulaire : la page " + page
+					+ " n’existe pas pour l’épreuve " + stage + ".");
 	}
 
 	public StageResult undoStageResult(int stage, int team) {
