@@ -50,15 +50,15 @@ form > .stage-timing {
 form > .stage-timing > .border {
   margin: 0 !important;
   overflow: hidden;
-  border-color: #ddd8ce !important;
-  border-radius: .55rem;
+  border-color: var(--rs-border) !important;
+  border-radius: var(--rs-radius);
   background: #fff;
-  box-shadow: 0 2px 6px rgba(48, 42, 32, .06);
+  box-shadow: var(--rs-shadow);
 }
 
 form > .stage-timing label {
-  color: #5d554e;
-  background: #f7f5f0;
+  color: var(--rs-title);
+  background: var(--rs-soft);
   font-size: .72rem;
   font-weight: 700;
 }
@@ -91,13 +91,13 @@ form > .stage-timing label {
 
 .row.mt-4 > .col-12.py-1.bg-light {
   padding: .55rem .75rem !important;
-  border: 1px solid #ddd8ce;
+  border: 1px solid var(--rs-border);
   border-radius: .45rem .45rem 0 0;
-  background: #eef1f2 !important;
+  background: var(--rs-soft) !important;
 }
 
 .row.mt-4 > .col-12.py-1.bg-light h5 {
-  color: #425565;
+  color: var(--rs-title);
   font-size: .9rem;
   font-weight: 700;
 }
@@ -106,11 +106,11 @@ form > .stage-timing label {
   padding: .55rem .75rem !important;
   border: 1px solid #ddd8ce;
   border-radius: .45rem .45rem 0 0;
-  background: #eef1f2 !important;
+  background: #f7f5f0 !important;
 }
 
 .stage-management-title h5 {
-  color: #425565;
+  color: #212529;
   font-size: .9rem;
   font-weight: 700;
 }
@@ -159,10 +159,10 @@ form > .stage-timing label {
   .stage-lifecycle-card,
   .stage-validation-card {
     overflow: hidden;
-    border: 1px solid #ddd8ce;
-    border-radius: .65rem;
+    border: 1px solid var(--rs-border);
+    border-radius: var(--rs-radius);
     background: #fff;
-    box-shadow: 0 3px 10px rgba(48, 42, 32, .09);
+    box-shadow: var(--rs-shadow);
   }
 
   .stage-side-panel .stage-management-title,
@@ -172,9 +172,12 @@ form > .stage-timing label {
     justify-content: space-between;
     gap: .5rem;
     margin: 0 !important;
-    padding: .7rem .75rem;
-    border-bottom: 1px solid #e5e1d9;
-    background: var(--validation-soft, #f7f5f0);
+    min-height: 3.15rem;
+    flex: 0 0 auto;
+    padding: .75rem;
+    border-bottom: 1px solid var(--rs-border);
+    color: var(--rs-title);
+    background: var(--rs-soft);
   }
 
   .stage-side-panel header > div {
@@ -185,18 +188,19 @@ form > .stage-timing label {
   }
 
   .stage-side-panel header strong {
-    color: #3f3a34;
+    color: var(--rs-title);
     font-size: .82rem;
     font-weight: 700;
   }
 
   .stage-side-panel header span {
-    color: #746d66;
+    color: var(--rs-muted);
     font-size: .68rem;
   }
 
   .stage-side-panel .stage-timing {
     display: flex;
+    align-items: center;
     flex-direction: column;
     gap: .55rem;
     margin: 0 !important;
@@ -204,8 +208,25 @@ form > .stage-timing label {
   }
 
   .stage-side-panel .stage-timing > .border {
+    width: calc(100% - .5rem);
+    max-width: 14.5rem;
+    margin-right: auto !important;
+    margin-left: auto !important;
+  }
+
+  .stage-side-panel .stage-timing .input-group,
+  .stage-side-panel .stage-timing > .border > .row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
-    max-width: none;
+  }
+
+  .stage-side-panel .stage-timing input.form-control {
+    width: 100% !important;
+    max-width: 11rem;
+    margin-right: auto;
+    margin-left: auto;
   }
 
   .stage-side-panel .stage-actions {

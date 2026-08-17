@@ -732,15 +732,18 @@ h4.bg-secondary.text-white,
 .progress { overflow: hidden; border-radius: 1rem; background: #e5e9e6; box-shadow: inset 0 1px 2px rgba(29, 43, 54, .08); }
 
 /* Écrans récents : mêmes surfaces et mêmes règles que le reste du front. */
-.processing-page, .capture-shell, .gallery-overlay { color: var(--rs-ink) !important; background: var(--rs-page) !important; }
+.processing-page, .validation-page, .capture-shell, .gallery-overlay { color: var(--rs-ink) !important; background: var(--rs-page) !important; }
 .processing-page, .intake-page { padding-top: 1rem !important; }
-.intake-card, .queue-panel, .verification-panel, .gallery-card {
+.intake-card, .queue-panel, .verification-panel, .gallery-card,
+.filter-panel, .validation-queue, .stage-lifecycle-card, .stage-validation-card {
   border: 1px solid var(--rs-border) !important;
   border-radius: var(--rs-radius) !important;
   background: #fff !important;
   box-shadow: var(--rs-shadow) !important;
 }
-.upload-list > header, .queue-panel-title, .capture-topbar, .gallery-overlay > header, .verification-header {
+.upload-list > header, .queue-panel-title, .capture-topbar, .gallery-overlay > header, .verification-header,
+.filter-panel > header, .validation-queue > header, .detail-header,
+.stage-management-title, .validation-title {
   border-color: var(--rs-border) !important;
   color: var(--rs-title) !important;
   background: var(--rs-soft) !important;
@@ -758,8 +761,8 @@ h4.bg-secondary.text-white,
   color: #fff !important;
   background: var(--rs-navy) !important;
 }
-.queue-item:hover { border-color: var(--rs-border) !important; background: var(--rs-soft) !important; }
-.queue-item.selected { border-color: #b8c9ad !important; background: var(--rs-green-soft) !important; box-shadow: inset 3px 0 var(--rs-green) !important; }
+.queue-item:hover, .validation-item:hover { border-color: var(--rs-border) !important; background: var(--rs-soft) !important; }
+.queue-item.selected, .validation-item.selected { border-color: #b8c9ad !important; background: var(--rs-green-soft) !important; box-shadow: inset 3px 0 var(--rs-green) !important; }
 .verification-help, .intake-tip, .launch-screen aside {
   border-left-color: var(--rs-gold) !important;
   color: #4d5b66 !important;
