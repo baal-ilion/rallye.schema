@@ -24,3 +24,312 @@ button.calendar:active {
   gap: 0.5rem;
 }
 
+:host {
+  display: block;
+}
+
+.stage-zoom-content {
+  width: 100%;
+  transform-origin: top center;
+  transition: transform .12s ease-out;
+}
+
+form.container {
+  width: 100% !important;
+  max-width: none;
+  margin-bottom: 0 !important;
+  padding: .75rem;
+}
+
+form > .stage-timing {
+  gap: .75rem;
+  margin-right: 0;
+  margin-left: 0;
+}
+
+form > .stage-timing > .border {
+  margin: 0 !important;
+  overflow: hidden;
+  border-color: #ddd8ce !important;
+  border-radius: .55rem;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(48, 42, 32, .06);
+}
+
+form > .stage-timing label {
+  color: #5d554e;
+  background: #f7f5f0;
+  font-size: .72rem;
+  font-weight: 700;
+}
+
+.stage-timing input.form-control {
+  font-family: Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: .76rem;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.stage-timing input[type="date"]::-webkit-datetime-edit,
+.stage-timing input[type="time"]::-webkit-datetime-edit {
+  font-family: Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: .76rem;
+}
+
+.stage-actions {
+  margin-top: .75rem;
+  padding: .65rem;
+  border: 1px solid #e2ddd5;
+  border-radius: .55rem;
+  background: #faf9f6;
+}
+
+.stage-actions .btn,
+.validation-actions .btn {
+  min-width: 7rem;
+}
+
+.row.mt-4 > .col-12.py-1.bg-light {
+  padding: .55rem .75rem !important;
+  border: 1px solid #ddd8ce;
+  border-radius: .45rem .45rem 0 0;
+  background: #eef1f2 !important;
+}
+
+.row.mt-4 > .col-12.py-1.bg-light h5 {
+  color: #425565;
+  font-size: .9rem;
+  font-weight: 700;
+}
+
+.stage-management-title > .col-12.py-1.bg-light {
+  padding: .55rem .75rem !important;
+  border: 1px solid #ddd8ce;
+  border-radius: .45rem .45rem 0 0;
+  background: #eef1f2 !important;
+}
+
+.stage-management-title h5 {
+  color: #425565;
+  font-size: .9rem;
+  font-weight: 700;
+}
+
+.validation-actions {
+  gap: .5rem;
+  margin-right: 0;
+  margin-bottom: 0;
+  margin-left: 0;
+  padding: .5rem 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+@media (min-width: 768px) {
+  form.container {
+    height: 100%;
+    min-height: 0;
+    padding: 0;
+    overflow: visible;
+  }
+
+  form.container > .stage-main-content {
+    height: 100%;
+    min-width: 0;
+    padding: 0 .75rem .75rem;
+    overflow: auto;
+  }
+
+  .stage-side-panel {
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    width: 16rem;
+    min-height: 0;
+    flex-direction: column;
+    gap: .8rem;
+    overflow: hidden;
+    background: transparent;
+  }
+
+  .stage-lifecycle-card,
+  .stage-validation-card {
+    overflow: hidden;
+    border: 1px solid #ddd8ce;
+    border-radius: .65rem;
+    background: #fff;
+    box-shadow: 0 3px 10px rgba(48, 42, 32, .09);
+  }
+
+  .stage-side-panel .stage-management-title,
+  .stage-side-panel .validation-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    margin: 0 !important;
+    padding: .7rem .75rem;
+    border-bottom: 1px solid #e5e1d9;
+    background: var(--validation-soft, #f7f5f0);
+  }
+
+  .stage-side-panel header > div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    text-align: left;
+  }
+
+  .stage-side-panel header strong {
+    color: #3f3a34;
+    font-size: .82rem;
+    font-weight: 700;
+  }
+
+  .stage-side-panel header span {
+    color: #746d66;
+    font-size: .68rem;
+  }
+
+  .stage-side-panel .stage-timing {
+    display: flex;
+    flex-direction: column;
+    gap: .55rem;
+    margin: 0 !important;
+    padding: .75rem;
+  }
+
+  .stage-side-panel .stage-timing > .border {
+    width: 100%;
+    max-width: none;
+  }
+
+  .stage-side-panel .stage-actions {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    margin: 0;
+    padding: 0 .75rem .75rem;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .stage-side-panel .stage-actions .btn-group,
+  .stage-side-panel .stage-actions .btn,
+  .stage-side-panel .validation-actions > div,
+  .stage-side-panel .validation-actions .btn {
+    width: 100%;
+  }
+
+  .stage-side-panel .stage-actions .btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: .45rem;
+  }
+
+  .stage-side-panel .stage-actions .btn-group > .btn {
+    flex: 0 0 auto;
+    margin: 0;
+    border-radius: .4rem !important;
+  }
+
+  .stage-side-panel .validation-actions {
+    display: flex;
+    align-items: stretch;
+    flex-direction: column;
+    gap: .5rem;
+    margin: 0 !important;
+    padding: .75rem;
+  }
+
+  .stage-side-panel .validation-actions > div {
+    margin: 0 !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1100px) {
+  .stage-side-panel {
+    width: 13rem;
+  }
+
+  .stage-side-panel .stage-timing,
+  .stage-side-panel .validation-actions {
+    padding: .55rem;
+  }
+
+  .stage-side-panel .stage-actions {
+    padding: 0 .55rem .55rem;
+  }
+}
+
+@media (max-width: 767.98px) {
+  form.container {
+    display: flex;
+    flex-direction: column;
+    padding: .5rem;
+  }
+
+  .stage-side-panel {
+    display: contents;
+  }
+
+  .stage-lifecycle-card,
+  .stage-validation-card {
+    display: contents;
+  }
+
+  .stage-management-title { order: 1; }
+  .stage-timing { order: 2; }
+  .stage-actions { order: 3; }
+  .stage-main-content { order: 4; }
+  .validation-title { order: 5; }
+  .validation-actions { order: 6; }
+
+  .stage-side-panel .stage-timing {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .5rem;
+  }
+
+  .stage-side-panel .stage-timing > .border {
+    width: auto;
+    max-width: none;
+  }
+
+  .stage-actions {
+    margin-top: .5rem;
+  }
+
+  .row.mt-4 > .col-12.py-1.bg-light h5 {
+    font-size: .8rem;
+  }
+
+  .validation-actions > div {
+    margin: 0 !important;
+  }
+
+  .validation-actions .btn {
+    min-width: 6.5rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .stage-side-panel .stage-timing {
+    grid-template-columns: 1fr;
+  }
+
+  .validation-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .validation-actions .btn {
+    width: 100%;
+  }
+}
+

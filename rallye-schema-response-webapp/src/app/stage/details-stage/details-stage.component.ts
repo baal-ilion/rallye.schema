@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges } from '@angular/core';
 import { Router } from '@angular/router';
 import { UntypedFormArray, UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
@@ -30,17 +30,20 @@ import { NavigationMemoryService } from 'src/app/services/navigation-memory.serv
 })
 export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
 
-  @Input() stage: number;
-  @Input() team: number;
+  @Input() stage!: number;
+  @Input() team!: number;
+  @Input() contentZoom = 1;
   @Output() loadErrorEvent = new EventEmitter<Error>();
+  @Output() responseFilesVisibilityChange = new EventEmitter<boolean>();
 
-  stageResult: StageResult;
-  form: UntypedFormGroup;
+  stageResult!: StageResult;
+  form!: UntypedFormGroup;
   files: { [page: number]: any } = {};
-  param: StageParam;
-  fileParams: ResponseFileParam[];
-  stageResponse: StageResponse;
-  stageResponseNames: string[];
+  param!: StageParam;
+  fileParams: ResponseFileParam[] = [];
+  stageResponse?: StageResponse;
+  stageResponseNames: string[] = [];
+  mobileView = window.innerWidth < 768;
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -59,6 +62,11 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
   get pages() { return this.f.pages as UntypedFormArray; }
   getResultForms(formGroup: UntypedFormGroup): UntypedFormArray { return formGroup.controls.results as UntypedFormArray; }
   getPerformanceForms(formGroup: UntypedFormGroup): UntypedFormArray { return formGroup.controls.performances as UntypedFormArray; }
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    this.mobileView = window.innerWidth < 768;
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     console.log('ngOnChanges');
@@ -94,12 +102,11 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
       enddate: '',
       endtime: '',
     });
-    this.param = null;
-    this.fileParams = null;
+    this.fileParams = [];
     this.stageResponseNames = [];
-    this.stageResult = null;
-    this.stageResponse = null;
+    this.stageResponse = undefined;
     this.files = {};
+    this.responseFilesVisibilityChange.emit(false);
   }
 
   private async loadStage() {
@@ -108,10 +115,14 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
     const paramPromise = this.stageParamService.findByStage(this.stage).toPromise();
     const stagePromise = this.stageService.findStage(this.stage, this.team).toPromise();
     try {
-      this.stageResult = await stagePromise;
+      const stageResult = await stagePromise;
+      if (!stageResult) {
+        throw new Error('L\'\u00e9preuve demand\u00e9e est introuvable.');
+      }
+      this.stageResult = stageResult;
     } catch (error) {
       console.log(error);
-      this.loadErrorEvent.emit(error);
+      this.loadErrorEvent.emit(this.toError(error));
       return;
     }
 
@@ -120,10 +131,14 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
     const loadStageResponsePromise = this.loadStageResponse();
 
     try {
-      this.param = await paramPromise;
+      const param = await paramPromise;
+      if (!param) {
+        throw new Error('Le param\u00e9trage de l\'\u00e9preuve est introuvable.');
+      }
+      this.param = param;
     } catch (error) {
       console.log(error);
-      this.loadErrorEvent.emit(error);
+      this.loadErrorEvent.emit(this.toError(error));
       return;
     }
 
@@ -131,7 +146,7 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
       await this.loadResponseFileParams();
     } catch (error) {
       console.log(error);
-      this.loadErrorEvent.emit(error);
+      this.loadErrorEvent.emit(this.toError(error));
       return;
     }
     try {
@@ -144,6 +159,7 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
 
     try {
       await loadResponceFilesPromise;
+      this.responseFilesVisibilityChange.emit(Object.keys(this.files).length > 0);
       await loadStageValuesPromise;
       this.updateFormDisabledState();
     } catch (error) {
@@ -156,7 +172,11 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
       .map(s => s as StageResponseSource).shift();
     if (source?.pointUsed) {
       try {
-        this.stageResponse = await this.stageService.getStageResponse(source.id).toPromise();
+        const stageResponse = await this.stageService.getStageResponse(source.id).toPromise();
+        if (!stageResponse) {
+          return;
+        }
+        this.stageResponse = stageResponse;
         this.stageResponseNames = this.stageResponse?.performances?.map(p => p.name) ?? [];
         this.stageResponseNames = this.stageResponseNames.concat(this.stageResponse?.results?.map(p => p.name) ?? []);
         this.stageResponseNames = this.stageResponseNames.concat(this.stageResponse?.questions?.map(p => p.name) ?? []);
@@ -255,7 +275,9 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
     for (const responseFilePromise of responseFilePromises) {
       try {
         const responseFile = await responseFilePromise;
-        this.files[responseFile.page] = responseFile;
+        if (responseFile) {
+          this.files[responseFile.page] = responseFile;
+        }
       } catch (error) {
         console.log(error);
       }
@@ -269,7 +291,9 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
     for (const responseFileParamPromise of responseFileParamPromises) {
       try {
         const responseFileParam = await responseFileParamPromise;
-        fileParams.push(responseFileParam);
+        if (responseFileParam) {
+          fileParams.push(responseFileParam);
+        }
       } catch (error) {
         console.log(error);
       }
@@ -278,7 +302,7 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private loadQuestionPageResults() {
-    const questionParams = Object.values(this.param.questionParams);
+    const questionParams = Object.values(this.param.questionParams ?? {});
     for (const fileParam of this.fileParams) {
       const pageForm = this.formBuilder.group({
         page: fileParam.page,
@@ -310,8 +334,8 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
         questionParams.splice(index, 1);
       }
       if (questionPageParam.type === QuestionType.QUESTION) {
-        const result = this.stageResult.results.find(element => element.name === questionPageParam.name);
-        const fromSource = isStageResponseSource(result?.source) || isResponseFileSource(result?.source);
+        const result = this.stageResult.results?.find(element => element.name === questionPageParam.name);
+        const fromSource = isStageResponseSource(result?.source ?? null) || isResponseFileSource(result?.source ?? null);
         results.push(this.formBuilder.group({
           name: questionPageParam.name,
           resultValue: [{
@@ -322,7 +346,7 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
           light: fromSource
         }));
       } else if (questionPageParam.type === QuestionType.PERFORMANCE) {
-        const performance = this.stageResult.performances.find(element => element.name === questionPageParam.name);
+        const performance = this.stageResult.performances?.find(element => element.name === questionPageParam.name);
         performances.push(this.formBuilder.group({
           name: questionPageParam.name,
           performanceValue: [{
@@ -334,39 +358,39 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  private formatDate(date: Date): string {
-    return date ? this.datePipe.transform(date, 'yyyy-MM-dd') : '';
+  private formatDate(date?: Date): string {
+    return date ? this.datePipe.transform(date, 'yyyy-MM-dd') ?? '' : '';
   }
 
-  private formatTime(date: Date): string {
-    return date ? this.datePipe.transform(date, 'HH:mm:ss') : '';
+  private formatTime(date?: Date): string {
+    return date ? this.datePipe.transform(date, 'HH:mm:ss') ?? '' : '';
   }
 
-  buildDate(date: string, time: string): Date {
+  buildDate(date: string, time: string): Date | undefined {
     if (!date || !time) {
-      return null;
+      return undefined;
     }
     const [year, month, day] = date.split('-').map(d => Number(d));
     if (!year || !month || !day) {
-      return null;
+      return undefined;
     }
     const timeParts = time.split(':');
     if (timeParts.length < 2) {
-      return null;
+      return undefined;
     }
     const [hour, minute, second = '0'] = timeParts;
     const h = Number(hour);
     const m = Number(minute);
     const s = Number(second);
     if (Number.isNaN(h) || Number.isNaN(m) || Number.isNaN(s)) {
-      return null;
+      return undefined;
     }
     return new Date(year, month - 1, day, h, m, s);
   }
 
   private findModifiedResults(form: UntypedFormGroup, modifiedResults: any[]) {
     form.getRawValue().results?.forEach((item: any) => {
-      const result = this.stageResult.results.find(element => element.name === item.name);
+      const result = this.stageResult.results?.find(element => element.name === item.name);
       if (!result || item.resultValue !== result.resultValue) {
         modifiedResults.push(item);
       }
@@ -375,7 +399,7 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
 
   private findModifiedperformances(form: UntypedFormGroup, modifiedperformances: any[]) {
     form.getRawValue().performances.forEach((item: any) => {
-      const performance = this.stageResult.performances.find(element => element.name === item.name);
+      const performance = this.stageResult.performances?.find(element => element.name === item.name);
       if (!performance || item.performanceValue !== performance.performanceValue) {
         modifiedperformances.push(item);
       }
@@ -395,9 +419,9 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
   async modifyStage(): Promise<boolean> {
     try {
       console.log(this.form.value);
-      const modifiedResults = [];
+      const modifiedResults: Array<{ name: string; resultValue?: boolean }> = [];
       this.findModifiedResults(this.form, modifiedResults);
-      const modifiedperformances = [];
+      const modifiedperformances: Array<{ name: string; performanceValue?: number }> = [];
       this.findModifiedperformances(this.form, modifiedperformances);
       this.pages.controls.forEach(page => {
         this.findModifiedResults(page as UntypedFormGroup, modifiedResults);
@@ -529,7 +553,8 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private hasEmptyPerformances(form: UntypedFormGroup): boolean {
-    return form.getRawValue().performances?.find(item => !item.performanceValue && item.performanceValue !== 0) ?? false;
+    return form.getRawValue().performances?.find((item: { performanceValue?: number }) =>
+      !item.performanceValue && item.performanceValue !== 0) ?? false;
   }
 
   private async navigateToMemorizedOrProgression() {
@@ -546,7 +571,12 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private hasEmptyResults(form: UntypedFormGroup): boolean {
-    return form.getRawValue().results?.find(item => item.resultValue !== true && item.resultValue !== false) ?? false;
+    return form.getRawValue().results?.find((item: { resultValue?: boolean }) =>
+      item.resultValue !== true && item.resultValue !== false) ?? false;
+  }
+
+  private toError(error: unknown): Error {
+    return error instanceof Error ? error : new Error(String(error));
   }
 
   get validable() {

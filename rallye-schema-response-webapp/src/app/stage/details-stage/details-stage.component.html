@@ -1,11 +1,11 @@
 ﻿<form [formGroup]="form" (ngSubmit)="onSubmit()" class="container mb-3 w-100" *ngIf="param">
-  <div class="row mt-4">
-    <div class="col-12 py-1 bg-secondary">
-      <h4 class="m-auto text-center text-white">Équipe {{stageResult.team}} / Épreuve {{stageResult.stage}}</h4>
-    </div>
-  </div>
+  <aside class="stage-side-panel">
+  <section class="stage-lifecycle-card">
+  <header class="stage-management-title">
+    <div><strong>D&eacute;roulement de l&rsquo;&eacute;preuve</strong><span>Horaires et commandes de l&rsquo;&eacute;preuve</span></div>
+  </header>
   <!-- Begin / end dates -->
-  <div class="row mt-2 justify-content-center">
+  <div class="row mt-2 justify-content-center stage-timing">
     <!-- Begin date -->
     <div class="col-8 col-sm-6 col-md-5 col-lg-4 col-xl-3 col-xxl-2 m-2 p-0 border">
       <label class="raw col-12 m-0 p-1 text-center">Début :</label>
@@ -39,6 +39,27 @@
       <button class="btn btn-success" type="button" (click)="onStartStage()">Commencer</button>
     </div>
   </div>
+  </section>
+  <section class="stage-validation-card">
+  <header class="validation-title">
+    <div><strong>Validation de la correction</strong><span>Enregistrez ou validez les r&eacute;ponses</span></div>
+  </header>
+  <div class="row justify-content-center mt-2 validation-actions">
+    <div *ngIf="stageResult?.checked" class="text-center align-middle mx-2 px-1 py-0 col-auto">
+      <button class="btn btn-danger" type="submit" (click)="form.patchValue({checked: false})">Invalider</button>
+    </div>
+    <div *ngIf="stageResult && !stageResult.checked" class="text-center align-middle mx-2 px-1 py-0 col-auto">
+      <button class="btn btn-success" type="submit" [disabled]="!validable"
+        (click)="form.patchValue({checked: true})">Valider</button>
+    </div>
+    <div class="text-center align-middle mx-2 px-1 py-0 col-auto">
+      <button class="btn btn-primary" type="submit" [disabled]="stageResult?.checked">Enregistrer</button>
+    </div>
+  </div>
+  </section>
+  </aside>
+  <div class="stage-main-content">
+  <div class="stage-zoom-content" [style.transform]="'scale(' + contentZoom + ')'">
   <ng-container *ngFor="let page of pages.controls">
     <div class="row" *ngIf="getResultForms(page).controls.length > 0 || getPerformanceForms(page).controls.length > 0">
       <div class="col-12">
@@ -50,7 +71,7 @@
         <div class="row mt-2">
           <!-- The response sheets are displayed only on medium or bigger screens -->
           <ng-template [ngIf]="files[page.value.page]">
-            <div class="col-md-12 col-xxl-10 d-none d-md-block">
+            <div class="col-md-12 col-xxl-10 d-none d-md-block" *ngIf="!mobileView">
               <div class="row justify-content-center">
                 <app-details-response-file [fileUpload]="files[page.value.page]" [dragable]="false" class="border">
                 </app-details-response-file>
@@ -92,6 +113,8 @@
       </div>
     </div>
   </ng-container>
+  </div>
+  </div>
   <ng-template #resultlist let-results="results" let-performances="performances" let-forpage="forpage">
     <div [ngClass]="{'row': true, 'd-none': true ,'h-25': forpage, 'd-xxl-block': forpage}">
     </div>
@@ -103,7 +126,7 @@
       </div>
       <div class="row mt-2">
         <div *ngFor="let result of results.controls"
-          [ngClass]="{'col-3': true, 'col-md-2': true, 'col-xxl-1': !forpage ,'col-xxl-12': forpage}">
+          [ngClass]="{'col-6': true, 'col-sm-4': true, 'col-md-2': true, 'col-xxl-1': !forpage ,'col-xxl-12': forpage}">
           <div [formGroup]="result" class="row align-items-center" style="height: 32px;">
             <label class="col-8 my-auto small text-right">{{result.value.name}}</label>
             <app-toggle-switch formControlName="resultValue" class="col-4 my-auto px-1 py-0"
@@ -132,24 +155,6 @@
       </div>
     </div>
   </ng-template>
-  <!-- Validation -->
-  <div class="row mt-4">
-    <div class="col-12 py-1 bg-light">
-      <h5 class="m-auto text-center">Validation de la correction</h5>
-    </div>
-  </div>
-  <div class="row justify-content-center mt-2">
-    <div *ngIf="stageResult?.checked" class="text-center align-middle mx-2 px-1 py-0 col-auto">
-      <button class="btn btn-danger" type="submit" (click)="form.patchValue({checked: false})">Invalider</button>
-    </div>
-    <div *ngIf="stageResult && !stageResult.checked" class="text-center align-middle mx-2 px-1 py-0 col-auto">
-      <button class="btn btn-success" type="submit" [disabled]="!validable"
-        (click)="form.patchValue({checked: true})">Valider</button>
-    </div>
-    <div class="text-center align-middle mx-2 px-1 py-0 col-auto">
-      <button class="btn btn-primary" type="submit" [disabled]="stageResult?.checked">Enregister</button>
-    </div>
-  </div>
 </form>
 
 

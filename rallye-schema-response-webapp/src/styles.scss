@@ -56,6 +56,14 @@ body {
   background: #f1f3f5;
 }
 
+@media (min-width: 768px) {
+  html.validation-stage-page,
+  body.validation-stage-page {
+    height: 100%;
+    overflow: hidden;
+  }
+}
+
 /*
  * Charte commune du front.
  *
@@ -485,8 +493,8 @@ app-root {
   background: var(--rs-page);
 }
 
-.raw,
-.raw > .col-12 {
+app-root > .raw,
+app-root > .raw > .col-12 {
   min-height: calc(100vh - 72px);
   background: var(--rs-page);
 }
