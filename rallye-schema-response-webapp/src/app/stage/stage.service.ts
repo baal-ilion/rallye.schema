@@ -33,7 +33,7 @@ export class StageService {
     }
     if (crit.sortBy) {
       for (const by of crit.sortBy) {
-        params = params.set('sortBy', by.toString());
+        params = params.append('sortBy', by.toString());
       }
     }
     return this.http.get(AppConfigService.settings.apiUrl.rallyeSchema + '/stageResults', { params });

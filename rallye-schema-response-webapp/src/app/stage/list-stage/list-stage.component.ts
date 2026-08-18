@@ -22,7 +22,7 @@ export class ListStageComponent implements OnInit, OnDestroy {
   stages: StageResult[] = [];
   page = 1;
   pages: HalPage = { size: 0, number: -1, totalElements: 0, totalPages: 1 };
-  criteria: StageCriteria = { checked: false, entered: true, finished: true };
+  criteria: StageCriteria = { checked: false, entered: true, finished: true, sortBy: ['stage,asc', 'team,asc'] };
   filterMode: 'PENDING' | 'VALIDATED' | 'ALL' | 'CUSTOM' = 'PENDING';
   mobileDetailOpen = false;
   loading = false;
@@ -48,7 +48,6 @@ export class ListStageComponent implements OnInit, OnDestroy {
     this.document.documentElement.classList.remove('validation-stage-page');
     this.document.body.classList.remove('validation-stage-page');
     sessionStorage.setItem(this.SelectedId, null);
-    sessionStorage.setItem(this.CriteriaId, null);
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -56,8 +55,8 @@ export class ListStageComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.document.documentElement.classList.add('validation-stage-page');
     this.document.body.classList.add('validation-stage-page');
-    const criteria = sessionStorage.getItem(this.CriteriaId);
-    this.criteria = JSON.parse(criteria) as StageCriteria ?? { checked: false, entered: true, finished: true };
+    this.criteria = this.restoreCriteria();
+    this.criteria.sortBy = ['stage,asc', 'team,asc'];
     this.filterMode = this.detectFilterMode();
     this.loadStages()
       .then(() => { })
@@ -89,6 +88,7 @@ export class ListStageComponent implements OnInit, OnDestroy {
       await this.loadPages(this.page);
       // load others pages
       await this.loadPages(this.pages.totalElements);
+      this.sortStages();
       // select last selected item
       const lastSelected = sessionStorage.getItem(this.SelectedId);
       const index = this.stages.findIndex(f => f.id === lastSelected);
@@ -112,7 +112,7 @@ export class ListStageComponent implements OnInit, OnDestroy {
           { size: 0, number: 0, totalElements: stages._embedded?.stageResults?.length ?? 0, totalPages: 1 };
         console.log(this.pages);
         this.stages = this.stages.concat(stages._embedded?.stageResults ?? []);
-        this.loadPages(page);
+        await this.loadPages(page);
       }
     }
   }
@@ -185,7 +185,7 @@ export class ListStageComponent implements OnInit, OnDestroy {
   }
 
   resetFilters(): void {
-    this.criteria = { checked: false, entered: true, finished: true };
+    this.criteria = { checked: false, entered: true, finished: true, sortBy: ['stage,asc', 'team,asc'] };
     this.filterMode = 'PENDING';
     this.changeCriteria(null);
   }
@@ -239,8 +239,28 @@ export class ListStageComponent implements OnInit, OnDestroy {
 
   changeCriteria(event: Event) {
     console.log(this.criteria);
-    sessionStorage.setItem(this.CriteriaId, JSON.stringify(this.criteria));
+    this.saveCriteria();
     this.loadStages();
+  }
+
+  private restoreCriteria(): StageCriteria {
+    const defaultCriteria: StageCriteria = { checked: false, entered: true, finished: true };
+    try {
+      const storedCriteria = localStorage.getItem(this.CriteriaId);
+      return storedCriteria ? { ...defaultCriteria, ...JSON.parse(storedCriteria) } : defaultCriteria;
+    } catch (error) {
+      console.warn('Impossible de restaurer les filtres de validation.', error);
+      return defaultCriteria;
+    }
+  }
+
+  private saveCriteria(): void {
+    try {
+      const { stage, team, checked, entered, finished } = this.criteria;
+      localStorage.setItem(this.CriteriaId, JSON.stringify({ stage, team, checked, entered, finished }));
+    } catch (error) {
+      console.warn('Impossible de mémoriser les filtres de validation.', error);
+    }
   }
 
   onStageUpdated() {
@@ -257,6 +277,7 @@ export class ListStageComponent implements OnInit, OnDestroy {
         stages.page :
         { size: results.length, number: 0, totalElements: results.length, totalPages: 1 };
       this.stages = results;
+      this.sortStages();
       const index = currentId ? this.stages.findIndex(s => s.id === currentId) : -1;
       if (index !== -1) {
         this.page = index + 1;
@@ -269,5 +290,9 @@ export class ListStageComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.log(error);
     }
+  }
+
+  private sortStages(): void {
+    this.stages.sort((left, right) => left.stage - right.stage || left.team - right.team);
   }
 }
