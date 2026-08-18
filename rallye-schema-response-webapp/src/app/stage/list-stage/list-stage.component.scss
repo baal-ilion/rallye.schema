@@ -292,16 +292,30 @@
   box-shadow: inset 3px 0 var(--rs-green);
 }
 
+.stage-team-numbers {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  flex-direction: column;
+  justify-content: center;
+  gap: .1rem;
+  width: 2.15rem;
+  height: 2.95rem;
+}
+
+.stage-number,
 .team-number {
   display: grid;
   place-items: center;
-  width: 2.15rem;
-  height: 2.15rem;
+  width: 1.42rem;
+  height: 1.42rem;
+  flex: 0 0 1.42rem;
   border-radius: 50%;
   color: #fff;
   background: #526f8a;
-  font-size: .72rem;
+  font-size: .58rem;
   font-weight: 700;
+  line-height: 1;
 }
 
 .validation-item-main {
@@ -329,9 +343,8 @@
   font-weight: 700;
 }
 
-.status-pill.validated { color: #315f3f; background: #e4f0e6; }
-.status-pill.pending { color: #8a5c19; background: #fbefd5; }
-.status-pill.neutral { color: #52616e; background: #e9eef1; }
+.status-pill.completed { color: #fff; background: #557b3a; }
+.status-pill.not-completed { color: #fff; background: #ad4545; }
 
 .validation-detail {
   display: flex;

@@ -16,16 +16,6 @@
         </header>
         <div class="advanced-filters">
           <div class="filter-field">
-            <label for="critteam">&Eacute;quipe</label>
-            <div class="filter-select">
-              <select [(ngModel)]="criteria.team" (change)="applyCustomCriteria($event)" id="critteam" class="form-control">
-                <option value="">Toutes les &eacute;quipes</option>
-                <option *ngFor="let team of teams" [value]="team.team">{{team.team | number:'2.0-0'}} - {{team.name}}</option>
-              </select>
-              <i class="fas fa-chevron-down" aria-hidden="true"></i>
-            </div>
-          </div>
-          <div class="filter-field">
             <label for="critstage">&Eacute;preuve</label>
             <div class="filter-select">
               <select [(ngModel)]="criteria.stage" (change)="applyCustomCriteria($event)" id="critstage" class="form-control">
@@ -35,11 +25,21 @@
               <i class="fas fa-chevron-down" aria-hidden="true"></i>
             </div>
           </div>
+          <div class="filter-field">
+            <label for="critteam">&Eacute;quipe</label>
+            <div class="filter-select">
+              <select [(ngModel)]="criteria.team" (change)="applyCustomCriteria($event)" id="critteam" class="form-control">
+                <option value="">Toutes les &eacute;quipes</option>
+                <option *ngFor="let team of teams" [value]="team.team">{{team.team | number:'2.0-0'}} - {{team.name}}</option>
+              </select>
+              <i class="fas fa-chevron-down" aria-hidden="true"></i>
+            </div>
+          </div>
           <div class="state-filters">
             <div class="state-filter">
-              <strong>Validation</strong>
-              <app-toggle-switch [checked]="criteria.checked" [light]="criteria.checked !== true && criteria.checked !== false"
-                (change)="criteria.checked = nextChecked(criteria.checked); applyCustomCriteria($event)">
+              <strong>Termin&eacute;e</strong>
+              <app-toggle-switch [checked]="criteria.finished" [light]="criteria.finished !== true && criteria.finished !== false"
+                (change)="criteria.finished = nextChecked(criteria.finished); applyCustomCriteria($event)">
               </app-toggle-switch>
             </div>
             <div class="state-filter">
@@ -49,9 +49,9 @@
               </app-toggle-switch>
             </div>
             <div class="state-filter">
-              <strong>Termin&eacute;e</strong>
-              <app-toggle-switch [checked]="criteria.finished" [light]="criteria.finished !== true && criteria.finished !== false"
-                (change)="criteria.finished = nextChecked(criteria.finished); applyCustomCriteria($event)">
+              <strong>Valid&eacute;e</strong>
+              <app-toggle-switch [checked]="criteria.checked" [light]="criteria.checked !== true && criteria.checked !== false"
+                (change)="criteria.checked = nextChecked(criteria.checked); applyCustomCriteria($event)">
               </app-toggle-switch>
             </div>
           </div>
@@ -76,15 +76,21 @@
       <div class="validation-list" *ngIf="!loading && stages.length > 0">
         <button type="button" class="validation-item" *ngFor="let stage of stages; let stageIndex = index"
           [class.selected]="stageIndex === page - 1" (click)="selectStage(stageIndex)">
-          <span class="team-number">{{stage.team | number:'2.0-0'}}</span>
+          <span class="stage-team-numbers" aria-label="&Eacute;preuve {{stage.stage}}, &eacute;quipe {{stage.team}}">
+            <span class="stage-number" title="Num&eacute;ro d&rsquo;&eacute;preuve">{{stage.stage | number:'2.0-0'}}</span>
+            <span class="team-number" title="Num&eacute;ro d&rsquo;&eacute;quipe">{{stage.team | number:'2.0-0'}}</span>
+          </span>
           <span class="validation-item-main">
-            <strong>{{teamLabel(stage.team)}}</strong>
-            <span>&Eacute;preuve {{stage.stage | number:'2.0-0'}} &middot; {{stageLabel(stage.stage)}}</span>
+            <strong>{{stageLabel(stage.stage)}}</strong>
+            <span>&Eacute;preuve {{stage.stage | number:'2.0-0'}} &middot; &Eacute;quipe {{stage.team | number:'2.0-0'}} &middot; {{teamLabel(stage.team)}}</span>
             <small>
-              <span class="status-pill" [class.validated]="stage.checked" [class.pending]="!stage.checked">
+              <span class="status-pill" [class.completed]="stage.end" [class.not-completed]="!stage.end">{{stage.end ? 'Termin&eacute;e' : (stage.begin ? 'En cours' : 'Non commenc&eacute;e')}}</span>
+              <span class="status-pill" [class.completed]="stage.missing === 0" [class.not-completed]="stage.missing !== 0">
+                {{stage.missing === 0 ? 'Saisie' : '&Agrave; saisir'}}
+              </span>
+              <span class="status-pill" [class.completed]="stage.checked" [class.not-completed]="!stage.checked">
                 {{stage.checked ? 'Valid&eacute;e' : '&Agrave; valider'}}
               </span>
-              <span class="status-pill neutral">{{stage.end ? 'Termin&eacute;e' : (stage.begin ? 'En cours' : 'Non commenc&eacute;e')}}</span>
             </small>
           </span>
           <i class="fas fa-chevron-right"></i>
@@ -106,8 +112,8 @@
             <i class="fas fa-arrow-left"></i> Liste
           </button>
           <div class="detail-identity">
-            <strong>&Eacute;quipe {{currentStage.team | number:'2.0-0'}} &middot; &Eacute;preuve {{currentStage.stage | number:'2.0-0'}}</strong>
-            <span>{{teamLabel(currentStage.team)}} &middot; {{stageLabel(currentStage.stage)}}</span>
+            <strong>&Eacute;preuve {{currentStage.stage | number:'2.0-0'}} &middot; &Eacute;quipe {{currentStage.team | number:'2.0-0'}}</strong>
+            <span>{{stageLabel(currentStage.stage)}} &middot; {{teamLabel(currentStage.team)}}</span>
           </div>
           <div class="detail-zoom" *ngIf="selectedStageHasResponseFiles" aria-label="Zoom du formulaire">
             <button type="button" (click)="zoomOut()" [disabled]="contentZoomPercent <= 50" title="R&eacute;duire le formulaire">
