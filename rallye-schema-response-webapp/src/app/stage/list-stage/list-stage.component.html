@@ -134,7 +134,7 @@
         </header>
         <div class="detail-scroll">
           <app-details-stage [stage]="currentStage.stage" [team]="currentStage.team"
-            [contentZoom]="contentZoomPercent / 100"
+            [contentZoom]="selectedStageHasResponseFiles ? contentZoomPercent / 100 : 1"
             (responseFilesVisibilityChange)="onResponseFilesVisibilityChange($event)"></app-details-stage>
         </div>
       </ng-container>

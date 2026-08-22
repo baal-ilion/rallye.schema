@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, EventEmitter, HostListener, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges } from '@angular/core';
+import { Component, ElementRef, EventEmitter, HostListener, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { UntypedFormArray, UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
@@ -45,6 +45,23 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
   stageResponseNames: string[] = [];
   mobileView = window.innerWidth < 768;
   private destroy$ = new Subject<void>();
+  private zoomContentElement?: HTMLElement;
+  private zoomViewportElement?: HTMLElement;
+  private zoomResizeObserver?: ResizeObserver;
+  private zoomFrame?: number;
+  private resultLabelWidthCache = new Map<string, string>();
+
+  @ViewChild('zoomContent')
+  set zoomContent(element: ElementRef<HTMLElement> | undefined) {
+    this.zoomContentElement = element?.nativeElement;
+    this.observeZoomContent();
+  }
+
+  @ViewChild('zoomViewport')
+  set zoomViewport(element: ElementRef<HTMLElement> | undefined) {
+    this.zoomViewportElement = element?.nativeElement;
+    this.observeZoomContent();
+  }
 
   constructor(
     private uploadFileService: UploadFileService,
@@ -60,12 +77,37 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
 
   get f() { return this.form.controls; }
   get pages() { return this.f.pages as UntypedFormArray; }
+  get effectiveContentZoom() { return this.mobileView ? 1 : this.contentZoom; }
   getResultForms(formGroup: UntypedFormGroup): UntypedFormArray { return formGroup.controls.results as UntypedFormArray; }
   getPerformanceForms(formGroup: UntypedFormGroup): UntypedFormArray { return formGroup.controls.performances as UntypedFormArray; }
+  getResultLabelWidth(results: UntypedFormArray): string {
+    const labels = results.controls.map(result => String(result.get('name')?.value ?? '').trim());
+    const cacheKey = labels.join('\u0000');
+    const cachedWidth = this.resultLabelWidthCache.get(cacheKey);
+    if (cachedWidth) {
+      return cachedWidth;
+    }
+    const context = document.createElement('canvas').getContext('2d');
+    const rootFontSize = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    const fontFamily = getComputedStyle(document.body).fontFamily || 'Arial, sans-serif';
+    if (context) {
+      context.font = `${rootFontSize * .72}px ${fontFamily}`;
+    }
+    const measuredWidth = labels.reduce((width, label) =>
+      Math.max(width, context?.measureText(label).width ?? label.length * rootFontSize * .45), 0);
+    const width = `${Math.max(32, Math.ceil(measuredWidth) + 1)}px`;
+    this.resultLabelWidthCache.set(cacheKey, width);
+    return width;
+  }
+  getPerformanceLabelWidth(performances: UntypedFormArray): string {
+    return this.getResultLabelWidth(performances);
+  }
 
   @HostListener('window:resize')
   onWindowResize(): void {
     this.mobileView = window.innerWidth < 768;
+    this.emitResponseFilesVisibility();
+    this.scheduleZoomViewportUpdate();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -73,6 +115,9 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
     if (!(changes.stage?.isFirstChange() ?? true) || !(changes.team?.isFirstChange() ?? true)) {
       console.log(changes);
       this.loadStage().then().catch(error => console.error(error));
+    }
+    if (changes.contentZoom) {
+      this.scheduleZoomViewportUpdate();
     }
   }
 
@@ -86,8 +131,36 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.zoomResizeObserver?.disconnect();
+    if (this.zoomFrame !== undefined) {
+      cancelAnimationFrame(this.zoomFrame);
+    }
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  private observeZoomContent(): void {
+    this.zoomResizeObserver?.disconnect();
+    if (!this.zoomContentElement || !this.zoomViewportElement) {
+      return;
+    }
+    this.zoomResizeObserver = new ResizeObserver(() => this.scheduleZoomViewportUpdate());
+    this.zoomResizeObserver.observe(this.zoomContentElement);
+    this.scheduleZoomViewportUpdate();
+  }
+
+  private scheduleZoomViewportUpdate(): void {
+    if (this.zoomFrame !== undefined) {
+      cancelAnimationFrame(this.zoomFrame);
+    }
+    this.zoomFrame = requestAnimationFrame(() => {
+      this.zoomFrame = undefined;
+      if (!this.zoomContentElement || !this.zoomViewportElement) {
+        return;
+      }
+      const naturalHeight = Math.max(this.zoomContentElement.scrollHeight, this.zoomContentElement.offsetHeight);
+      this.zoomViewportElement.style.height = `${naturalHeight * this.effectiveContentZoom}px`;
+    });
   }
 
   private clear() {
@@ -159,7 +232,7 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
 
     try {
       await loadResponceFilesPromise;
-      this.responseFilesVisibilityChange.emit(Object.keys(this.files).length > 0);
+      this.emitResponseFilesVisibility();
       await loadStageValuesPromise;
       this.updateFormDisabledState();
     } catch (error) {
@@ -224,6 +297,7 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
         if (latestResult) {
           control.get('resultValue')?.setValue(latestResult.resultValue, { emitEvent: false });
           control.get('init')?.setValue(latestResult.resultValue, { emitEvent: false });
+          control.get('correctionMarks')?.setValue(latestResult.correctionMarks ?? null, { emitEvent: false });
           const fromSource = isStageResponseSource(latestResult.source) || isResponseFileSource(latestResult.source);
           control.get('light')?.setValue(fromSource, { emitEvent: false });
         }
@@ -282,6 +356,10 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
         console.log(error);
       }
     }
+  }
+
+  private emitResponseFilesVisibility(): void {
+    this.responseFilesVisibilityChange.emit(!this.mobileView && Object.keys(this.files).length > 0);
   }
 
   private async loadResponseFileParams() {
@@ -343,7 +421,8 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
             disabled: this.isReadOnly(questionPageParam.name)
           }],
           init: result?.resultValue,
-          light: fromSource
+          light: fromSource,
+          correctionMarks: [result?.correctionMarks ?? null]
         }));
       } else if (questionPageParam.type === QuestionType.PERFORMANCE) {
         const performance = this.stageResult.performances?.find(element => element.name === questionPageParam.name);
@@ -391,8 +470,15 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
   private findModifiedResults(form: UntypedFormGroup, modifiedResults: any[]) {
     form.getRawValue().results?.forEach((item: any) => {
       const result = this.stageResult.results?.find(element => element.name === item.name);
-      if (!result || item.resultValue !== result.resultValue) {
-        modifiedResults.push(item);
+      const storedMarks = result?.correctionMarks ?? null;
+      const currentMarks = item.correctionMarks ?? null;
+      const marksChanged = JSON.stringify(storedMarks) !== JSON.stringify(currentMarks);
+      if (!result || item.resultValue !== result.resultValue || marksChanged) {
+        modifiedResults.push({
+          name: item.name,
+          resultValue: item.resultValue,
+          correctionMarks: currentMarks
+        });
       }
     });
   }

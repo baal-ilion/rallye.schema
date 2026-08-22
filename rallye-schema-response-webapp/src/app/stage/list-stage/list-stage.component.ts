@@ -35,6 +35,7 @@ export class ListStageComponent implements OnInit, OnDestroy {
 
   private readonly SelectedId = 'ListStageComponent.selected';
   private readonly CriteriaId = 'ListStageComponent.criteria';
+  private readonly ZoomId = 'ListStageComponent.zoom';
 
   constructor(
     private stageService: StageService,
@@ -56,6 +57,7 @@ export class ListStageComponent implements OnInit, OnDestroy {
     this.document.documentElement.classList.add('validation-stage-page');
     this.document.body.classList.add('validation-stage-page');
     this.criteria = this.restoreCriteria();
+    this.contentZoomPercent = this.restoreZoom();
     this.criteria.sortBy = ['stage,asc', 'team,asc'];
     this.filterMode = this.detectFilterMode();
     this.loadStages()
@@ -118,7 +120,6 @@ export class ListStageComponent implements OnInit, OnDestroy {
   }
 
   loadPage(page: number) {
-    this.contentZoomPercent = 100;
     this.selectedStageHasResponseFiles = false;
     this.loadPages(page);
     const selected = this.stages[page - 1];
@@ -129,21 +130,21 @@ export class ListStageComponent implements OnInit, OnDestroy {
 
   onResponseFilesVisibilityChange(visible: boolean): void {
     this.selectedStageHasResponseFiles = visible;
-    if (!visible) {
-      this.contentZoomPercent = 100;
-    }
   }
 
   zoomOut(): void {
     this.contentZoomPercent = Math.max(50, this.contentZoomPercent - 10);
+    this.saveZoom();
   }
 
   zoomIn(): void {
     this.contentZoomPercent = Math.min(150, this.contentZoomPercent + 10);
+    this.saveZoom();
   }
 
   resetZoom(): void {
     this.contentZoomPercent = 100;
+    this.saveZoom();
   }
 
   get selectedStage(): StageResult | undefined {
@@ -260,6 +261,31 @@ export class ListStageComponent implements OnInit, OnDestroy {
       localStorage.setItem(this.CriteriaId, JSON.stringify({ stage, team, checked, entered, finished }));
     } catch (error) {
       console.warn('Impossible de mémoriser les filtres de validation.', error);
+    }
+  }
+
+  private restoreZoom(): number {
+    try {
+      const storedValue = localStorage.getItem(this.ZoomId);
+      if (storedValue === null) {
+        return 100;
+      }
+      const storedZoom = Number(storedValue);
+      if (!Number.isFinite(storedZoom) || storedZoom < 50 || storedZoom > 150) {
+        return 100;
+      }
+      return Math.round(storedZoom / 10) * 10;
+    } catch (error) {
+      console.warn('Impossible de restaurer le zoom de validation.', error);
+      return 100;
+    }
+  }
+
+  private saveZoom(): void {
+    try {
+      localStorage.setItem(this.ZoomId, String(this.contentZoomPercent));
+    } catch (error) {
+      console.warn('Impossible de mémoriser le zoom de validation.', error);
     }
   }
 

@@ -12,6 +12,7 @@ export class DetailsTemplateComponent implements OnInit, OnChanges {
   @Input() template: FormTemplate;
   @Input() dragable = true;
   @Output() endDragEvent = new EventEmitter<Corners>();
+  @Output() pointClickEvent = new EventEmitter<{ field: string, value: string }>();
 
   points = [];
   topLeftCorner: any;
@@ -68,25 +69,50 @@ export class DetailsTemplateComponent implements OnInit, OnChanges {
 
     this.points = [];
     for (const point of template.points) {
-      const pointClass = this.getPointClass(point.valid);
+      const pointClass = this.getPointClass(point.valid, point.selected, point.manual);
       this.points.push({
         top: point.point.y * 100 / height,
         left: point.point.x * 100 / width,
         width: squareWidth, height: squareHeight,
         class: pointClass,
-        tooltip: point.comment
+        tooltip: point.comment,
+        field: point.field,
+        value: point.value,
+        interactive: point.interactive,
+        selected: point.selected,
+        initialSelected: point.initialSelected,
+        manual: point.manual
       });
     }
   }
 
-  getPointClass(valid: boolean | null): string {
+  getPointClass(valid: boolean | null, selected: boolean = true, manual: boolean = false): string {
+    const classes: string[] = [];
     if (valid === true) {
-      return 'valid-point';
+      classes.push('valid-point');
+    } else if (valid === false) {
+      classes.push('invalid-point');
+    } else {
+      classes.push('default-point');
     }
-    if (valid === false) {
-      return 'invalid-point';
+    classes.push(selected ? 'selected-point' : 'unselected-point');
+    if (manual) {
+      classes.push('forced-point');
     }
-    return 'default-point';
+    return classes.join(' ');
+  }
+
+  selectPoint(point: { field?: string, value?: string, interactive?: boolean }): void {
+    if (point.interactive && point.field && point.value) {
+      this.pointClickEvent.emit({ field: point.field, value: point.value });
+    }
+  }
+
+  selectPointWithKeyboard(event: KeyboardEvent, point: { field?: string, value?: string, interactive?: boolean }): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.selectPoint(point);
+    }
   }
 
   endDrag(event: CdkDragEnd, corner: any) {

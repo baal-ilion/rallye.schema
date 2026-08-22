@@ -28,10 +28,129 @@ button.calendar:active {
   display: block;
 }
 
+.stage-zoom-viewport {
+  width: 100%;
+}
+
 .stage-zoom-content {
   width: 100%;
   transform-origin: top center;
   transition: transform .12s ease-out;
+}
+
+.result-list-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(
+      min(calc(var(--result-label-width, 3rem) + 2.45rem), 100%),
+      calc(var(--result-label-width, 3rem) + 2.45rem)
+    )
+  );
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  gap: .25rem .6rem;
+  margin-top: .5rem;
+  padding: 0 .25rem;
+}
+
+.result-list-item,
+.result-list-row {
+  width: 100%;
+  min-width: 0;
+}
+
+.result-list-row {
+  display: grid;
+  grid-template-columns: minmax(0, var(--result-label-width, 3rem)) 2.1rem;
+  align-items: center;
+  min-height: 2rem;
+  gap: .35rem;
+}
+
+.result-list-label {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  color: var(--rs-title);
+  font-size: .72rem;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  justify-self: stretch;
+  text-align: right;
+}
+
+.result-list-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  min-width: 2.1rem;
+  padding: 0;
+}
+
+.performance-list-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(
+      min(calc(var(--performance-label-width, 3rem) + 6.35rem), 100%),
+      calc(var(--performance-label-width, 3rem) + 6.35rem)
+    )
+  );
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  gap: .35rem .75rem;
+  margin-top: .5rem;
+  padding: 0 .25rem;
+}
+
+.performance-list-item,
+.performance-list-row {
+  width: 100%;
+  min-width: 0;
+}
+
+.performance-list-row {
+  display: grid;
+  grid-template-columns: minmax(0, var(--performance-label-width, 3rem)) 6rem;
+  align-items: center;
+  min-height: 2.25rem;
+  gap: .35rem;
+}
+
+.performance-list-label {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  color: var(--rs-title);
+  font-size: .72rem;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.performance-list-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 6rem;
+  min-width: 6rem;
+}
+
+.performance-list-control input {
+  width: 100%;
+  min-width: 0;
+  height: 1.85rem;
+  padding: .2rem .35rem;
+  border: 1px solid var(--rs-border);
+  border-radius: .35rem;
+  color: var(--rs-title);
+  background: #fff;
+  font-size: .72rem;
+  text-align: center;
 }
 
 form.container {
@@ -310,6 +429,46 @@ form > .stage-timing label {
   .stage-main-content { order: 4; }
   .validation-title { order: 5; }
   .validation-actions { order: 6; }
+
+  .stage-side-panel .stage-management-title,
+  .stage-side-panel .validation-title {
+    display: flex;
+    align-items: flex-start;
+    min-height: 3.15rem;
+    margin: .5rem 0 0 !important;
+    padding: .65rem .75rem;
+    border: 1px solid var(--rs-border);
+    background: var(--rs-soft);
+  }
+
+  .stage-side-panel header > div {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    flex-direction: column;
+    gap: .18rem;
+    text-align: left;
+  }
+
+  .stage-side-panel header strong,
+  .stage-side-panel header span {
+    display: block;
+    width: 100%;
+    white-space: normal;
+  }
+
+  .stage-side-panel header strong {
+    color: var(--rs-title);
+    font-size: .86rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .stage-side-panel header span {
+    color: var(--rs-muted);
+    font-size: .7rem;
+    line-height: 1.3;
+  }
 
   .stage-side-panel .stage-timing {
     display: grid;
