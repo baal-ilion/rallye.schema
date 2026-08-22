@@ -113,6 +113,29 @@ public class StageResultController {
 		}
 	}
 
+	@PostMapping(URL + "/responseFile/release")
+	public ResponseEntity<?> releaseResponseFile(@RequestParam Integer stage, @RequestParam Integer team,
+			@RequestParam String responseFileId, StageResultModelAssembler assembler)
+			throws ParserConfigurationException, SAXException, IOException {
+		try {
+			return ResponseEntity.ok(assembler.toModel(
+					stageResultService.releaseResponseFile(stage, team, responseFileId)));
+		} catch (IllegalArgumentException exception) {
+			return ResponseEntity.badRequest().body(java.util.Map.of("message", exception.getMessage()));
+		}
+	}
+
+	@DeleteMapping(URL + "/responseFile")
+	public ResponseEntity<?> deleteSelectedResponseFile(@RequestParam Integer stage, @RequestParam Integer team,
+			@RequestParam String responseFileId, StageResultModelAssembler assembler) {
+		try {
+			return ResponseEntity.ok(assembler.toModel(
+					stageResultService.deleteSelectedResponseFile(stage, team, responseFileId)));
+		} catch (IllegalArgumentException exception) {
+			return ResponseEntity.badRequest().body(java.util.Map.of("message", exception.getMessage()));
+		}
+	}
+
 	@DeleteMapping(URL + "/end")
 	public EntityModel<StageResult> undoStageResult(@RequestParam Integer stage, @RequestParam Integer team,
 			StageResultModelAssembler assembler) {

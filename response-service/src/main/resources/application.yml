@@ -33,7 +33,7 @@ spring:
 # Additional RabbitMQ properties
     listener:
       simple:
-        auto-startup: false
+        auto-startup: true
         concurrency: 4
         max-concurrency: 8
         retry:
@@ -55,6 +55,10 @@ form-processing:
 ---
 spring:
   profiles: test
+  rabbitmq:
+    listener:
+      simple:
+        auto-startup: false
   data:
     mongodb:
       database: rallye-schema-response-test

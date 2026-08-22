@@ -90,6 +90,8 @@ public class ResponseFileService {
 
 	@Autowired
 	private MessageProducerService messageProducerService;
+	@Autowired
+	private ResponseFileQueueUpdatePublisher queueUpdatePublisher;
 
 	public ResponseFile addResponseFile(MultipartFile file)
 			throws IOException, ParserConfigurationException, SAXException {
@@ -124,7 +126,9 @@ public class ResponseFileService {
 		responseFile.setOriginalFile(new Binary(BsonBinarySubType.BINARY, originalContent));
 		responseFile.setOriginalFileExtension(FilenameUtils.getExtension(file.getOriginalFilename()));
 		responseFile.setOriginalFileType(contentType);
-		return responseFileRepository.insert(responseFile);
+		ResponseFile inserted = responseFileRepository.insert(responseFile);
+		queueUpdatePublisher.publishUpdate();
+		return inserted;
 	}
 
 	public void processQueuedResponseFile(String id)
@@ -153,7 +157,9 @@ public class ResponseFileService {
 		info.setProcessingError(null);
 		info.setProcessingStartedAt(null);
 		info.setProcessingCompletedAt(null);
-		return responseFileInfoRepository.save(info);
+		ResponseFileInfo saved = responseFileInfoRepository.save(info);
+		queueUpdatePublisher.publishUpdate();
+		return saved;
 	}
 
 	private void updateResponseFileFromProcessing(ResponseFile responseFile, String originalName, String contentType,
@@ -213,9 +219,10 @@ public class ResponseFileService {
 		responseFile.setFileExtension("png");
 		responseFile.setFileType(pageResult.getContentType());
 		responseFile.setThumbnail(new Binary(BsonBinarySubType.BINARY, makeThumbnail(image)));
-		responseFile.setThumbnailType("image/png");
+		responseFile.setThumbnailType("image/jpeg");
 		responseFileRepository.save(responseFile);
 		messageProducerService.sendMessage(RESPONSE_FILE_CREATE_EVENT, info);
+		queueUpdatePublisher.publishUpdate();
 	}
 
 	private void copyProcessingMetadata(ResponseFileInfo info, FormProcessingClient.ProcessedImage result) {
@@ -387,7 +394,7 @@ public class ResponseFileService {
 	}
 
 	private byte[] makeThumbnail(BufferedImage source) throws IOException {
-		int targetWidth = Math.min(1200, source.getWidth());
+		int targetWidth = Math.min(240, source.getWidth());
 		int targetHeight = Math.max(1, (int) Math.round(source.getHeight() * (targetWidth / (double) source.getWidth())));
 		BufferedImage thumbnail = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
 		Graphics2D graphics = thumbnail.createGraphics();
@@ -399,8 +406,28 @@ public class ResponseFileService {
 			graphics.dispose();
 		}
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		ImageIO.write(thumbnail, "png", output);
+		ImageIO.write(thumbnail, "jpg", output);
 		return output.toByteArray();
+	}
+
+	public synchronized ResponseFile getResponseFileWithCompactThumbnail(String id) {
+		ResponseFile responseFile = getResponseFile(id);
+		try {
+			byte[] currentData = responseFile.getThumbnail() != null ? responseFile.getThumbnail().getData() : null;
+			BufferedImage current = currentData != null ? ImageIO.read(new ByteArrayInputStream(currentData)) : null;
+			if (current == null || current.getWidth() > 240 || !"image/jpeg".equals(responseFile.getThumbnailType())) {
+				BufferedImage source = current != null ? current
+						: ImageIO.read(new ByteArrayInputStream(responseFile.getFile().getData()));
+				if (source != null) {
+					responseFile.setThumbnail(new Binary(BsonBinarySubType.BINARY, makeThumbnail(source)));
+					responseFile.setThumbnailType("image/jpeg");
+					responseFile = responseFileRepository.save(responseFile);
+				}
+			}
+		} catch (IOException exception) {
+			log.warning("Impossible de compacter la miniature " + id + " : " + exception.getMessage());
+		}
+		return responseFile;
 	}
 
 	public ResponseFileInfo claimForVerification(String id, String owner) {
@@ -417,6 +444,7 @@ public class ResponseFileService {
 				FindAndModifyOptions.options().returnNew(true), ResponseFileInfo.class);
 		if (claimed == null)
 			throw new IllegalStateException("Ce formulaire est déjà vérifié sur un autre appareil.");
+		queueUpdatePublisher.publishUpdate();
 		return claimed;
 	}
 
@@ -433,8 +461,10 @@ public class ResponseFileService {
 
 	public void releaseVerificationLease(String id, String owner) {
 		Query query = Query.query(Criteria.where("id").is(id).and("verificationLeaseOwner").is(owner));
-		mongoTemplate.updateFirst(query,
+		var result = mongoTemplate.updateFirst(query,
 				new Update().unset("verificationLeaseOwner").unset("verificationLeaseExpiresAt"), ResponseFileInfo.class);
+		if (result.getModifiedCount() > 0)
+			queueUpdatePublisher.publishUpdate();
 	}
 
 	public List<PerformanceResult> getPerformanceResultFromResponseFile(ResponseFileInfo responseFileInfo) {
@@ -509,8 +539,9 @@ public class ResponseFileService {
 	}
 
 	public List<ResponseFileInfo> getSameResponseFileInfos(String id) {
-		ResponseFileInfo responseFileInfo = responseFileInfoRepository.findById(id).orElseThrow();
-		return getSameResponseFileInfos(responseFileInfo);
+		return responseFileInfoRepository.findById(id)
+				.map(this::getSameResponseFileInfos)
+				.orElseGet(ArrayList::new);
 	}
 
 	public ResponseFileInfo updateResponseFileInfo(ResponseFileInfo responseFileInfo)
@@ -555,6 +586,7 @@ public class ResponseFileService {
 		updatedResponseFileInfo = responseFileInfoRepository.save(updatedResponseFileInfo);
 		if (publishResultEvent)
 			messageProducerService.sendMessage(RESPONSE_FILE_UPDATE_EVENT, updatedResponseFileInfo);
+		queueUpdatePublisher.publishUpdate();
 		return updatedResponseFileInfo;
 	}
 
@@ -562,6 +594,7 @@ public class ResponseFileService {
 		responseFileRepository.deleteById(responseFileInfo.getId());
 		responseFileInfoRepository.deleteById(responseFileInfo.getId());
 		messageProducerService.sendMessage(RESPONSE_FILE_DELETE_EVENT, responseFileInfo);
+		queueUpdatePublisher.publishUpdate();
 	}
 
 	private Boolean getResultValue(FormQuestion field) {

@@ -21,6 +21,7 @@ import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFile;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileInfo;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileModel;
 import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileParam;
+import fr.vandriessche.rallyeschema.responseservice.entities.ResponseFileSource;
 import fr.vandriessche.rallyeschema.responseservice.entities.FormDesign;
 import fr.vandriessche.rallyeschema.responseservice.entities.StageParam;
 import fr.vandriessche.rallyeschema.responseservice.entities.StagePoint;
@@ -50,6 +51,7 @@ public class DatabaseConsistencyService {
     private static final String ISSUE_ORPHAN_RESPONSE_FILE_INFO = "RESPONSE_FILE_INFO_ORPHAN_TEAM";
     private static final String ISSUE_RESPONSE_FILE_MISSING_INFO = "RESPONSE_FILE_MISSING_INFO";
     private static final String ISSUE_RESPONSE_FILE_MISSING_FILE = "RESPONSE_FILE_MISSING_FILE";
+    private static final String ISSUE_CHECKED_RESPONSE_FILE_NOT_SELECTED = "RESPONSE_FILE_CHECKED_NOT_SELECTED";
     private static final String ISSUE_DUP_RESPONSE_FILE_PARAM = "RESPONSE_FILE_PARAM_DUP_STAGE_PAGE";
     private static final String ISSUE_ORPHAN_FORM_DESIGN = "FORM_DESIGN_ORPHAN_STAGE";
 
@@ -175,6 +177,23 @@ public class DatabaseConsistencyService {
         addOrphans(issues, ISSUE_RESPONSE_FILE_MISSING_FILE, "Fichiers sans binaire (JPEG manquant)",
                 missingFileData);
 
+        Set<String> selectedResponseFileIds = mongoTemplate.findAll(StageResult.class).stream()
+                .filter(result -> result.getResponseSources() != null)
+                .flatMap(result -> result.getResponseSources().stream())
+                .filter(ResponseFileSource.class::isInstance)
+                .map(source -> source.getId())
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        List<String> checkedButNotSelectedIds = mongoTemplate.find(
+                        Query.query(Criteria.where("checked").is(true)), ResponseFileInfo.class).stream()
+                .map(ResponseFileInfo::getId)
+                .filter(Objects::nonNull)
+                .filter(id -> !selectedResponseFileIds.contains(id))
+                .collect(Collectors.toList());
+        addOrphans(issues, ISSUE_CHECKED_RESPONSE_FILE_NOT_SELECTED,
+                "Formulaires marqués comme acceptés mais non utilisés par un résultat d'épreuve",
+                checkedButNotSelectedIds);
+
         addOrphans(issues, ISSUE_TEAM_POINT_ORPHAN_STAGE, "Points d'équipe liés à une épreuve inexistante",
                 findTeamPointsWithUnknownStages(knownStages));
 
@@ -198,6 +217,7 @@ public class DatabaseConsistencyService {
                 ISSUE_ORPHAN_RESPONSE_FILE_INFO,
                 ISSUE_RESPONSE_FILE_MISSING_INFO,
                 ISSUE_RESPONSE_FILE_MISSING_FILE,
+                ISSUE_CHECKED_RESPONSE_FILE_NOT_SELECTED,
                 ISSUE_DUP_RESPONSE_FILE_PARAM,
                 ISSUE_ORPHAN_FORM_DESIGN
         ));
@@ -248,6 +268,9 @@ public class DatabaseConsistencyService {
                 case ISSUE_RESPONSE_FILE_MISSING_INFO:
                 case ISSUE_RESPONSE_FILE_MISSING_FILE:
                     fixed += deleteByIds(mongoTemplate.getCollectionName(ResponseFile.class), issue.getIds());
+                    break;
+                case ISSUE_CHECKED_RESPONSE_FILE_NOT_SELECTED:
+                    fixed += resetCheckedResponseFileInfos(issue.getIds());
                     break;
                 case ISSUE_DUP_RESPONSE_FILE_PARAM:
                     fixed += deduplicateResponseFileParamsByStageAndPage();
@@ -409,6 +432,17 @@ public class DatabaseConsistencyService {
         long deletedInfos = deleteByIds(mongoTemplate.getCollectionName(ResponseFileInfo.class), ids);
         deleteByIds(mongoTemplate.getCollectionName(ResponseFile.class), ids);
         return deletedInfos;
+    }
+
+    private long resetCheckedResponseFileInfos(List<String> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        List<Object> finalIds = ids.stream().map(this::toIdValue).collect(Collectors.toList());
+        return mongoTemplate.updateMulti(
+                Query.query(Criteria.where("_id").in(finalIds).and("checked").is(true)),
+                new org.springframework.data.mongodb.core.query.Update().set("checked", false),
+                ResponseFileInfo.class).getModifiedCount();
     }
 
     private long deleteByIds(String collectionName, List<String> ids) {

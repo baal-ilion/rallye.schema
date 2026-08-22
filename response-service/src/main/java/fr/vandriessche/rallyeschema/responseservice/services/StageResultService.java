@@ -66,6 +66,8 @@ public class StageResultService {
 
 	@Autowired
 	private RankingUpdatePublisher rankingUpdatePublisher;
+	@Autowired
+	private StageResultUpdatePublisher stageResultUpdatePublisher;
 
 	public StageResult beginStageResult(Integer stage, Integer team) {
 		StageResult stageResult = findOrMakeStageResultByStageAndTeam(stage, team);
@@ -85,6 +87,7 @@ public class StageResultService {
 			stageResults.forEach(sr -> {
 				stageResultRepository.delete(sr);
 				messageProducerService.sendMessage(STAGE_RESULT_DELETE_EVENT, new StageResultMessage(sr));
+				stageResultUpdatePublisher.publishUpdate(sr.getStage(), sr.getTeam(), "DELETE");
 			});
 			rankingUpdatePublisher.publishRankingUpdate();
 			return stageResults.get(0);
@@ -99,6 +102,7 @@ public class StageResultService {
 		stageResultRepository.findByTeam(team).forEach(stageResult -> {
 			stageResultRepository.delete(stageResult);
 			messageProducerService.sendMessage(STAGE_RESULT_DELETE_EVENT, new StageResultMessage(stageResult));
+			stageResultUpdatePublisher.publishUpdate(stageResult.getStage(), stageResult.getTeam(), "DELETE");
 		});
 		rankingUpdatePublisher.publishRankingUpdate();
 	}
@@ -108,6 +112,7 @@ public class StageResultService {
 		stageResults.forEach(stageResult -> {
 			stageResultRepository.delete(stageResult);
 			messageProducerService.sendMessage(STAGE_RESULT_DELETE_EVENT, new StageResultMessage(stageResult));
+			stageResultUpdatePublisher.publishUpdate(stageResult.getStage(), stageResult.getTeam(), "DELETE");
 		});
 		if (!stageResults.isEmpty()) {
 			rankingUpdatePublisher.publishRankingUpdate();
@@ -169,10 +174,12 @@ public class StageResultService {
 		return stageResultRepository.findByTeam(team);
 	}
 
-	public void removeResponseFileEvent(String id) {
-		var stageResults = stageResultRepository.findByResponseSourceId(id, ResponseFileSource.class.getName());
+	public void removeResponseFileEvent(ResponseFileInfo responseFileInfo) {
+		var stageResults = stageResultRepository.findByResponseSourceId(responseFileInfo.getId(), ResponseFileSource.class.getName());
 		for (var stageResult : stageResults) {
-			removeResponseFileAndSearch(stageResult, id);
+			removeResponseFile(stageResult, responseFileInfo.getId());
+			resetPageResults(stageResult, responseFileInfo.getStage(), responseFileInfo.getPage());
+			stageResult.setChecked(false);
 			save(stageResult);
 		}
 	}
@@ -207,6 +214,43 @@ public class StageResultService {
 			return selectResponseFile(stageResult, responseFileInfos, delete);
 		}
 		return null;
+	}
+
+	@Transactional
+	public StageResult releaseResponseFile(Integer stage, Integer team, String responseFileId)
+			throws ParserConfigurationException, SAXException, IOException {
+		ResponseFileInfo responseFileInfo = responseFileService.getResponseFileInfo(responseFileId);
+		if (!Objects.equals(responseFileInfo.getStage(), stage) || !Objects.equals(responseFileInfo.getTeam(), team))
+			throw new IllegalArgumentException("La feuille ne correspond pas à l’épreuve et à l’équipe demandées.");
+		StageResult stageResult = stageResultRepository.findByStageAndTeam(stage, team).orElseThrow();
+		ResponseFileSource source = new ResponseFileSource(responseFileId);
+		if (!stageResult.getResponseSources().contains(source))
+			throw new IllegalArgumentException("Cette feuille n’est pas utilisée par le résultat de l’épreuve.");
+
+		responseFileInfo.setChecked(false);
+		responseFileService.updateResponseFileInfoWithoutResultEvent(responseFileInfo);
+		removeResponseFile(stageResult, responseFileId);
+		resetPageResults(stageResult, stage, responseFileInfo.getPage());
+		stageResult.setChecked(false);
+		return save(stageResult);
+	}
+
+	@Transactional
+	public StageResult deleteSelectedResponseFile(Integer stage, Integer team, String responseFileId) {
+		ResponseFileInfo responseFileInfo = responseFileService.getResponseFileInfo(responseFileId);
+		if (!Objects.equals(responseFileInfo.getStage(), stage) || !Objects.equals(responseFileInfo.getTeam(), team))
+			throw new IllegalArgumentException("La feuille ne correspond pas à l’épreuve et à l’équipe demandées.");
+		StageResult stageResult = stageResultRepository.findByStageAndTeam(stage, team).orElseThrow();
+		ResponseFileSource source = new ResponseFileSource(responseFileId);
+		if (!stageResult.getResponseSources().contains(source))
+			throw new IllegalArgumentException("Cette feuille n’est pas utilisée par le résultat de l’épreuve.");
+
+		removeResponseFile(stageResult, responseFileId);
+		resetPageResults(stageResult, stage, responseFileInfo.getPage());
+		stageResult.setChecked(false);
+		stageResult = save(stageResult);
+		responseFileService.deleteResponseFile(responseFileId);
+		return stageResult;
 	}
 
 	private void validateResponseFileDestination(Integer stage, Integer team) {
@@ -356,6 +400,7 @@ public class StageResultService {
 		stageResult = stageResultRepository.save(stageResult);
 		messageProducerService.sendMessage(STAGE_RESULT_UPDATE_EVENT, new StageResultMessage(stageResult));
 		rankingUpdatePublisher.publishRankingUpdate();
+		stageResultUpdatePublisher.publishUpdate(stageResult.getStage(), stageResult.getTeam(), "UPDATE");
 		return stageResult;
 	}
 
@@ -392,6 +437,7 @@ public class StageResultService {
 				.filter(s -> s.getClass().equals(ResponseFileSource.class)).collect(Collectors.toList());
 
 		for (var responseFileInfo : responseFileInfos) {
+			resetPageResults(stageResult, responseFileInfo.getStage(), responseFileInfo.getPage());
 			if (!Boolean.TRUE.equals(responseFileInfo.getChecked())) {
 				responseFileInfo.setChecked(true);
 				toUpdate.add(responseFileInfo);
@@ -399,6 +445,17 @@ public class StageResultService {
 			setResponseFile(stageResult, responseFileInfo);
 		}
 		stageResult = save(stageResult);
+		var selectedIds = responseFileInfos.stream().map(ResponseFileInfo::getId).collect(Collectors.toSet());
+		var replacedResponseFileInfos = responseFileInfos.stream()
+				.flatMap(responseFileInfo -> responseFileService.getSameResponseFileInfos(responseFileInfo).stream())
+				.filter(responseFileInfo -> !selectedIds.contains(responseFileInfo.getId()))
+				.filter(responseFileInfo -> Boolean.TRUE.equals(responseFileInfo.getChecked()))
+				.collect(Collectors.toMap(ResponseFileInfo::getId, responseFileInfo -> responseFileInfo,
+						(first, ignored) -> first));
+		for (var responseFileInfo : replacedResponseFileInfos.values()) {
+					responseFileInfo.setChecked(false);
+					responseFileService.updateResponseFileInfoWithoutResultEvent(responseFileInfo);
+		}
 		for (var responseFileInfo : toUpdate) {
 			// Le résultat vient déjà d'être sauvegardé et publié ci-dessus :
 			// ne pas provoquer un second recalcul du classement pour chaque page.
@@ -411,6 +468,21 @@ public class StageResultService {
 			}
 		}
 		return stageResult;
+	}
+
+	private void resetPageResults(StageResult stageResult, Integer stage, Integer page) {
+		var pageParam = responseFileParamService.getResponseFileParamByStageAndPage(stage, page).orElse(null);
+		if (Objects.isNull(pageParam))
+			return;
+		var questionNames = pageParam.getQuestions().keySet();
+		stageResult.getResults().removeIf(result -> questionNames.contains(result.getName()));
+		stageResult.getPerformances().removeIf(performance -> questionNames.contains(performance.getName()));
+		var stageParam = stageParamService.getStageParamByStage(stageResult.getStage());
+		if (Objects.nonNull(stageParam))
+			stageResult.setMissing((int) (stageParam.getQuestionParams().size()
+					- stageResult.getResults().stream().filter(result -> Objects.nonNull(result.getResultValue())).count()
+					- stageResult.getPerformances().stream()
+							.filter(performance -> Objects.nonNull(performance.getPerformanceValue())).count()));
 	}
 
 	private void setResponseFile(StageResult stageResult, ResponseFileInfo responseFileInfo) {

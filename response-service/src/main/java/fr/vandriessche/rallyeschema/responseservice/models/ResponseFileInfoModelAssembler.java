@@ -26,7 +26,7 @@ public class ResponseFileInfoModelAssembler implements SimpleRepresentationModel
 				.withRel("responseFileInfo"));
 		resource.add(linkTo(methodOn(ResponseFileController.class).downloadFile(content.getId(), null))
 				.withRel("responseFile"));
-		resource.add(linkTo(methodOn(ResponseFileController.class).downloadThumbnail(content.getId()))
+		resource.add(linkTo(methodOn(ResponseFileController.class).downloadThumbnail(content.getId(), null))
 				.withRel("responseFileThumbnail"));
 		resource.add(linkTo(methodOn(ResponseFileController.class).getSameResponseFileInfos(content.getId(), null))
 				.withRel("same"));

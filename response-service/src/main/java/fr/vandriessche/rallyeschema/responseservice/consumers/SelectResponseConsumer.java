@@ -38,7 +38,7 @@ public class SelectResponseConsumer {
 					responseFileInfo.getId(), selectResponseQueueName));
 			switch (routingKey) {
 			case ResponseFileService.RESPONSE_FILE_DELETE_EVENT:
-				stageResultService.removeResponseFileEvent(responseFileInfo.getId());
+				stageResultService.removeResponseFileEvent(responseFileInfo);
 				break;
 			case ResponseFileService.RESPONSE_FILE_CREATE_EVENT:
 				// Un import brut n'a encore aucun effet sur un résultat ni sur le classement.

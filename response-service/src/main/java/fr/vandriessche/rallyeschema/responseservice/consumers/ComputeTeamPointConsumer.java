@@ -17,6 +17,7 @@ import fr.vandriessche.rallyeschema.responseservice.message.StageResultMessage;
 import fr.vandriessche.rallyeschema.responseservice.services.StageRankingService;
 import fr.vandriessche.rallyeschema.responseservice.services.StageResultService;
 import fr.vandriessche.rallyeschema.responseservice.services.TeamPointService;
+import fr.vandriessche.rallyeschema.responseservice.services.RankingUpdatePublisher;
 import lombok.extern.java.Log;
 
 @Service
@@ -25,6 +26,8 @@ import lombok.extern.java.Log;
 public class ComputeTeamPointConsumer {
 	@Autowired
 	private TeamPointService teamPointService;
+	@Autowired
+	private RankingUpdatePublisher rankingUpdatePublisher;
 
 	@Value(MessageQueueConfig.COMPUTE_TEAM_POINT_QUEUE_NAME_CONFIG)
 	private String computeTeamPointQueueName;
@@ -45,6 +48,7 @@ public class ComputeTeamPointConsumer {
 				teamPointService.computeTeamPointFromStageResult(stageResult.getId());
 				break;
 			}
+			rankingUpdatePublisher.publishRankingUpdate();
 		} catch (Exception e) {
 			log.severe(MessageFormat.format("Internal server error occurred in API call. Bypassing message requeue {0}",
 					e));
@@ -66,6 +70,7 @@ public class ComputeTeamPointConsumer {
 				teamPointService.computeTeamPointFromStageRanking(stageRanking.getStage());
 				break;
 			}
+			rankingUpdatePublisher.publishRankingUpdate();
 		} catch (Exception e) {
 			log.severe(MessageFormat.format("Internal server error occurred in API call. Bypassing message requeue {0}",
 					e));

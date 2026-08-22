@@ -41,6 +41,8 @@ public class ResponseFileProcessingQueue {
 	private MongoTemplate mongoTemplate;
 	@Autowired
 	private ResponseFileService responseFileService;
+	@Autowired
+	private ResponseFileQueueUpdatePublisher queueUpdatePublisher;
 
 	private final Semaphore availableWorkers = new Semaphore(MAX_CONCURRENT_PROCESSING);
 	private final ExecutorService executor = Executors.newFixedThreadPool(MAX_CONCURRENT_PROCESSING, runnable -> {
@@ -68,7 +70,9 @@ public class ResponseFileProcessingQueue {
 				.and("processingStartedAt").lt(staleBefore));
 		Update update = new Update().set("processingStatus", "QUEUED").unset("processingStartedAt")
 				.set("processingError", "Traitement repris après une interruption du service.");
-		mongoTemplate.updateMulti(query, update, ResponseFileInfo.class);
+		var result = mongoTemplate.updateMulti(query, update, ResponseFileInfo.class);
+		if (result.getModifiedCount() > 0)
+			queueUpdatePublisher.publishUpdate();
 	}
 
 	private ResponseFileInfo claimNext() {
@@ -76,8 +80,11 @@ public class ResponseFileProcessingQueue {
 				.with(Sort.by(Sort.Direction.ASC, "processingCreatedAt"));
 		Update update = new Update().set("processingStatus", "PROCESSING")
 				.set("processingStartedAt", Instant.now()).unset("processingError");
-		return mongoTemplate.findAndModify(query, update, FindAndModifyOptions.options().returnNew(true),
-				ResponseFileInfo.class);
+		ResponseFileInfo claimed = mongoTemplate.findAndModify(query, update,
+				FindAndModifyOptions.options().returnNew(true), ResponseFileInfo.class);
+		if (claimed != null)
+			queueUpdatePublisher.publishUpdate();
+		return claimed;
 	}
 
 	private void process(String id) {
@@ -89,6 +96,7 @@ public class ResponseFileProcessingQueue {
 			Update update = new Update().set("processingStatus", "ERROR")
 					.set("processingError", userMessage(exception)).set("processingCompletedAt", Instant.now());
 			mongoTemplate.updateFirst(query, update, ResponseFileInfo.class);
+			queueUpdatePublisher.publishUpdate();
 		} finally {
 			availableWorkers.release();
 		}

@@ -2,6 +2,7 @@ package fr.vandriessche.rallyeschema.responseservice.controllers;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.time.Duration;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -21,6 +22,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.CacheControl;
+import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -108,13 +111,22 @@ public class ResponseFileController {
 	}
 
 	@GetMapping(URL + "/{id}/thumbnail")
-	public ResponseEntity<Resource> downloadThumbnail(@PathVariable String id) {
-		ResponseFile responseFile = responseFileService.getResponseFile(id);
-		if (responseFile.getThumbnail() == null)
-			return ResponseEntity.ok().contentType(MediaType.parseMediaType(responseFile.getFileType()))
-					.body(new ByteArrayResource(responseFile.getFile().getData()));
-		return ResponseEntity.ok().contentType(MediaType.parseMediaType(responseFile.getThumbnailType()))
-				.body(new ByteArrayResource(responseFile.getThumbnail().getData()));
+	public ResponseEntity<Resource> downloadThumbnail(@PathVariable String id, WebRequest request) {
+		ResponseFile responseFile = responseFileService.getResponseFileWithCompactThumbnail(id);
+		byte[] data = responseFile.getThumbnail() == null
+				? responseFile.getFile().getData()
+				: responseFile.getThumbnail().getData();
+		String contentType = responseFile.getThumbnail() == null
+				? responseFile.getFileType()
+				: responseFile.getThumbnailType();
+		String etag = "\"" + Integer.toHexString(Arrays.hashCode(data)) + "\"";
+		if (request.checkNotModified(etag))
+			return ResponseEntity.status(HttpStatus.NOT_MODIFIED).eTag(etag).build();
+		return ResponseEntity.ok()
+				.cacheControl(CacheControl.maxAge(Duration.ofSeconds(60)).cachePrivate())
+				.eTag(etag)
+				.contentType(MediaType.parseMediaType(contentType))
+				.body(new ByteArrayResource(data));
 	}
 
 	@PostMapping(INFO_URL + "/{id}/verification-lease")
