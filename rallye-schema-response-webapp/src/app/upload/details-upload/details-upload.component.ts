@@ -59,7 +59,7 @@ export class DetailsUploadComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   zoomOut(): void {
-    this.zoomPercent = Math.max(50, this.zoomPercent - 10);
+    this.zoomPercent = Math.max(20, this.zoomPercent - 10);
     this.saveZoom();
     this.scheduleZoomViewportUpdate();
   }
@@ -107,7 +107,7 @@ export class DetailsUploadComponent implements OnInit, OnChanges, OnDestroy {
         return 100;
       }
       const storedZoom = Number(storedValue);
-      if (!Number.isFinite(storedZoom) || storedZoom < 50 || storedZoom > 150) {
+      if (!Number.isFinite(storedZoom) || storedZoom < 20 || storedZoom > 150) {
         return 100;
       }
       return Math.round(storedZoom / 10) * 10;

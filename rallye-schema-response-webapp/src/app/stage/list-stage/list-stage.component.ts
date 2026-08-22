@@ -146,7 +146,7 @@ export class ListStageComponent implements OnInit, OnDestroy {
   }
 
   zoomOut(): void {
-    this.contentZoomPercent = Math.max(50, this.contentZoomPercent - 10);
+    this.contentZoomPercent = Math.max(20, this.contentZoomPercent - 10);
     this.saveZoom();
   }
 
@@ -284,7 +284,7 @@ export class ListStageComponent implements OnInit, OnDestroy {
         return 100;
       }
       const storedZoom = Number(storedValue);
-      if (!Number.isFinite(storedZoom) || storedZoom < 50 || storedZoom > 150) {
+      if (!Number.isFinite(storedZoom) || storedZoom < 20 || storedZoom > 150) {
         return 100;
       }
       return Math.round(storedZoom / 10) * 10;

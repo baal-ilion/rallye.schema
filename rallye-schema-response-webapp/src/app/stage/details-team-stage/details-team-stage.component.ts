@@ -35,7 +35,7 @@ export class DetailsTeamStageComponent implements OnInit {
   }
 
   zoomOut(): void {
-    this.setZoom(Math.max(50, this.contentZoomPercent - 10));
+    this.setZoom(Math.max(20, this.contentZoomPercent - 10));
   }
 
   zoomIn(): void {
@@ -57,7 +57,7 @@ export class DetailsTeamStageComponent implements OnInit {
 
   private restoreZoom(): number {
     const storedValue = Number(localStorage.getItem(this.ZoomId));
-    return Number.isFinite(storedValue) && storedValue >= 50 && storedValue <= 150
+    return Number.isFinite(storedValue) && storedValue >= 20 && storedValue <= 150
       ? storedValue
       : 100;
   }

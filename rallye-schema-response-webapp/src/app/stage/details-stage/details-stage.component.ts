@@ -52,6 +52,7 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
   private zoomResizeObserver?: ResizeObserver;
   private zoomFrame?: number;
   private resultLabelWidthCache = new Map<string, string>();
+  private loadSequence = 0;
 
   @ViewChild('zoomContent')
   set zoomContent(element: ElementRef<HTMLElement> | undefined) {
@@ -140,6 +141,10 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
           this.navigateToMemorizedOrProgression();
           return;
         }
+        if (update.scope === 'PROGRESSION') {
+          this.checkStageStillExists();
+          return;
+        }
         this.loadStage().catch(error => console.error(error));
       });
     this.applicationUpdates.updates$.pipe(
@@ -203,6 +208,7 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
 
   private async loadStage() {
     console.log('loadStage');
+    const loadSequence = ++this.loadSequence;
     this.clear();
     const paramPromise = this.stageParamService.findByStage(this.stage).toPromise();
     const stagePromise = this.stageService.findStage(this.stage, this.team).toPromise();
@@ -211,6 +217,7 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
       if (!stageResult) {
         throw new Error('L\'\u00e9preuve demand\u00e9e est introuvable.');
       }
+      if (loadSequence !== this.loadSequence) return;
       this.stageResult = stageResult;
     } catch (error) {
       console.log(error);
@@ -219,14 +226,15 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     const loadStageValuesPromise = this.loadStageValues();
-    const loadResponceFilesPromise = this.loadResponseFiles();
-    const loadStageResponsePromise = this.loadStageResponse();
+    const loadResponceFilesPromise = this.loadResponseFiles(loadSequence);
+    const loadStageResponsePromise = this.loadStageResponse(loadSequence);
 
     try {
       const param = await paramPromise;
       if (!param) {
         throw new Error('Le param\u00e9trage de l\'\u00e9preuve est introuvable.');
       }
+      if (loadSequence !== this.loadSequence) return;
       this.param = param;
     } catch (error) {
       console.log(error);
@@ -235,7 +243,8 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     try {
-      await this.loadResponseFileParams();
+      await this.loadResponseFileParams(loadSequence);
+      if (loadSequence !== this.loadSequence) return;
     } catch (error) {
       console.log(error);
       this.loadErrorEvent.emit(this.toError(error));
@@ -243,6 +252,7 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
     }
     try {
       await loadStageResponsePromise;
+      if (loadSequence !== this.loadSequence) return;
     } catch (error) {
       console.log(error);
     }
@@ -251,6 +261,7 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
 
     try {
       await loadResponceFilesPromise;
+      if (loadSequence !== this.loadSequence) return;
       this.emitResponseFilesVisibility();
       await loadStageValuesPromise;
       this.updateFormDisabledState();
@@ -259,7 +270,7 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  private async loadStageResponse() {
+  private async loadStageResponse(loadSequence: number) {
     const source = this.stageResult?.responseSources?.filter(s => isStageResponseSource(s))
       .map(s => s as StageResponseSource).shift();
     if (source?.pointUsed) {
@@ -268,11 +279,12 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
         if (!stageResponse) {
           return;
         }
+        if (loadSequence !== this.loadSequence) return;
+        const names = (stageResponse.performances?.map(p => p.name) ?? [])
+          .concat(stageResponse.results?.map(p => p.name) ?? [])
+          .concat(stageResponse.questions?.map(p => p.name) ?? []);
         this.stageResponse = stageResponse;
-        this.stageResponseNames = this.stageResponse?.performances?.map(p => p.name) ?? [];
-        this.stageResponseNames = this.stageResponseNames.concat(this.stageResponse?.results?.map(p => p.name) ?? []);
-        this.stageResponseNames = this.stageResponseNames.concat(this.stageResponse?.questions?.map(p => p.name) ?? []);
-        this.stageResponseNames = this.stageResponseNames.filter((v, i, a) => a.indexOf(v) === i);
+        this.stageResponseNames = names.filter((v, i, a) => a.indexOf(v) === i);
       } catch (error) {
         console.log(error);
       }
@@ -362,18 +374,22 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
     });
   }
 
-  private async loadResponseFiles() {
+  private async loadResponseFiles(loadSequence: number) {
+    const files: { [page: number]: any } = {};
     const responseFilePromises = (this.stageResult._links?.responseFiles as HalLink[] ?? [])
       .map(responseFile => this.uploadFileService.getResource(responseFile.href).toPromise());
     for (const responseFilePromise of responseFilePromises) {
       try {
         const responseFile = await responseFilePromise;
         if (responseFile) {
-          this.files[responseFile.page] = responseFile;
+          files[responseFile.page] = responseFile;
         }
       } catch (error) {
         console.log(error);
       }
+    }
+    if (loadSequence === this.loadSequence) {
+      this.files = files;
     }
   }
 
@@ -381,7 +397,7 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
     this.responseFilesVisibilityChange.emit(!this.mobileView && Object.keys(this.files).length > 0);
   }
 
-  private async loadResponseFileParams() {
+  private async loadResponseFileParams(loadSequence: number) {
     const fileParams: ResponseFileParam[] = [];
     const responseFileParamPromises = (this.param._links?.responseFileParams as HalLink[] ?? [])
       .map(responseFileParam => this.responseFileParamService.getResponseFileParamByResource(responseFileParam.href).toPromise());
@@ -395,7 +411,9 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
         console.log(error);
       }
     }
-    this.fileParams = fileParams.sort((a, b) => a.page - b.page);
+    if (loadSequence === this.loadSequence) {
+      this.fileParams = fileParams.sort((a, b) => a.page - b.page);
+    }
   }
 
   private loadQuestionPageResults() {
