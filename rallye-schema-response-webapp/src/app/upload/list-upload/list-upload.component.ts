@@ -1,4 +1,8 @@
 import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, filter } from 'rxjs/operators';
+import { ResponseFileQueueUpdateService } from 'src/app/services/response-file-queue-update.service';
+import { ApplicationUpdateService } from 'src/app/services/application-update.service';
 import { DialogService } from 'src/app/shared/dialog/dialog.service';
 import { ResponseFileInfo } from '../models/response-file-info';
 import { ResponseFileSummary } from '../models/response-file-summary';
@@ -20,21 +24,32 @@ export class ListUploadComponent implements OnInit, OnDestroy {
   queueTotal = 0;
 
   private leasedId?: string;
-  private refreshTimer?: ReturnType<typeof setInterval>;
   private leaseHeartbeat?: ReturnType<typeof setInterval>;
   private refreshing = false;
+  private destroyed = false;
+  private queueEvents = new Subject<void>();
+  private queueSubscriptions = new Subscription();
+  private refreshPending = false;
 
-  constructor(private uploadService: UploadFileService, private dialogService: DialogService) { }
+  constructor(private uploadService: UploadFileService, private dialogService: DialogService,
+    private queueUpdates: ResponseFileQueueUpdateService,
+    private applicationUpdates: ApplicationUpdateService) { }
 
   ngOnInit() {
     this.refreshQueue(true);
-    this.refreshTimer = setInterval(() => this.refreshQueue(false), 3000);
+    this.queueSubscriptions.add(this.queueUpdates.updates$.subscribe(() => this.queueEvents.next()));
+    this.queueSubscriptions.add(this.applicationUpdates.updates$.pipe(
+      filter(update => update.domain === 'DATABASE' || update.domain === 'RESYNC')
+    ).subscribe(() => this.queueEvents.next()));
+    this.queueSubscriptions.add(this.queueEvents.pipe(debounceTime(100)).subscribe(() => this.refreshQueue(false)));
     this.leaseHeartbeat = setInterval(() => this.renewCurrentLease(), 30000);
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
     this.releaseCurrentLease();
-    if (this.refreshTimer) clearInterval(this.refreshTimer);
+    this.queueSubscriptions.unsubscribe();
+    this.queueEvents.complete();
     if (this.leaseHeartbeat) clearInterval(this.leaseHeartbeat);
   }
 
@@ -85,11 +100,14 @@ export class ListUploadComponent implements OnInit, OnDestroy {
   }
 
   async refreshQueue(selectFirst: boolean) {
-    if (this.refreshing) return;
+    if (this.refreshing) {
+      this.refreshPending = true;
+      return;
+    }
     this.refreshing = true;
     try {
       const page = await this.uploadService.getProcessingQueue(0, 500).toPromise();
-      this.summaries = page?.content ?? [];
+      this.summaries = this.reconcileSummaries(page?.content ?? []);
       this.queueTotal = page?.totalElements ?? 0;
       if (this.selectedSummary) {
         this.selectedSummary = this.summaries.find(item => item.id === this.selectedSummary?.id);
@@ -104,7 +122,15 @@ export class ListUploadComponent implements OnInit, OnDestroy {
     } finally {
       this.loading = false;
       this.refreshing = false;
+      if (this.refreshPending && !this.destroyed) {
+        this.refreshPending = false;
+        this.queueEvents.next();
+      }
     }
+  }
+
+  trackSummary(_: number, summary: ResponseFileSummary): string {
+    return summary.id;
   }
 
   deletePage(_: number) {
@@ -163,6 +189,16 @@ export class ListUploadComponent implements OnInit, OnDestroy {
         this.responseFileInfos = [];
         this.refreshQueue(true);
       }
+    });
+  }
+
+  private reconcileSummaries(incoming: ResponseFileSummary[]): ResponseFileSummary[] {
+    const currentById = new Map(this.summaries.map(summary => [summary.id, summary]));
+    return incoming.map(summary => {
+      const current = currentById.get(summary.id);
+      if (!current) return summary;
+      Object.assign(current, summary);
+      return current;
     });
   }
 

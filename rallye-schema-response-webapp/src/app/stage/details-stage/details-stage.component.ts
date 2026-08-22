@@ -17,10 +17,12 @@ import { StageResponse } from '../models/stage-response';
 import { isStageResponseSource, StageResponseSource } from '../models/stage-response-source';
 import { StageResult } from '../models/stage-result';
 import { StageService } from '../stage.service';
-import { RankingUpdateService } from 'src/app/services/ranking-update.service';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { filter, takeUntil } from 'rxjs/operators';
 import { NavigationMemoryService } from 'src/app/services/navigation-memory.service';
+import { StageResultUpdateService } from 'src/app/services/stage-result-update.service';
+import { RankingUpdateService } from 'src/app/services/ranking-update.service';
+import { ApplicationUpdateService } from 'src/app/services/application-update.service';
 
 @Component({
   selector: 'app-details-stage',
@@ -73,6 +75,8 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
     private responseFileParamService: ResponseFileParamService,
     private router: Router,
     private rankingUpdateService: RankingUpdateService,
+    private stageResultUpdateService: StageResultUpdateService,
+    private applicationUpdates: ApplicationUpdateService,
     private navigationMemoryService: NavigationMemoryService) { }
 
   get f() { return this.form.controls; }
@@ -124,9 +128,24 @@ export class DetailsStageComponent implements OnInit, OnChanges, OnDestroy {
   ngOnInit() {
     console.log('ngOnInit');
     this.clear();
-    this.rankingUpdateService.updates$
+    this.stageResultUpdateService.updates$
       .pipe(takeUntil(this.destroy$))
-      .subscribe(() => this.checkStageStillExists());
+      .subscribe(update => {
+        if (update.operation === 'RESYNC') {
+          this.loadStage().catch(error => console.error(error));
+          return;
+        }
+        if (update.stage !== this.stage || update.team !== this.team) return;
+        if (update.operation === 'DELETE') {
+          this.navigateToMemorizedOrProgression();
+          return;
+        }
+        this.loadStage().catch(error => console.error(error));
+      });
+    this.applicationUpdates.updates$.pipe(
+      filter(update => update.domain === 'CONFIGURATION' || update.domain === 'DATABASE'),
+      takeUntil(this.destroy$)
+    ).subscribe(() => this.loadStage().catch(error => console.error(error)));
     this.loadStage();
   }
 

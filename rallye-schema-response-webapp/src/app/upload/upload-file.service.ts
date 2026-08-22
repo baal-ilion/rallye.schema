@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { Observable, timer } from 'rxjs';
-import { filter, retry, switchMap, take } from 'rxjs/operators';
+import { Observable } from 'rxjs';
 import { AppConfigService } from '../app-config.service';
 import { ResponseFileInfo } from './models/response-file-info';
 import { HalCollection } from '../models/hal-collection';
@@ -57,16 +56,6 @@ export class UploadFileService {
   retryProcessing(id: string): Observable<ResponseFileInfo> {
     return this.http.post<ResponseFileInfo>(
       AppConfigService.settings.apiUrl.rallyeSchema + '/responseFiles/' + id + '/retry', {});
-  }
-
-  waitForProcessing(id: string): Observable<ResponseFileInfo> {
-    return timer(0, 1500).pipe(
-      switchMap(() => this.http.get<ResponseFileInfo>(
-        AppConfigService.settings.apiUrl.rallyeSchema + '/responseFileInfos/' + id)),
-      retry({ delay: 3000 }),
-      filter(info => info.processingStatus === 'ERROR' || info.processingStatus?.startsWith('READY')),
-      take(1)
-    );
   }
 
   claimForVerification(id: string): Observable<ResponseFileInfo> {

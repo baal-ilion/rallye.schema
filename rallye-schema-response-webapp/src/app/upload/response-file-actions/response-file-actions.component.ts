@@ -18,15 +18,15 @@ import { UploadFileService } from '../upload-file.service';
 export class ResponseFileActionsComponent implements OnInit, OnChanges {
 
   @Input() responseFileInfo: ResponseFileInfo;
-  @Input() viewOtherFiles = true;
+  @Input() context: 'verification' | 'validation' = 'verification';
   @Output() deleteEvent = new EventEmitter<string>();
   @Output() checkedEvent = new EventEmitter<ResponseFileInfo>();
 
   isSelected = false;
   selecteds: ResponseFileInfo[] = [];
-  selectables: ResponseFileInfo[] = [];
-  actionsMenuOpen = false;
+  sameFiles: ResponseFileInfo[] = [];
   actionError = '';
+  loading = true;
 
   constructor(
     private uploadService: UploadFileService,
@@ -46,12 +46,13 @@ export class ResponseFileActionsComponent implements OnInit, OnChanges {
 
   private clear(): void {
     this.isSelected = false;
-    this.selectables = [];
     this.selecteds = [];
+    this.sameFiles = [];
   }
 
   private async initialize() {
     console.log('initialize');
+    this.loading = true;
     this.clear();
     const samePromise = this.loadSame(this.responseFileInfo?._links?.same as HalLink);
     const stagePromise = this.stageService.findStage(this.responseFileInfo?.stage, this.responseFileInfo?.team).toPromise();
@@ -69,8 +70,9 @@ export class ResponseFileActionsComponent implements OnInit, OnChanges {
     } catch (error) {
       console.log(error);
     }
+    this.sameFiles = this.responseFileInfo ? [this.responseFileInfo, ...same] : same;
     this.selecteds = same.filter(f => selectedResponseFileIds.includes(f.id));
-    this.selectables = same.filter(f => f.id !== this.responseFileInfo?.id && f.checked);
+    this.loading = false;
   }
 
   private async loadSame(same: HalLink): Promise<ResponseFileInfo[]> {
@@ -105,48 +107,44 @@ export class ResponseFileActionsComponent implements OnInit, OnChanges {
   }
 
   uncheck() {
-    this.uploadService.updateResponseFileInfoCorners({
-      id: this.responseFileInfo.id,
-      checked: false
-    }).subscribe(data => {
-      this.responseFileInfo = data;
-      this.checkedEvent.emit(data);
-      this.ngOnInit();
-    }, err => {
-      console.log(err);
-      this.ngOnInit();
-    });
-  }
-
-  replace() {
-	this.actionError = '';
-    this.stageService.selectResponseFile(
-      this.responseFileInfo.stage,
-      this.responseFileInfo.team,
-      this.responseFileInfo.id,
-      false).subscribe(data => {
-        this.responseFileInfo = data;
-        this.checkedEvent.emit(data);
-        this.ngOnInit();
-    }, err => {
-	  this.showActionError(err);
-      this.ngOnInit();
-      });
+    this.actionError = '';
+    this.confirmationDialogService.confirm(
+      'Renvoyer la feuille vers le traitement',
+      'Renvoyer cette feuille vers le traitement des formulaires ? Les corrections manuelles O/N/Y de cette page seront réinitialisées et l’épreuve sera dévalidée.',
+      'Oui', 'Non')
+      .then(confirmed => {
+        if (!confirmed) return;
+        this.stageService.releaseResponseFile(
+          this.responseFileInfo.stage,
+          this.responseFileInfo.team,
+          this.responseFileInfo.id
+        ).subscribe(() => {
+          this.responseFileInfo.checked = false;
+          this.checkedEvent.emit(this.responseFileInfo);
+        }, err => this.showActionError(err));
+      }).catch(() => undefined);
   }
 
   delete() {
+	this.actionError = '';
     this.confirmationDialogService.confirm(
-      'Suppresion de la feuille de réponses',
-      'Supprimer cette feuille de réponses ?',
+      'Suppression de la feuille de réponses',
+      this.context === 'validation'
+        ? 'Supprimer définitivement cette feuille ? L’épreuve sera dévalidée et les corrections manuelles O/N/Y de cette page seront réinitialisées.'
+        : 'Supprimer définitivement cette feuille de réponses ?',
       'Oui', 'Non')
       .then((confirmed) => {
         console.log('User confirmed:', confirmed);
         if (confirmed) {
-          this.uploadService.deleteResponseFile(this.responseFileInfo.id).subscribe(() => {
+          const deletion = this.context === 'validation'
+            ? this.stageService.deleteSelectedResponseFile(
+                this.responseFileInfo.stage, this.responseFileInfo.team, this.responseFileInfo.id)
+            : this.uploadService.deleteResponseFile(this.responseFileInfo.id);
+          deletion.subscribe(() => {
             console.log('Deleted:', this.responseFileInfo.id);
             this.deleteEvent.emit(this.responseFileInfo.id);
-            this.responseFileInfo = null;
-            this.ngOnInit();
+          }, err => {
+            this.showActionError(err);
           });
         }
       })
@@ -155,48 +153,19 @@ export class ResponseFileActionsComponent implements OnInit, OnChanges {
       });
   }
 
-  showSelectedResponseFile() {
-    if (this.selectables.length > 0) {
-      const modalRef: AppDialogRef<ListResponseFileComponent> = this.dialogService.open(ListResponseFileComponent, { size: 'xl' });
-      modalRef.componentInstance.responseFiles = this.selecteds;
-      modalRef.result.then((result) => {
-        console.log(result);
-        if (result) {
-          this.checkedEvent.emit(this.responseFileInfo);
-          this.ngOnInit();
-        }
-      }).catch((error) => {
-        console.log(error);
-      });
-    }
-  }
-
-  showSelectablesResponseFile() {
-    if (this.selectables.length > 0) {
-      const modalRef: AppDialogRef<ListResponseFileComponent> = this.dialogService.open(ListResponseFileComponent, { size: 'xl' });
-      modalRef.componentInstance.responseFiles = this.selectables;
-      modalRef.result.then((result) => {
-        console.log(result);
-        if (result) {
-          this.checkedEvent.emit(this.responseFileInfo);
-          this.ngOnInit();
-        }
-      }).catch((error) => {
-        console.log(error);
-      });
-    }
-  }
-
-  get displaySelectedResponseFile(): boolean { return this.viewOtherFiles && !this.isSelected && this.selecteds.length > 0; }
-  get displaySelectablesResponseFile(): boolean { return this.viewOtherFiles && this.isSelected && this.selectables.length > 0; }
-  get displayKeptResponseFile(): boolean { return !this.responseFileInfo.checked && this.selecteds.length > 0; }
-
-  toggleActionsMenu() {
-    this.actionsMenuOpen = !this.actionsMenuOpen;
-  }
-
-  closeActionsMenu() {
-    this.actionsMenuOpen = false;
+  openDuplicateComparison() {
+    if (this.sameFiles.length < 2) return;
+    const modalRef: AppDialogRef<ListResponseFileComponent> = this.dialogService.open(ListResponseFileComponent, { size: 'xl' });
+    modalRef.componentInstance.responseFiles = this.sameFiles;
+    modalRef.componentInstance.selectedResponseFileId = this.isSelected
+      ? this.responseFileInfo.id
+      : this.selecteds[0]?.id;
+    modalRef.result.then((result) => {
+      if (result) {
+        this.checkedEvent.emit(result as ResponseFileInfo);
+        this.ngOnInit();
+      }
+    }).catch(() => undefined);
   }
 
   private showActionError(error: any) {

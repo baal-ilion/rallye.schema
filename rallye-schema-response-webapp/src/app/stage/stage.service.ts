@@ -90,6 +90,24 @@ export class StageService {
       '/stageResults/responseFile', null, { params });
   }
 
+  releaseResponseFile(stage: number, team: number, responseFileId: string): Observable<StageResult> {
+    const params = new HttpParams()
+      .set('stage', stage.toString())
+      .set('team', team.toString())
+      .set('responseFileId', responseFileId);
+    return this.http.post<StageResult>(AppConfigService.settings.apiUrl.rallyeSchema +
+      '/stageResults/responseFile/release', null, { params });
+  }
+
+  deleteSelectedResponseFile(stage: number, team: number, responseFileId: string): Observable<StageResult> {
+    const params = new HttpParams()
+      .set('stage', stage.toString())
+      .set('team', team.toString())
+      .set('responseFileId', responseFileId);
+    return this.http.delete<StageResult>(AppConfigService.settings.apiUrl.rallyeSchema +
+      '/stageResults/responseFile', { params });
+  }
+
   getResource<T = any>(url: string): Observable<T> {
     try {
       const parsed = new URL(url, window.location.origin);

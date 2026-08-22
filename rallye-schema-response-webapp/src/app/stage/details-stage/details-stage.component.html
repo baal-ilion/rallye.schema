@@ -77,7 +77,7 @@
                 <app-details-response-file [fileUpload]="files[page.value.page]" [dragable]="false"
                   [correctionForm]="getResultForms(page)" [correctionDisabled]="!!stageResult?.checked" class="border">
                 </app-details-response-file>
-                <app-response-file-actions [responseFileInfo]="files[page.value.page]" (checkedEvent)="reload()"
+                <app-response-file-actions [responseFileInfo]="files[page.value.page]" context="validation" (checkedEvent)="reload()"
                   (deleteEvent)="reload()"></app-response-file-actions>
               </div>
             </div>

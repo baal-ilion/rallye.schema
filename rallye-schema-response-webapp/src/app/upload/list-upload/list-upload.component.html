@@ -25,10 +25,10 @@
       <div *ngIf="loading" class="queue-empty"><i class="fas fa-spinner fa-spin"></i> Chargement…</div>
       <div *ngIf="!loading && !displayedSummaries.length" class="queue-empty"><i class="fas fa-check-circle"></i><span>Aucun formulaire dans cette catégorie.</span></div>
       <div class="queue-list" *ngIf="displayedSummaries.length">
-        <article class="queue-item" *ngFor="let item of displayedSummaries" role="button" tabindex="0"
+        <article class="queue-item" *ngFor="let item of displayedSummaries; trackBy: trackSummary" role="button" tabindex="0"
           [class.selected]="selectedSummary?.id === item.id" [class.unavailable]="!item.availableForVerification"
           (click)="select(item)" (keyup.enter)="select(item)">
-          <img *ngIf="isReady(item)" [src]="'/api/responseFiles/' + item.id + '/thumbnail'" alt="">
+          <img *ngIf="isReady(item)" [src]="'/api/responseFiles/' + item.id + '/thumbnail'" loading="lazy" decoding="async" alt="">
           <span *ngIf="!isReady(item)" class="queue-item-placeholder"><i [class]="item.processingStatus === 'ERROR' ? 'fas fa-exclamation-triangle' : 'fas fa-file-image'"></i></span>
           <span class="queue-item-content">
             <strong>Équipe {{item.team ?? '?'}} · Épreuve {{item.stage ?? '?'}} · Page {{item.page ?? '?'}}</strong>
