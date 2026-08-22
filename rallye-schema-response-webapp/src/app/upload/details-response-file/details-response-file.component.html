@@ -1,2 +1,3 @@
-<app-details-template *ngIf="template" [template]="template" [dragable]="dragable" (endDragEvent)="endDrag($event)">
+<app-details-template *ngIf="template" [template]="template" [dragable]="dragable"
+  (endDragEvent)="endDrag($event)" (pointClickEvent)="selectCorrection($event)">
 </app-details-template>

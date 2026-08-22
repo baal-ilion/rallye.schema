@@ -18,6 +18,8 @@ public class ResponseFile {
 	private Binary file;
 	private String fileType;
 	private String fileExtension;
+	private Binary thumbnail;
+	private String thumbnailType;
 	private Binary originalFile;
 	private String originalFileType;
 	private String originalFileExtension;

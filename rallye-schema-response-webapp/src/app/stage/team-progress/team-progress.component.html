@@ -1,6 +1,6 @@
 <div class="container mb-5">
   <div class="row mt-4 text-center">
-    <h1 class="col-12">Suivi des équipes</h1>
+    <h1 class="col-12 page-title-with-subtitle">Suivi des équipes<span class="page-title-subtitle">Consultez et mettez à jour le parcours d’une équipe.</span></h1>
   </div>
 
   <div class="row mt-4 align-items-center">
@@ -12,7 +12,7 @@
           class="form-control w-auto"
           [ngModel]="selectedTeamId"
           (ngModelChange)="onTeamChange($event)">
-          <option *ngFor="let team of teams" [value]="team.id">
+          <option *ngFor="let team of teams; trackBy: trackTeam" [value]="team.id">
             {{ team.team | number:'2.0-0' }} - {{ team.name }}
           </option>
         </select>

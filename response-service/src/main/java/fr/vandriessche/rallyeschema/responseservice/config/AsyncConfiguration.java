@@ -17,6 +17,7 @@ import org.springframework.web.context.request.async.CallableProcessingIntercept
 import org.springframework.web.context.request.async.TimeoutCallableProcessingInterceptor;
 import org.springframework.web.servlet.config.annotation.AsyncSupportConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 
 import lombok.extern.java.Log;
 
@@ -56,8 +57,13 @@ public class AsyncConfiguration implements AsyncConfigurer {
 	/** Configure async support for Spring MVC. */
 	@Bean
 	public WebMvcConfigurer webMvcConfigurerConfigurer(AsyncTaskExecutor taskExecutor,
-			CallableProcessingInterceptor callableProcessingInterceptor) {
+			CallableProcessingInterceptor callableProcessingInterceptor,
+			ApplicationUpdateInterceptor applicationUpdateInterceptor) {
 		return new WebMvcConfigurer() {
+			@Override
+			public void addInterceptors(@NonNull InterceptorRegistry registry) {
+				registry.addInterceptor(applicationUpdateInterceptor);
+			}
 			@Override
 			public void configureAsyncSupport(@NonNull AsyncSupportConfigurer configurer) {
 				configurer.setDefaultTimeout(360000).setTaskExecutor(taskExecutor);

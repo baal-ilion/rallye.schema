@@ -1,44 +1,21 @@
-.active-table {
-  width: auto;
-  table-layout: auto;
-}
-
 .active-table th,
 .active-table td {
   vertical-align: middle;
-  white-space: nowrap;
-  padding-right: 2.5rem;
 }
 
-.active-table td:last-child {
+.active-table .active-stages-cell {
   white-space: normal;
-  padding-right: 0;
 }
 
 .active-stage-line + .active-stage-line {
   margin-top: 0.25rem;
 }
 
-.active-table-wrapper {
-  display: inline-block;
-  max-width: 100%;
-  width: auto;
-  border: none;
-  background: transparent;
-  box-shadow: none;
+@media (min-width: 768px) {
+  /* Sur ordinateur, chaque colonne suit la largeur réelle de son contenu. */
+  .active-table .active-stages-cell,
+  .active-stage-line {
+    white-space: nowrap;
+  }
 }
 
-.active-table-title {
-  margin: 0 0 0.25rem 0;
-  width: 100%;
-  font-size: 1.5rem;
-}
-
-.active-table-header {
-  margin: 0;
-  width: 100%;
-}
-
-.active-table-body {
-  padding: 0;
-}

@@ -11,6 +11,7 @@ import { RankingUpdateService } from 'src/app/services/ranking-update.service';
 import { StageResult } from '../models/stage-result';
 import { StageService } from '../stage.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { sameData } from 'src/app/shared/data-change.utils';
 
 interface StageParticipationRow {
   team: TeamInfo;
@@ -59,6 +60,14 @@ export class StageParticipationComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  trackStageParam(_index: number, stage: StageParam): string | number {
+    return stage.id ?? stage.stage;
+  }
+
+  trackParticipation(_index: number, row: StageParticipationRow): string | number {
+    return row.team.id ?? row.team.team;
   }
 
   get selectedStageLabel(): string {
@@ -219,7 +228,10 @@ export class StageParticipationComponent implements OnInit, OnDestroy {
         this.stageService.getStages({ stage: this.selectedStage, sortBy: ['team,asc'] })
       );
       const stageResults = stageResultCollection?._embedded?.stageResults ?? [];
-      this.statuses = this.computeStatuses(stageResults);
+      const nextStatuses = this.computeStatuses(stageResults);
+      if (!sameData(this.statuses, nextStatuses)) {
+        this.statuses = nextStatuses;
+      }
     } catch (error) {
       console.log(error);
       if (!silent) {

@@ -4,7 +4,17 @@ import { Corners } from './corners';
 export class FormTemplate {
   fileUrl: string;
   fileAlt: string;
-  points: { point: Point, valid: boolean | null, comment: string }[] = [];
+  points: {
+    point: Point,
+    valid: boolean | null,
+    comment: string,
+    field?: string,
+    value?: string,
+    selected?: boolean,
+    initialSelected?: boolean,
+    interactive?: boolean,
+    manual?: boolean
+  }[] = [];
   corners: Corners;
   height: number;
   width: number;

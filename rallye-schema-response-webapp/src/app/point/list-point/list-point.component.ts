@@ -3,6 +3,7 @@ import { merge, of, Subject } from 'rxjs';
 import { auditTime, catchError, finalize, startWith, switchMap, takeUntil, tap } from 'rxjs/operators';
 import { PointService } from '../point.service';
 import { RankingUpdateService } from '../../services/ranking-update.service';
+import { sameData } from '../../shared/data-change.utils';
 
 @Component({
   selector: 'app-list-point',
@@ -37,14 +38,16 @@ export class ListPointComponent implements OnInit, OnDestroy {
             this.error = null;
           }
 
-          const loader$ = isInitial
-            ? this.pointService.getPoints()
-            : this.pointService.recomputePoints();
+          const loader$ = isManualRecompute
+            ? this.pointService.recomputePoints()
+            : this.pointService.getPoints();
 
           return loader$.pipe(
             tap((points) => {
               const sorted = (points || []).sort((a: any, b: any) => (a.team || 0) - (b.team || 0));
-              this.points = sorted;
+              if (!sameData(this.points, sorted)) {
+                this.points = sorted;
+              }
               this.error = null;
             }),
             catchError(err => {

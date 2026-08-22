@@ -2,7 +2,7 @@ import { DatePipe, KeyValue } from '@angular/common';
 import { Component, ElementRef, OnDestroy, OnInit, QueryList, ViewChild, ViewChildren } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { forkJoin, merge, of, Subject } from 'rxjs';
-import { auditTime, catchError, finalize, switchMap, takeUntil, tap, startWith, map } from 'rxjs/operators';
+import { auditTime, catchError, filter, finalize, switchMap, takeUntil, tap, startWith, map } from 'rxjs/operators';
 import * as FileSaver from 'file-saver';
 import { StageParam } from '../../param/models/stage-param';
 import { TeamInfo } from '../../param/models/team-info';
@@ -17,6 +17,9 @@ import { RankingUpdateService } from '../../services/ranking-update.service';
 import { AutoScrollService } from '../../services/auto-scroll.service';
 import { StageService } from '../../stage/stage.service';
 import { StageResult } from '../../stage/models/stage-result';
+import { TeamInfoUpdateService } from '../../services/team-info-update.service';
+import { ApplicationUpdateService } from '../../services/application-update.service';
+import { sameData } from '../../shared/data-change.utils';
 
 const EXCEL_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
 const EXCEL_EXTENSION = '.xlsx';
@@ -39,6 +42,7 @@ export class ListRankingComponent implements OnInit, OnDestroy {
   loading = false;
   error: string | null = null;
   private destroy$ = new Subject<void>();
+  private initialLoad = true;
   stagePerformanceValues: { [stage: number]: { name: string, values: { [team: number]: number | null } } } = {};
 
   keyOrder = (a: KeyValue<string, Ranking[]>, b: KeyValue<string, Ranking[]>): number => {
@@ -47,12 +51,18 @@ export class ListRankingComponent implements OnInit, OnDestroy {
     return ak > bk ? 1 : (bk > ak ? -1 : 0);
   };
 
+  trackRankingTable(_index: number, item: KeyValue<string, Ranking[]>): string {
+    return item.key;
+  }
+
   constructor(
     private route: ActivatedRoute,
     private pointService: PointService,
     private teamInfoService: TeamInfoService,
     private stageParamService: StageParamService,
     private rankingUpdateService: RankingUpdateService,
+    private teamInfoUpdateService: TeamInfoUpdateService,
+    private applicationUpdates: ApplicationUpdateService,
     private autoScrollService: AutoScrollService,
     private stageService: StageService
   ) { }
@@ -69,12 +79,20 @@ export class ListRankingComponent implements OnInit, OnDestroy {
           }
         })
       ),
-      this.rankingUpdateService.updates$
+      this.rankingUpdateService.updates$,
+      this.teamInfoUpdateService.updates$,
+      this.applicationUpdates.updates$.pipe(filter(update =>
+        update.domain === 'CONFIGURATION' || update.domain === 'DATABASE' || update.domain === 'RESYNC'))
     )
       .pipe(
         startWith(null),
         auditTime(200),
-        tap(() => { this.loading = true; this.error = null; }),
+        tap(() => {
+          if (this.initialLoad) {
+            this.loading = true;
+            this.error = null;
+          }
+        }),
         switchMap(() => this.refreshData()),
         takeUntil(this.destroy$)
       )
@@ -140,7 +158,10 @@ export class ListRankingComponent implements OnInit, OnDestroy {
         this.error = 'Erreur lors du chargement du classement';
         return of();
       }),
-      finalize(() => this.loading = false)
+      finalize(() => {
+        this.loading = false;
+        this.initialLoad = false;
+      })
     );
   }
 
@@ -174,21 +195,25 @@ export class ListRankingComponent implements OnInit, OnDestroy {
   }
 
   private refreshPoints() {
-    return this.pointService.recomputePoints().pipe(
+    return this.pointService.getPoints().pipe(
       tap((teamPoints) => {
-        this.generalRanking = [];
-        this.stageRanking = {};
-        this.stagePerformanceValues = {};
-
-        this.FillRanking(teamPoints as TeamPoint[], this.generalRanking);
+        const nextGeneralRanking: Ranking[] = [];
+        const nextStageRanking: { [stage: number]: Ranking[] } = {};
+        this.FillRanking([...(teamPoints as TeamPoint[])], nextGeneralRanking);
 
         if (this.isStageMode) {
           const stagePointsByStage = this.BuildStagePoints(teamPoints as TeamPoint[]);
           for (const [stage, stagePoints] of Object.entries(stagePointsByStage)) {
             const stageNumber = parseInt(stage, 10);
-            this.stageRanking[stageNumber] = [];
-            this.FillRanking(stagePoints, this.stageRanking[stageNumber]);
+            nextStageRanking[stageNumber] = [];
+            this.FillRanking(stagePoints, nextStageRanking[stageNumber]);
           }
+        }
+        if (!sameData(this.generalRanking, nextGeneralRanking)) {
+          this.generalRanking = nextGeneralRanking;
+        }
+        if (!sameData(this.stageRanking, nextStageRanking)) {
+          this.stageRanking = nextStageRanking;
         }
       }),
       switchMap(() => this.isStageMode ? this.loadStagePerformances() : of(void 0))
@@ -219,7 +244,9 @@ export class ListRankingComponent implements OnInit, OnDestroy {
     });
 
     if (stages.length === 0) {
-      this.stagePerformanceValues = {};
+      if (Object.keys(this.stagePerformanceValues).length > 0) {
+        this.stagePerformanceValues = {};
+      }
       return of(void 0);
     }
 
@@ -231,7 +258,7 @@ export class ListRankingComponent implements OnInit, OnDestroy {
 
     return forkJoin(requests).pipe(
       tap(responses => {
-        this.stagePerformanceValues = {};
+        const nextPerformanceValues: { [stage: number]: { name: string, values: { [team: number]: number | null } } } = {};
         responses.forEach(({ stage, results }) => {
           const params = this.stageParams[stage];
           const perfKeys = Object.keys(params?.performancePointParams || {});
@@ -246,8 +273,11 @@ export class ListRankingComponent implements OnInit, OnDestroy {
             const perf = sr.performances?.find(p => p.name === perfName);
             values[sr.team] = perf?.performanceValue ?? null;
           });
-          this.stagePerformanceValues[stage] = { name: perfName, values };
+          nextPerformanceValues[stage] = { name: perfName, values };
         });
+        if (!sameData(this.stagePerformanceValues, nextPerformanceValues)) {
+          this.stagePerformanceValues = nextPerformanceValues;
+        }
       }),
       map(() => void 0)
     );

@@ -8,6 +8,7 @@ export class TeamInfoUpdateService {
 
   private client: Client;
   private updateSubject = new Subject<void>();
+  private hasConnected = false;
 
   updates$ = this.updateSubject.asObservable();
 
@@ -18,6 +19,10 @@ export class TeamInfoUpdateService {
     });
 
     this.client.onConnect = () => {
+      if (this.hasConnected) {
+        this.updateSubject.next();
+      }
+      this.hasConnected = true;
       this.client.subscribe('/topic/teamInfoUpdate', () => {
         this.updateSubject.next();
       });
@@ -28,5 +33,9 @@ export class TeamInfoUpdateService {
     };
 
     this.client.activate();
+  }
+
+  triggerUpdate(): void {
+    this.updateSubject.next();
   }
 }

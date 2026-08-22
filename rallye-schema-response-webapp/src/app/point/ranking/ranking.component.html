@@ -1,30 +1,35 @@
+<div class="data-table-fit">
 <div class="row mt-4">
   <h4 id="ranking_title" class="col-12 px-0 py-1 bg-secondary my-auto text-center text-white">{{rankingTitle}}</h4>
 </div>
 <div class="row mt-0">
-  <table class="col-12 table table-sm align-items-center text-center" aria-describedby="ranking_title"
+  <table class="col-12 table table-sm align-items-center ranking-table" aria-describedby="ranking_title"
+    appSyncTableColumns="rankings"
     *ngIf="teamRanking" #ranking_table>
     <thead class="bg-light">
       <tr>
-        <th scope="col" class="align-middle">Classement</th>
-        <th scope="col" class="align-middle">N° d'équipe</th>
-        <th scope="col" class="align-middle">Nom d'équipe</th>
-        <th *ngIf="performanceLabel" scope="col" class="align-middle">{{ performanceLabel }}</th>
-        <th *ngIf="viewPoints" scope="col" class="align-middle">Points</th>
+        <th scope="col" class="align-middle compact-column">Classement</th>
+        <th scope="col" class="align-middle compact-column">N° d'équipe</th>
+        <th scope="col" class="align-middle fluid-column"
+          [attr.colspan]="reservePerformanceColumn && !performanceLabel ? 2 : 1">Nom d'équipe</th>
+        <th *ngIf="performanceLabel" scope="col" class="align-middle compact-column">{{ performanceLabel }}</th>
+        <th *ngIf="viewPoints" scope="col" class="align-middle compact-column">Points</th>
       </tr>
     </thead>
     <tbody>
-      <tr *ngFor="let ranking of teamRanking">
-        <th scope="row" class="align-middle">{{ranking.order}}</th>
-        <td class="align-middle">{{ranking.team}}</td>
-        <td class="align-middle">{{teamInfos[ranking.team]?.name}}</td>
-        <td *ngIf="performanceLabel" class="align-middle">
+      <tr *ngFor="let ranking of teamRanking; trackBy: trackTeam">
+        <th scope="row" class="align-middle compact-column">{{ranking.order}}</th>
+        <td class="align-middle compact-column">{{ranking.team}}</td>
+        <td class="align-middle fluid-column"
+          [attr.colspan]="reservePerformanceColumn && !performanceLabel ? 2 : 1">{{teamInfos[ranking.team]?.name}}</td>
+        <td *ngIf="performanceLabel" class="align-middle compact-column">
           {{ performanceValues?.[ranking.team] !== null && performanceValues?.[ranking.team] !== undefined
             ? (performanceValues?.[ranking.team] | number:'1.0-2')
             : '-' }}
         </td>
-        <td *ngIf="viewPoints" class="align-middle">{{ranking.total}}</td>
+        <td *ngIf="viewPoints" class="align-middle compact-column">{{ranking.total}}</td>
       </tr>
     </tbody>
   </table>
+</div>
 </div>

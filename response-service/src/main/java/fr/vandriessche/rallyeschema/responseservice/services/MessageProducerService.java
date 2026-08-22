@@ -21,7 +21,8 @@ public class MessageProducerService {
 	private String exchangeName;
 
 	public void sendMessage(String routingKey, Object message) {
-		log.info(() -> MessageFormat.format("Sending {0} : {1}", routingKey, message));
+		log.fine(() -> MessageFormat.format("Sending event {0} ({1})", routingKey,
+				message == null ? "null" : message.getClass().getSimpleName()));
 		rabbitTemplate.convertAndSend(exchangeName, routingKey, message);
 	}
 }

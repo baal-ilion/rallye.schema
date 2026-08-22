@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -13,6 +14,7 @@ import fr.vandriessche.rallyeschema.responseservice.entities.StagePoint;
 import fr.vandriessche.rallyeschema.responseservice.entities.TeamPoint;
 import fr.vandriessche.rallyeschema.responseservice.services.StageRankingService;
 import fr.vandriessche.rallyeschema.responseservice.services.TeamPointService;
+import fr.vandriessche.rallyeschema.responseservice.services.RankingUpdatePublisher;
 
 @RestController
 public class TeamPointController {
@@ -20,11 +22,21 @@ public class TeamPointController {
 	private TeamPointService teamPointService;
 	@Autowired
 	private StageRankingService stageRankingService;
+	@Autowired
+	private RankingUpdatePublisher rankingUpdatePublisher;
 
 	@GetMapping("/teamPoints/recompute")
 	public List<TeamPoint> computeTeamPoints() {
 		stageRankingService.computeAllStageRanking();
 		return teamPointService.computeTeamPoints();
+	}
+
+	@PostMapping("/teamPoints/recompute")
+	public List<TeamPoint> recomputeTeamPointsAndNotify() {
+		stageRankingService.computeAllStageRanking();
+		List<TeamPoint> points = teamPointService.computeTeamPoints();
+		rankingUpdatePublisher.publishRankingUpdate();
+		return points;
 	}
 
 	@GetMapping("/teamPoint/{id}")

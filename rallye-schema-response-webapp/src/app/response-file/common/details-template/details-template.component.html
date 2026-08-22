@@ -9,12 +9,24 @@
     </div>
     <svg *ngIf="!dragable" class="template-overlay"
       [attr.viewBox]="'0 0 ' + template.width + ' ' + template.height"
-      preserveAspectRatio="none" aria-hidden="true">
-      <rect *ngFor="let point of template.points" [attr.x]="point.point.x - template.square"
-        [attr.y]="point.point.y - template.square" [attr.width]="template.square * 2"
-        [attr.height]="template.square * 2" [attr.class]="getPointClass(point.valid)">
-        <title>{{ point.comment }}</title>
-      </rect>
+      preserveAspectRatio="none">
+      <ng-container *ngFor="let point of template.points">
+        <rect *ngIf="point.interactive" class="correction-hitbox"
+          [attr.x]="point.point.x - template.square * 1.5"
+          [attr.y]="point.point.y - template.square * 1.5"
+          [attr.width]="template.square * 3" [attr.height]="template.square * 3"
+          tabindex="0" role="button"
+          [attr.aria-label]="point.comment"
+          (click)="selectPoint(point)" (keydown)="selectPointWithKeyboard($event, point)">
+          <title>{{ point.comment }}</title>
+        </rect>
+        <rect [attr.x]="point.point.x - template.square"
+          [attr.y]="point.point.y - template.square" [attr.width]="template.square * 2"
+          [attr.height]="template.square * 2"
+          [attr.class]="getPointClass(point.valid, point.selected, point.manual)">
+          <title>{{ point.comment }}</title>
+        </rect>
+      </ng-container>
       <rect *ngIf="template.corners.TOP_LEFT" class="default-point"
         [attr.x]="template.corners.TOP_LEFT.x - template.square"
         [attr.y]="template.corners.TOP_LEFT.y - template.square"

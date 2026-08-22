@@ -1,31 +1,51 @@
-<div class="card">
-  <div class="card-header d-flex align-items-center justify-content-between">
-    <h4 class="modal-title mb-0 text-center flex-fill">Doublon n°{{page}} - Équipe {{responseFiles[page-1].team}} / Épreuve
-      {{responseFiles[page-1].stage}} / Page {{responseFiles[page-1].page}}</h4>
-    <button type="button" class="btn btn-danger text-white w-auto px-3 py-2 d-flex align-items-center justify-content-center ml-4"
-      style="min-width:2.5rem;min-height:2.5rem;line-height:1;padding:0.4rem 0.6rem;" aria-label="Close"
-      (click)="dialogRef.close()">
-      <span aria-hidden="true">&times;</span>
-    </button>
-  </div>
-  <div class="card-body">
-    <app-pagination *ngIf="responseFiles.length > 1" [collectionSize]="responseFiles.length" pageSize="1"
-      [(page)]="page" [boundaryLinks]="true" [disabled]="responseFiles.length === 0"
-      class="row justify-content-center mt-2">
-    </app-pagination>
-    <app-details-response-file class="row justify-content-center mt-1" [fileUpload]="responseFiles[page-1]"
-      [dragable]="false">
-    </app-details-response-file>
-    <app-pagination *ngIf="responseFiles.length > 1" [collectionSize]="responseFiles.length" pageSize="1"
-      [(page)]="page" [boundaryLinks]="true" [disabled]="responseFiles.length === 0"
-      class="row justify-content-center mt-2">
-    </app-pagination>
-    <div class="row border-top justify-content-center mt-2">
-      <div class="col-12 mt-2">
-        <app-response-file-actions [responseFileInfo]="responseFiles[page-1]"
-          (deleteEvent)="delete(responseFiles[page-1])" (checkedEvent)="check($event)" [viewOtherFiles]="false">
-        </app-response-file-actions>
-      </div>
+<section class="duplicate-dialog" *ngIf="candidate as comparedFile">
+  <header class="duplicate-header">
+    <div>
+      <span class="duplicate-kicker">Gestion des doublons</span>
+      <h2>Comparer les feuilles de réponse</h2>
+      <p>Épreuve {{comparedFile.stage}} · Équipe {{comparedFile.team}} · Page {{comparedFile.page}}</p>
     </div>
+    <button type="button" class="close-button" aria-label="Fermer" (click)="dialogRef.close()">×</button>
+  </header>
+
+  <div *ngIf="actionError" class="alert alert-danger mx-3 mt-3 mb-0" role="alert">{{actionError}}</div>
+
+  <nav class="candidate-navigation" *ngIf="candidates.length > 1" aria-label="Choix du doublon">
+    <button type="button" (click)="previous()" [disabled]="page <= 1">‹</button>
+    <span>Doublon {{page}} sur {{candidates.length}}</span>
+    <button type="button" (click)="next()" [disabled]="page >= candidates.length">›</button>
+  </nav>
+
+  <div class="comparison-grid">
+    <article class="sheet-card current-sheet">
+      <header>
+        <div><strong>Feuille actuellement utilisée</strong><span>Source actuelle du résultat de l’épreuve</span></div>
+        <span class="status-badge current" *ngIf="selectedResponseFile">Utilisée</span>
+      </header>
+      <div class="sheet-preview" *ngIf="selectedResponseFile as selected; else noCurrentSheet">
+        <app-details-response-file [fileUpload]="selected" [dragable]="false"></app-details-response-file>
+      </div>
+      <ng-template #noCurrentSheet>
+        <div class="empty-sheet"><strong>Aucune feuille utilisée</strong><span>Choisissez le formulaire à retenir.</span></div>
+      </ng-template>
+    </article>
+
+    <article class="sheet-card candidate-sheet">
+      <header>
+        <div><strong>Feuille candidate</strong><span>Exemplaire importé à comparer</span></div>
+        <span class="status-badge">Doublon</span>
+      </header>
+      <div class="sheet-preview">
+        <app-details-response-file [fileUpload]="comparedFile" [dragable]="false"></app-details-response-file>
+      </div>
+    </article>
   </div>
-</div>
+
+  <footer class="duplicate-actions">
+    <button type="button" class="btn btn-outline-danger" [disabled]="actionBusy" (click)="deleteCandidate()">Supprimer ce doublon</button>
+    <div>
+      <button type="button" class="btn btn-light" [disabled]="actionBusy" (click)="dialogRef.close()">Annuler</button>
+      <button type="button" class="btn btn-success" [disabled]="actionBusy" (click)="useCandidate()">{{actionBusy ? 'Traitement…' : 'Remplacer par cette feuille'}}</button>
+    </div>
+  </footer>
+</section>

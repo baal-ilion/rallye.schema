@@ -59,6 +59,7 @@ import { ModifyStageGroupComponent } from './param/modify-stage-group/modify-sta
 import { PaginationComponent } from './shared/pagination/pagination.component';
 import { ArbitrageComponent } from './arbitrage/arbitrage.component';
 import { DatabaseMaintenanceComponent } from './database/database-maintenance/database-maintenance.component';
+import { SyncTableColumnsDirective } from './shared/sync-table-columns.directive';
 
 registerLocaleData(localeFr, 'fr', localeFrExtra);
 
@@ -109,6 +110,7 @@ registerLocaleData(localeFr, 'fr', localeFrExtra);
         HomeComponent,
         QrcodeComponent,
         PaginationComponent,
+        SyncTableColumnsDirective,
     ],
     bootstrap: [AppComponent], imports: [BrowserModule,
         RouterModule,

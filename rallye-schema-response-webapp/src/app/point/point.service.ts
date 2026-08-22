@@ -14,6 +14,6 @@ export class PointService {
   }
 
   recomputePoints(): Observable<any> {
-    return this.http.get(AppConfigService.settings.apiUrl.rallyeSchema + '/teamPoints/recompute');
+    return this.http.post(AppConfigService.settings.apiUrl.rallyeSchema + '/teamPoints/recompute', {});
   }
 }

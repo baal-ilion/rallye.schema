@@ -1,5 +1,8 @@
 ﻿<nav class="navbar fixed-top navbar-expand-lg navbar-light bg-light">
-  <a class="navbar-brand" [routerLink]="'.'" (click)="rememberUrl($event, '/')">{{ title }}</a>
+  <a class="navbar-brand rallye-brand" [routerLink]="'.'" (click)="rememberUrl($event, '/')">
+    <img src="assets/logo-rallye.png" alt="Boussole du Rallye">
+    <span><strong>Rallye Schéma</strong><small>Gestion du rallye</small></span>
+  </a>
   <button
     class="navbar-toggler"
     type="button"
@@ -51,7 +54,7 @@
         <div class="dropdown-menu" [class.show]="openMenu === 'responses'" aria-labelledby="responseFilesMenu">
           <a class="dropdown-item" routerLink="/formUpload" (click)="rememberUrl($event, '/formUpload')">Importer des formulaires num&eacute;ris&eacute;s</a>
           <a class="dropdown-item" routerLink="/formCapture" (click)="rememberUrl($event, '/formCapture')">Photographier des formulaires</a>
-          <a class="dropdown-item" routerLink="/listUpload" (click)="rememberUrl($event, '/listUpload')">V&eacute;rification de l'import</a>
+          <a class="dropdown-item" routerLink="/listUpload" (click)="rememberUrl($event, '/listUpload')">Traitement des formulaires</a>
           <a class="dropdown-item" routerLink="/listStage" (click)="rememberUrl($event, '/listStage')">Validation des &eacute;preuves</a>
         </div>
       </li>
@@ -76,7 +79,7 @@
         </div>
       </li>
 
-      <li class="nav-item dropdown" [class.show]="openMenu === 'settings'">
+      <li class="nav-item dropdown d-none d-md-block" [class.show]="openMenu === 'settings'">
         <a
           class="nav-link dropdown-toggle"
           href="#"

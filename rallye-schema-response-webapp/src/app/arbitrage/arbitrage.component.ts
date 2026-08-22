@@ -2,8 +2,10 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { TeamInfo } from '../param/models/team-info';
 import { TeamInfoService } from '../param/team-info.service';
 import { RankingUpdateService } from '../services/ranking-update.service';
+import { TeamInfoUpdateService } from '../services/team-info-update.service';
 import { Subject, firstValueFrom } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { auditTime, takeUntil } from 'rxjs/operators';
+import { sameData } from '../shared/data-change.utils';
 
 @Component({
   selector: 'app-arbitrage',
@@ -23,7 +25,8 @@ export class ArbitrageComponent implements OnInit, OnDestroy {
 
   constructor(
     private teamInfoService: TeamInfoService,
-    private rankingUpdateService: RankingUpdateService
+    private rankingUpdateService: RankingUpdateService,
+    private teamUpdates: TeamInfoUpdateService
   ) { }
 
   async ngOnInit(): Promise<void> {
@@ -31,6 +34,10 @@ export class ArbitrageComponent implements OnInit, OnDestroy {
     this.rankingUpdateService.updates$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.refreshSelectedTeamSilently());
+    this.teamUpdates.updates$.pipe(
+      auditTime(100),
+      takeUntil(this.destroy$)
+    ).subscribe(() => this.loadTeams(true));
   }
 
   ngOnDestroy(): void {
@@ -79,13 +86,18 @@ export class ArbitrageComponent implements OnInit, OnDestroy {
     this.stageFilter = Number.isFinite(num) ? num : undefined;
   }
 
-  private async loadTeams(): Promise<void> {
-    this.loading = true;
-    this.error = undefined;
+  private async loadTeams(silent = false): Promise<void> {
+    if (!silent) {
+      this.loading = true;
+      this.error = undefined;
+    }
     try {
       const collection = await firstValueFrom(this.teamInfoService.getTeamInfos());
       const embedded: any = collection?._embedded || {};
-      this.teams = (embedded.teamInfoes || embedded.teamInfos || []).sort((a: TeamInfo, b: TeamInfo) => a.team - b.team);
+      const nextTeams = (embedded.teamInfoes || embedded.teamInfos || []).sort((a: TeamInfo, b: TeamInfo) => a.team - b.team);
+      if (!sameData(this.teams, nextTeams)) {
+        this.teams = nextTeams;
+      }
       if (!this.selectedTeamId) {
         const stored = sessionStorage.getItem(this.SelectedTeamStorageKey);
         if (stored) {
@@ -103,7 +115,9 @@ export class ArbitrageComponent implements OnInit, OnDestroy {
       console.log(err);
       this.error = 'Erreur lors du chargement des équipes.';
     } finally {
-      this.loading = false;
+      if (!silent) {
+        this.loading = false;
+      }
     }
   }
 

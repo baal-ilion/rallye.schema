@@ -1,19 +1,52 @@
-.custom-file-label {
-  background-color: var(--bs-primary);
-  color: #fff;
-  border-color: var(--bs-primary);
-  padding-right: 1rem;
-}
+:host{display:block}.intake-page{max-width:1050px;margin:0 auto;padding:1.25rem}.intake-header{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;margin-bottom:1rem}.intake-kicker{color:#98704f;font-size:.72rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase}.intake-header h1{margin:.12rem 0;color:#38332e;font-size:1.65rem}.intake-header p{margin:0;color:#716a63}.intake-card{padding:1rem;border:1px solid #ddd8ce;border-radius:.7rem;background:#fff;box-shadow:0 3px 12px rgba(48,42,32,.09)}.drop-zone{display:flex;align-items:center;flex-direction:column;justify-content:center;min-height:245px;padding:2rem;border:2px dashed #b9aa9a;border-radius:.6rem;background:#faf8f4;cursor:pointer;text-align:center;transition:.15s}.drop-zone:hover,.drop-zone.dragging{border-color:#8c6042;background:#f4ece3;box-shadow:inset 0 0 0 2px rgba(140,96,66,.08)}.drop-icon{display:grid;place-items:center;width:4.2rem;height:4.2rem;margin-bottom:.8rem;border-radius:50%;color:#fff;background:#a8754f;font-size:1.8rem}.drop-zone h2{margin:0;color:#403a34;font-size:1.25rem}.drop-zone p{margin:.3rem 0;color:#69615a}.supported-formats{color:#938a82;font-size:.75rem}.intake-tip{display:flex;align-items:center;gap:.55rem;margin-top:.8rem;padding:.6rem .75rem;border-left:3px solid #a8754f;color:#625b54;background:#f5efe8;font-size:.8rem}.upload-list{margin-top:1rem;border:1px solid #e2ddd5;border-radius:.5rem;overflow:hidden}.upload-list>header{display:flex;justify-content:space-between;padding:.6rem .75rem;color:#5b534c;background:#f6f3ee;font-size:.8rem}.upload-row{display:grid;grid-template-columns:1.5rem minmax(0,1fr) auto;align-items:center;gap:.65rem;padding:.65rem .75rem;border-top:1px solid #eeeae4}.upload-row>i{color:#558465;text-align:center}.upload-row[data-status=error]>i{color:#b34242}.upload-main{min-width:0}.upload-main strong{display:block;overflow:hidden;color:#403a35;font-size:.8rem;text-overflow:ellipsis;white-space:nowrap}.upload-main small{color:#746d66;font-size:.7rem}.progress{height:.28rem;margin:.35rem 0;background:#e9e5df}.progress-bar{background:#a8754f}.intake-footer{display:flex;align-items:center;justify-content:flex-end;gap:.8rem;margin-top:1rem;padding-top:.8rem;border-top:1px solid #e4dfd7;color:#756e67;font-size:.8rem}@media(max-width:700px){.intake-page{padding:.7rem}.intake-header{align-items:stretch;flex-direction:column}.intake-header .btn{width:100%}.drop-zone{min-height:210px}.upload-row{grid-template-columns:1.5rem minmax(0,1fr)}.upload-row>.btn{grid-column:2}.intake-footer{align-items:stretch;flex-direction:column}.intake-footer .btn{width:100%}}
 
-.custom-file-input:focus ~ .custom-file-label {
-  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+/* En-tête aligné sur la charte commune des pages. */
+.intake-header {
+  display: block;
+  padding: .72rem 1.15rem .78rem 1.35rem;
+  border: 1px solid #263f52;
+  border-radius: .6rem;
+  background: linear-gradient(105deg, #243b4d, #334c60);
+  box-shadow: 0 5px 16px rgba(36, 59, 77, .17);
 }
-
-.custom-file-input ~ .custom-file-label::after {
+.intake-header > div { position: relative; padding-left: .2rem; }
+.intake-header > div::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -.68rem;
+  width: 5px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #7ea45f 0 66%, #d4ac5b 66%);
   content: "";
-  display: none !important;
-  background: transparent !important;
+}
+.intake-header h1 {
+  min-height: auto !important;
+  margin: .08rem 0 !important;
+  padding: 0 !important;
   border: 0 !important;
-  width: 0;
-  padding: 0;
+  color: #fff !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-size: clamp(1.55rem, 2.1vw, 1.95rem) !important;
+}
+.intake-header h1::before { display: none !important; }
+.intake-header p { color: #dce5ea; }
+.intake-kicker { color: #d9b96f; }
+
+/* Le contenu reste compact, mais le bandeau suit la largeur de l'écran,
+ * comme celui de la page de traitement des formulaires. */
+.intake-header {
+  position: relative;
+  left: 50%;
+  width: calc(100vw - 2.5rem);
+  margin-right: 0;
+  margin-left: 0;
+  transform: translateX(-50%);
+}
+
+@media (max-width: 700px) {
+  .intake-header {
+    width: calc(100vw - 1.4rem);
+  }
 }

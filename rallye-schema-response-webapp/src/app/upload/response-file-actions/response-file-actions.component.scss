@@ -1,0 +1,19 @@
+.duplicate-warning {
+  display: flex;
+  max-width: 42rem;
+  flex-direction: column;
+  gap: .15rem;
+  margin: .5rem auto;
+  padding: .6rem .8rem;
+  border: 1px solid #e0c778;
+  border-radius: .45rem;
+  color: #66531f;
+  background: #fff8df;
+  font-size: .78rem;
+  text-align: left;
+}
+
+.duplicate-warning span { font-size: .7rem; }
+
+.btn-group { gap: .45rem; }
+.btn-group > .btn { border-radius: .4rem !important; }

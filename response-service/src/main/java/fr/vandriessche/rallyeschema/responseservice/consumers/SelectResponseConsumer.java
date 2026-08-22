@@ -1,6 +1,7 @@
 package fr.vandriessche.rallyeschema.responseservice.consumers;
 
 import java.text.MessageFormat;
+import java.util.Objects;
 
 import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.rabbit.annotation.RabbitHandler;
@@ -33,16 +34,20 @@ public class SelectResponseConsumer {
 	public void receiveMessage(@Header(AmqpHeaders.RECEIVED_ROUTING_KEY) String routingKey,
 			final ResponseFileInfo responseFileInfo) {
 		try {
-			log.info(MessageFormat.format("Received message {0} from {1} queue : {2}", routingKey,
-					selectResponseQueueName, responseFileInfo));
+			log.info(MessageFormat.format("Received {0} for response file {1} from {2}", routingKey,
+					responseFileInfo.getId(), selectResponseQueueName));
 			switch (routingKey) {
 			case ResponseFileService.RESPONSE_FILE_DELETE_EVENT:
-				stageResultService.removeResponseFileEvent(responseFileInfo.getId());
+				stageResultService.removeResponseFileEvent(responseFileInfo);
 				break;
 			case ResponseFileService.RESPONSE_FILE_CREATE_EVENT:
+				// Un import brut n'a encore aucun effet sur un résultat ni sur le classement.
+				break;
 			case ResponseFileService.RESPONSE_FILE_UPDATE_EVENT:
 			default:
-				stageResultService.updateResponseFileEvent(responseFileInfo.getId());
+				// null = simple vérification/recalcul géométrique ; true/false = validation/dévalidation.
+				if (Objects.nonNull(responseFileInfo.getChecked()))
+					stageResultService.updateResponseFileEvent(responseFileInfo.getId());
 				break;
 			}
 		} catch (Exception e) {
@@ -56,8 +61,8 @@ public class SelectResponseConsumer {
 	public void receiveMessage(@Header(AmqpHeaders.RECEIVED_ROUTING_KEY) String routingKey,
 			final StageResponseMessage stageResponse) {
 		try {
-			log.info(MessageFormat.format("Received message {0} from {1} queue : {2}", routingKey,
-					selectResponseQueueName, stageResponse));
+			log.info(MessageFormat.format("Received {0} for stage response {1} from {2}", routingKey,
+					stageResponse.getId(), selectResponseQueueName));
 			switch (routingKey) {
 			case StageResponseService.STAGE_RESPONSE_DELETE_EVENT:
 				stageResultService.removeStageResponseEvent(stageResponse.getId());

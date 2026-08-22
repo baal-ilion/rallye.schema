@@ -123,39 +123,66 @@ public class FormProcessingClient {
 	}
 
 	private final RestTemplate restTemplate;
-	private final String processUrl;
+	private final String interactiveProcessUrl;
+	private final String backgroundProcessUrl;
 
 	@Autowired
 	public FormProcessingClient(RestTemplateBuilder builder,
-			@Value("${form-processing.url:http://localhost:8085}") String serviceUrl) {
+			@Value("${form-processing.url:http://localhost:8085}") String serviceUrl,
+			@Value("${form-processing.batch-url:${form-processing.url:http://localhost:8085}}") String batchServiceUrl) {
 		this(builder.setConnectTimeout(java.time.Duration.ofSeconds(3))
-				.setReadTimeout(java.time.Duration.ofSeconds(30)).build(), serviceUrl);
+				.setReadTimeout(java.time.Duration.ofSeconds(30)).build(), serviceUrl, batchServiceUrl);
 	}
 
 	FormProcessingClient(RestTemplate restTemplate, String serviceUrl) {
+		this(restTemplate, serviceUrl, serviceUrl);
+	}
+
+	FormProcessingClient(RestTemplate restTemplate, String serviceUrl, String batchServiceUrl) {
 		this.restTemplate = restTemplate;
-		String baseUrl = serviceUrl.replaceAll("/+$", "");
-		this.processUrl = baseUrl + "/api/v1/forms/process";
+		this.interactiveProcessUrl = processUrl(serviceUrl);
+		this.backgroundProcessUrl = processUrl(batchServiceUrl);
 	}
 
 	public ProcessedImage process(byte[] image, String filename, String contentType,
 			byte[] reference, String referenceContentType, String templateXml) {
-		return process(image, filename, contentType, reference, referenceContentType, templateXml, null, true, true);
+		return process(interactiveProcessUrl, image, filename, contentType, reference, referenceContentType,
+				templateXml, null, true, true);
+	}
+
+	public ProcessedImage identify(byte[] image, String filename, String contentType,
+			byte[] reference, String referenceContentType, String templateXml) {
+		return process(interactiveProcessUrl, image, filename, contentType, reference, referenceContentType,
+				templateXml, null, false, true);
+	}
+
+	public ProcessedImage identifyInBackground(byte[] image, String filename, String contentType,
+			byte[] reference, String referenceContentType, String templateXml) {
+		return process(backgroundProcessUrl, image, filename, contentType, reference, referenceContentType,
+				templateXml, null, false, true);
+	}
+
+	public ProcessedImage processInBackground(byte[] image, String filename, String contentType,
+			byte[] reference, String referenceContentType, String templateXml) {
+		return process(backgroundProcessUrl, image, filename, contentType, reference, referenceContentType,
+				templateXml, null, true, true);
 	}
 
 	public ProcessedImage processWithMarkers(byte[] image, String filename, String contentType,
 			byte[] reference, String referenceContentType, String templateXml, MarkerSet sourceMarkers) {
-		return process(image, filename, contentType, reference, referenceContentType, templateXml, sourceMarkers,
+		return process(interactiveProcessUrl, image, filename, contentType, reference, referenceContentType,
+				templateXml, sourceMarkers,
 				true, false);
 	}
 
 	public ProcessedImage identifyWithMarkers(byte[] image, String filename, String contentType,
 			byte[] reference, String referenceContentType, String templateXml, MarkerSet sourceMarkers) {
-		return process(image, filename, contentType, reference, referenceContentType, templateXml, sourceMarkers,
+		return process(interactiveProcessUrl, image, filename, contentType, reference, referenceContentType,
+				templateXml, sourceMarkers,
 				false, false);
 	}
 
-	private ProcessedImage process(byte[] image, String filename, String contentType,
+	private ProcessedImage process(String processUrl, byte[] image, String filename, String contentType,
 			byte[] reference, String referenceContentType, String templateXml, MarkerSet sourceMarkers,
 			boolean recognizeCorrectionMarks, boolean includeNormalizedImage) {
 		try {
@@ -204,6 +231,10 @@ public class FormProcessingClient {
 			throw new IllegalStateException("Service de traitement indisponible ou réponse inexploitable : "
 					+ error.getMessage(), error);
 		}
+	}
+
+	private String processUrl(String serviceUrl) {
+		return serviceUrl.replaceAll("/+$", "") + "/api/v1/forms/process";
 	}
 
 	private String markerSetJson(MarkerSet markers) {

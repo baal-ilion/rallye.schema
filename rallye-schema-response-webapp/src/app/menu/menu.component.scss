@@ -2,3 +2,44 @@
   max-height: 400px;
   overflow-y: auto;
 }
+
+.rallye-brand {
+  display: flex;
+  align-items: center;
+  gap: .62rem;
+  padding-top: .1rem;
+  padding-bottom: .1rem;
+}
+
+.rallye-brand img {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+}
+
+.rallye-brand span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.08;
+}
+
+.rallye-brand strong {
+  color: #1d2b36;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -.015em;
+}
+
+.rallye-brand small {
+  margin-top: .16rem;
+  color: #557b3a;
+  font-size: .56rem;
+  font-weight: 600;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1199px) {
+  .rallye-brand small { display: none; }
+  .rallye-brand { margin-right: .65rem; }
+}

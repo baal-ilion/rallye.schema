@@ -19,7 +19,12 @@ DEFAULT_HEIGHT = 3508
 ORIENTATION_WORKING_HEIGHT = 700
 MAXIMUM_REFERENCE_ALIGNMENT_ERROR = 12.0
 MINIMUM_REFERENCE_COLUMN_CORRELATION = 0.15
-ORIENTATION_COLUMN_CORRELATION_WEIGHT = 4.0
+TRUSTED_REFERENCE_ALIGNMENT_ERROR = 3.0
+# La distance aux traits seuls est trompeuse sur une feuille très remplie :
+# une orientation couchée peut rencontrer beaucoup de lignes de tableaux par
+# hasard. La projection verticale conserve, elle, la position de l'en-tête et
+# des cartouches et doit donc guider prioritairement le choix d'orientation.
+ORIENTATION_COLUMN_CORRELATION_WEIGHT = 20.0
 
 
 def _marker_model(markers: np.ndarray) -> MarkerSet:
@@ -295,7 +300,22 @@ def process_image(
         normalized_height = source_height
         target_markers = source_detection.points
         local_alignment = LocalAlignment(normalized, False, 0.0, 0, 0.0, 0.0)
-    quality, warnings = analyze_quality(source, source_detection.confidence)
+    # La qualité utile est celle de la feuille normalisée. Mesurer toute la
+    # photographie pénaliserait artificiellement un formulaire petit dans le
+    # cadre à cause de l'arrière-plan qui l'entoure.
+    quality, warnings = analyze_quality(normalized, source_detection.confidence)
+    if (
+        reference is not None
+        and automatic_marker_detection
+        and reference_alignment_error <= TRUSTED_REFERENCE_ALIGNMENT_ERROR
+    ):
+        # Une comparaison très précise avec la page de référence confirme la
+        # géométrie finale, même si la feuille n'occupe pas la position
+        # habituelle dans la photographie source.
+        warnings = [
+            warning for warning in warnings
+            if not warning.startswith("La géométrie des repères est inhabituelle")
+        ]
     if marker_warning:
         warnings.insert(0, marker_warning)
     if (
@@ -304,6 +324,7 @@ def process_image(
         and apply_local_alignment
         and not local_alignment.applied
         and local_alignment.confidence == 0
+        and reference_alignment_error > TRUSTED_REFERENCE_ALIGNMENT_ERROR
     ):
         warnings.append(
             "Le recalage local n’a pas trouvé suffisamment de détails fiables ; "

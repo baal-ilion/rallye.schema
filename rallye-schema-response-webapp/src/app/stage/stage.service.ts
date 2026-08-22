@@ -33,7 +33,7 @@ export class StageService {
     }
     if (crit.sortBy) {
       for (const by of crit.sortBy) {
-        params = params.set('sortBy', by.toString());
+        params = params.append('sortBy', by.toString());
       }
     }
     return this.http.get(AppConfigService.settings.apiUrl.rallyeSchema + '/stageResults', { params });
@@ -88,6 +88,24 @@ export class StageService {
       .set('delete', del.toString());
     return this.http.post<StageResult>(AppConfigService.settings.apiUrl.rallyeSchema +
       '/stageResults/responseFile', null, { params });
+  }
+
+  releaseResponseFile(stage: number, team: number, responseFileId: string): Observable<StageResult> {
+    const params = new HttpParams()
+      .set('stage', stage.toString())
+      .set('team', team.toString())
+      .set('responseFileId', responseFileId);
+    return this.http.post<StageResult>(AppConfigService.settings.apiUrl.rallyeSchema +
+      '/stageResults/responseFile/release', null, { params });
+  }
+
+  deleteSelectedResponseFile(stage: number, team: number, responseFileId: string): Observable<StageResult> {
+    const params = new HttpParams()
+      .set('stage', stage.toString())
+      .set('team', team.toString())
+      .set('responseFileId', responseFileId);
+    return this.http.delete<StageResult>(AppConfigService.settings.apiUrl.rallyeSchema +
+      '/stageResults/responseFile', { params });
   }
 
   getResource<T = any>(url: string): Observable<T> {

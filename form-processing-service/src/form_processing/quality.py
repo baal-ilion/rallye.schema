@@ -6,7 +6,18 @@ from .models import QualityMetrics
 
 def analyze_quality(image: np.ndarray, marker_confidence: float) -> tuple[QualityMetrics, list[str]]:
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    laplacian_variance = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+    # La variance du Laplacien dépend fortement de la résolution : une même
+    # feuille paraît artificiellement moins nette lorsqu'elle contient beaucoup
+    # plus de pixels. On mesure donc la netteté sur une largeur courte de
+    # référence, sans agrandir les petites images.
+    short_side = min(gray.shape)
+    sharpness_scale = min(1.0, 1200.0 / short_side)
+    sharpness_image = (
+        cv2.resize(gray, None, fx=sharpness_scale, fy=sharpness_scale, interpolation=cv2.INTER_AREA)
+        if sharpness_scale < 1.0
+        else gray
+    )
+    laplacian_variance = float(cv2.Laplacian(sharpness_image, cv2.CV_64F).var())
     mean = float(gray.mean())
     standard_deviation = float(gray.std())
 

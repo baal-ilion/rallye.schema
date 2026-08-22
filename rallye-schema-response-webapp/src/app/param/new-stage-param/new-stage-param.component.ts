@@ -76,7 +76,7 @@ export class NewStageParamComponent implements OnInit {
       stage: formValue.stage,
       name: formValue.name,
       group: formValue.group
-        ? { id: formValue.group.id, name: formValue.group.name, description: formValue.group.description }
+        ? { id: formValue.group.id, name: formValue.group.name }
         : null
     };
     this.dialogRef.close(payload);

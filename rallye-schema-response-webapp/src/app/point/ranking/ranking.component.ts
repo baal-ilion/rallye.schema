@@ -13,10 +13,15 @@ export class RankingComponent implements OnInit {
   @Input() viewPoints = true;
   @Input() performanceLabel?: string | null;
   @Input() performanceValues?: { [team: number]: number | null } | null;
+  @Input() reservePerformanceColumn = false;
   @ViewChild('ranking_table') rankingTable: ElementRef;
 
   constructor() { }
 
   ngOnInit(): void {
+  }
+
+  trackTeam(_index: number, ranking: Ranking): number {
+    return ranking.team;
   }
 }

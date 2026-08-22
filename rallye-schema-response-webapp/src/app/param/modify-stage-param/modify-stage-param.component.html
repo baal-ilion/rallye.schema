@@ -1,7 +1,7 @@
 <div class="mb-5" *ngIf="stageParam">
   <div class="row mt-4 text-center">
-    <h1 class="col-12">
-      Épreuve {{ stageParam.stage }} / {{ stageParam.name }}
+    <h1 class="col-12 page-title-with-subtitle">
+      Épreuve {{ stageParam.stage }} / {{ stageParam.name }}<span class="page-title-subtitle">Modifiez les règles, le barème et le formulaire de cette épreuve.</span>
     </h1>
     <div class="col-12 mt-2">
       <a class="btn btn-primary" [href]="formDesignerUrl" target="_blank" rel="opener">
@@ -73,18 +73,17 @@
         </div>
       </div>
       <div class="card-body" *ngIf="showQuestions">
-        <div class="row">
-          <div *ngFor="
-                let questionParam of questionParams.controls;
-                let i = index
-              " class="col-6 col-lg-3 col-sm-6 col-md-4">
-            <div [formGroup]="questionParam" class="row">
-              <label class="col align-self-center">{{questionParam.value.name}}</label>
-              <select class="form-group custom-select" formControlName="type">
+        <div class="question-param-grid"
+          [style.--question-param-label-width]="getQuestionParamLabelWidth()">
+          <div *ngFor="let questionParam of questionParams.controls; let i = index" class="question-param-item">
+            <div [formGroup]="questionParam" class="question-param-row">
+              <label class="question-param-label">{{questionParam.value.name}}</label>
+              <select class="custom-select question-param-select" formControlName="type">
                 <option value="QUESTION">Question</option>
                 <option value="PERFORMANCE">Performance</option>
               </select>
-              <button type="button" class="btn btn-sm btn-outline-danger ml-2 w-auto" (click)="removeQuestionParam(i)">
+              <button type="button" class="btn btn-sm btn-danger question-param-delete"
+                (click)="removeQuestionParam(i)">
                 Supprimer
               </button>
             </div>
@@ -108,12 +107,12 @@
               </h4>
             </div>
           </div>
-          <div class="row">
-            <div *ngFor="let questionPointParam of questionPointParams.controls"
-              class="col-6 col-lg-3 col-sm-6 col-md-4">
-              <div [formGroup]="questionPointParam" class="row">
-                <label class="col align-self-center">{{questionPointParam.value.name}}</label>
-                <div class="col-auto align-self-center">
+          <div class="question-point-grid"
+            [style.--question-point-label-width]="getQuestionPointLabelWidth()">
+            <div *ngFor="let questionPointParam of questionPointParams.controls" class="question-point-item">
+              <div [formGroup]="questionPointParam" class="question-point-row">
+                <label class="question-point-label">{{questionPointParam.value.name}}</label>
+                <div class="question-point-control">
                   <input type="number" formControlName="point" class="form-control point-input"
                     [attr.aria-label]="'Barème de la question ' + questionPointParam.value.name" />
                 </div>
@@ -129,22 +128,19 @@
               </h4>
             </div>
           </div>
+          <div class="performance-point-grid">
           <div *ngFor="
                 let performancePointParam of performancePointParams.controls;
                 index as perfIndex
-              " class="row mb-4">
-            <div class="col-12" [formGroup]="performancePointParam">
-              <div class="row">
-                <div class="col-12 m-0 px-0 py-1 bg-light">
-                  <h5 class="m-auto text-center">
-                    {{ performancePointParam.value.name }}
-                  </h5>
-                </div>
-              </div>
+              " class="performance-point-card">
+            <div class="performance-point-card-content" [formGroup]="performancePointParam">
+              <header class="performance-point-card-header">
+                <h5>{{ performancePointParam.value.name }}</h5>
+              </header>
               <div *ngFor="let range of getRanges(performancePointParam).controls; index as i"
-                class="row mt-2 d-flex justify-content-center" [formGroup]="range">
-                <div class="col-7 row">
-                  <div class="col-6 m-0 px-1 py-0 align-self-center">
+                class="performance-range-card" [formGroup]="range">
+                <div class="performance-range-main">
+                  <div class="performance-range-field">
                     <label class="m-0 p-0 align-self-center">Attribution de points selon :</label>
                     <select class="form-control custom-select" formControlName="allocationType" (change)="onPerfPointAllocationType($event.target.value, range);
                          onChangePerformanceRangePointParam($event.target.value, getRanges(performancePointParam), i)">
@@ -154,7 +150,7 @@
                       <option value="RANK">le classement à l'épreuve.</option>
                     </select>
                   </div>
-                  <fieldset class="col-6 m-0 px-1 py-0 align-self-center" [disabled]="
+                  <fieldset class="performance-range-field" [disabled]="
                         !(
                           range.value.allocationType === 'RANK' ||
                           range.value.allocationType === 'DATE'
@@ -165,11 +161,15 @@
                       meilleure équipe est celle qui :</label>
                     <label *ngIf="range.value.allocationType === 'RANK'" class="m-0 p-0 align-self-center">La
                       meilleure équipe est celle qui :</label>
+                    <label *ngIf="range.value.allocationType === 'SCORE'"
+                      class="m-0 p-0 align-self-center performance-range-label-placeholder"
+                      aria-hidden="true">La meilleure équipe est celle qui :</label>
                     <label *ngIf="
                           range.value.allocationType !== 'SCORE' &&
                           range.value.allocationType !== 'RANK' &&
                           range.value.allocationType !== 'DATE'
-                        " class="m-0 p-0 align-self-center">-</label>
+                        " class="m-0 p-0 align-self-center performance-range-label-placeholder"
+                      aria-hidden="true">Champ indisponible :</label>
                     <select class="form-control custom-select" formControlName="type" *ngIf="
                         range.value.allocationType !== 'SCORE' &&
                         range.value.allocationType !== 'RANK' &&
@@ -201,7 +201,7 @@
                     </select>
                   </fieldset>
                 </div>
-                <fieldset class="col-3 m-0 px-1 py-0 align-self-center" [disabled]="
+                <fieldset class="performance-range-interval" [disabled]="
                       !(
                         range.value.allocationType === 'SCORE' ||
                         range.value.allocationType === 'RANK' ||
@@ -209,34 +209,44 @@
                       )
                     ">
                   <legend *ngIf="false"></legend>
-                  <label class="col-12 m-0 p-0" *ngIf="range.value.allocationType === 'SCORE'">Score compris dans
+                  <label class="m-0 p-0" *ngIf="range.value.allocationType === 'SCORE'">Score compris dans
                     :</label>
-                  <label class="col-12 m-0 p-0" *ngIf="range.value.allocationType === 'RANK'">Rang compris dans
+                  <label class="m-0 p-0" *ngIf="range.value.allocationType === 'RANK'">Rang compris dans
                     :</label>
-                  <label class="col-12 m-0 p-0" *ngIf="range.value.allocationType === 'DATE'">N° de passage compris
+                  <label class="m-0 p-0" *ngIf="range.value.allocationType === 'DATE'">N° de passage compris
                     dans :</label>
                   <label *ngIf="
                         range.value.allocationType !== 'SCORE' &&
                         range.value.allocationType !== 'RANK' &&
                         range.value.allocationType !== 'DATE'
-                      " class="m-0 p-0 align-self-center">-</label>
-                  <div class="col-12 m-0 p-1 border rounded">
-                    <div class="col-1 p-0 d-inline-block align-self-center text-left">
+                      " class="m-0 p-0 align-self-center performance-range-label-placeholder"
+                    aria-hidden="true">Intervalle :</label>
+                  <div class="performance-range-bounds m-0 p-1 border rounded" *ngIf="
+                        range.value.allocationType === 'SCORE' ||
+                        range.value.allocationType === 'RANK' ||
+                        range.value.allocationType === 'DATE'
+                      ">
+                    <span class="performance-range-boundary">
                       [
-                    </div>
-                    <input class="col-4 d-inline-block align-self-center form-control form-control-sm" type="number"
+                    </span>
+                    <input class="performance-range-number form-control form-control-sm" type="number"
                       formControlName="begin" />
-                    <div class="col-2 p-0 d-inline-block align-self-center text-center">
+                    <span class="performance-range-separator">
                       ;
-                    </div>
-                    <input class="col-4 d-inline-block align-self-center form-control form-control-sm" type="number"
+                    </span>
+                    <input class="performance-range-number form-control form-control-sm" type="number"
                       formControlName="end" />
-                    <div class="col-1 p-0 d-inline-block align-self-center text-right">
+                    <span class="performance-range-boundary">
                       [
-                    </div>
+                    </span>
                   </div>
+                  <input *ngIf="
+                        range.value.allocationType !== 'SCORE' &&
+                        range.value.allocationType !== 'RANK' &&
+                        range.value.allocationType !== 'DATE'
+                      " class="form-control form-control-sm performance-empty-field" type="text" disabled />
                 </fieldset>
-                <fieldset class="col-2 m-0 px-1 py-0 align-self-center" [disabled]="
+                <fieldset class="performance-range-points" [disabled]="
                       !(
                         range.value.allocationType === 'SCORE' ||
                         range.value.allocationType === 'RANK' ||
@@ -244,8 +254,22 @@
                       )
                     ">
                   <legend *ngIf="false"></legend>
-                  <label class="col-12 m-0 p-0 align-self-center">Points :</label>
-                  <div class="col-12 m-0 p-1 border rounded d-flex align-items-center">
+                  <label class="col-12 m-0 p-0 align-self-center" *ngIf="
+                        range.value.allocationType === 'SCORE' ||
+                        range.value.allocationType === 'RANK' ||
+                        range.value.allocationType === 'DATE'
+                      ">Points ou formule de calcul de points :</label>
+                  <label class="col-12 m-0 p-0 align-self-center performance-range-label-placeholder"
+                    *ngIf="
+                      range.value.allocationType !== 'SCORE' &&
+                      range.value.allocationType !== 'RANK' &&
+                      range.value.allocationType !== 'DATE'
+                    " aria-hidden="true">Points ou formule de calcul de points :</label>
+                  <div class="col-12 m-0 p-1 border rounded d-flex align-items-center" *ngIf="
+                        range.value.allocationType === 'SCORE' ||
+                        range.value.allocationType === 'RANK' ||
+                        range.value.allocationType === 'DATE'
+                      ">
                     <input *ngIf="range.value.point || !range.value.expression"
                       class="form-control form-control-sm w-auto" type="number"
                       formControlName="point" />
@@ -256,9 +280,15 @@
                       ...
                     </button>
                   </div>
+                  <input *ngIf="
+                        range.value.allocationType !== 'SCORE' &&
+                        range.value.allocationType !== 'RANK' &&
+                        range.value.allocationType !== 'DATE'
+                      " class="form-control form-control-sm performance-empty-field" type="text" disabled />
                 </fieldset>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>

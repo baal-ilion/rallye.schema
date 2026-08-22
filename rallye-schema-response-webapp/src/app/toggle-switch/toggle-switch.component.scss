@@ -1,4 +1,8 @@
 @import "node_modules/bootstrap/scss/functions";
+$theme-colors: (
+  "success": #557b3a,
+  "danger": #ad4545,
+);
 @import "node_modules/bootstrap/scss/variables";
 @import "node_modules/bootstrap/scss/mixins";
 
