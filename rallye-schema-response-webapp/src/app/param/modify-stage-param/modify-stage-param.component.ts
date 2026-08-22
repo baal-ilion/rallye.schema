@@ -56,6 +56,7 @@ export class ModifyStageParamComponent implements OnInit {
   showResponseFiles = false;
   showQuestions = false;
   showPoints = false;
+  private questionPointLabelWidthCache = new Map<string, string>();
 
   get formDesignerUrl(): string {
     const stageId = this.stageParam?.id ? `?stageId=${encodeURIComponent(this.stageParam.id)}` : '';
@@ -78,6 +79,31 @@ export class ModifyStageParamComponent implements OnInit {
   get questionPointParams() { return this.f.questionPointParams as UntypedFormArray; }
   get performancePointParams() { return this.f.performancePointParams as UntypedFormArray; }
   get questionParams() { return this.f.questionParams as UntypedFormArray; }
+  getQuestionPointLabelWidth(): string {
+    return this.getControlsLabelWidth(this.questionPointParams);
+  }
+  getQuestionParamLabelWidth(): string {
+    return this.getControlsLabelWidth(this.questionParams);
+  }
+  private getControlsLabelWidth(controls: UntypedFormArray): string {
+    const labels = controls.controls.map(control => String(control.get('name')?.value ?? '').trim());
+    const cacheKey = labels.join('\u0000');
+    const cachedWidth = this.questionPointLabelWidthCache.get(cacheKey);
+    if (cachedWidth) {
+      return cachedWidth;
+    }
+    const context = document.createElement('canvas').getContext('2d');
+    const rootFontSize = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    const fontFamily = getComputedStyle(document.body).fontFamily || 'Arial, sans-serif';
+    if (context) {
+      context.font = `600 ${rootFontSize * .72}px ${fontFamily}`;
+    }
+    const measuredWidth = labels.reduce((width, label) =>
+      Math.max(width, context?.measureText(label).width ?? label.length * rootFontSize * .45), 0);
+    const width = `${Math.max(32, Math.ceil(measuredWidth) + 4)}px`;
+    this.questionPointLabelWidthCache.set(cacheKey, width);
+    return width;
+  }
   getRanges(performancePointParam: AbstractControl) {
     const f = (performancePointParam as UntypedFormGroup).controls;
     return f.ranges as UntypedFormArray;

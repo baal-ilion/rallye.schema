@@ -35,54 +35,31 @@
         <fieldset [disabled]="rangeForm.value.pointType != 'expression'">
           <div class="m-2">
             <legend>Simulation</legend>
-            <div class="form-row">
-              <div class="col-4">
-                <label class="col-12 m-0 p-0" *ngIf="perfPointAllocationType[range.type] === 'SCORE'">Score :</label>
-                <label class="col-12 m-0 p-0" *ngIf="perfPointAllocationType[range.type] === 'RANK'">Rang :</label>
-                <label class="col-12 m-0 p-0" *ngIf="perfPointAllocationType[range.type] === 'DATE'">N° de passage
-                  :</label>
+            <div class="simulation-grid">
+              <div class="simulation-field">
+                <label *ngIf="perfPointAllocationType[range.type] === 'SCORE'" for="value">Score</label>
+                <label *ngIf="perfPointAllocationType[range.type] === 'RANK'" for="value">Rang</label>
+                <label *ngIf="perfPointAllocationType[range.type] === 'DATE'" for="value">N° de passage</label>
+                <span class="simulation-variable">#valeur</span>
+                <input id="value" type="number" class="form-control" formControlName="value"
+                  (ngModelChange)="computeResult()" />
               </div>
-              <div class="col-4">
-                <label class="col-12 m-0 p-0">Nombre d'équipes inscrites :</label>
+              <div class="simulation-field">
+                <label for="nbAllTeam">Nombre d'équipes inscrites</label>
+                <span class="simulation-variable">#nbEqInscrites</span>
+                <input id="nbAllTeam" type="number" class="form-control" formControlName="nbAllTeam"
+                  (ngModelChange)="computeResult()" />
               </div>
-              <div class="col-4">
-                <label class="col-12 m-0 p-0">Nombre d'équipes ayant participé à l'épreuve :</label>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="col-4">
-                <div class="input-group">
-                  <div class="input-group-prepend">
-                    <label class="input-group-text" for="value">#valeur</label>
-                  </div>
-                  <input type="number" class="form-control" formControlName="value" (ngModelChange)="computeResult()" />
-                </div>
-              </div>
-              <div class="col-4">
-                <div class="input-group">
-                  <div class="input-group-prepend">
-                    <label class="input-group-text" for="nbAllTeam">#nbEqInscrites</label>
-                  </div>
-                  <input type="number" class="form-control" formControlName="nbAllTeam"
-                    (ngModelChange)="computeResult()" />
-                </div>
-              </div>
-              <div class="col-4">
-                <div class="input-group">
-                  <div class="input-group-prepend">
-                    <label class="input-group-text" for="nbTeam">#nbEqParticipantes</label>
-                  </div>
-                  <input type="number" class="form-control" formControlName="nbTeam" (ngModelChange)="computeResult()" />
-                </div>
+              <div class="simulation-field">
+                <label for="nbTeam">Nombre d'équipes ayant participé à l'épreuve</label>
+                <span class="simulation-variable">#nbEqParticipantes</span>
+                <input id="nbTeam" type="number" class="form-control" formControlName="nbTeam"
+                  (ngModelChange)="computeResult()" />
               </div>
             </div>
-            <div class="form-row mt-2">
-              <div class="col-4">
-                <label class="col-12 m-0 p-0">Résultat :</label>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="input-group col">
+            <div class="simulation-result mt-3">
+              <label>Résultat</label>
+              <div class="input-group">
                 <input *ngIf="rangeForm.value.pointType != 'expression'" type="text" class="form-control"
                   [value]="result" />
                 <div *ngIf="rangeForm.value.pointType == 'expression'" class="form-control">

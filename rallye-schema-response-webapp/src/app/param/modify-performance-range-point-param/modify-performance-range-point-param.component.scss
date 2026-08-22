@@ -1,0 +1,49 @@
+.simulation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .75rem;
+}
+
+.simulation-field {
+  display: grid;
+  grid-template-rows: minmax(2.4rem, auto) auto auto;
+  align-content: start;
+  min-width: 0;
+  padding: .7rem;
+  border: 1px solid #d7ddd9;
+  border-radius: .45rem;
+  background: #faf9f6;
+}
+
+.simulation-field > label,
+.simulation-result > label {
+  margin: 0 0 .3rem;
+  color: #263746;
+  font-size: .8rem;
+  font-weight: 600;
+}
+
+.simulation-variable {
+  justify-self: start;
+  margin-bottom: .35rem;
+  padding: .15rem .4rem;
+  border-radius: .25rem;
+  background: #e9ecef;
+  color: #52606b;
+  font-family: monospace;
+  font-size: .75rem;
+}
+
+.simulation-result {
+  display: grid;
+}
+
+@media (max-width: 760px) {
+  .simulation-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .simulation-field {
+    grid-template-rows: auto auto auto;
+  }
+}
