@@ -23,7 +23,7 @@ export class ModifyStageGroupComponent implements OnInit {
 
   ngOnInit(): void {
     if (!this.stageGroup) {
-      this.stageGroup = { name: '', description: '' };
+      this.stageGroup = { name: '' };
     }
 
     this.stageGroupService.getAll().subscribe(groups => {
@@ -35,8 +35,7 @@ export class ModifyStageGroupComponent implements OnInit {
 
     this.form = this.formBuilder.group({
       id: this.stageGroup.id,
-      name: [this.stageGroup.name, [Validators.required, this.uniqueNameValidator.bind(this)]],
-      description: this.stageGroup.description ?? ''
+      name: [this.stageGroup.name, [Validators.required, this.uniqueNameValidator.bind(this)]]
     });
   }
 

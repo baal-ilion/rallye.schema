@@ -38,7 +38,7 @@ export class ListStageGroupComponent implements OnInit {
 
   onCreate(): void {
     const modalRef = this.dialogService.open(ModifyStageGroupComponent, { size: 'sm' });
-    modalRef.componentInstance.stageGroup = { name: '', description: '' };
+    modalRef.componentInstance.stageGroup = { name: '' };
     modalRef.result.then(result => {
       const newGroup = result as StageGroup;
       if (!newGroup || !newGroup.name) {
@@ -47,7 +47,7 @@ export class ListStageGroupComponent implements OnInit {
       this.stageGroupService.create(newGroup).subscribe({
         next: () => this.loadGroups(),
         error: () => {
-          this.error = 'Erreur lors de la création du groupe.';
+          this.error = 'Erreur lors de la crÃ©ation du groupe.';
         }
       });
     }).catch(() => {});
@@ -84,10 +84,9 @@ export class ListStageGroupComponent implements OnInit {
           }
         },
         error: () => {
-          this.error = 'Erreur lors de la mise à jour du groupe.';
+          this.error = 'Erreur lors de la mise Ã  jour du groupe.';
         }
       });
     }).catch(() => {});
   }
 }
-

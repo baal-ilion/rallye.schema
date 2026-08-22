@@ -65,12 +65,10 @@ public List<StageGroupModel> getAll() {
         StageGroupModel model = new StageGroupModel();
         model.setId(entity.getId());
         model.setName(entity.getName());
-        model.setDescription(entity.getDescription());
         return model;
     }
 
     private void apply(StageGroupModel model, StageGroup entity) {
         entity.setName(model.getName());
-        entity.setDescription(model.getDescription());
     }
 }
