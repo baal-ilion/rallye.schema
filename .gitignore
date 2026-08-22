@@ -97,3 +97,6 @@ local.properties
 
 # Corpus locaux de formulaires réels (données historiques, jamais versionnées)
 /.corpus/
+
+# Génération locale du corpus de formulaires de test
+/scripts/new-format-test-corpus/

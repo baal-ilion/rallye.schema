@@ -73,7 +73,7 @@ public class StageResultService {
 		StageResult stageResult = findOrMakeStageResultByStageAndTeam(stage, team);
 		if (Objects.nonNull(stageResult))
 			return updateStageResultAndSave(stageResult, null, new ArrayList<>(), new ArrayList<>(),
-					Instant.now().truncatedTo(ChronoUnit.SECONDS), null);
+					Instant.now().truncatedTo(ChronoUnit.SECONDS), null, "PROGRESSION");
 		return null;
 	}
 
@@ -123,7 +123,7 @@ public class StageResultService {
 		StageResult stageResult = getStageResultByStageAndTeam(stage, team);
 		if (Objects.nonNull(stageResult))
 			return updateStageResultAndSave(stageResult, null, new ArrayList<>(), new ArrayList<>(), null,
-					Instant.now().truncatedTo(ChronoUnit.SECONDS));
+					Instant.now().truncatedTo(ChronoUnit.SECONDS), "PROGRESSION");
 		return null;
 	}
 
@@ -272,7 +272,7 @@ public class StageResultService {
 		if (Objects.nonNull(stageResult)) {
 			stageResult.setEnd(null);
 			stageResult.setChecked(false);
-			return save(stageResult);
+			return save(stageResult, "PROGRESSION");
 		}
 		return null;
 	}
@@ -397,10 +397,14 @@ public class StageResultService {
 	}
 
 	private StageResult save(StageResult stageResult) {
+		return save(stageResult, "CONTENT");
+	}
+
+	private StageResult save(StageResult stageResult, String updateScope) {
 		stageResult = stageResultRepository.save(stageResult);
 		messageProducerService.sendMessage(STAGE_RESULT_UPDATE_EVENT, new StageResultMessage(stageResult));
 		rankingUpdatePublisher.publishRankingUpdate();
-		stageResultUpdatePublisher.publishUpdate(stageResult.getStage(), stageResult.getTeam(), "UPDATE");
+		stageResultUpdatePublisher.publishUpdate(stageResult.getStage(), stageResult.getTeam(), "UPDATE", updateScope);
 		return stageResult;
 	}
 
@@ -570,8 +574,14 @@ public class StageResultService {
 
 	private StageResult updateStageResultAndSave(StageResult stageResultToUpdate, Boolean checked,
 			List<ResponseResult> results, List<PerformanceResult> performances, Instant begin, Instant end) {
+		return updateStageResultAndSave(stageResultToUpdate, checked, results, performances, begin, end, "CONTENT");
+	}
+
+	private StageResult updateStageResultAndSave(StageResult stageResultToUpdate, Boolean checked,
+			List<ResponseResult> results, List<PerformanceResult> performances, Instant begin, Instant end,
+			String updateScope) {
 		if (updateStageResult(stageResultToUpdate, checked, results, performances, begin, end))
-			return save(stageResultToUpdate);
+			return save(stageResultToUpdate, updateScope);
 		return stageResultToUpdate;
 	}
 }

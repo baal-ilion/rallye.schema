@@ -7,6 +7,7 @@ export interface StageResultUpdate {
   stage?: number;
   team?: number;
   operation: 'UPDATE' | 'DELETE' | 'RESYNC';
+  scope?: 'CONTENT' | 'PROGRESSION';
 }
 
 @Injectable({ providedIn: 'root' })
