@@ -116,7 +116,7 @@
             <span>{{stageLabel(currentStage.stage)}} &middot; {{teamLabel(currentStage.team)}}</span>
           </div>
           <div class="detail-zoom" *ngIf="selectedStageHasResponseFiles" aria-label="Zoom du formulaire">
-            <button type="button" (click)="zoomOut()" [disabled]="contentZoomPercent <= 50" title="R&eacute;duire le formulaire">
+            <button type="button" (click)="zoomOut()" [disabled]="contentZoomPercent <= 20" title="R&eacute;duire le formulaire">
               <span aria-hidden="true">&minus;</span>
             </button>
             <button type="button" class="zoom-value" (click)="resetZoom()" title="R&eacute;tablir le zoom &agrave; 100 %">

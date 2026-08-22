@@ -11,7 +11,7 @@
       </div>
 
       <div class="detail-zoom" *ngIf="hasResponseFiles">
-        <button type="button" (click)="zoomOut()" [disabled]="contentZoomPercent <= 50" aria-label="Réduire le zoom">−</button>
+        <button type="button" (click)="zoomOut()" [disabled]="contentZoomPercent <= 20" aria-label="Réduire le zoom">−</button>
         <button type="button" class="zoom-value" (click)="resetZoom()" title="Rétablir le zoom à 100 %">{{contentZoomPercent}} %</button>
         <button type="button" (click)="zoomIn()" [disabled]="contentZoomPercent >= 150" aria-label="Augmenter le zoom">+</button>
       </div>
