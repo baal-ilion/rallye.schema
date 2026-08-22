@@ -12,7 +12,7 @@
           class="form-control w-auto"
           [ngModel]="selectedTeamId"
           (ngModelChange)="onTeamChange($event)">
-          <option *ngFor="let team of teams" [value]="team.id">
+          <option *ngFor="let team of teams; trackBy: trackTeam" [value]="team.id">
             {{ team.team | number:'2.0-0' }} - {{ team.name }}
           </option>
         </select>

@@ -12,6 +12,7 @@ import { StageService } from '../stage.service';
 import { RankingUpdateService } from 'src/app/services/ranking-update.service';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import { sameData } from 'src/app/shared/data-change.utils';
 
 @Component({
   selector: 'app-list-stage',
@@ -51,6 +52,18 @@ export class ListStageComponent implements OnInit, OnDestroy {
     sessionStorage.setItem(this.SelectedId, null);
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  trackStage(_index: number, stage: StageResult): string {
+    return stage.id;
+  }
+
+  trackStageParam(_index: number, stage: StageParam): string | number {
+    return stage.id ?? stage.stage;
+  }
+
+  trackTeam(_index: number, team: TeamInfo): string | number {
+    return team.id ?? team.team;
   }
 
   ngOnInit() {
@@ -299,11 +312,15 @@ export class ListStageComponent implements OnInit, OnDestroy {
     try {
       const stages = await this.stageService.getStages(this.criteria).toPromise();
       const results = stages._embedded?.stageResults ?? [];
-      this.pages = stages.page ?
+      const nextPages = stages.page ?
         stages.page :
         { size: results.length, number: 0, totalElements: results.length, totalPages: 1 };
-      this.stages = results;
-      this.sortStages();
+      const nextStages = [...results].sort((left, right) => left.stage - right.stage || left.team - right.team);
+      if (sameData(this.pages, nextPages) && sameData(this.stages, nextStages)) {
+        return;
+      }
+      this.pages = nextPages;
+      this.stages = nextStages;
       const index = currentId ? this.stages.findIndex(s => s.id === currentId) : -1;
       if (index !== -1) {
         this.page = index + 1;

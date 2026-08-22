@@ -32,7 +32,7 @@
     Aucun groupe d'épreuves trouvé ou aucun score disponible.
   </div>
 
-  <div class="row justify-content-center" *ngFor="let groupRank of groupRankings | keyvalue: groupOrder">
+  <div class="row justify-content-center" *ngFor="let groupRank of groupRankings | keyvalue: groupOrder; trackBy: trackRankingTable">
     <app-ranking class="col-12"
       [rankingTitle]="groupRank.key"
       [teamRanking]="groupRank.value"

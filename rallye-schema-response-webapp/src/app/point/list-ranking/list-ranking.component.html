@@ -24,7 +24,7 @@
     </app-ranking>
   </div>
   <div class="row justify-content-center" *ngIf="isStageMode">
-    <app-ranking class="col-12" *ngFor="let stageRank of stageRanking | keyvalue: keyOrder"
+    <app-ranking class="col-12" *ngFor="let stageRank of stageRanking | keyvalue: keyOrder; trackBy: trackRankingTable"
       [rankingTitle]="stageParams[stageRank.key]?.name || ('Épreuve ' + stageRank.key)"
       [teamRanking]="stageRank.value"
       [teamInfos]="teamInfos"

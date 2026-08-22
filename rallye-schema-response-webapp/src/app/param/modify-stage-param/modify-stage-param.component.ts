@@ -1,4 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Subject } from 'rxjs';
+import { auditTime, filter, takeUntil } from 'rxjs/operators';
+import { ApplicationUpdateService } from 'src/app/services/application-update.service';
 import { AbstractControl, UntypedFormArray, UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
@@ -26,7 +29,7 @@ type PartialQuestionParam = { name: string; type?: QuestionType };
   templateUrl: './modify-stage-param.component.html',
   styleUrls: ['./modify-stage-param.component.scss']
 })
-export class ModifyStageParamComponent implements OnInit {
+export class ModifyStageParamComponent implements OnInit, OnDestroy {
   stageParam!: StageParam;
   stageParams: StageParam[] = [];
   stageGroups: StageGroup[] = [];
@@ -57,6 +60,8 @@ export class ModifyStageParamComponent implements OnInit {
   showQuestions = false;
   showPoints = false;
   private questionPointLabelWidthCache = new Map<string, string>();
+  private destroy$ = new Subject<void>();
+  private synchronizationInitialized = false;
 
   get formDesignerUrl(): string {
     const stageId = this.stageParam?.id ? `?stageId=${encodeURIComponent(this.stageParam.id)}` : '';
@@ -71,7 +76,8 @@ export class ModifyStageParamComponent implements OnInit {
     private router: Router,
     private dialogService: DialogService,
     private responseFileParamService: ResponseFileParamService,
-    private stageGroupService: StageGroupService
+    private stageGroupService: StageGroupService,
+    private applicationUpdates: ApplicationUpdateService
   ) { }
 
   // convenience getters for easy access to form fields
@@ -81,6 +87,11 @@ export class ModifyStageParamComponent implements OnInit {
   get questionParams() { return this.f.questionParams as UntypedFormArray; }
   getQuestionPointLabelWidth(): string {
     return this.getControlsLabelWidth(this.questionPointParams);
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
   getQuestionParamLabelWidth(): string {
     return this.getControlsLabelWidth(this.questionParams);
@@ -110,6 +121,15 @@ export class ModifyStageParamComponent implements OnInit {
   }
 
   ngOnInit() {
+    if (!this.synchronizationInitialized) {
+      this.synchronizationInitialized = true;
+      this.applicationUpdates.updates$.pipe(
+        filter(update => update.domain === 'CONFIGURATION' || update.domain === 'DATABASE'),
+        auditTime(150), takeUntil(this.destroy$)
+      ).subscribe(() => {
+        if (!this.stageParamForm?.dirty && !this.dialogService.hasOpenDialogs()) this.ngOnInit();
+      });
+    }
     this.questionParamName = '';
     this.questionParamError = '';
     this.removedQuestionParams = [];

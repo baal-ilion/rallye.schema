@@ -1,4 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Subject } from 'rxjs';
+import { filter, takeUntil } from 'rxjs/operators';
+import { ApplicationUpdateService } from 'src/app/services/application-update.service';
+import { sameData } from 'src/app/shared/data-change.utils';
 import { HalLink } from '../../models/hal-link';
 import { StageParam } from '../models/stage-param';
 import { NewStageParamComponent } from '../new-stage-param/new-stage-param.component';
@@ -23,25 +27,35 @@ interface GroupedStageParamDetail {
   templateUrl: './list-stage-param.component.html',
   styleUrls: ['./list-stage-param.component.scss']
 })
-export class ListStageParamComponent implements OnInit {
+export class ListStageParamComponent implements OnInit, OnDestroy {
   stageParamDetails: StageParamDetail[] = [];
   groupedStageParamDetails: GroupedStageParamDetail[] = [];
+  private destroy$ = new Subject<void>();
 
   constructor(
     private stageParamService: StageParamService,
     private dialogService: DialogService,
-    private confirmationDialogService: ConfirmationDialogService) { }
+    private confirmationDialogService: ConfirmationDialogService,
+    private applicationUpdates: ApplicationUpdateService) { }
 
   ngOnInit() {
     this.loadStageParamDetails();
+    this.applicationUpdates.updates$.pipe(
+      filter(update => update.domain === 'CONFIGURATION' || update.domain === 'DATABASE' || update.domain === 'RESYNC'),
+      takeUntil(this.destroy$)
+    ).subscribe(() => this.loadStageParamDetails());
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   async loadStageParamDetails() {
-    this.stageParamDetails = [];
-    this.groupedStageParamDetails = [];
     try {
+      const nextDetails: StageParamDetail[] = [];
       const stageParams = await this.stageParamService.getStageParams().toPromise();
-      for (const stageParam of stageParams._embedded.stageParams) {
+      for (const stageParam of stageParams?._embedded?.stageParams ?? []) {
         const stageParamDetail: StageParamDetail = {
           param: stageParam,
           nbPerformance: 0,
@@ -55,16 +69,16 @@ export class ListStageParamComponent implements OnInit {
             stageParamDetail.nbPerformance += 1;
           }
         }
-        this.stageParamDetails.push(stageParamDetail);
+        nextDetails.push(stageParamDetail);
       }
 
-      // construire les groupes une fois la liste remplie
-      this.buildGroupedStageParamDetails();
+      if (!sameData(this.stageParamDetails, nextDetails)) {
+        this.stageParamDetails = nextDetails;
+        this.buildGroupedStageParamDetails();
+      }
 
     } catch (error) {
       console.log(error);
-      this.stageParamDetails = [];
-      this.groupedStageParamDetails = [];
     }
   }
 
@@ -110,6 +124,14 @@ export class ListStageParamComponent implements OnInit {
     } catch (error) {
       console.log(error);
     }
+  }
+
+  trackGroup(_index: number, group: GroupedStageParamDetail): string {
+    return group.groupName;
+  }
+
+  trackStageDetail(_index: number, detail: StageParamDetail): string | number {
+    return detail.param.id ?? detail.param.stage;
   }
 
   async deleteStageParam(stageParam: StageParam): Promise<void> {

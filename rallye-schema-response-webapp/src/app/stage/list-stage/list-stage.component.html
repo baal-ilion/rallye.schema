@@ -20,7 +20,7 @@
             <div class="filter-select">
               <select [(ngModel)]="criteria.stage" (change)="applyCustomCriteria($event)" id="critstage" class="form-control">
                 <option value="">Toutes les &eacute;preuves</option>
-                <option *ngFor="let stage of stageParams" [value]="stage.stage">{{stage.stage | number:'2.0-0'}} - {{stage.name}}</option>
+                <option *ngFor="let stage of stageParams; trackBy: trackStageParam" [value]="stage.stage">{{stage.stage | number:'2.0-0'}} - {{stage.name}}</option>
               </select>
               <i class="fas fa-chevron-down" aria-hidden="true"></i>
             </div>
@@ -30,7 +30,7 @@
             <div class="filter-select">
               <select [(ngModel)]="criteria.team" (change)="applyCustomCriteria($event)" id="critteam" class="form-control">
                 <option value="">Toutes les &eacute;quipes</option>
-                <option *ngFor="let team of teams" [value]="team.team">{{team.team | number:'2.0-0'}} - {{team.name}}</option>
+                <option *ngFor="let team of teams; trackBy: trackTeam" [value]="team.team">{{team.team | number:'2.0-0'}} - {{team.name}}</option>
               </select>
               <i class="fas fa-chevron-down" aria-hidden="true"></i>
             </div>
@@ -74,7 +74,7 @@
       </div>
 
       <div class="validation-list" *ngIf="!loading && stages.length > 0">
-        <button type="button" class="validation-item" *ngFor="let stage of stages; let stageIndex = index"
+        <button type="button" class="validation-item" *ngFor="let stage of stages; let stageIndex = index; trackBy: trackStage"
           [class.selected]="stageIndex === page - 1" (click)="selectStage(stageIndex)">
           <span class="stage-team-numbers" aria-label="&Eacute;preuve {{stage.stage}}, &eacute;quipe {{stage.team}}">
             <span class="stage-number" title="Num&eacute;ro d&rsquo;&eacute;preuve">{{stage.stage | number:'2.0-0'}}</span>

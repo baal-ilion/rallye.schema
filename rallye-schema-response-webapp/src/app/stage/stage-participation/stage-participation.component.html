@@ -14,7 +14,7 @@
           [ngModel]="selectedStage"
           (ngModelChange)="onStageChange($event)"
         >
-          <option *ngFor="let stage of stageParams" [value]="stage.stage">
+          <option *ngFor="let stage of stageParams; trackBy: trackStageParam" [value]="stage.stage">
             {{ stage.stage | number:'2.0-0' }} - {{ stage.name }}
           </option>
         </select>
@@ -59,7 +59,7 @@
         <div class="card-body">
           <div *ngIf="statuses.notStarted.length === 0" class="text-muted">Toutes les équipes ont commencé.</div>
           <ul class="list-unstyled mb-0">
-            <li *ngFor="let row of statuses.notStarted" class="mb-3">
+            <li *ngFor="let row of statuses.notStarted; trackBy: trackParticipation" class="mb-3">
               <div class="card h-100"
                 [ngClass]="{
                   'border-primary': row.result?.begin && !row.result?.end,
@@ -124,7 +124,7 @@
         <div class="card-body">
           <div *ngIf="statuses.inProgress.length === 0" class="text-muted">Aucune équipe en cours.</div>
           <ul class="list-unstyled mb-0">
-            <li *ngFor="let row of statuses.inProgress" class="mb-3">
+            <li *ngFor="let row of statuses.inProgress; trackBy: trackParticipation" class="mb-3">
               <div class="card h-100"
                 [ngClass]="{
                   'border-primary': row.result?.begin && !row.result?.end,
@@ -186,7 +186,7 @@
         <div class="card-body">
           <div *ngIf="statuses.finished.length === 0" class="text-muted">Aucune équipe terminée.</div>
           <ul class="list-unstyled mb-0">
-            <li *ngFor="let row of statuses.finished" class="mb-3">
+            <li *ngFor="let row of statuses.finished; trackBy: trackParticipation" class="mb-3">
               <div class="card h-100"
                 [ngClass]="{
                   'border-primary': row.result?.begin && !row.result?.end,

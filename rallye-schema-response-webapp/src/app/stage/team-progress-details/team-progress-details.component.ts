@@ -1,6 +1,6 @@
 import { Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges } from '@angular/core';
 import { Subject } from 'rxjs';
-import { auditTime, takeUntil } from 'rxjs/operators';
+import { auditTime, filter, takeUntil } from 'rxjs/operators';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
 import { StageParam } from 'src/app/param/models/stage-param';
 import { TeamInfo } from 'src/app/param/models/team-info';
@@ -10,6 +10,7 @@ import { RankingUpdateService } from 'src/app/services/ranking-update.service';
 import { StageResult } from '../models/stage-result';
 import { StageService } from '../stage.service';
 import { Router } from '@angular/router';
+import { ApplicationUpdateService } from 'src/app/services/application-update.service';
 
 @Component({
   selector: 'app-team-progress-details',
@@ -35,6 +36,7 @@ export class TeamProgressDetailsComponent implements OnInit, OnDestroy, OnChange
     private stageService: StageService,
     private confirmationDialogService: ConfirmationDialogService,
     private rankingUpdateService: RankingUpdateService,
+    private applicationUpdates: ApplicationUpdateService,
     private router: Router
   ) { }
 
@@ -54,6 +56,13 @@ export class TeamProgressDetailsComponent implements OnInit, OnDestroy, OnChange
         }
         this.refreshTeamData();
       });
+    this.applicationUpdates.updates$.pipe(
+      filter(update => update.domain === 'CONFIGURATION' || update.domain === 'DATABASE'),
+      auditTime(150), takeUntil(this.destroy$)
+    ).subscribe(async () => {
+      await this.loadStageParams();
+      await this.refreshTeamData();
+    });
   }
 
   ngOnChanges(changes: SimpleChanges): void {

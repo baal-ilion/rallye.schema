@@ -29,7 +29,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let teamInfo of teamInfos">
+              <tr *ngFor="let teamInfo of teamInfos; trackBy: trackTeam">
                 <th scope="row" class="align-middle compact-column">{{teamInfo.team}}</th>
                 <td class="align-middle fluid-column">{{teamInfo.name}}</td>
                 <td class="align-middle table-actions-column text-right">

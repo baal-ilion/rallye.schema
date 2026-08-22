@@ -20,4 +20,8 @@ export class RankingComponent implements OnInit {
 
   ngOnInit(): void {
   }
+
+  trackTeam(_index: number, ranking: Ranking): number {
+    return ranking.team;
+  }
 }

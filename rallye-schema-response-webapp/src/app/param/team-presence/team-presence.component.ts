@@ -1,15 +1,18 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { TeamInfo } from '../models/team-info';
 import { TeamInfoService } from '../team-info.service';
 import { HalCollection } from '../../models/hal-collection';
 import { TeamInfoUpdateService } from '../../services/team-info-update.service';
+import { Subject } from 'rxjs';
+import { debounceTime, takeUntil } from 'rxjs/operators';
+import { sameData } from '../../shared/data-change.utils';
 
 @Component({
   selector: 'app-team-presence',
   templateUrl: './team-presence.component.html',
   styleUrls: ['./team-presence.component.css']
 })
-export class TeamPresenceComponent implements OnInit {
+export class TeamPresenceComponent implements OnInit, OnDestroy {
 
   teamInfos: TeamInfo[] = [];
   presentTeams: TeamInfo[] = [];
@@ -18,6 +21,7 @@ export class TeamPresenceComponent implements OnInit {
   loading = false;
   error?: string;
   private ignoreNextUpdate = false;
+  private readonly destroy$ = new Subject<void>();
 
   constructor(
     private teamInfoService: TeamInfoService,
@@ -27,7 +31,10 @@ export class TeamPresenceComponent implements OnInit {
   ngOnInit(): void {
     this.loadTeams();
 
-    this.teamInfoUpdateService.updates$.subscribe(() => {
+    this.teamInfoUpdateService.updates$.pipe(
+      debounceTime(100),
+      takeUntil(this.destroy$)
+    ).subscribe(() => {
       if (this.ignoreNextUpdate) {
         this.ignoreNextUpdate = false;
         return;
@@ -35,6 +42,11 @@ export class TeamPresenceComponent implements OnInit {
       // Rafraîchissement silencieux : on met à jour les listes sans spinner.
       this.loadTeams(true);
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadTeams(silent: boolean = false): void {
@@ -45,8 +57,11 @@ export class TeamPresenceComponent implements OnInit {
     this.teamInfoService.getTeamInfos().subscribe({
       next: (collection: HalCollection<TeamInfo>) => {
         const embedded: any = collection._embedded || {};
-        this.teamInfos = embedded.teamInfoes || embedded.teamInfos || [];
-        this.splitTeams();
+        const nextTeams = embedded.teamInfoes || embedded.teamInfos || [];
+        if (!sameData(this.teamInfos, nextTeams)) {
+          this.teamInfos = nextTeams;
+          this.splitTeams();
+        }
         if (!silent) {
           this.loading = false;
         }
@@ -76,6 +91,10 @@ export class TeamPresenceComponent implements OnInit {
 
   isPresent(team: TeamInfo): boolean {
     return !!team.present;
+  }
+
+  trackTeam(_index: number, team: TeamInfo): string | number {
+    return team.id ?? team.team;
   }
 
   private splitTeams(): void {

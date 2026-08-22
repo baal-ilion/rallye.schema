@@ -17,7 +17,7 @@
       </tr>
     </thead>
     <tbody>
-      <tr *ngFor="let ranking of teamRanking">
+      <tr *ngFor="let ranking of teamRanking; trackBy: trackTeam">
         <th scope="row" class="align-middle compact-column">{{ranking.order}}</th>
         <td class="align-middle compact-column">{{ranking.team}}</td>
         <td class="align-middle fluid-column"

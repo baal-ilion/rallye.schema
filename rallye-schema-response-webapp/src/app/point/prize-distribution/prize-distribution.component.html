@@ -34,7 +34,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let prize of prizes">
+          <tr *ngFor="let prize of prizes; trackBy: trackPrize">
             <td class="align-middle compact-column">
               {{ getGroupLabel(prize) }}
             </td>

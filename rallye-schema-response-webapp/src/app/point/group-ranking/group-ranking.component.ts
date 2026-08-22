@@ -1,7 +1,7 @@
 import { DatePipe, KeyValue } from '@angular/common';
 import { Component, ElementRef, OnDestroy, OnInit, QueryList, ViewChild, ViewChildren } from '@angular/core';
-import { forkJoin, of, Subject } from 'rxjs';
-import { auditTime, catchError, finalize, startWith, switchMap, takeUntil, tap, map } from 'rxjs/operators';
+import { forkJoin, merge, of, Subject } from 'rxjs';
+import { auditTime, catchError, filter, finalize, startWith, switchMap, takeUntil, tap, map } from 'rxjs/operators';
 import * as FileSaver from 'file-saver';
 import * as XLSX from 'xlsx';
 import { TeamInfo } from '../../param/models/team-info';
@@ -11,6 +11,9 @@ import { RankingUpdateService } from '../../services/ranking-update.service';
 import { Ranking } from '../models/ranking';
 import { RankingComponent } from '../ranking/ranking.component';
 import { AutoScrollService } from '../../services/auto-scroll.service';
+import { TeamInfoUpdateService } from '../../services/team-info-update.service';
+import { ApplicationUpdateService } from '../../services/application-update.service';
+import { sameData } from '../../shared/data-change.utils';
 
 @Component({
   selector: 'app-group-ranking',
@@ -34,14 +37,24 @@ export class GroupRankingComponent implements OnInit, OnDestroy {
   groupOrder = (a: KeyValue<string, Ranking[]>, b: KeyValue<string, Ranking[]>) =>
     a.key.localeCompare(b.key);
 
+  trackRankingTable(_index: number, item: KeyValue<string, Ranking[]>): string {
+    return item.key;
+  }
+
   constructor(
     private groupRankingService: GroupRankingService,
     private teamInfoService: TeamInfoService,
     private rankingUpdateService: RankingUpdateService,
+    private teamInfoUpdateService: TeamInfoUpdateService,
+    private applicationUpdates: ApplicationUpdateService,
     private autoScrollService: AutoScrollService) { }
 
   ngOnInit(): void {
-    this.rankingUpdateService.updates$
+    merge(
+      this.rankingUpdateService.updates$,
+      this.teamInfoUpdateService.updates$,
+      this.applicationUpdates.updates$.pipe(filter(update =>
+        update.domain === 'CONFIGURATION' || update.domain === 'DATABASE' || update.domain === 'RESYNC')))
       .pipe(
         startWith('__initial__' as const),          // initial load flag
         auditTime(200),           // regroupe les rafales de messages
@@ -136,7 +149,9 @@ export class GroupRankingComponent implements OnInit, OnDestroy {
             newRankings[groupName] = ranking;
           }
         });
-        this.groupRankings = newRankings;
+        if (!sameData(this.groupRankings, newRankings)) {
+          this.groupRankings = newRankings;
+        }
       })
     );
   }

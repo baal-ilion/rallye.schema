@@ -1,8 +1,12 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { merge, Subject } from 'rxjs';
+import { auditTime, filter, takeUntil } from 'rxjs/operators';
+import { RankingUpdateService } from '../services/ranking-update.service';
+import { TeamInfoUpdateService } from '../services/team-info-update.service';
+import { ApplicationUpdateService } from '../services/application-update.service';
 import { StatsService } from './stats.service';
 import { StatsResponse, StageQuestionRate, StageHeatmapBucket, StageGroupStats, StageStat } from './stats.types';
+import { sameData } from '../shared/data-change.utils';
 
 type QuestionSegmentKey = 'min' | 'avg' | 'max';
 
@@ -33,10 +37,17 @@ export class StatsComponent implements OnInit, OnDestroy {
   private performanceMax = 1;
   private groupDurationMaxCache = new Map<string, number>();
 
-  constructor(private statsService: StatsService) {}
+  constructor(private statsService: StatsService, private rankingUpdates: RankingUpdateService,
+    private teamUpdates: TeamInfoUpdateService, private applicationUpdates: ApplicationUpdateService) {}
 
   ngOnInit(): void {
     this.fetch();
+    merge(
+      this.rankingUpdates.updates$,
+      this.teamUpdates.updates$,
+      this.applicationUpdates.updates$.pipe(filter(update =>
+        update.domain === 'CONFIGURATION' || update.domain === 'DATABASE' || update.domain === 'RESYNC'))
+    ).pipe(auditTime(150), takeUntil(this.destroy$)).subscribe(() => this.fetch(true));
   }
 
   ngOnDestroy(): void {
@@ -44,14 +55,16 @@ export class StatsComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  fetch(): void {
-    this.loading = true;
-    this.error = undefined;
+  fetch(silent = false): void {
+    if (!silent) {
+      this.loading = true;
+      this.error = undefined;
+    }
     this.statsService.getStats()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (resp) => {
-          this.data = {
+          const nextData: StatsResponse = {
             overview: resp.overview ?? {
               totalTeams: 0,
               totalStages: 0,
@@ -72,16 +85,23 @@ export class StatsComponent implements OnInit, OnDestroy {
             stageHeatmap: resp.stageHeatmap ?? [],
             stageHeatmapTimeline: resp.stageHeatmapTimeline ?? [],
             stageGroups: resp.stageGroups ?? []
-        };
-          this.computeMaxima();
-          this.updateDigitCounts();
-          this.updateGroupDurationMaxes();
-          this.loading = false;
+          };
+          if (!sameData(this.data, nextData)) {
+            this.data = nextData;
+            this.computeMaxima();
+            this.updateDigitCounts();
+            this.updateGroupDurationMaxes();
+          }
+          if (!silent) {
+            this.loading = false;
+          }
         },
         error: (err) => {
           console.log(err);
-          this.error = 'Impossible de charger les statistiques.';
-          this.loading = false;
+          if (!silent) {
+            this.error = 'Impossible de charger les statistiques.';
+            this.loading = false;
+          }
         }
       });
   }

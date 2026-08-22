@@ -13,7 +13,7 @@
     <div class="col-12">
 
       <!-- Un bloc par groupe (catégorie) -->
-      <div *ngFor="let group of groupedStageParamDetails" class="mb-4 data-table-fit">
+      <div *ngFor="let group of groupedStageParamDetails; trackBy: trackGroup" class="mb-4 data-table-fit">
         <div class="row mt-4">
           <div class="col-12 px-0 py-1 bg-secondary">
             <h4 class="my-auto text-center text-white">
@@ -37,7 +37,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let stageParamDetail of group.items">
+                <tr *ngFor="let stageParamDetail of group.items; trackBy: trackStageDetail">
                   <th scope="row" class="align-middle compact-column">{{stageParamDetail.param.stage}}</th>
                   <td class="align-middle fluid-column">{{stageParamDetail.param.name}}</td>
                   <td class="align-middle compact-column">{{stageParamDetail.nbQuestion}}</td>

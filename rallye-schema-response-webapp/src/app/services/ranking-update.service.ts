@@ -8,6 +8,7 @@ export class RankingUpdateService {
 
   private client: Client;
   private updateSubject = new Subject<void>();
+  private hasConnected = false;
 
   updates$ = this.updateSubject.asObservable();
 
@@ -19,6 +20,10 @@ export class RankingUpdateService {
 
     this.client.onConnect = () => {
       console.log('WebSocket connected');
+      if (this.hasConnected) {
+        this.updateSubject.next();
+      }
+      this.hasConnected = true;
       this.client.subscribe('/topic/rankingUpdate', () => {
         console.log('Mise à jour classement reçue');
         this.updateSubject.next();

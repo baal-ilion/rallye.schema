@@ -1,29 +1,51 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import { TeamInfoUpdateService } from 'src/app/services/team-info-update.service';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
 import { DialogService } from 'src/app/shared/dialog/dialog.service';
 import { TeamInfo } from '../models/team-info';
 import { ModifyTeamInfoComponent } from '../modify-team-info/modify-team-info.component';
 import { TeamInfoService } from '../team-info.service';
+import { sameData } from 'src/app/shared/data-change.utils';
 
 @Component({
   selector: 'app-list-team-info',
   templateUrl: './list-team-info.component.html',
   styleUrls: ['./list-team-info.component.scss']
 })
-export class ListTeamInfoComponent implements OnInit {
+export class ListTeamInfoComponent implements OnInit, OnDestroy {
 
   teamInfos: TeamInfo[] = [];
+  private destroy$ = new Subject<void>();
 
   constructor(
     private teamInfoService: TeamInfoService,
     private dialogService: DialogService,
-    private confirmationDialogService: ConfirmationDialogService
+    private confirmationDialogService: ConfirmationDialogService,
+    private teamUpdates: TeamInfoUpdateService
   ) { }
 
   ngOnInit() {
+    this.teamUpdates.updates$.pipe(takeUntil(this.destroy$)).subscribe(() => this.loadTeams());
+    this.loadTeams();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  trackTeam(_index: number, team: TeamInfo): string | number {
+    return team.id ?? team.team;
+  }
+
+  private loadTeams() {
     this.teamInfoService.getTeamInfos().subscribe((value) => {
-      this.teamInfos = value._embedded.teamInfoes;
-      this.teamInfos.sort((a, b) => (a.team > b.team) ? 1 : -1);
+      const nextTeams = [...(value._embedded.teamInfoes ?? [])].sort((a, b) => (a.team > b.team) ? 1 : -1);
+      if (!sameData(this.teamInfos, nextTeams)) {
+        this.teamInfos = nextTeams;
+      }
     }, (error) => {
       this.teamInfos = [];
     });
@@ -40,10 +62,10 @@ export class ListTeamInfoComponent implements OnInit {
       console.log(result);
       if (!result) { return; }
       this.teamInfoService.addTeamInfo(result as TeamInfo).subscribe(data => {
-        this.ngOnInit();
+        this.loadTeams();
       }, err => {
         console.log(err);
-        this.ngOnInit();
+        this.loadTeams();
       });
     }).catch((error) => {
       console.log(error);
@@ -62,10 +84,10 @@ export class ListTeamInfoComponent implements OnInit {
       console.log(result);
       if (!result) { return; }
       this.teamInfoService.updateTeamInfo(result as TeamInfo).subscribe(data => {
-        this.ngOnInit();
+        this.loadTeams();
       }, err => {
         console.log(err);
-        this.ngOnInit();
+        this.loadTeams();
       });
     }).catch((error) => {
       console.log(error);
@@ -83,14 +105,14 @@ export class ListTeamInfoComponent implements OnInit {
         if (confirmed) {
           await this.teamInfoService.deleteTeamInfo(teamInfo.id).toPromise();
         }
-        this.ngOnInit();
+        this.loadTeams();
       } catch (error) {
         console.log(error);
-        this.ngOnInit();
+        this.loadTeams();
       }
     } catch (error) {
       console.log('User dismissed the dialog (e.g., by using ESC, clicking the cross icon, or clicking outside the dialog)');
-      this.ngOnInit();
+      this.loadTeams();
     }
   }
 }

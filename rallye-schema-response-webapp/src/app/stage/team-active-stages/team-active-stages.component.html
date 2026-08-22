@@ -31,13 +31,13 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let row of rows">
+            <tr *ngFor="let row of rows; trackBy: trackTeamRow">
               <td class="align-middle compact-column">
                 {{ row.team.team | number:'2.0-0' }} - {{ row.team.name }}
               </td>
               <td class="align-middle fluid-column active-stages-cell">
                 <ng-container *ngIf="row.stageResults.length > 0; else noStage">
-                  <div *ngFor="let stage of row.stageResults; let i = index" class="active-stage-line">
+                  <div *ngFor="let stage of row.stageResults; let i = index; trackBy: trackStage" class="active-stage-line">
                     &Eacute;preuve {{ stage.stage | number:'2.0-0' }} : {{ row.stageNames[i] }}
                   </div>
                 </ng-container>

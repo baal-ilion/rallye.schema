@@ -34,7 +34,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let group of groups">
+          <tr *ngFor="let group of groups; trackBy: trackGroup">
             <td>{{ group.name }}</td>
             <td class="table-actions-column text-right">
               <button

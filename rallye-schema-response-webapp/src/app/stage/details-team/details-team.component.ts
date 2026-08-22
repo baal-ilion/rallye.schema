@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject } from 'rxjs';
-import { auditTime, takeUntil } from 'rxjs/operators';
+import { auditTime, filter, takeUntil } from 'rxjs/operators';
 import { ConfirmationDialogService } from 'src/app/confirmation-dialog/confirmation-dialog.service';
 import { StageParam } from 'src/app/param/models/stage-param';
 import { TeamInfo } from 'src/app/param/models/team-info';
@@ -10,6 +10,7 @@ import { TeamInfoService } from 'src/app/param/team-info.service';
 import { StageResult } from '../models/stage-result';
 import { StageService } from '../stage.service';
 import { RankingUpdateService } from 'src/app/services/ranking-update.service';
+import { ApplicationUpdateService } from 'src/app/services/application-update.service';
 
 @Component({
   selector: 'app-details-team',
@@ -32,7 +33,8 @@ export class DetailsTeamComponent implements OnInit, OnDestroy, OnChanges {
     private route: ActivatedRoute,
     private confirmationDialogService: ConfirmationDialogService,
     private router: Router,
-    private rankingUpdateService: RankingUpdateService
+    private rankingUpdateService: RankingUpdateService,
+    private applicationUpdates: ApplicationUpdateService
   ) { }
 
   ngOnDestroy(): void {
@@ -70,6 +72,13 @@ export class DetailsTeamComponent implements OnInit, OnDestroy, OnChanges {
         }
         this.refreshTeamData();
       });
+    this.applicationUpdates.updates$.pipe(
+      filter(update => update.domain === 'CONFIGURATION' || update.domain === 'DATABASE'),
+      auditTime(150), takeUntil(this.destroy$)
+    ).subscribe(async () => {
+      await this.loadStageParams();
+      await this.refreshTeamData();
+    });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
