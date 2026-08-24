@@ -1,0 +1,93 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.data-table-fit {
+  display: grid !important;
+  grid-template-columns: max-content;
+  justify-content: center;
+  max-width: 100%;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.data-table-fit > .row {
+  width: 100%;
+  min-width: 0;
+}
+
+.data-table-fit > .row > h4 {
+  box-sizing: border-box;
+  width: 100% !important;
+  max-width: none;
+  flex: 0 0 100%;
+}
+
+.data-table-fit > .row > table.ranking-table {
+  width: 100% !important;
+  max-width: 100%;
+}
+
+.data-table-fit.presentation-ranking {
+  grid-template-columns: minmax(0, 1fr);
+  justify-content: stretch;
+  width: 100% !important;
+  max-width: 100%;
+}
+
+.data-table-fit.presentation-ranking > .row,
+.data-table-fit.presentation-ranking > .row > h4,
+.data-table-fit.presentation-ranking > .row > table.ranking-table {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.data-table-fit.presentation-ranking > .row {
+  margin-right: 0;
+  margin-left: 0;
+}
+
+.data-table-fit.presentation-ranking > .row > table.ranking-table {
+  table-layout: fixed !important;
+}
+
+.data-table-fit.presentation-ranking table.ranking-table .fluid-column {
+  width: var(--presentation-name-width, 30ch);
+  min-width: var(--presentation-name-width, 30ch);
+}
+
+.data-table-fit.presentation-ranking table.ranking-table th,
+.data-table-fit.presentation-ranking table.ranking-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 767.98px) {
+  .data-table-fit:not(.presentation-ranking) {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .data-table-fit:not(.presentation-ranking) > .row {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-right: 0;
+    margin-left: 0;
+  }
+
+  .data-table-fit:not(.presentation-ranking) > .row > h4,
+  .data-table-fit:not(.presentation-ranking) > .row > table.ranking-table {
+    display: table;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .data-table-fit:not(.presentation-ranking) > .row > h4 {
+    display: block;
+  }
+}

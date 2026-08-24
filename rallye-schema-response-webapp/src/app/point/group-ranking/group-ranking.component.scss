@@ -1,0 +1,93 @@
+
+.ranking-presentation:fullscreen {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  margin: 0 !important;
+  padding: 1.25rem 2rem 2rem;
+  overflow: hidden;
+  color: #263746;
+  background: #f5f6f4;
+}
+
+.presentation-toolbar {
+  position: sticky;
+  z-index: 20;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -1.25rem -2rem 1rem;
+  padding: .65rem 1.25rem;
+  color: #fff;
+  background: #304b60;
+  box-shadow: 0 3px 10px rgba(24, 38, 49, .2);
+  font-size: 1.05rem;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.presentation-toolbar i { margin-right: .4rem; }
+.presentation-toolbar > div {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+.presentation-toolbar strong { white-space: nowrap; }
+.presentation-active > .row:first-of-type { margin-top: 0 !important; }
+.presentation-active .toggle-row,
+.presentation-active > .row.d-print-none { display: none !important; }
+.presentation-active .standard-ranking-view { display: none !important; }
+
+.presentation-slide {
+  display: grid;
+  grid-template-columns: minmax(0, 1500px);
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1.25rem;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  animation: presentation-fade .45s ease-out;
+}
+
+.presentation-column {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+.presentation-slide app-ranking {
+  display: block;
+  min-width: 0;
+  width: 100%;
+  font-size: var(--presentation-font-size, 20px);
+}
+
+@keyframes presentation-fade {
+  from { opacity: 0; transform: translateY(.4rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 600px) {
+  .presentation-toolbar {
+    gap: .45rem;
+    padding-right: .55rem;
+    padding-left: .55rem;
+  }
+
+  .presentation-toolbar > span {
+    min-width: 0;
+    flex: 1 1 0;
+    text-align: center;
+  }
+
+  .presentation-toolbar > div {
+    flex: 0 0 auto;
+    gap: .55rem;
+  }
+}
