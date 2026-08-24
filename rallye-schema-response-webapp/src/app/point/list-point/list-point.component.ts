@@ -1,4 +1,7 @@
+import { DatePipe } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
+import * as FileSaver from 'file-saver';
+import * as XLSX from 'xlsx';
 import { merge, of, Subject } from 'rxjs';
 import { auditTime, catchError, finalize, startWith, switchMap, takeUntil, tap } from 'rxjs/operators';
 import { PointService } from '../point.service';
@@ -74,5 +77,45 @@ export class ListPointComponent implements OnInit, OnDestroy {
 
   recomputePoints() {
     this.refresh$.next('recompute');
+  }
+
+  downloadPoints(): void {
+    const rows: any[] = [];
+    this.points.forEach(point => {
+      Object.values(point.stagePoints || {})
+        .sort((left: any, right: any) => Number(left.stage) - Number(right.stage))
+        .forEach((stagePoint: any) => {
+          const questions = stagePoint.questions || [];
+          if (!questions.length) {
+            rows.push({
+              'Équipe': point.team,
+              'Épreuve': stagePoint.stage,
+              'Question': '',
+              'Points de la question': '',
+              'Total de l’épreuve': stagePoint.total,
+              'Total de l’équipe': point.total
+            });
+            return;
+          }
+          questions.forEach((question: any) => rows.push({
+            'Équipe': point.team,
+            'Épreuve': stagePoint.stage,
+            'Question': question.name,
+            'Points de la question': question.total,
+            'Total de l’épreuve': stagePoint.total,
+            'Total de l’équipe': point.total
+          }));
+        });
+    });
+
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Détail des points');
+    const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const data = new Blob([buffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8'
+    });
+    const timestamp = new DatePipe('fr-FR').transform(Date.now(), 'yyyyMMddHHmmss');
+    FileSaver.saveAs(data, `rallyeschema-points-${timestamp}.xlsx`);
   }
 }
