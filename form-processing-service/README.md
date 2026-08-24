@@ -4,7 +4,7 @@ Prototype du futur moteur de traitement des formulaires Rallye Schéma.
 
 Il reçoit indifféremment un scan ou une photographie, détecte les quatre repères
 de page, corrige la perspective et produit une image normalisée. Il est sans
-état : le `response-service` reste propriétaire du stockage et des données
+état : le `rallye-core-service` reste propriétaire du stockage et des données
 métier.
 
 ## API
@@ -30,6 +30,6 @@ uvicorn form_processing.main:app --reload --port 8080
 ## Docker
 
 ```shell
-docker build -t rallye-schema-form-processing-service:local .
-docker run --rm -p 8080:8080 rallye-schema-form-processing-service:local
+docker build -t form-processing-service:local .
+docker run --rm -p 8080:8080 form-processing-service:local
 ```

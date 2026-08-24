@@ -1,0 +1,104 @@
+<nav class="navbar fixed-top navbar-expand-lg navbar-light bg-light">
+  <a class="navbar-brand rallye-brand" [routerLink]="'.'" (click)="rememberUrl($event, '/')">
+    <img src="assets/logo-rallye.png" alt="Boussole du Rallye">
+    <span><strong>Rallye Schéma</strong><small>Gestion du rallye</small></span>
+  </a>
+  <button
+    class="navbar-toggler"
+    type="button"
+    [attr.aria-expanded]="!collapsed"
+    (click)="collapsed = !collapsed"
+    aria-controls="navbarSupportedContent"
+    aria-expanded="false"
+    aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  <div class="navbar-collapse" [class.collapse]="collapsed" id="navbarSupportedContent">
+    <ul class="navbar-nav mr-auto">
+      <li class="nav-item">
+        <a class="nav-link" routerLink="/game-management" (click)="rememberUrl($event, '/game-management')">Gestion des jeux</a>
+      </li>
+
+      <li class="nav-item dropdown" [class.show]="openMenu === 'rallye'">
+        <a
+          class="nav-link dropdown-toggle"
+          href="#"
+          id="rallyeMenu"
+          role="button"
+          [attr.aria-expanded]="openMenu === 'rallye'"
+          aria-haspopup="true"
+          (click)="toggleMenu('rallye'); $event.preventDefault();">Gestion du Rallye</a>
+        <div class="dropdown-menu" [class.show]="openMenu === 'rallye'" aria-labelledby="rallyeMenu">
+          <a class="dropdown-item" routerLink="/challenges/participation" (click)="rememberUrl($event, '/challenges/participation')">Suivi des &eacute;preuves</a>
+          <a class="dropdown-item" routerLink="/teams/progression" (click)="rememberUrl($event, '/teams/progression')">Suivi des &eacute;quipes</a>
+          <a class="dropdown-item" routerLink="/teams/presence" (click)="rememberUrl($event, '/teams/presence')">Suivi de pr&eacute;sence des &eacute;quipes</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" routerLink="/teams/active-challenges" (click)="rememberUrl($event, '/teams/active-challenges')">&Eacute;preuves en cours</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" routerLink="/team-qr-codes" (click)="rememberUrl($event, '/team-qr-codes')">QR Codes des &eacute;quipes</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" routerLink="/statistics" (click)="rememberUrl($event, '/statistics')">Statistiques</a>
+        </div>
+      </li>
+
+      <li class="nav-item dropdown" [class.show]="openMenu === 'responses'">
+        <a
+          class="nav-link dropdown-toggle"
+          href="#"
+          id="submittedFormsMenu"
+          role="button"
+          [attr.aria-expanded]="openMenu === 'responses'"
+          aria-haspopup="true"
+          (click)="toggleMenu('responses'); $event.preventDefault();">Gestion des corrections</a>
+        <div class="dropdown-menu" [class.show]="openMenu === 'responses'" aria-labelledby="submittedFormsMenu">
+          <a class="dropdown-item" routerLink="/forms/import-scans" (click)="rememberUrl($event, '/forms/import-scans')">Importer des formulaires num&eacute;ris&eacute;s</a>
+          <a class="dropdown-item" routerLink="/forms/capture" (click)="rememberUrl($event, '/forms/capture')">Photographier des formulaires</a>
+          <a class="dropdown-item" routerLink="/forms/processing" (click)="rememberUrl($event, '/forms/processing')">Traitement des formulaires</a>
+          <a class="dropdown-item" routerLink="/challenges/validation" (click)="rememberUrl($event, '/challenges/validation')">Validation des &eacute;preuves</a>
+        </div>
+      </li>
+
+      <li class="nav-item dropdown" [class.show]="openMenu === 'ranking'">
+        <a
+          class="nav-link dropdown-toggle"
+          href="#"
+          id="rankingMenu"
+          role="button"
+          [attr.aria-expanded]="openMenu === 'ranking'"
+          aria-haspopup="true"
+          (click)="toggleMenu('ranking'); $event.preventDefault();">Classements</a>
+        <div class="dropdown-menu" [class.show]="openMenu === 'ranking'" aria-labelledby="rankingMenu">
+          <a class="dropdown-item" routerLink="/rankings" (click)="rememberUrl($event, '/rankings')">Classement g&eacute;n&eacute;ral</a>
+          <a class="dropdown-item" [routerLink]="['/rankings']" [queryParams]="{ mode: 'challenge' }" (click)="rememberUrl($event, '/rankings?mode=challenge')">Classement par &eacute;preuves</a>
+          <a class="dropdown-item" routerLink="/rankings/groups" (click)="rememberUrl($event, '/rankings/groups')">Classement par groupes d'&eacute;preuves</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" routerLink="/prizes" (click)="rememberUrl($event, '/prizes')">Distribution des lots</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" routerLink="/scoring/details" (click)="rememberUrl($event, '/scoring/details')">D&eacute;tails des points</a>
+        </div>
+      </li>
+
+      <li class="nav-item dropdown d-none d-md-block" [class.show]="openMenu === 'settings'">
+        <a
+          class="nav-link dropdown-toggle"
+          href="#"
+          id="paramMenu"
+          role="button"
+          [attr.aria-expanded]="openMenu === 'settings'"
+          aria-haspopup="true"
+          (click)="toggleMenu('settings'); $event.preventDefault();">Param&eacute;trage</a>
+        <div class="dropdown-menu" [class.show]="openMenu === 'settings'" aria-labelledby="paramMenu">
+          <a class="dropdown-item" routerLink="/challenges/validationGroup" (click)="rememberUrl($event, '/challenges/validationGroup')">Groupes d'&eacute;preuves</a>
+          <a class="dropdown-item" routerLink="/challenges/validationConfiguration" (click)="rememberUrl($event, '/challenges/validationConfiguration')">&Eacute;preuves</a>
+          <a class="dropdown-item" routerLink="/configuration/teams" (click)="rememberUrl($event, '/configuration/teams')">&Eacute;quipes</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" [href]="formDesignerUrl" target="_blank" rel="opener" (click)="closeMenu()">Concepteur de formulaires</a>
+          <a class="dropdown-item" routerLink="/configuration-transfer" (click)="rememberUrl($event, '/configuration-transfer')">Paramétrage</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" routerLink="/database" (click)="rememberUrl($event, '/database')">Base de donn&eacute;es</a>
+        </div>
+      </li>
+    </ul>
+  </div>
+</nav>

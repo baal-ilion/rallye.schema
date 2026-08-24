@@ -21,7 +21,7 @@ class QualityMetrics(BaseModel):
 
 class IdentificationResult(BaseModel):
     team: int | None = None
-    stage: int | None = None
+    challenge: int | None = None
     page: int | None = None
     confidence: float = Field(ge=0, le=1)
 

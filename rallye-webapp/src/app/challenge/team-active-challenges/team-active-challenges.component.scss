@@ -1,0 +1,21 @@
+.active-table th,
+.active-table td {
+  vertical-align: middle;
+}
+
+.active-table .active-challenges-cell {
+  white-space: normal;
+}
+
+.active-challenge-line + .active-challenge-line {
+  margin-top: 0.25rem;
+}
+
+@media (min-width: 768px) {
+  /* Sur ordinateur, chaque colonne suit la largeur réelle de son contenu. */
+  .active-table .active-challenges-cell,
+  .active-challenge-line {
+    white-space: nowrap;
+  }
+}
+

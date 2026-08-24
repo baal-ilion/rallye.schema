@@ -144,10 +144,10 @@ generate_keystore() {
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd)"
 
-BACKEND_LOCAL="$REPO_ROOT/response-service/src/main/resources/keystore-local.p12"
-BACKEND_DOCKER_DIR="$REPO_ROOT/response-service/certs"
+BACKEND_LOCAL="$REPO_ROOT/rallye-core-service/src/main/resources/keystore-local.p12"
+BACKEND_DOCKER_DIR="$REPO_ROOT/rallye-core-service/certs"
 BACKEND_DOCKER="$BACKEND_DOCKER_DIR/keystore.p12"
-NGINX_CERT_DIR="$REPO_ROOT/rallye-schema-response-webapp/certs"
+NGINX_CERT_DIR="$REPO_ROOT/rallye-webapp/certs"
 ANGULAR_KEY="$NGINX_CERT_DIR/localhost.key"
 ANGULAR_CRT="$NGINX_CERT_DIR/localhost.crt"
 NGINX_PRIV="$NGINX_CERT_DIR/privkey.pem"

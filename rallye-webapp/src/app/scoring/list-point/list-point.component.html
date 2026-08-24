@@ -1,0 +1,25 @@
+<div class="container mb-5">
+  <div class="row mt-4 text-center page-title-actions-row">
+    <div class="col-12 d-flex align-items-center">
+      <h1 class="flex-grow-1 mb-0 text-center page-title-with-subtitle" id="ranking_title">Détail des points<span class="page-title-subtitle">Consultez le calcul des scores de chaque équipe.</span></h1>
+      <div class="d-flex align-items-center point-title-actions">
+        <button class="btn btn-primary" (click)='recomputePoints()'>Recalculer les points</button>
+        <button class="btn btn-primary" (click)="downloadPoints()">Télécharger</button>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <app-log-files class="col-12"></app-log-files>
+  </div>
+  <div *ngIf="error" class="alert alert-danger mt-3">
+    {{ error }}
+  </div>
+  <div *ngIf="loading" class="alert alert-info mt-3">
+    Chargement des points...
+  </div>
+  <div *ngIf='points && points.length > 0' class="row">
+    <div *ngFor="let point of points">
+      <app-details-point class="col-12" [point]='point'></app-details-point>
+    </div>
+  </div>
+</div>

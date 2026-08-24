@@ -1,0 +1,11 @@
+<ng-container *ngIf="(logFileTeams | async) as teams">
+  <div *ngIf="teams.length > 0">
+    <div class="row mt-4">
+      <h4 class="col-12 px-0 py-1 text-center">Logs de l'application mobile</h4>
+    </div>
+    <div class="row mt-1 row-cols-1 row-cols-sm-2 row-cols-md-4">
+      <a *ngFor="let team of teams.sort()" class="col"
+        [href]="apiUrl + '/logFiles/mobileChallenge/' + team">Equipe n&deg;{{team}}</a>
+    </div>
+  </div>
+</ng-container>

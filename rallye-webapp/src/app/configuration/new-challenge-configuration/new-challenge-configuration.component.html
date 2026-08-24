@@ -1,0 +1,42 @@
+<div class="card">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <h4 class="modal-title mb-0 text-center flex-fill">Nouvelle épreuve</h4>
+    <button type="button" class="btn btn-danger text-white w-auto px-3 py-2 d-flex align-items-center justify-content-center ml-4" style="min-width:2.5rem;min-height:2.5rem;line-height:1;padding:0.4rem 0.6rem;" aria-label="Close"
+      (click)="dialogRef.close()">&times;</button>
+  </div>
+  <form [formGroup]="challengeConfigurationForm" (ngSubmit)="submitForm()">
+    <div class="card-body">
+      <div class="form-group">
+        <label for="challenge">Numéro</label>
+        <input id="challenge" type="number" class="form-control" formControlName="challenge"
+          [ngClass]="{ 'is-invalid': challengeConfigurationForm.controls.challenge.errors }">
+        <div *ngIf="challengeConfigurationForm.controls.challenge.errors" class="invalid-feedback">
+          <div *ngIf="challengeConfigurationForm.controls.challenge.errors.required">Le numéro d'épreuve est requis</div>
+          <div *ngIf="challengeConfigurationForm.controls.challenge.errors.uniqueChallenge">Ce numéro d'épreuve existe déjà</div>
+        </div>
+      </div>
+      <div class="form-group mt-2">
+        <label for="name">Nom</label>
+        <input id="name" type="text" class="form-control" formControlName="name"
+          [ngClass]="{ 'is-invalid': challengeConfigurationForm.controls.name.errors }">
+        <div *ngIf="challengeConfigurationForm.controls.name.errors" class="invalid-feedback">
+          <div *ngIf="challengeConfigurationForm.controls.name.errors.required">Le nom est requis</div>
+        </div>
+      </div>
+      <div class="form-group mt-2">
+        <label for="group">Groupe</label>
+        <select id="group" class="form-control" formControlName="group">
+          <option [ngValue]="null">Aucun</option>
+          <option *ngFor="let group of challengeGroups" [ngValue]="group">{{ group.name }}</option>
+        </select>
+      </div>
+    </div>
+    <div class="card-footer d-flex justify-content-center">
+      <div class="d-flex">
+        <button class="btn btn-success" [disabled]="!challengeConfigurationForm.valid">
+          Valider
+        </button>
+      </div>
+    </div>
+  </form>
+</div>

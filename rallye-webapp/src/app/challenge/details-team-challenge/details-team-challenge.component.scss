@@ -1,0 +1,130 @@
+:host {
+  --detail-border: #d9d5ce;
+  --detail-soft: #f7f5f0;
+  display: block;
+}
+
+.details-team-challenge-page {
+  padding-right: 1rem;
+  padding-left: 1rem;
+}
+
+.standalone-challenge-detail {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  margin-top: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--detail-border);
+  border-radius: .65rem;
+  background: #fff;
+  box-shadow: 0 3px 10px rgba(48, 42, 32, .09);
+}
+
+.detail-header {
+  position: relative;
+  display: flex;
+  min-height: 3.15rem;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: .65rem .8rem;
+  border-bottom: 1px solid var(--detail-border);
+  color: var(--rs-title, #2f3d49);
+  background: var(--detail-soft);
+}
+
+.detail-identity {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.detail-identity strong { font-size: .82rem; font-weight: 700; }
+.detail-identity span { color: var(--rs-muted, #746d66); font-size: .68rem; }
+
+.detail-zoom {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+  transform: translate(-50%, -50%);
+}
+
+.detail-zoom button {
+  display: inline-flex;
+  min-width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  padding: .25rem .5rem;
+  border: 1px solid #d7d1c8;
+  border-radius: .4rem;
+  color: #4b443d;
+  background: #fff;
+  font-size: .8rem;
+  font-weight: 700;
+}
+
+.detail-zoom button:hover:not(:disabled) { border-color: #ad8a70; background: #f1ede5; }
+.detail-zoom button:disabled { opacity: .4; }
+.detail-zoom .zoom-value { min-width: 3.8rem; font-size: .7rem; }
+
+.detail-scroll {
+  min-height: 0;
+  flex: 1 1 auto;
+  padding: 0 .5rem 1rem;
+}
+
+@media (min-width: 768px) {
+  :host { height: calc(100vh - 72px); overflow: hidden; }
+
+  .details-team-challenge-page {
+    display: flex;
+    height: 100%;
+    min-height: 0;
+    flex-direction: column;
+    margin-bottom: 0 !important;
+    padding-bottom: .6rem;
+    overflow: hidden;
+  }
+
+  .page-heading-row { flex: 0 0 auto; }
+
+  .standalone-challenge-detail {
+    position: relative;
+    min-height: 0;
+    flex: 1 1 auto;
+    padding-right: 16.8rem;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .detail-header {
+    border: 1px solid var(--detail-border);
+    border-radius: .65rem .65rem 0 0;
+  }
+
+  .detail-scroll {
+    overflow: hidden;
+    border: 1px solid var(--detail-border);
+    border-top: 0;
+    border-radius: 0 0 .65rem .65rem;
+    background: #fff;
+    box-shadow: 0 3px 10px rgba(48, 42, 32, .09);
+  }
+
+  .detail-scroll > app-details-challenge { display: block; height: 100%; min-height: 0; }
+}
+
+@media (min-width: 768px) and (max-width: 1100px) {
+  .standalone-challenge-detail { padding-right: 13.8rem; }
+}
+
+@media (max-width: 767.98px) {
+  .detail-zoom { display: none; }
+  .detail-scroll { padding: 0 .25rem 1rem; }
+}

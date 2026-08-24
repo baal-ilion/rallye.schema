@@ -1,0 +1,80 @@
+<div class="container mb-5 ranking-presentation" #scrollContainer [class.presentation-active]="presentationMode"
+    [style.--presentation-font-size]="presentationFontSize"
+    [style.--presentation-name-width]="presentationNameColumnWidth">
+  <div class="presentation-toolbar d-print-none" *ngIf="presentationMode">
+    <span><i class="fas fa-trophy" aria-hidden="true"></i> Classement en direct</span>
+    <div>
+      <strong *ngIf="presentationSlides.length">Écran {{ presentationSlideIndex + 1 }}/{{ presentationSlides.length }}</strong>
+      <button type="button" class="btn btn-light" (click)="exitPresentationMode()" title="Quitter le plein écran (Échap)">
+        <i class="fas fa-compress" aria-hidden="true"></i> Quitter le plein écran
+      </button>
+    </div>
+  </div>
+  <div class="row mt-4 text-center standard-ranking-view page-title-actions-row">
+    <div class="col-12 d-flex align-items-center ranking-title-layout">
+      <h1 class="flex-grow-1 mb-0 page-title-with-subtitle">Classements par groupes d'épreuves<span class="page-title-subtitle">Comparez les équipes dans chaque groupe d’épreuves.</span></h1>
+      <div class="d-print-none toggle-row ranking-title-controls">
+        <div class="ranking-points-control">
+          <label for="viewPoints" class="mb-0 ranking-points-label">Afficher les points</label>
+          <app-toggle-switch [checked]="viewPoints" id="viewPoints" (change)="toggleViewPoints()">
+          </app-toggle-switch>
+        </div>
+        <button type="button" class="btn btn-primary ranking-fullscreen-button" (click)="enterPresentationMode()">
+          <i class="fas fa-expand" aria-hidden="true"></i> Afficher en plein écran
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="alert alert-info mt-3">
+    Chargement des classements par groupes...
+  </div>
+
+  <div *ngIf="error" class="alert alert-danger mt-3">
+    {{ error }}
+  </div>
+
+  <div *ngIf="!loading && !error && (groupRankings | keyvalue).length === 0" class="alert alert-secondary mt-3">
+    Aucun groupe d'épreuves trouvé ou aucun score disponible.
+  </div>
+
+  <div class="presentation-slide"
+      [style.grid-template-columns]="'repeat(' + slide.columns.length + ', minmax(0, ' + presentationColumnWidth + '))'"
+      *ngIf="presentationMode && presentationSlides[presentationSlideIndex] as slide">
+    <div class="presentation-column" *ngFor="let column of slide.columns">
+      <app-ranking *ngFor="let panel of column"
+        [presentationMode]="true"
+        [rankingTitle]="panel.title"
+        [teamRanking]="panel.ranking"
+        [teams]="teams"
+        [viewPoints]="viewPoints">
+      </app-ranking>
+    </div>
+  </div>
+
+  <div class="print-ranking-view">
+    <div class="print-ranking-page" *ngFor="let page of printPages; let first = first">
+      <div class="print-page-heading page-title-actions-row" *ngIf="first">
+        <h1 class="mb-0 page-title-with-subtitle">Classements par groupes d'épreuves<span class="page-title-subtitle">Comparez les équipes dans chaque groupe d'épreuves.</span></h1>
+      </div>
+      <div class="print-ranking-panel" *ngFor="let panel of page; trackBy: trackPrintPanel">
+        <app-ranking
+          [synchronizeColumns]="false"
+          [rankingTitle]="panel.title"
+          [teamRanking]="panel.ranking"
+          [teams]="teams"
+          [viewPoints]="viewPoints">
+        </app-ranking>
+      </div>
+    </div>
+  </div>
+
+  <div class="row justify-content-center standard-ranking-view" *ngFor="let groupRank of groupRankings | keyvalue: groupOrder; trackBy: trackRankingTable">
+    <app-ranking class="col-12"
+      [rankingTitle]="groupRank.key"
+      [teamRanking]="groupRank.value"
+      [teams]="teams"
+      [viewPoints]="viewPoints">
+    </app-ranking>
+  </div>
+</div>

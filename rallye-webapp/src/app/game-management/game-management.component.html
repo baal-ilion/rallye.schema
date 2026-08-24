@@ -1,0 +1,55 @@
+<div class="container mb-5">
+  <div class="row mt-4 text-center">
+    <h1 class="col-12 page-title-with-subtitle">Gestion des jeux<span class="page-title-subtitle">Sélectionnez une équipe et enregistrez sa participation à une épreuve.</span></h1>
+  </div>
+
+  <div class="filters-grid mt-4">
+    <div class="filter-field">
+      <label for="teamFilter" class="font-weight-bold">N° équipe</label>
+      <input
+        id="teamFilter"
+        class="form-control team-input"
+        type="number"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        placeholder="Entrer le numéro de l'équipe"
+        [ngModel]="teamNumberInput"
+        (ngModelChange)="onTeamNumberInput($event)">
+    </div>
+    <div class="filter-field">
+      <label for="challengeFilter" class="font-weight-bold">N° épreuve</label>
+      <input
+        id="challengeFilter"
+        class="form-control team-input"
+        type="number"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        placeholder="Filtrer une épreuve"
+        [ngModel]="challengeNumberInput"
+        [disabled]="!selectedTeamId"
+        (ngModelChange)="onChallengeNumberInput($event)">
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-12 mt-2 text-muted small" *ngIf="!selectedTeamId && teamNumberInput">
+      Aucune équipe trouvée avec ce numéro.
+    </div>
+  </div>
+
+  <div class="row mt-3" *ngIf="loading || error">
+    <div class="col-12">
+      <div *ngIf="loading" class="alert alert-info mb-0">Chargement des équipes...</div>
+      <div *ngIf="error" class="alert alert-danger mb-0">{{ error }}</div>
+    </div>
+  </div>
+
+  <div class="row mt-4">
+    <div class="col-12">
+      <app-team-progress-details
+        *ngIf="selectedTeamId"
+        [teamId]="selectedTeamId"
+        [challengeFilter]="challengeFilter"
+        [navigateOnStart]="true"></app-team-progress-details>
+    </div>
+  </div>
+</div>

@@ -11,6 +11,6 @@
 
 	<!-- sub modules -->
 	<modules>
-		<module>response-service</module>
+		<module>rallye-core-service</module>
 	</modules>
 </project>

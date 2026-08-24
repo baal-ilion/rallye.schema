@@ -1,0 +1,18 @@
+<div class="response-page-panel" *ngIf="configuration">
+  <h4 class="response-page-title">Épreuve {{configuration.challenge}} / Page {{configuration.page}}</h4>
+  <div class="response-page-preview">
+    <app-form-template-preview [configuration]="configuration" [modelUrl]="modelUrl"></app-form-template-preview>
+  </div>
+  <div class="row justify-content-center mt-3 mx-0">
+    <div class="col-auto">
+      <button class="btn btn-primary w-auto"  (click)='openModifyFormRecognitionConfiguration()' type="button">
+        Modifier
+      </button>
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-danger w-auto"  (click)='deleteFormRecognitionConfiguration()' type="button">
+        Supprimer
+      </button>
+    </div>
+  </div>
+</div>

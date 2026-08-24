@@ -1,0 +1,143 @@
+<div class="container-fluid mb-5 validation-page">
+  <div class="row mt-4 text-center">
+    <h1 class="col-12 page-title-with-subtitle">Validation des &eacute;preuves
+      <span class="page-title-subtitle">V&eacute;rifiez les r&eacute;ponses, ajustez les corrections et validez les r&eacute;sultats.</span>
+    </h1>
+  </div>
+
+  <section class="validation-workspace" [class.show-detail-mobile]="mobileDetailOpen">
+    <div class="validation-left-column">
+      <section class="filter-panel">
+        <header>
+          <div><strong>Filtres</strong><span>Affinez la liste des &eacute;preuves</span></div>
+          <button type="button" class="reset-filters" (click)="resetFilters()" title="R&eacute;initialiser tous les filtres">
+            <i class="fas fa-undo-alt"></i><span>R&eacute;initialiser</span>
+          </button>
+        </header>
+        <div class="advanced-filters">
+          <div class="filter-field">
+            <label for="critChallenge">&Eacute;preuve</label>
+            <div class="filter-select">
+              <select [(ngModel)]="criteria.challenge" (change)="applyCustomCriteria($event)" id="critChallenge" class="form-control">
+                <option value="">Toutes les &eacute;preuves</option>
+                <option *ngFor="let challenge of challengeConfigurations; trackBy: trackChallengeConfiguration" [value]="challenge.challenge">{{challenge.challenge | number:'2.0-0'}} - {{challenge.name}}</option>
+              </select>
+              <i class="fas fa-chevron-down" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="filter-field">
+            <label for="critteam">&Eacute;quipe</label>
+            <div class="filter-select">
+              <select [(ngModel)]="criteria.team" (change)="applyCustomCriteria($event)" id="critteam" class="form-control">
+                <option value="">Toutes les &eacute;quipes</option>
+                <option *ngFor="let team of teams; trackBy: trackTeam" [value]="team.team">{{team.team | number:'2.0-0'}} - {{team.name}}</option>
+              </select>
+              <i class="fas fa-chevron-down" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="state-filters">
+            <div class="state-filter">
+              <strong>Termin&eacute;e</strong>
+              <app-toggle-switch [checked]="criteria.finished" [light]="criteria.finished !== true && criteria.finished !== false"
+                (change)="criteria.finished = nextChecked(criteria.finished); applyCustomCriteria($event)">
+              </app-toggle-switch>
+            </div>
+            <div class="state-filter">
+              <strong>Saisie</strong>
+              <app-toggle-switch [checked]="criteria.entered" [light]="criteria.entered !== true && criteria.entered !== false"
+                (change)="criteria.entered = nextChecked(criteria.entered); applyCustomCriteria($event)">
+              </app-toggle-switch>
+            </div>
+            <div class="state-filter">
+              <strong>Valid&eacute;e</strong>
+              <app-toggle-switch [checked]="criteria.checked" [light]="criteria.checked !== true && criteria.checked !== false"
+                (change)="criteria.checked = nextChecked(criteria.checked); applyCustomCriteria($event)">
+              </app-toggle-switch>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="validation-queue">
+      <header>
+        <div><strong>{{pages.totalElements}} &eacute;preuve(s)</strong><span>{{activeFilterLabel}}</span></div>
+        <span class="live-state"><i></i> Actualisation automatique</span>
+      </header>
+
+      <div *ngIf="loading" class="validation-empty">
+        <i class="fas fa-spinner fa-spin"></i><span>Chargement des &eacute;preuves&hellip;</span>
+      </div>
+      <div *ngIf="!loading && challenges.length === 0" class="validation-empty">
+        <i class="fas fa-check-circle"></i>
+        <strong>Rien &agrave; afficher</strong>
+        <span>Aucune &eacute;preuve ne correspond aux filtres choisis.</span>
+      </div>
+
+      <div class="validation-list" *ngIf="!loading && challenges.length > 0">
+        <button type="button" class="validation-item" *ngFor="let challenge of challenges; let challengeIndex = index; trackBy: trackChallenge"
+          [class.selected]="challengeIndex === page - 1" (click)="selectChallenge(challengeIndex)">
+          <span class="challenge-team-numbers" aria-label="&Eacute;preuve {{challenge.challenge}}, &eacute;quipe {{challenge.team}}">
+            <span class="challenge-number" title="Num&eacute;ro d&rsquo;&eacute;preuve">{{challenge.challenge | number:'2.0-0'}}</span>
+            <span class="team-number" title="Num&eacute;ro d&rsquo;&eacute;quipe">{{challenge.team | number:'2.0-0'}}</span>
+          </span>
+          <span class="validation-item-main">
+            <strong>{{challengeLabel(challenge.challenge)}}</strong>
+            <span>&Eacute;preuve {{challenge.challenge | number:'2.0-0'}} &middot; &Eacute;quipe {{challenge.team | number:'2.0-0'}} &middot; {{teamLabel(challenge.team)}}</span>
+            <small>
+              <span class="status-pill" [class.completed]="challenge.end" [class.not-completed]="!challenge.end">{{challenge.end ? 'Termin&eacute;e' : (challenge.begin ? 'En cours' : 'Non commenc&eacute;e')}}</span>
+              <span class="status-pill" [class.completed]="challenge.missing === 0" [class.not-completed]="challenge.missing !== 0">
+                {{challenge.missing === 0 ? 'Saisie' : '&Agrave; saisir'}}
+              </span>
+              <span class="status-pill" [class.completed]="challenge.checked" [class.not-completed]="!challenge.checked">
+                {{challenge.checked ? 'Valid&eacute;e' : '&Agrave; valider'}}
+              </span>
+            </small>
+          </span>
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+      </aside>
+    </div>
+
+    <main class="validation-detail">
+      <div *ngIf="!selectedChallenge" class="validation-empty detail-empty">
+        <i class="fas fa-mouse-pointer"></i>
+        <strong>S&eacute;lectionnez une &eacute;preuve</strong>
+        <span>Son formulaire, ses r&eacute;ponses et ses actions appara&icirc;tront ici.</span>
+      </div>
+
+      <ng-container *ngIf="selectedChallenge as currentChallenge">
+        <header class="detail-header">
+          <button type="button" class="back-to-list" (click)="mobileDetailOpen = false">
+            <i class="fas fa-arrow-left"></i> Liste
+          </button>
+          <div class="detail-identity">
+            <strong>&Eacute;preuve {{currentChallenge.challenge | number:'2.0-0'}} &middot; &Eacute;quipe {{currentChallenge.team | number:'2.0-0'}}</strong>
+            <span>{{challengeLabel(currentChallenge.challenge)}} &middot; {{teamLabel(currentChallenge.team)}}</span>
+          </div>
+          <div class="detail-zoom" *ngIf="selectedChallengeHasSubmittedForms" aria-label="Zoom du formulaire">
+            <button type="button" (click)="zoomOut()" [disabled]="contentZoomPercent <= 20" title="R&eacute;duire le formulaire">
+              <span aria-hidden="true">&minus;</span>
+            </button>
+            <button type="button" class="zoom-value" (click)="resetZoom()" title="R&eacute;tablir le zoom &agrave; 100 %">
+              {{contentZoomPercent}} %
+            </button>
+            <button type="button" (click)="zoomIn()" [disabled]="contentZoomPercent >= 150" title="Agrandir le formulaire">
+              <span aria-hidden="true">&plus;</span>
+            </button>
+          </div>
+          <div class="detail-navigation">
+            <span>{{page}} / {{challenges.length}}</span>
+            <button type="button" [disabled]="page <= 1" (click)="previous()" aria-label="&Eacute;preuve pr&eacute;c&eacute;dente"><span aria-hidden="true">&lsaquo;</span></button>
+            <button type="button" [disabled]="page >= challenges.length" (click)="next()" aria-label="&Eacute;preuve suivante"><span aria-hidden="true">&rsaquo;</span></button>
+          </div>
+        </header>
+        <div class="detail-scroll">
+          <app-details-challenge [challenge]="currentChallenge.challenge" [team]="currentChallenge.team"
+            [contentZoom]="selectedChallengeHasSubmittedForms ? contentZoomPercent / 100 : 1"
+            (submittedFormsVisibilityChange)="onSubmittedFormsVisibilityChange($event)"></app-details-challenge>
+        </div>
+      </ng-container>
+    </main>
+  </section>
+</div>

@@ -77,10 +77,10 @@ function Install-DevCert {
 $scriptDir = Split-Path -Parent $PSCommandPath
 $repoRoot = Resolve-Path (Join-Path $scriptDir "..")
 
-$backendLocal     = Join-Path $repoRoot "response-service\src\main\resources\keystore-local.p12"
-$backendDockerDir = Join-Path $repoRoot "response-service\certs"
+$backendLocal     = Join-Path $repoRoot "rallye-core-service\src\main\resources\keystore-local.p12"
+$backendDockerDir = Join-Path $repoRoot "rallye-core-service\certs"
 $backendDocker    = Join-Path $backendDockerDir "keystore.p12"
-$nginxCertDir     = Join-Path $repoRoot "rallye-schema-response-webapp\certs"
+$nginxCertDir     = Join-Path $repoRoot "rallye-webapp\certs"
 $angularKey       = Join-Path $nginxCertDir "localhost.key"
 $angularCrt       = Join-Path $nginxCertDir "localhost.crt"
 $nginxPriv        = Join-Path $nginxCertDir "privkey.pem"

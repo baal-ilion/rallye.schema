@@ -1,0 +1,23 @@
+<div class="container mb-5">
+  <div class="row mt-4 text-center">
+    <h1 class="col-12 page-title-with-subtitle">QR Codes<span class="page-title-subtitle">QR Codes d’identification des équipes.</span></h1>
+  </div>
+  <div *ngFor="let teamPage of teamPages | keyvalue" class="rows-print-as-pages">
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 mt-4 mx-n4">
+      <div class="col mb-4" *ngFor="let team of teamPage.value">
+        <div class="card h-100">
+          <div class="card-header">{{team.team}} - {{team.name}}</div>
+          <div class="card-body p-0">
+            <div>
+              <div style="height:300px;width:300px;margin:auto;">
+                <qrcode [elementType]="elementType" [errorCorrectionLevel]="correctionLevel"
+                  [qrdata]="teamnum(team)" alt="QR Code {{team.team}} - {{team.name}}" [width]="300">
+                </qrcode>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

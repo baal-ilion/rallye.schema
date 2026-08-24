@@ -1,0 +1,51 @@
+<div class="container mb-5">
+  <div class="row mt-4 text-center">
+    <h1 class="col-12 page-title-with-subtitle">Import / Export du paramétrage<span class="page-title-subtitle">Sauvegardez ou restaurez toute la configuration du rallye.</span></h1>
+  </div>
+
+  <div class="row mt-4">
+    <div class="col-md-6 mb-3">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title">Export du paramétrage</h5>
+          <p class="card-text flex-grow-1">
+            Télécharge un ZIP contenant l’intégralité des paramètres actuels.
+          </p>
+          <div class="text-center mt-auto">
+            <a [href]="exportUrl" class="btn btn-sm btn-primary text-white w-auto px-3 mb-0 rounded">
+              <i class="fas fa-download mr-1"></i> Exporter
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title">Import du paramétrage</h5>
+          <p class="card-text flex-grow-1">
+            Sélectionnez un ZIP exporté précédemment pour restaurer le paramétrage.
+          </p>
+          <div class="text-center mt-auto">
+            <input #importFile type="file" class="d-none" id="importFile" accept="application/zip"
+              (change)="upload($event.target.files)">
+            <label class="btn btn-sm btn-primary text-white w-auto px-3 mb-0 rounded" for="importFile">
+              <i class="fas fa-search mr-1"></i> Choisir un fichier
+            </label>
+          </div>
+          <div *ngFor="let uploadFile of uploadedFiles" class="mt-3 w-100">
+            <div class="progress">
+              <div class="progress-bar bg-info progress-bar-striped" role="progressbar"
+                [style.width.%]="uploadFile.progress.percentage"
+                [class.progress-bar-animated]="uploadFile.progress.percentage != 100"
+                aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="uploadFile.progress.percentage">
+                {{uploadFile.file.name}} - {{uploadFile.progress.percentage}}%
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

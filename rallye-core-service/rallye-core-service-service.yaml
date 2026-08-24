@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: rallye-core-service
+  name: rallye-core-service
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 54.38.172.138
+  ports:
+  - name: "8080"
+    port: 8080
+    targetPort: 8080
+  selector:
+    app: rallye-core-service

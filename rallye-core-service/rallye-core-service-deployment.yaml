@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: rallye-core-service
+  name: rallye-core-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rallye-core-service
+  template:
+    metadata:
+      labels:
+        app: rallye-core-service
+    spec:
+      containers:
+      - env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: docker
+        image: baalilion/rallye-core-service
+        name: rallye-core-service
+        ports:
+        - containerPort: 8080
+      restartPolicy: Always
