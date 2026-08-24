@@ -23,6 +23,8 @@ target/
 /nbproject/private/
 /nbbuild/
 /dist/
+out-tsc/
+.angular/
 /nbdist/
 /.nb-gradle/
 build/
