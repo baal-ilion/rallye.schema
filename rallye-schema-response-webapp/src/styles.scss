@@ -56,6 +56,224 @@ body {
   background: #f1f3f5;
 }
 
+.print-ranking-view {
+  display: none;
+}
+
+@page ranking {
+  margin: 12mm 10mm 16mm;
+
+  @bottom-center {
+    content: "Page " counter(page) " / " counter(pages);
+    color: #495057;
+    font-family: Roboto, "Helvetica Neue", sans-serif;
+    font-size: 9pt;
+  }
+}
+
+@media print {
+  /* L'impression concerne le contenu de la page, jamais la navigation fixe. */
+  app-menu,
+  nav.navbar,
+  .navbar,
+  .d-print-none {
+    display: none !important;
+  }
+
+  html,
+  body {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    padding-top: 0 !important;
+    color: #000;
+    background: #fff !important;
+  }
+
+  .raw,
+  .raw > .col-12 {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Mise en page papier des trois familles de classements. */
+  .ranking-presentation,
+  .ranking-presentation:fullscreen {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    color: #000;
+    background: #fff !important;
+    page: ranking;
+  }
+
+  .ranking-presentation .presentation-slide,
+  .ranking-presentation .presentation-toolbar {
+    display: none !important;
+  }
+
+  .ranking-presentation .page-title-actions-row.standard-ranking-view,
+  .ranking-presentation.presentation-active .page-title-actions-row.standard-ranking-view {
+    display: none !important;
+  }
+
+  .ranking-presentation > .standard-ranking-view:not(.page-title-actions-row) {
+    display: none !important;
+  }
+
+  .ranking-presentation .print-ranking-view {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .ranking-presentation .page-title-actions-row {
+    width: 100% !important;
+    margin: 0 0 6mm !important;
+    border: 1px solid #263f52 !important;
+    color: #fff !important;
+    background: linear-gradient(105deg, var(--rs-navy-dark), var(--rs-navy)) !important;
+    box-shadow: none !important;
+    transform: none !important;
+    left: auto !important;
+    break-after: avoid-page;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .ranking-presentation .page-title-actions-row::before {
+    display: block !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .ranking-presentation .page-title-actions-row h1 {
+    color: #fff !important;
+  }
+
+  .ranking-presentation .page-title-actions-row .page-title-subtitle {
+    color: #dce5ea !important;
+  }
+
+  .ranking-presentation app-ranking {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    padding: 0 !important;
+    break-inside: auto;
+  }
+
+  .ranking-presentation .print-ranking-panel {
+    display: block !important;
+    box-sizing: border-box !important;
+    border-top: 5mm solid transparent !important;
+    border-right: 4mm solid transparent !important;
+    border-left: 4mm solid transparent !important;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    break-inside: avoid-page !important;
+    page-break-inside: avoid !important;
+  }
+
+  .ranking-presentation .print-ranking-page {
+    display: block !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    break-inside: avoid-page !important;
+    page-break-inside: avoid !important;
+  }
+
+  .ranking-presentation .print-ranking-page + .print-ranking-page {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+
+  .ranking-presentation .print-page-heading {
+    display: flex !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+  }
+
+  .ranking-presentation .print-ranking-view app-ranking {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+
+  .ranking-presentation app-ranking .data-table-fit,
+  .ranking-presentation app-ranking .data-table-fit > .row {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+  }
+
+  .ranking-presentation app-ranking h4 {
+    width: 100% !important;
+    margin-top: 0 !important;
+    color: #000 !important;
+    background: #e9ecef !important;
+    box-shadow: none !important;
+    break-after: avoid-page;
+  }
+
+  .ranking-presentation app-ranking table.ranking-table {
+    display: table !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    table-layout: fixed !important;
+    break-inside: auto;
+  }
+
+  .ranking-presentation app-ranking table.ranking-table .ranking-rank-column,
+  .ranking-presentation app-ranking table.ranking-table .ranking-team-column {
+    width: 17% !important;
+  }
+
+  .ranking-presentation app-ranking table.ranking-table .ranking-performance-column {
+    width: 17% !important;
+  }
+
+  .ranking-presentation app-ranking table.ranking-table .ranking-points-column {
+    width: 13% !important;
+  }
+
+  .ranking-presentation app-ranking table.ranking-table thead {
+    display: table-header-group;
+  }
+
+  .ranking-presentation app-ranking table.ranking-table tfoot {
+    display: table-footer-group;
+  }
+
+  .ranking-presentation app-ranking table.ranking-table tr,
+  .ranking-presentation app-ranking table.ranking-table th,
+  .ranking-presentation app-ranking table.ranking-table td {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .ranking-presentation app-ranking table.ranking-table th,
+  .ranking-presentation app-ranking table.ranking-table td {
+    overflow: visible !important;
+    color: #000 !important;
+    white-space: normal !important;
+  }
+
+  .ranking-presentation app-ranking table.ranking-table th {
+    white-space: nowrap !important;
+  }
+}
+
 @media (min-width: 768px) {
   html.validation-stage-page,
   body.validation-stage-page {
@@ -397,6 +615,88 @@ h4.bg-secondary,
 
 .toggle-row app-toggle-switch {
   margin-left: 0.35rem;
+}
+
+/* Actions des bandeaux de classement. Le libellÃ© reste visuellement liÃ©
+ * Ã  son curseur et le groupe se replie sans comprimer les tableaux. */
+.ranking-title-layout {
+  min-width: 0;
+  gap: .75rem;
+}
+
+.ranking-title-controls {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: .85rem;
+}
+
+.ranking-points-control {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+}
+
+.ranking-points-control .ranking-points-label {
+  margin-right: 0;
+  padding: 0;
+  border: 0;
+  color: #fff;
+  background: transparent;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ranking-points-control app-toggle-switch {
+  flex: 0 0 auto;
+  margin-left: 0;
+}
+
+.ranking-fullscreen-button {
+  white-space: nowrap;
+}
+
+@media (max-width: 767.98px) {
+  .ranking-title-layout {
+    flex-wrap: wrap;
+  }
+
+  .ranking-title-layout > .page-title-with-subtitle,
+  .ranking-title-controls {
+    flex: 1 0 100%;
+    width: 100%;
+  }
+
+  .ranking-title-controls {
+    justify-content: center;
+    gap: .75rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .ranking-title-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+    gap: .45rem;
+  }
+
+  .ranking-points-control,
+  .ranking-fullscreen-button {
+    position: relative;
+    left: 50%;
+    justify-self: start;
+    transform: translateX(-50%);
+  }
+
+  .ranking-points-control {
+    justify-content: center;
+  }
+
+  .ranking-fullscreen-button {
+    width: auto !important;
+    align-self: center;
+  }
 }
 
 .btn-group > .btn {
@@ -1220,6 +1520,37 @@ table.table > tbody > tr.table-info {
 .page-title-actions-row .btn-success:hover {
   border-color: #8aac6d;
   background: #6d934f;
+}
+
+/* Dans un bandeau bleu, les seules actions bleues adoptent le contraste
+ * clair du bouton de sortie du mode plein Ã©cran. Les autres couleurs
+ * fonctionnelles (vert, rouge, jaune...) restent inchangÃ©es. */
+.page-title-actions-row .btn-primary {
+  width: auto !important;
+  min-width: max-content;
+  flex: 0 0 auto;
+  border-color: #dee2e6 !important;
+  color: #212529 !important;
+  background: #f8f9fa !important;
+  box-shadow: 0 2px 6px rgba(20, 35, 47, .18);
+  white-space: nowrap;
+}
+
+.page-title-actions-row .btn-primary:hover,
+.page-title-actions-row .btn-primary:focus {
+  border-color: #c8ced3 !important;
+  color: #111 !important;
+  background: #e9ecef !important;
+}
+
+.page-title-actions-row .btn-primary:active {
+  border-color: #bcc3c9 !important;
+  background: #dde1e4 !important;
+}
+
+.point-title-actions {
+  flex: 0 0 auto;
+  gap: .65rem;
 }
 
 /* Colonne d'actions commune aux listes de paramétrage. */

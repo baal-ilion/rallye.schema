@@ -10,10 +10,12 @@ export class RankingComponent implements OnInit {
   @Input() rankingTitle: string;
   @Input() teamRanking: Ranking[];
   @Input() teamInfos: { [team: number]: any };
-  @Input() viewPoints = true;
+  @Input() viewPoints = false;
   @Input() performanceLabel?: string | null;
   @Input() performanceValues?: { [team: number]: number | null } | null;
   @Input() reservePerformanceColumn = false;
+  @Input() presentationMode = false;
+  @Input() synchronizeColumns = true;
   @ViewChild('ranking_table') rankingTable: ElementRef;
 
   constructor() { }

@@ -95,10 +95,15 @@ export class TableColumnSyncRegistry {
 
 @Directive({ selector: 'table[appSyncTableColumns]' })
 export class SyncTableColumnsDirective implements AfterViewInit, OnDestroy {
-  @Input() appSyncTableColumns = 'default';
+  @Input() appSyncTableColumns: string | null = 'default';
 
   private observer?: MutationObserver;
-  private readonly resizeListener = () => this.registry.schedule(this.appSyncTableColumns);
+  private registeredGroup?: string;
+  private readonly resizeListener = () => {
+    if (this.registeredGroup) {
+      this.registry.schedule(this.registeredGroup);
+    }
+  };
 
   constructor(
     private readonly elementRef: ElementRef<HTMLTableElement>,
@@ -107,9 +112,13 @@ export class SyncTableColumnsDirective implements AfterViewInit, OnDestroy {
   ) {}
 
   ngAfterViewInit(): void {
+    if (!this.appSyncTableColumns) {
+      return;
+    }
+    this.registeredGroup = this.appSyncTableColumns;
     this.zone.runOutsideAngular(() => {
-      this.registry.register(this.appSyncTableColumns, this.elementRef.nativeElement);
-      this.observer = new MutationObserver(() => this.registry.schedule(this.appSyncTableColumns));
+      this.registry.register(this.registeredGroup!, this.elementRef.nativeElement);
+      this.observer = new MutationObserver(() => this.registry.schedule(this.registeredGroup!));
       this.observer.observe(this.elementRef.nativeElement.tBodies[0] ?? this.elementRef.nativeElement, {
         childList: true,
         subtree: true,
@@ -122,6 +131,8 @@ export class SyncTableColumnsDirective implements AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     this.observer?.disconnect();
     window.removeEventListener('resize', this.resizeListener);
-    this.registry.unregister(this.appSyncTableColumns, this.elementRef.nativeElement);
+    if (this.registeredGroup) {
+      this.registry.unregister(this.registeredGroup, this.elementRef.nativeElement);
+    }
   }
 }

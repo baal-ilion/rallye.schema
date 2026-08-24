@@ -7,7 +7,11 @@ $theme-colors: (
 @import "node_modules/bootstrap/scss/mixins";
 
 :host {
+  display: inline-block;
+  width: 33px;
+  min-width: 33px;
   height: 20px;
+  vertical-align: middle;
 }
 
 .toggle-switch {
