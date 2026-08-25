@@ -1,0 +1,14 @@
+services:
+  rallye-webapp:
+    container_name: "rallye-webapp"
+    image: baalilion/rallye-webapp
+    build:
+      context: .
+      dockerfile: Dockerfile-prod
+    volumes:
+      - './config:/usr/share/nginx/html/config:ro'
+      - './certs:/etc/nginx/certs:ro'
+    ports:
+      - '80:80'
+      - '443:443'
+    restart: always

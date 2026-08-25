@@ -1,0 +1,27 @@
+<div class="container-fluid details-team-challenge-page mb-5">
+  <div class="row mt-4 text-center page-heading-row">
+    <h1 class="col-12 page-title-with-subtitle">Détail de l’épreuve<span class="page-title-subtitle">Consultez la participation, les réponses et le résultat enregistrés.</span></h1>
+  </div>
+
+  <main class="standalone-challenge-detail" *ngIf="team && challenge">
+    <header class="detail-header">
+      <div class="detail-identity">
+        <strong>Épreuve {{challenge}} · Équipe {{team}}</strong>
+        <span>Gestion et correction de l’épreuve</span>
+      </div>
+
+      <div class="detail-zoom" *ngIf="hasSubmittedForms">
+        <button type="button" (click)="zoomOut()" [disabled]="contentZoomPercent <= 20" aria-label="Réduire le zoom">−</button>
+        <button type="button" class="zoom-value" (click)="resetZoom()" title="Rétablir le zoom à 100 %">{{contentZoomPercent}} %</button>
+        <button type="button" (click)="zoomIn()" [disabled]="contentZoomPercent >= 150" aria-label="Augmenter le zoom">+</button>
+      </div>
+    </header>
+
+    <div class="detail-scroll">
+      <app-details-challenge [team]="team" [challenge]="challenge"
+        [contentZoom]="hasSubmittedForms ? contentZoomPercent / 100 : 1"
+        (submittedFormsVisibilityChange)="onSubmittedFormsVisibilityChange($event)"
+        (loadErrorEvent)="onLoadError($event)"></app-details-challenge>
+    </div>
+  </main>
+</div>

@@ -1,7 +1,7 @@
 services:
-  rallye-schema-form-processing-service:
-    container_name: rallye-schema-form-processing-service
-    image: rallye-schema-form-processing-service:local
+  form-processing-service:
+    container_name: form-processing-service
+    image: form-processing-service:local
     build:
       context: .
       dockerfile: Dockerfile

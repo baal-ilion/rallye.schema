@@ -1,0 +1,39 @@
+:host {
+  display: block;
+  margin-bottom: 2rem;
+}
+
+.response-page-panel {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.response-page-title {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: .42rem .75rem;
+  border-radius: .35rem .35rem 0 0;
+  color: #fff;
+  background: #526f8a;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.response-page-preview {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #d8dde1;
+  border-top: 0;
+  background: #fff;
+}
+
+.response-page-preview app-form-template-preview {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}

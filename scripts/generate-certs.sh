@@ -118,7 +118,13 @@ install_dev_cert() {
 generate_keystore() {
   local target="$1"
   local label="$2"
-  local san_ext="SAN=dns:$DNS_NAME"
+  local san_ext
+
+  if [[ "$DNS_NAME" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ || "$DNS_NAME" == *:* ]]; then
+    san_ext="SAN=ip:$DNS_NAME,dns:localhost,ip:127.0.0.1"
+  else
+    san_ext="SAN=dns:$DNS_NAME,dns:localhost,ip:127.0.0.1"
+  fi
 
   if [[ ! -f "$target" || "$FORCE" -eq 1 ]]; then
     echo ">> Generating $label keystore: $target"
@@ -144,10 +150,10 @@ generate_keystore() {
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd)"
 
-BACKEND_LOCAL="$REPO_ROOT/response-service/src/main/resources/keystore-local.p12"
-BACKEND_DOCKER_DIR="$REPO_ROOT/response-service/certs"
+BACKEND_LOCAL="$REPO_ROOT/rallye-core-service/src/main/resources/keystore-local.p12"
+BACKEND_DOCKER_DIR="$REPO_ROOT/rallye-core-service/certs"
 BACKEND_DOCKER="$BACKEND_DOCKER_DIR/keystore.p12"
-NGINX_CERT_DIR="$REPO_ROOT/rallye-schema-response-webapp/certs"
+NGINX_CERT_DIR="$REPO_ROOT/rallye-webapp/certs"
 ANGULAR_KEY="$NGINX_CERT_DIR/localhost.key"
 ANGULAR_CRT="$NGINX_CERT_DIR/localhost.crt"
 NGINX_PRIV="$NGINX_CERT_DIR/privkey.pem"
@@ -172,7 +178,15 @@ if [[ ! -f "$ANGULAR_KEY" || ! -f "$ANGULAR_CRT" || ! -f "$NGINX_PRIV" || ! -f "
   TMP_CRT="$TMP_DIR/tmp.crt"
   TMP_CONF="$TMP_DIR/openssl-san.conf"
 
-  echo ">> Generating self-signed certificate via openssl in $NGINX_CERT_DIR (SAN DNS:$DNS_NAME, IP:127.0.0.1)"
+  if [[ "$DNS_NAME" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ || "$DNS_NAME" == *:* ]]; then
+    PRIMARY_SAN="IP.2  = $DNS_NAME"
+    LOCALHOST_DNS_INDEX=1
+  else
+    PRIMARY_SAN="DNS.1 = $DNS_NAME"
+    LOCALHOST_DNS_INDEX=2
+  fi
+
+  echo ">> Generating self-signed certificate via openssl in $NGINX_CERT_DIR (SAN:$DNS_NAME, localhost, 127.0.0.1)"
 
   cat > "$TMP_CONF" <<EOF
 [ req ]
@@ -188,8 +202,8 @@ CN = $DNS_NAME
 subjectAltName = @alt_names
 
 [ alt_names ]
-DNS.1 = $DNS_NAME
-DNS.2 = localhost
+$PRIMARY_SAN
+DNS.$LOCALHOST_DNS_INDEX = localhost
 IP.1  = 127.0.0.1
 EOF
 

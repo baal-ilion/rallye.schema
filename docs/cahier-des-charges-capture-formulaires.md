@@ -37,9 +37,9 @@ Le redressement et la normalisation des photographies sont des traitements techn
 ### Front
 
 - La route `/formUpload` permet de sélectionner plusieurs fichiers avec `accept="image/*"`.
-- Chaque fichier est envoyé séparément à `POST /responseFiles`.
+- Chaque fichier est envoyé séparément à `POST /submittedForms`.
 - Trois tentatives sont faites en cas d’échec.
-- La route `/listUpload` charge les `ResponseFileInfo` non vérifiés (`checked` faux ou absent).
+- La route `/listUpload` charge les `SubmittedFormMetadata` non vérifiés (`checked` faux ou absent).
 - L’écran de vérification permet notamment :
   - de visualiser l’image et les points détectés ;
   - de déplacer manuellement les quatre repères ;
@@ -48,9 +48,9 @@ Le redressement et la normalisation des photographies sont des traitements techn
 
 ### Back
 
-- `ResponseFileController` accepte une image unique sur `POST /responseFiles`.
-- Une route `/responseFiles/multiple` existe, mais n’est pas utilisée par le front.
-- `ResponseFileService.addResponseFile` :
+- `SubmittedFormController` accepte une image unique sur `POST /submittedForms`.
+- Une route `/submittedForms/multiple` existe, mais n’est pas utilisée par le front.
+- `SubmittedFormService.addSubmittedForm` :
   1. refuse tout type qui ne commence pas par `image/` ;
   2. décode l’image avec `ImageIO` ;
   3. lance une première reconnaissance pour identifier équipe, épreuve et page ;
@@ -183,7 +183,7 @@ Exemple conceptuel :
     {
       "clientId": "photo-1",
       "status": "READY_FOR_VERIFICATION",
-      "responseFileId": "…",
+      "submittedFormId": "…",
       "warnings": []
     },
     {
@@ -201,7 +201,7 @@ Le lot n’a pas besoin d’être transactionnel : une mauvaise photo ne doit pa
 
 Le traitement d’image et la reconnaissance sont assurés par le service indépendant
 `form-processing-service`. Le front existant assure l’acquisition et la vérification,
-tandis que `ResponseFileService` orchestre l’appel au service, le stockage et la publication.
+tandis que `SubmittedFormService` orchestre l’appel au service, le stockage et la publication.
 
 Cette séparation permet :
 

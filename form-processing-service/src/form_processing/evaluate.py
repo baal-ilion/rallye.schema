@@ -48,7 +48,7 @@ def _printed_edge_error(image: np.ndarray, reference: np.ndarray) -> float:
 def evaluate(corpus_root: Path, references_root: Path) -> dict:
     corpus = json.loads((corpus_root / "manifest.json").read_text(encoding="utf-8"))
     reference_manifest = json.loads((references_root / "manifest.json").read_text(encoding="utf-8-sig"))
-    references = {(item["stage"], item["page"]): item for item in reference_manifest}
+    references = {(item["challenge"], item["page"]): item for item in reference_manifest}
 
     results: list[dict] = []
     durations: list[float] = []
@@ -65,12 +65,12 @@ def evaluate(corpus_root: Path, references_root: Path) -> dict:
         started_at = time.perf_counter()
         record = {
             "id": item["id"],
-            "stage": item["stage"],
+            "challenge": item["challenge"],
             "page": item["page"],
             "team": item["team"],
             "file": item["file"],
         }
-        reference = references.get((item["stage"], item["page"]))
+        reference = references.get((item["challenge"], item["page"]))
         if reference is None:
             record.update(status="NO_REFERENCE", error="Aucune référence associée.")
             status_counts["NO_REFERENCE"] += 1
@@ -80,7 +80,7 @@ def evaluate(corpus_root: Path, references_root: Path) -> dict:
         try:
             image = _read_image(corpus_root / item["file"])
             detection = detect_markers(image)
-            reference_key = (item["stage"], item["page"])
+            reference_key = (item["challenge"], item["page"])
             if reference_key not in reference_cache:
                 reference_image = _read_image(references_root / reference["image"])
                 reference_cache[reference_key] = (reference_image, detect_markers(reference_image).points)

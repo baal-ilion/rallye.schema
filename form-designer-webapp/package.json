@@ -1,0 +1,51 @@
+{
+  "name": "form-designer-webapp",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "ng serve --port 4300 --proxy-config proxy.conf.json",
+    "build": "ng build",
+    "build:production": "ng build --configuration=production",
+    "typecheck": "ngc -p tsconfig.app.json"
+  },
+  "dependencies": {
+    "@angular/animations": "^18.2.14",
+    "@angular/cdk": "^18.2.14",
+    "@angular/common": "^18.2.14",
+    "@angular/compiler": "^18.2.14",
+    "@angular/core": "^18.2.14",
+    "@angular/forms": "^18.2.14",
+    "@angular/platform-browser": "^18.2.14",
+    "@angular/platform-browser-dynamic": "^18.2.14",
+    "@fontsource/bangers": "^5.1.1",
+    "@fontsource/bebas-neue": "^5.1.1",
+    "@fontsource/caveat": "^5.1.1",
+    "@fontsource/cinzel-decorative": "^5.1.1",
+    "@fontsource/creepster": "^5.1.1",
+    "@fontsource/dancing-script": "^5.1.1",
+    "@fontsource/fredericka-the-great": "^5.1.1",
+    "@fontsource/lobster": "^5.1.1",
+    "@fontsource/medievalsharp": "^5.1.1",
+    "@fontsource/monoton": "^5.1.1",
+    "@fontsource/nosifer": "^5.1.1",
+    "@fontsource/pacifico": "^5.1.1",
+    "@fontsource/pirata-one": "^5.1.1",
+    "@fontsource/rye": "^5.1.1",
+    "@fontsource/special-elite": "^5.1.1",
+    "@fontsource/unifrakturcook": "^5.1.1",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.2",
+    "jszip": "^3.10.1",
+    "rxjs": "^7.8.1",
+    "tslib": "^2.6.2",
+    "unicode-emoji-json": "^0.9.0",
+    "xlsx": "^0.16.4",
+    "zone.js": "~0.14.10"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^18.2.21",
+    "@angular/cli": "^18.2.21",
+    "@angular/compiler-cli": "^18.2.14",
+    "typescript": "~5.4.5"
+  }
+}

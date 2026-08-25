@@ -1,0 +1,14 @@
+services:
+  form-designer-webapp:
+    container_name: form-designer-webapp
+    image: baalilion/form-designer-webapp
+    build:
+      context: .
+      dockerfile: Dockerfile-prod
+    volumes:
+      - '../rallye-webapp/certs:/etc/nginx/certs:ro'
+    ports:
+      - '4300:443'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    restart: always

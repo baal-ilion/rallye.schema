@@ -1,0 +1,51 @@
+<section class="duplicate-dialog" *ngIf="candidate as comparedFile">
+  <header class="duplicate-header">
+    <div>
+      <span class="duplicate-kicker">Gestion des doublons</span>
+      <h2>Comparer les feuilles de réponse</h2>
+      <p>Épreuve {{comparedFile.challenge}} · Équipe {{comparedFile.team}} · Page {{comparedFile.page}}</p>
+    </div>
+    <button type="button" class="close-button" aria-label="Fermer" (click)="dialogRef.close()">×</button>
+  </header>
+
+  <div *ngIf="actionError" class="alert alert-danger mx-3 mt-3 mb-0" role="alert">{{actionError}}</div>
+
+  <nav class="candidate-navigation" *ngIf="candidates.length > 1" aria-label="Choix du doublon">
+    <button type="button" (click)="previous()" [disabled]="page <= 1">‹</button>
+    <span>Doublon {{page}} sur {{candidates.length}}</span>
+    <button type="button" (click)="next()" [disabled]="page >= candidates.length">›</button>
+  </nav>
+
+  <div class="comparison-grid">
+    <article class="sheet-card current-sheet">
+      <header>
+        <div><strong>Feuille actuellement utilisée</strong><span>Source actuelle du résultat de l’épreuve</span></div>
+        <span class="status-badge current" *ngIf="selectedSubmittedForm">Utilisée</span>
+      </header>
+      <div class="sheet-preview" *ngIf="selectedSubmittedForm as selected; else noCurrentSheet">
+        <app-details-submitted-form [fileUpload]="selected" [dragable]="false"></app-details-submitted-form>
+      </div>
+      <ng-template #noCurrentSheet>
+        <div class="empty-sheet"><strong>Aucune feuille utilisée</strong><span>Choisissez le formulaire à retenir.</span></div>
+      </ng-template>
+    </article>
+
+    <article class="sheet-card candidate-sheet">
+      <header>
+        <div><strong>Feuille candidate</strong><span>Exemplaire importé à comparer</span></div>
+        <span class="status-badge">Doublon</span>
+      </header>
+      <div class="sheet-preview">
+        <app-details-submitted-form [fileUpload]="comparedFile" [dragable]="false"></app-details-submitted-form>
+      </div>
+    </article>
+  </div>
+
+  <footer class="duplicate-actions">
+    <button type="button" class="btn btn-outline-danger" [disabled]="actionBusy" (click)="deleteCandidate()">Supprimer ce doublon</button>
+    <div>
+      <button type="button" class="btn btn-light" [disabled]="actionBusy" (click)="dialogRef.close()">Annuler</button>
+      <button type="button" class="btn btn-success" [disabled]="actionBusy" (click)="useCandidate()">{{actionBusy ? 'Traitement…' : 'Remplacer par cette feuille'}}</button>
+    </div>
+  </footer>
+</section>

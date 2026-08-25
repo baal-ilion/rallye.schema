@@ -1,0 +1,76 @@
+<div class="container mb-5" *ngIf="team">
+  <div class="row mt-0">
+    <div class="col-12 py-1 bg-secondary">
+      <h4 class="my-auto text-center text-white">Équipe sélectionnée : Équipe {{team.team}} - {{team.name}}</h4>
+    </div>
+  </div>
+  <div class="row mt-3" *ngIf="challengeFilter !== undefined && challengeConfigurationsToDisplay.length === 0">
+    <div class="col-12">
+      <div class="alert alert-danger mb-0">
+        Aucune épreuve trouvée pour ce numéro.
+      </div>
+    </div>
+  </div>
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 mt-4 mx-n4">
+    <ng-template ngFor let-challengeConfiguration [ngForOf]="challengeConfigurationsToDisplay">
+      <div class="col mb-4">
+        <div *ngIf="challenges[challengeConfiguration.challenge] && challenges[challengeConfiguration.challenge].begin && !challenges[challengeConfiguration.challenge].end"
+          class="card border-primary h-100">
+          <div class="card-header font-weight-bold" *ngIf="!challenges[challengeConfiguration.challenge]?.checked">{{challengeConfiguration.name}}</div>
+          <div class="card-header font-weight-bold text-white bg-primary" *ngIf="challenges[challengeConfiguration.challenge]?.checked">
+            {{challengeConfiguration.name}}</div>
+          <div class="card-body text-primary">
+            <div>Épreuve {{challengeConfiguration.challenge}} en cours.</div>
+          </div>
+          <div class="card-footer text-center">
+            <div class="btn-group">
+              <button class="btn btn-sm btn-success" type="button"
+                (click)="onStopChallenge(challengeConfiguration.challenge)">Terminer</button>
+              <button class="btn btn-sm btn-danger" type="button"
+                (click)="onCancelChallenge(challengeConfiguration.challenge)">Annuler</button>
+              <button class="btn btn-sm btn-primary" type="button"
+                [routerLink]="['/challenge', team.team, challengeConfiguration.challenge]">
+                Détails
+              </button>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="challenges[challengeConfiguration.challenge] && challenges[challengeConfiguration.challenge].begin && challenges[challengeConfiguration.challenge].end"
+          class="card border-success h-100">
+          <div class="card-header font-weight-bold" *ngIf="!challenges[challengeConfiguration.challenge]?.checked">{{challengeConfiguration.name}}</div>
+          <div class="card-header font-weight-bold text-white bg-success" *ngIf="challenges[challengeConfiguration.challenge]?.checked">
+            {{challengeConfiguration.name}}</div>
+          <div class="card-body text-success">
+            <div>Épreuve {{challengeConfiguration.challenge}} achevée.</div>
+          </div>
+          <div class="card-footer text-center">
+            <div class="btn-group">
+              <button class="btn btn-sm btn-danger" type="button"
+                (click)="onUndoChallenge(challengeConfiguration.challenge)">Reprendre</button>
+              <button class="btn btn-sm btn-primary" type="button"
+                [routerLink]="['/challenge', team.team, challengeConfiguration.challenge]">
+                Détails
+              </button>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="!challenges[challengeConfiguration.challenge] || !challenges[challengeConfiguration.challenge].begin" class="card h-100">
+          <div class="card-header font-weight-bold">{{challengeConfiguration.name}}</div>
+          <div class="card-body">
+            <div>Épreuve {{challengeConfiguration.challenge}} non réalisée.</div>
+          </div>
+          <div class="card-footer text-center">
+            <div class="btn-group">
+              <button class="btn btn-sm btn-success" type="button"
+                (click)="onStartChallenge(challengeConfiguration.challenge)">Commencer</button>
+              <button class="btn btn-sm btn-primary" type="button" *ngIf="challenges[challengeConfiguration.challenge]"
+                [routerLink]="['/challenge', team.team, challengeConfiguration.challenge]">
+                Détails
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+  </div>
+</div>

@@ -1,0 +1,55 @@
+<div class="container mb-5">
+  <div class="row mt-4 text-center">
+    <h1 class="col-12 mb-0 page-title-with-subtitle">&Eacute;preuves en cours par &eacute;quipe<span class="page-title-subtitle">Consultez les épreuves actuellement jouées par chaque équipe.</span></h1>
+  </div>
+
+  <div class="row mt-3" *ngIf="loading || error">
+    <div class="col-12">
+      <div *ngIf="loading" class="alert alert-info">Chargement des &eacute;preuves en cours...</div>
+      <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+    </div>
+  </div>
+
+  <div class="row mt-4" *ngIf="!loading && !error">
+    <div class="col-12" *ngIf="rows.length === 0">
+      <div class="alert alert-secondary mb-0">Aucune &eacute;quipe n'est actuellement en cours d'&eacute;preuve.</div>
+    </div>
+
+    <div class="col-12" *ngIf="rows.length > 0">
+      <div class="data-table-fit">
+        <div class="row mt-0">
+          <h4 id="active_challenges_title" class="col-12 px-0 py-1 bg-secondary my-auto text-center text-white">Épreuves en cours
+          </h4>
+        </div>
+        <div class="row mt-0">
+        <table class="col-12 table table-sm align-items-center active-table mb-0"
+          aria-describedby="active_challenges_title" appSyncTableColumns="active-challenges">
+          <thead class="bg-light">
+            <tr>
+              <th scope="col" class="align-middle compact-column">&Eacute;quipe</th>
+              <th scope="col" class="align-middle fluid-column">&Eacute;preuves en cours</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of rows; trackBy: trackTeamRow">
+              <td class="align-middle compact-column">
+                {{ row.team.team | number:'2.0-0' }} - {{ row.team.name }}
+              </td>
+              <td class="align-middle fluid-column active-challenges-cell">
+                <ng-container *ngIf="row.challengeResults.length > 0; else noChallenge">
+                  <div *ngFor="let challenge of row.challengeResults; let i = index; trackBy: trackChallenge" class="active-challenge-line">
+                    &Eacute;preuve {{ challenge.challenge | number:'2.0-0' }} : {{ row.challengeNames[i] }}
+                  </div>
+                </ng-container>
+                <ng-template #noChallenge>
+                  <span class="text-muted">Aucune &eacute;preuve en cours.</span>
+                </ng-template>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

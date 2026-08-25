@@ -1,0 +1,7 @@
+export enum QuestionType {
+  CHALLENGE = 'CHALLENGE',
+  PAGE = 'PAGE',
+  TEAM = 'TEAM',
+  QUESTION = 'QUESTION',
+  PERFORMANCE = 'PERFORMANCE'
+}

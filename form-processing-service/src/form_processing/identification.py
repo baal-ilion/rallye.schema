@@ -34,7 +34,7 @@ def recognize_identification(image: np.ndarray, template_xml: str | None) -> Ide
     questions = {q.attrib.get("question"): q for q in root.findall(".//question")}
     values: dict[str, str | None] = {}
     confidences: list[float] = []
-    for name in ("Equipe1", "Equipe2", "Etape", "Etape1", "Etape2", "Page"):
+    for name in ("TeamTens", "TeamUnits", "Challenge", "ChallengeTens", "ChallengeUnits", "Page"):
         if name in questions:
             values[name], confidence = _read_field(image, questions[name])
             confidences.append(confidence)
@@ -47,8 +47,8 @@ def recognize_identification(image: np.ndarray, template_xml: str | None) -> Ide
         return int(text) if text and text.isdigit() else None
 
     return IdentificationResult(
-        team=combined("Equipe", "Equipe1", "Equipe2"),
-        stage=combined("Etape", "Etape1", "Etape2"),
+        team=combined("Team", "TeamTens", "TeamUnits"),
+        challenge=combined("Challenge", "ChallengeTens", "ChallengeUnits"),
         page=combined("Page", "Page", "Page"),
         confidence=min(confidences) if confidences else 0.0,
     )
@@ -63,7 +63,7 @@ def recognize_corrections(image: np.ndarray, template_xml: str | None) -> list[C
     density_threshold = float(root.attrib.get("density", "40")) / 100.0
     marker_size = 15
     half_size = marker_size // 2
-    identification_names = {"Equipe", "Equipe1", "Equipe2", "Etape", "Etape1", "Etape2", "Page"}
+    identification_names = {"Team", "TeamTens", "TeamUnits", "Challenge", "ChallengeTens", "ChallengeUnits", "Page"}
     results: list[CorrectionResult] = []
     for question in root.findall(".//question"):
         label = question.attrib.get("question", "")

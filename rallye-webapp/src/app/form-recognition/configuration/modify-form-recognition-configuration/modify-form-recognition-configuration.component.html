@@ -1,0 +1,62 @@
+<div class="card">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <h4 class="modal-title mb-0 text-center flex-fill">Formulaire de r&eacute;ponses</h4>
+    <button type="button"
+      class="btn btn-danger text-white w-auto px-3 py-2 d-flex align-items-center justify-content-center ml-4"
+      style="min-width:2.5rem;min-height:2.5rem;line-height:1;padding:0.4rem 0.6rem;" aria-label="Close"
+      (click)="dialogRef.close()">&times;</button>
+  </div>
+  <form [formGroup]="myForm" (ngSubmit)="submitForm()" novalidate>
+    <div class="card-body">
+      <div class="form-group">
+        <label for="challenge">Num&eacute;ro d'&eacute;preuve</label>
+        <input type="number" class="form-control" id="challenge" [value]="challengeDisplay ?? ''" readonly>
+      </div>
+      <div class="form-group">
+        <label for="challenge-name">Nom de l'&eacute;preuve</label>
+        <input type="text" class="form-control" id="challenge-name" [value]="challengeNameDisplay" readonly>
+      </div>
+      <div class="form-group">
+        <label for="page">Page</label>
+        <input type="number" class="form-control" id="page" formControlName="page" min="1"
+          [ngClass]="{ 'is-invalid': myForm.controls.page.touched && myForm.controls.page.invalid }">
+        <div *ngIf="myForm.controls.page.touched && myForm.controls.page.invalid" class="invalid-feedback">
+          <div *ngIf="myForm.controls.page.errors.required">Le num&eacute;ro de page est requis.</div>
+          <div *ngIf="myForm.controls.page.errors.min">Le num&eacute;ro de page doit &ecirc;tre sup&eacute;rieur ou &eacute;gal &agrave; 1.</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Importer un template</label>
+        <input type="file" accept=".xtmpl,.xml,text/xml,application/xml" class="form-control-file"
+          (change)="selectFile($any($event.target).files)">
+        <small class="text-danger" *ngIf="templateRequiredError">
+          Le template est obligatoire.
+        </small>
+        <small class="text-danger" *ngIf="templateFileError">
+          Le fichier template doit &ecirc;tre au format .xtmpl ou .xml.
+        </small>
+        <small class="form-text text-muted" #labelImportText></small>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Importer un mod&egrave;le</label>
+        <input type="file" accept="image/*" class="form-control-file" (change)="selectFileModel($any($event.target).files)">
+        <small class="text-danger" *ngIf="modelFileError">
+          Le mod&egrave;le doit &ecirc;tre un fichier image.
+        </small>
+        <small class="text-danger" *ngIf="!configuration?.id && modelRequiredError">
+          Le mod&egrave;le est obligatoire pour ajouter une feuille de r&eacute;ponses.
+        </small>
+        <small class="form-text text-muted" #labelImportModelText></small>
+      </div>
+    </div>
+    <div class="card-footer d-flex justify-content-center">
+      <div class="d-flex">
+        <button type="submit" class="btn btn-success"
+          [disabled]="isSubmitting">Valider</button>
+      </div>
+    </div>
+    <div class="card-footer pt-0" *ngIf="submitErrorMessage">
+      <small class="text-danger">{{ submitErrorMessage }}</small>
+    </div>
+  </form>
+</div>

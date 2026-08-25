@@ -23,6 +23,8 @@ target/
 /nbproject/private/
 /nbbuild/
 /dist/
+out-tsc/
+.angular/
 /nbdist/
 /.nb-gradle/
 build/
@@ -87,9 +89,9 @@ local.properties
 .scala_dependencies
 .worksheet
 # SSL certs (generated)
-/response-service/src/main/resources/keystore-local.p12
-/response-service/certs/
-/rallye-schema-response-webapp/certs/
+/rallye-core-service/src/main/resources/keystore-local.p12
+/rallye-core-service/certs/
+/rallye-webapp/certs/
 
 # Artefacts temporaires des contrôles visuels Codex
 /.codex-chrome-pdf/

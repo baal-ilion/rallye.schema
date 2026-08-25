@@ -77,16 +77,22 @@ function Install-DevCert {
 $scriptDir = Split-Path -Parent $PSCommandPath
 $repoRoot = Resolve-Path (Join-Path $scriptDir "..")
 
-$backendLocal     = Join-Path $repoRoot "response-service\src\main\resources\keystore-local.p12"
-$backendDockerDir = Join-Path $repoRoot "response-service\certs"
+$backendLocal     = Join-Path $repoRoot "rallye-core-service\src\main\resources\keystore-local.p12"
+$backendDockerDir = Join-Path $repoRoot "rallye-core-service\certs"
 $backendDocker    = Join-Path $backendDockerDir "keystore.p12"
-$nginxCertDir     = Join-Path $repoRoot "rallye-schema-response-webapp\certs"
+$nginxCertDir     = Join-Path $repoRoot "rallye-webapp\certs"
 $angularKey       = Join-Path $nginxCertDir "localhost.key"
 $angularCrt       = Join-Path $nginxCertDir "localhost.crt"
 $nginxPriv        = Join-Path $nginxCertDir "privkey.pem"
 $nginxFull        = Join-Path $nginxCertDir "fullchain.pem"
 $certToInstall    = $angularCrt
-$sanExt           = "SAN=dns:$DnsName"
+$parsedIp = $null
+$dnsNameIsIp = [System.Net.IPAddress]::TryParse($DnsName, [ref]$parsedIp)
+$sanExt = if ($dnsNameIsIp) {
+  "SAN=ip:$DnsName,dns:localhost,ip:127.0.0.1"
+} else {
+  "SAN=dns:$DnsName,dns:localhost,ip:127.0.0.1"
+}
 
 Ensure-Dir (Split-Path $backendLocal)
 Ensure-Dir $backendDockerDir
@@ -135,7 +141,9 @@ if ($opensslAvailable -and ((-not (Test-Path $angularKey) -or -not (Test-Path $a
   $tmpKey = Join-Path $nginxCertDir "tmp.key"
   $tmpCrt = Join-Path $nginxCertDir "tmp.crt"
   $tmpConf = Join-Path $nginxCertDir "openssl-san.conf"
-  Write-Host ">> G${eAcute}n${eAcute}ration certificat auto-sign${eAcute} (Nginx/Angular) via openssl dans $nginxCertDir (SAN DNS:$DnsName, IP:127.0.0.1)"
+  $primarySan = if ($dnsNameIsIp) { "IP.2  = $DnsName" } else { "DNS.1 = $DnsName" }
+  $localhostDnsIndex = if ($dnsNameIsIp) { 1 } else { 2 }
+  Write-Host ">> G${eAcute}n${eAcute}ration certificat auto-sign${eAcute} (Nginx/Angular) via openssl dans $nginxCertDir (SAN:$DnsName, localhost, 127.0.0.1)"
   @"
 [ req ]
 default_bits       = 2048
@@ -150,8 +158,8 @@ CN = $DnsName
 subjectAltName = @alt_names
 
 [ alt_names ]
-DNS.1 = $DnsName
-DNS.2 = localhost
+$primarySan
+DNS.$localhostDnsIndex = localhost
 IP.1  = 127.0.0.1
 "@ | Set-Content -Path $tmpConf -Encoding ASCII
 

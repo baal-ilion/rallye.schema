@@ -1,0 +1,170 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="container mb-3 w-100" *ngIf="challengeConfiguration">
+  <aside class="challenge-side-panel">
+  <section class="challenge-lifecycle-card">
+  <header class="challenge-management-title">
+    <div><strong>D&eacute;roulement de l&rsquo;&eacute;preuve</strong><span>Horaires et commandes de l&rsquo;&eacute;preuve</span></div>
+  </header>
+  <!-- Begin / end dates -->
+  <div class="row mt-2 justify-content-center challenge-timing">
+    <!-- Begin date -->
+    <div class="col-8 col-sm-6 col-md-5 col-lg-4 col-xl-3 col-xxl-2 m-2 p-0 border">
+      <label class="raw col-12 m-0 p-1 text-center">Début :</label>
+      <div class="raw col-12 m-0 p-1 justify-content-center input-group">
+        <input class="form-control rounded text-center" type="date" formControlName="begindate" placeholder="yyyy-mm-dd">
+      </div>
+      <div class="row col-12 m-0 p-1 justify-content-center">
+        <input class="form-control text-center w-auto" type="time" formControlName="begintime" step="1">
+      </div>
+    </div>
+    <!-- End date -->
+    <div class="col-8 col-sm-6 col-md-5 col-lg-4 col-xl-3 col-xxl-2 m-2 p-0 border">
+      <label class="raw col-12 m-0 p-1 text-center">Fin :</label>
+      <div class="raw col-12 m-0 p-1 justify-content-center input-group">
+        <input class="form-control rounded text-center" type="date" formControlName="enddate" placeholder="yyyy-mm-dd">
+      </div>
+      <div class="row col-12 m-0 p-1 justify-content-center">
+        <input class="form-control text-center w-auto" type="time" formControlName="endtime" step="1">
+      </div>
+    </div>
+  </div>
+  <div class="challenge-actions">
+    <div class="btn-group" *ngIf="challengeResult && challengeResult.begin && !challengeResult.end">
+      <button class="btn btn-success" type="button" (click)="onStopChallenge()">Terminer</button>
+      <button class="btn btn-danger" type="button" (click)="onCancelChallenge()">Annuler</button>
+    </div>
+    <div class="btn-group" *ngIf="challengeResult && challengeResult.begin && challengeResult.end">
+      <button class="btn btn-danger" type="button" (click)="onUndoChallenge()">Reprendre</button>
+    </div>
+    <div class="btn-group" *ngIf="!challengeResult || !challengeResult.begin">
+      <button class="btn btn-success" type="button" (click)="onStartChallenge()">Commencer</button>
+    </div>
+  </div>
+  </section>
+  <section class="challenge-validation-card">
+  <header class="validation-title">
+    <div><strong>Validation de la correction</strong><span>Enregistrez ou validez les r&eacute;ponses</span></div>
+  </header>
+  <div class="row justify-content-center mt-2 validation-actions">
+    <div *ngIf="challengeResult?.checked" class="text-center align-middle mx-2 px-1 py-0 col-auto">
+      <button class="btn btn-danger" type="submit" (click)="form.patchValue({checked: false})">Invalider</button>
+    </div>
+    <div *ngIf="challengeResult && !challengeResult.checked" class="text-center align-middle mx-2 px-1 py-0 col-auto">
+      <button class="btn btn-success" type="submit" [disabled]="!validable"
+        (click)="form.patchValue({checked: true})">Valider</button>
+    </div>
+    <div class="text-center align-middle mx-2 px-1 py-0 col-auto">
+      <button class="btn btn-primary" type="submit" [disabled]="challengeResult?.checked">Enregistrer</button>
+    </div>
+  </div>
+  </section>
+  </aside>
+  <div class="challenge-main-content">
+  <div #zoomViewport class="challenge-zoom-viewport">
+  <div #zoomContent class="challenge-zoom-content" [style.transform]="'scale(' + effectiveContentZoom + ')'">
+  <ng-container *ngFor="let page of pages.controls">
+    <div class="row" *ngIf="getResultForms(page).controls.length > 0 || getPerformanceForms(page).controls.length > 0">
+      <div class="col-12">
+        <div class="row mt-4">
+          <div class="col-12 py-1 bg-light">
+            <h5 class="m-auto text-center">Questions sur la page {{page.value.page}} du formulaire de réponses</h5>
+          </div>
+        </div>
+        <div class="row mt-2">
+          <!-- The response sheets are displayed only on medium or bigger screens -->
+          <ng-template [ngIf]="files[page.value.page]">
+            <div class="col-md-12 d-none d-md-block" *ngIf="!mobileView">
+              <div class="row justify-content-center">
+                <app-details-submitted-form [fileUpload]="files[page.value.page]" [dragable]="false"
+                  [correctionForm]="getResultForms(page)" [correctionDisabled]="!!challengeResult?.checked" class="border">
+                </app-details-submitted-form>
+                <app-submitted-form-actions [submittedFormMetadata]="files[page.value.page]" context="validation" (checkedEvent)="reload()"
+                  (deleteEvent)="reload()"></app-submitted-form-actions>
+              </div>
+            </div>
+            <div class="col-12" *ngIf="mobileView || getPerformanceForms(page).controls.length > 0">
+              <ng-container
+                *ngTemplateOutlet="resultlist; context: { results: getResultForms(page), performances: getPerformanceForms(page), forpage: true, hideResults: !mobileView }">
+              </ng-container>
+            </div>
+          </ng-template>
+          <ng-template [ngIf]="!files[page.value.page]">
+            <div class="col-12">
+              <ng-container
+                *ngTemplateOutlet="resultlist; context: { results: getResultForms(page), performances: getPerformanceForms(page), forpage: false }">
+              </ng-container>
+            </div>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+  <!-- Questions without response sheets -->
+  <ng-container *ngIf="getResultForms(form).controls.length > 0 || getPerformanceForms(form).controls.length > 0">
+    <div class="row mt-4">
+      <div class="col-12 py-1 bg-light">
+        <h5 class="m-auto text-center">Questions hors formulaire de réponses</h5>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12">
+        <ng-container
+          *ngTemplateOutlet="resultlist; context: { results: getResultForms(form), performances: getPerformanceForms(form), forpage: false, hideResults: false }">
+        </ng-container>
+      </div>
+    </div>
+  </ng-container>
+  </div>
+  </div>
+  </div>
+  <ng-template #resultlist let-results="results" let-performances="performances" let-forpage="forpage"
+    let-hideResults="hideResults">
+    <div [ngClass]="{'row': true, 'd-none': true ,'h-25': forpage, 'd-xxl-block': forpage}">
+    </div>
+    <ng-template [ngIf]="results.controls.length > 0 && !hideResults">
+      <div class="row mt-2" *ngIf="performances.controls.length > 0">
+        <div class="col-12 py-1 border border-light">
+          <h6 class="m-auto text-center">Questions</h6>
+        </div>
+      </div>
+      <div class="result-list-grid" [style.--result-label-width]="getResultLabelWidth(results)">
+        <div *ngFor="let result of results.controls" class="result-list-item">
+          <div [formGroup]="result" class="result-list-row">
+            <label class="result-list-label">{{result.value.name}}</label>
+            <app-toggle-switch formControlName="resultValue" class="result-list-toggle"
+              [light]="result.value.light">
+            </app-toggle-switch>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+    <!-- Performances -->
+    <div *ngIf="performances.controls.length > 0">
+      <div class="row mt-2" *ngIf="results.controls.length > 0 && !hideResults">
+        <div class="col-12 py-1 border border-light">
+          <h6 class="m-auto text-center">Performances</h6>
+        </div>
+      </div>
+      <div class="performance-list-grid"
+        [style.--performance-label-width]="getPerformanceLabelWidth(performances)">
+        <div *ngFor="let performance of performances.controls" class="performance-list-item">
+          <div [formGroup]="performance" class="performance-list-row">
+            <label class="performance-list-label">{{performance.value.name}}</label>
+            <div class="performance-list-control">
+              <input type="number" step="any" formControlName="performanceValue" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-template>
+</form>
+
+
+
+
+
+
+
+
+
+

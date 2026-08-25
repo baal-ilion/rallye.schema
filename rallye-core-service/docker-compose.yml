@@ -1,0 +1,68 @@
+services:
+  mongodb:
+    image: mongo
+    container_name: "mongodb"
+    ports:
+      - 27017:27017
+    volumes:
+      - rallye_mongodb_data:/data/db
+      - rallye_mongodb_config:/data/configdb
+    restart: always
+
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: "rabbitmq"
+    ports:
+      - 4369:4369
+      - 5672:5672
+      - 25672:25672
+      - 15672:15672
+    environment:
+      - RABBITMQ_DEFAULT_USER=rallyeschema
+      - RABBITMQ_DEFAULT_PASS=rallyeschema
+    volumes:
+      - rallye_rabbitmq_data:/var/lib/rabbitmq
+    restart: always
+
+  rallye-core-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rallye-core-service:local
+    container_name: "rallye-core-service"
+    ports:
+      - 8443:8443
+    depends_on:
+      - mongodb
+      - rabbitmq
+      - form-processing-interactive-service
+      - form-processing-batch-service
+    restart: always
+    environment:
+      - "SPRING_PROFILES_ACTIVE=docker"
+      - "SSL_KEYSTORE_PASSWORD=changeit"
+      - "FORM_PROCESSING_URL=http://form-processing-interactive-service:8080"
+      - "FORM_PROCESSING_BATCH_URL=http://form-processing-batch-service:8080"
+    volumes:
+      - ./certs:/app/certs:ro
+
+  form-processing-interactive-service:
+    build:
+      context: ../form-processing-service
+      dockerfile: Dockerfile
+    image: form-processing-service:local
+    container_name: "form-processing-interactive-service"
+    restart: always
+
+  form-processing-batch-service:
+    build:
+      context: ../form-processing-service
+      dockerfile: Dockerfile
+    image: form-processing-service:local
+    container_name: "form-processing-batch-service"
+    restart: always
+
+volumes:
+  rallye_mongodb_data:
+  rallye_mongodb_config:
+  rallye_rabbitmq_data:

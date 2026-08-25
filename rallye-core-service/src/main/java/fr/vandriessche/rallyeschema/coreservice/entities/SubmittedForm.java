@@ -1,0 +1,28 @@
+package fr.vandriessche.rallyeschema.coreservice.entities;
+
+import org.bson.types.Binary;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.DBRef;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@Document
+public class SubmittedForm {
+	@Id
+	private String id;
+
+	private Binary file;
+	private String fileType;
+	private String fileExtension;
+	private Binary thumbnail;
+	private String thumbnailType;
+	private Binary originalFile;
+	private String originalFileType;
+	private String originalFileExtension;
+	@DBRef
+	private SubmittedFormMetadata metadata;
+}
