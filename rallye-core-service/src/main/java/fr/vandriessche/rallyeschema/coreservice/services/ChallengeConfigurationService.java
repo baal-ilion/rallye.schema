@@ -106,6 +106,9 @@ public class ChallengeConfigurationService {
 	@Lazy
 	private TeamPointService teamPointService;
 
+	@Autowired
+	private RankingUpdatePublisher rankingUpdatePublisher;
+
 	public ChallengeConfiguration addChallengeConfiguration(ChallengeConfiguration challengeConfiguration) {
 		return updateChallengeConfiguration(new ChallengeConfiguration(), challengeConfiguration);
 	}
@@ -384,6 +387,8 @@ public class ChallengeConfigurationService {
 	private ChallengeConfiguration updateChallengeConfiguration(ChallengeConfiguration challengeConfigurationToUpdate, ChallengeConfiguration challengeConfiguration) {
 		Integer previousChallenge = challengeConfigurationToUpdate.getChallenge();
 		Integer nextChallenge = challengeConfiguration.getChallenge();
+		LinkedHashMap<String, QuestionScoring> previousQuestionScorings = new LinkedHashMap<>(challengeConfigurationToUpdate.getQuestionScorings());
+		LinkedHashMap<String, PerformanceScoring> previousPerformanceScorings = new LinkedHashMap<>(challengeConfigurationToUpdate.getPerformanceScorings());
 		boolean challengeChanged = Objects.nonNull(nextChallenge) && !nextChallenge.equals(previousChallenge);
 		if (challengeChanged) {
 			ensureTargetChallengeHasNoDependentData(nextChallenge);
@@ -392,11 +397,22 @@ public class ChallengeConfigurationService {
 		updateQuestionDefinitions(challengeConfigurationToUpdate, challengeConfiguration.getQuestionDefinitions().values());
 		updateQuestionScorings(challengeConfigurationToUpdate, challengeConfiguration.getQuestionScorings().values());
 		updatePerformanceScorings(challengeConfigurationToUpdate, challengeConfiguration.getPerformanceScorings().values());
+		boolean scoringChanged = !previousQuestionScorings.equals(challengeConfigurationToUpdate.getQuestionScorings())
+				|| !previousPerformanceScorings.equals(challengeConfigurationToUpdate.getPerformanceScorings());
 		challengeConfigurationToUpdate = challengeConfigurationRepository.save(challengeConfigurationToUpdate);
 		if (challengeChanged) {
 			migrateChallengeNumber(challengeConfigurationToUpdate, previousChallenge, nextChallenge);
 		}
+		if (scoringChanged) {
+			recomputeAllPointsAndNotify();
+		}
 		return challengeConfigurationToUpdate;
+	}
+
+	private void recomputeAllPointsAndNotify() {
+		challengeRankingService.computeAllChallengeRanking();
+		teamPointService.computeTeamPoints();
+		rankingUpdatePublisher.publishRankingUpdate();
 	}
 
 	private void ensureTargetChallengeHasNoDependentData(Integer nextChallenge) {
