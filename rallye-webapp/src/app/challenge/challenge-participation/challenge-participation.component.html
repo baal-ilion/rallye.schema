@@ -14,7 +14,7 @@
           [ngModel]="selectedChallenge"
           (ngModelChange)="onChallengeChange($event)"
         >
-          <option *ngFor="let challenge of challengeConfigurations; trackBy: trackChallengeConfiguration" [value]="challenge.challenge">
+          <option *ngFor="let challenge of challengeConfigurations; trackBy: trackChallengeConfiguration" [ngValue]="challenge.challenge">
             {{ challenge.challenge | number:'2.0-0' }} - {{ challenge.name }}
           </option>
         </select>

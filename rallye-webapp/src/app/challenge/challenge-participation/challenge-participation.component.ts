@@ -12,6 +12,7 @@ import { ChallengeResult } from '../models/challenge-result';
 import { ChallengeService } from '../challenge.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { sameData } from 'src/app/shared/data-change.utils';
+import { TeamUpdateService } from 'src/app/services/team-update.service';
 
 interface ChallengeParticipationRow {
   team: Team;
@@ -46,6 +47,7 @@ export class ChallengeParticipationComponent implements OnInit, OnDestroy {
     private challengeService: ChallengeService,
     private teamService: TeamService,
     private rankingUpdateService: RankingUpdateService,
+    private teamUpdateService: TeamUpdateService,
     private confirmationDialogService: ConfirmationDialogService,
     private router: Router
   ) { }
@@ -55,6 +57,22 @@ export class ChallengeParticipationComponent implements OnInit, OnDestroy {
     this.rankingUpdateService.updates$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.refreshParticipation(true));
+    this.teamUpdateService.updates$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.refreshTeams());
+  }
+
+  private async refreshTeams(): Promise<void> {
+    try {
+      const collection = await firstValueFrom(this.teamService.getTeams());
+      const nextTeams = (collection?._embedded?.teams ?? []).sort((a, b) => a.team - b.team);
+      if (!sameData(this.teams, nextTeams)) {
+        this.teams = nextTeams;
+        await this.refreshParticipation(true);
+      }
+    } catch (error) {
+      console.error('Impossible d\'actualiser les noms des équipes.', error);
+    }
   }
 
   ngOnDestroy(): void {
@@ -75,7 +93,7 @@ export class ChallengeParticipationComponent implements OnInit, OnDestroy {
     return challengeConfiguration ? challengeConfiguration.name : '';
   }
 
-  async onChallengeChange(challengeValue: string): Promise<void> {
+  async onChallengeChange(challengeValue: number | string): Promise<void> {
     const parsed = Number(challengeValue);
     this.selectedChallenge = Number.isNaN(parsed) ? undefined : parsed;
     await this.refreshParticipation();

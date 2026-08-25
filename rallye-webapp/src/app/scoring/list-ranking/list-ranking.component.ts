@@ -48,6 +48,7 @@ export class ListRankingComponent implements OnInit, OnDestroy {
   private presentationLayoutTimer: ReturnType<typeof setTimeout> | null = null;
   private presentationMeasurementTimer: ReturnType<typeof setTimeout> | null = null;
   private presentationMetricsSignature = '';
+  private teamReloadRequested = false;
   challengePerformanceValues: { [challenge: number]: { name: string, values: { [team: number]: number | null } } } = {};
 
   keyOrder = (a: KeyValue<string, Ranking[]>, b: KeyValue<string, Ranking[]>): number => {
@@ -92,7 +93,7 @@ export class ListRankingComponent implements OnInit, OnDestroy {
         })
       ),
       this.rankingUpdateService.updates$,
-      this.teamUpdateService.updates$,
+      this.teamUpdateService.updates$.pipe(tap(() => this.teamReloadRequested = true)),
       this.applicationUpdates.updates$.pipe(filter(update =>
         update.domain === 'CONFIGURATION' || update.domain === 'DATABASE' || update.domain === 'RESYNC'))
     )
@@ -529,7 +530,7 @@ export class ListRankingComponent implements OnInit, OnDestroy {
   }
 
   private loadStaticData() {
-    const needTeams = Object.keys(this.teams).length === 0;
+    const needTeams = this.teamReloadRequested || Object.keys(this.teams).length === 0;
     const needChallengeConfigurations = this.isChallengeMode && Object.keys(this.challengeConfigurations).length === 0;
 
     const teams$ = needTeams ? this.teamService.getTeams() : of(null);
@@ -540,9 +541,12 @@ export class ListRankingComponent implements OnInit, OnDestroy {
         if (teamsResponse) {
           const embeddedTeams: any = teamsResponse?._embedded || {};
           const teams = embeddedTeams.teams || [];
+          const nextTeams: { [team: number]: Team } = {};
           teams.forEach((team: Team) => {
-            this.teams[team.team] = team;
+            nextTeams[team.team] = team;
           });
+          this.teams = nextTeams;
+          this.teamReloadRequested = false;
         }
 
         if (challengeConfigurationsResponse) {

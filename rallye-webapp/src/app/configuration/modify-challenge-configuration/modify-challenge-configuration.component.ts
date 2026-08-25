@@ -165,7 +165,7 @@ export class ModifyChallengeConfigurationComponent implements OnInit, OnDestroy 
 
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) {
-      this.router.navigateByUrl('/challenges/validationConfiguration');
+      this.router.navigateByUrl('/configuration/challenges');
       return;
     }
     this.challengeConfigurationService.findById(id).subscribe(challengeConfiguration => {
@@ -209,7 +209,7 @@ export class ModifyChallengeConfigurationComponent implements OnInit, OnDestroy 
       this.performanceScorings.clear();
       this.questionDefinitions.clear();
       console.log(error);
-      this.router.navigateByUrl('/challenges/validationConfiguration');
+      this.router.navigateByUrl('/configuration/challenges');
     });
   }
 
@@ -362,7 +362,7 @@ export class ModifyChallengeConfigurationComponent implements OnInit, OnDestroy 
         console.log('User confirmed:', confirmed);
         if (confirmed) {
           this.challengeConfigurationService.deleteChallengeConfiguration(challengeConfigurationId).subscribe(() => {
-            this.router.navigateByUrl('/challenges/validationConfiguration');
+            this.router.navigateByUrl('/configuration/challenges');
           });
         }
       })

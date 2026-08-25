@@ -41,6 +41,7 @@ export class GroupRankingComponent implements OnInit, OnDestroy {
   private presentationLayoutTimer: ReturnType<typeof setTimeout> | null = null;
   private presentationMeasurementTimer: ReturnType<typeof setTimeout> | null = null;
   private presentationMetricsSignature = '';
+  private teamReloadRequested = false;
 
   groupOrder = (a: KeyValue<string, Ranking[]>, b: KeyValue<string, Ranking[]>) =>
     a.key.localeCompare(b.key);
@@ -75,7 +76,7 @@ export class GroupRankingComponent implements OnInit, OnDestroy {
     window.visualViewport?.addEventListener('resize', this.onPresentationViewportChange);
     merge(
       this.rankingUpdateService.updates$,
-      this.teamUpdateService.updates$,
+      this.teamUpdateService.updates$.pipe(tap(() => this.teamReloadRequested = true)),
       this.applicationUpdates.updates$.pipe(filter(update =>
         update.domain === 'CONFIGURATION' || update.domain === 'DATABASE' || update.domain === 'RESYNC')))
       .pipe(
@@ -437,16 +438,23 @@ export class GroupRankingComponent implements OnInit, OnDestroy {
   }
 
   private ensureTeams() {
-    if (Object.keys(this.teams).length > 0) {
+    if (!this.teamReloadRequested && Object.keys(this.teams).length > 0) {
       return of(void 0);
     }
     return this.teamService.getTeams().pipe(
       tap(teamsResponse => {
         const embedded: any = teamsResponse?._embedded || {};
         const teams = embedded.teams || [];
+        const nextTeams: { [team: number]: Team } = {};
         teams.forEach((team: Team) => {
-          this.teams[team.team] = team;
+          nextTeams[team.team] = team;
         });
+        this.teams = nextTeams;
+        this.teamReloadRequested = false;
+        this.updatePrintPanels();
+        if (this.presentationMode) {
+          this.buildPresentationSlides();
+        }
       }),
       map(() => void 0)
     );

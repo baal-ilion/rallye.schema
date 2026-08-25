@@ -19,8 +19,8 @@
             <label for="critChallenge">&Eacute;preuve</label>
             <div class="filter-select">
               <select [(ngModel)]="criteria.challenge" (change)="applyCustomCriteria($event)" id="critChallenge" class="form-control">
-                <option value="">Toutes les &eacute;preuves</option>
-                <option *ngFor="let challenge of challengeConfigurations; trackBy: trackChallengeConfiguration" [value]="challenge.challenge">{{challenge.challenge | number:'2.0-0'}} - {{challenge.name}}</option>
+                <option [ngValue]="undefined">Toutes les &eacute;preuves</option>
+                <option *ngFor="let challenge of challengeConfigurations; trackBy: trackChallengeConfiguration" [ngValue]="challenge.challenge">{{challenge.challenge | number:'2.0-0'}} - {{challenge.name}}</option>
               </select>
               <i class="fas fa-chevron-down" aria-hidden="true"></i>
             </div>
@@ -29,8 +29,8 @@
             <label for="critteam">&Eacute;quipe</label>
             <div class="filter-select">
               <select [(ngModel)]="criteria.team" (change)="applyCustomCriteria($event)" id="critteam" class="form-control">
-                <option value="">Toutes les &eacute;quipes</option>
-                <option *ngFor="let team of teams; trackBy: trackTeam" [value]="team.team">{{team.team | number:'2.0-0'}} - {{team.name}}</option>
+                <option [ngValue]="undefined">Toutes les &eacute;quipes</option>
+                <option *ngFor="let team of teams; trackBy: trackTeam" [ngValue]="team.team">{{team.team | number:'2.0-0'}} - {{team.name}}</option>
               </select>
               <i class="fas fa-chevron-down" aria-hidden="true"></i>
             </div>

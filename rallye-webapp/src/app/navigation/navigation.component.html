@@ -89,8 +89,8 @@
           aria-haspopup="true"
           (click)="toggleMenu('settings'); $event.preventDefault();">Param&eacute;trage</a>
         <div class="dropdown-menu" [class.show]="openMenu === 'settings'" aria-labelledby="paramMenu">
-          <a class="dropdown-item" routerLink="/challenges/validationGroup" (click)="rememberUrl($event, '/challenges/validationGroup')">Groupes d'&eacute;preuves</a>
-          <a class="dropdown-item" routerLink="/challenges/validationConfiguration" (click)="rememberUrl($event, '/challenges/validationConfiguration')">&Eacute;preuves</a>
+          <a class="dropdown-item" routerLink="/configuration/challenge-groups" (click)="rememberUrl($event, '/configuration/challenge-groups')">Groupes d'&eacute;preuves</a>
+          <a class="dropdown-item" routerLink="/configuration/challenges" (click)="rememberUrl($event, '/configuration/challenges')">&Eacute;preuves</a>
           <a class="dropdown-item" routerLink="/configuration/teams" (click)="rememberUrl($event, '/configuration/teams')">&Eacute;quipes</a>
           <div class="dropdown-divider"></div>
           <a class="dropdown-item" [href]="formDesignerUrl" target="_blank" rel="opener" (click)="closeMenu()">Concepteur de formulaires</a>

@@ -21,8 +21,8 @@ export class DetailsTeamChallengeComponent implements OnInit {
   ngOnInit(): void {
     this.contentZoomPercent = this.restoreZoom();
     this.route.params.subscribe(params => {
-      this.team = params.team;
-      this.challenge = params.challenge;
+      this.team = Number(params.team);
+      this.challenge = Number(params.challenge);
     }, error => {
       console.log(error);
       this.router.navigateByUrl('/');

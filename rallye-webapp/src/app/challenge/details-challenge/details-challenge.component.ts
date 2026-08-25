@@ -53,6 +53,8 @@ export class DetailsChallengeComponent implements OnInit, OnChanges, OnDestroy {
   private zoomFrame?: number;
   private resultLabelWidthCache = new Map<string, string>();
   private loadSequence = 0;
+  private ownContentUpdatePending = false;
+  private ownContentUpdateTimeout?: ReturnType<typeof setTimeout>;
 
   @ViewChild('zoomContent')
   set zoomContent(element: ElementRef<HTMLElement> | undefined) {
@@ -136,9 +138,13 @@ export class DetailsChallengeComponent implements OnInit, OnChanges, OnDestroy {
           this.loadChallenge().catch(error => console.error(error));
           return;
         }
-        if (update.challenge !== this.challenge || update.team !== this.team) return;
+        if (Number(update.challenge) !== Number(this.challenge) || Number(update.team) !== Number(this.team)) return;
         if (update.operation === 'DELETE') {
           this.navigateToMemorizedOrProgression();
+          return;
+        }
+        if (update.scope === 'CONTENT' && this.ownContentUpdatePending) {
+          this.clearOwnContentUpdatePending();
           return;
         }
         if (update.scope === 'PROGRESSION') {
@@ -159,6 +165,7 @@ export class DetailsChallengeComponent implements OnInit, OnChanges, OnDestroy {
     if (this.zoomFrame !== undefined) {
       cancelAnimationFrame(this.zoomFrame);
     }
+    this.clearOwnContentUpdatePending();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -530,12 +537,8 @@ export class DetailsChallengeComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   onSubmit() {
-    this.modifyChallenge().then(modified => {
-      if (modified)
-        this.reload();
-    }, error => {
+    this.modifyChallenge().catch(error => {
       console.log(error);
-      this.reload();
     });
   }
 
@@ -560,6 +563,7 @@ export class DetailsChallengeComponent implements OnInit, OnChanges, OnDestroy {
         new Date(this.challengeResult.end ?? '').getTime() !== (end ? end.getTime() : NaN);
 
       if (hasChanges) {
+        this.markOwnContentUpdatePending();
         const challengeResult = await this.challengeService.updateChallenge({
           id: this.challengeResult.id,
           team: this.challengeResult.team,
@@ -571,12 +575,33 @@ export class DetailsChallengeComponent implements OnInit, OnChanges, OnDestroy {
           performances: modifiedperformances.length !== 0 ? modifiedperformances : undefined
         }).toPromise();
         console.log(challengeResult);
+        if (challengeResult) {
+          this.challengeResult = { ...this.challengeResult, ...challengeResult };
+          this.updateFormDisabledState();
+        }
         return true;
       }
       return false;
     } catch (error) {
+      this.clearOwnContentUpdatePending();
       console.log(error);
       throw error;
+    }
+  }
+
+  private markOwnContentUpdatePending(): void {
+    this.clearOwnContentUpdatePending();
+    this.ownContentUpdatePending = true;
+    // Le filet temporel évite qu'un événement externe ultérieur soit ignoré
+    // si le serveur ne publie exceptionnellement pas l'événement de cette requête.
+    this.ownContentUpdateTimeout = setTimeout(() => this.clearOwnContentUpdatePending(), 5000);
+  }
+
+  private clearOwnContentUpdatePending(): void {
+    this.ownContentUpdatePending = false;
+    if (this.ownContentUpdateTimeout !== undefined) {
+      clearTimeout(this.ownContentUpdateTimeout);
+      this.ownContentUpdateTimeout = undefined;
     }
   }
 

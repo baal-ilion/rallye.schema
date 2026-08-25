@@ -91,10 +91,18 @@ export class DetailsSubmittedFormComponent implements OnInit, OnChanges, OnDestr
         const pointKeys = control
           ? ['O', 'N', 'Y'].filter(key => expectedKeys.includes(key) || detectedKeys.includes(key))
           : detectedKeys;
+        const storedMarks: string[] | null = control?.get('correctionMarks')?.value ?? null;
         const detectedValue = this.getResultValue(detectedKeys);
         const controlValue = control?.get('resultValue')?.value;
-        const resultValue = control ? (controlValue == null ? detectedValue : controlValue) : detectedValue;
-        const storedMarks: string[] | null = control?.get('correctionMarks')?.value ?? null;
+        // Une correction manuelle ONY est plus précise que la valeur booléenne
+        // générale : elle doit rester la source du rendu après enregistrement ou
+        // validation. Cela évite notamment qu'un N+Y enregistré comme faux soit
+        // repeint en vert lors du rechargement de l'épreuve.
+        const resultValue = storedMarks !== null
+          ? this.getResultValue(storedMarks)
+          : control
+            ? (controlValue == null ? detectedValue : controlValue)
+            : detectedValue;
 
         for (const pointValue of pointKeys) {
           const detectedPoint = points[pointValue];
@@ -247,10 +255,15 @@ export class DetailsSubmittedFormComponent implements OnInit, OnChanges, OnDestr
       const control = this.findCorrectionControl(point.field);
       if (control) {
         const controlValue = control.get('resultValue')?.value;
+        const storedMarks: string[] | null = control.get('correctionMarks')?.value ?? null;
         const selectedValues = this.template.points
           .filter(candidate => candidate.field === point.field && candidate.selected && candidate.value)
           .map(candidate => candidate.value as string);
-        point.valid = controlValue == null ? this.getResultValue(selectedValues) : controlValue;
+        point.valid = storedMarks !== null
+          ? this.getResultValue(storedMarks)
+          : controlValue == null
+            ? this.getResultValue(selectedValues)
+            : controlValue;
         point.interactive = !control.disabled && !this.correctionDisabled;
         const forced = this.isCorrectionForced(control, point.field);
         point.manual = forced;

@@ -13,6 +13,7 @@ import { RankingUpdateService } from 'src/app/services/ranking-update.service';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { sameData } from 'src/app/shared/data-change.utils';
+import { TeamUpdateService } from 'src/app/services/team-update.service';
 
 @Component({
   selector: 'app-list-challenge',
@@ -44,6 +45,7 @@ export class ListChallengeComponent implements OnInit, OnDestroy {
     private challengeConfigurationService: ChallengeConfigurationService,
     private dialogService: DialogService,
     private rankingUpdateService: RankingUpdateService,
+    private teamUpdateService: TeamUpdateService,
     @Inject(DOCUMENT) private document: Document) { }
 
   ngOnDestroy(): void {
@@ -79,6 +81,21 @@ export class ListChallengeComponent implements OnInit, OnDestroy {
     this.rankingUpdateService.updates$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.refreshCurrentPage());
+    this.teamUpdateService.updates$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.refreshTeamNames());
+  }
+
+  private async refreshTeamNames(): Promise<void> {
+    try {
+      const nextTeams = (await this.teamService.getTeams().toPromise())?._embedded?.teams ?? [];
+      nextTeams.sort((a, b) => (a.team > b.team) ? 1 : -1);
+      if (!sameData(this.teams, nextTeams)) {
+        this.teams = nextTeams;
+      }
+    } catch (error) {
+      console.error('Impossible d\'actualiser les noms des équipes.', error);
+    }
   }
 
   async loadConfiguration() {
@@ -261,11 +278,28 @@ export class ListChallengeComponent implements OnInit, OnDestroy {
     const defaultCriteria: ChallengeCriteria = { checked: false, entered: true, finished: true };
     try {
       const storedCriteria = localStorage.getItem(this.CriteriaId);
-      return storedCriteria ? { ...defaultCriteria, ...JSON.parse(storedCriteria) } : defaultCriteria;
+      if (!storedCriteria) {
+        return defaultCriteria;
+      }
+      const parsed = JSON.parse(storedCriteria);
+      return {
+        ...defaultCriteria,
+        ...parsed,
+        challenge: this.toOptionalNumber(parsed.challenge),
+        team: this.toOptionalNumber(parsed.team)
+      };
     } catch (error) {
       console.warn('Impossible de restaurer les filtres de validation.', error);
       return defaultCriteria;
     }
+  }
+
+  private toOptionalNumber(value: unknown): number | undefined {
+    if (value === null || value === undefined || value === '') {
+      return undefined;
+    }
+    const number = Number(value);
+    return Number.isFinite(number) ? number : undefined;
   }
 
   private saveCriteria(): void {

@@ -15,7 +15,7 @@ public class GroupRankingController {
     @Autowired
     private GroupRankingService groupRankingService;
 
-    @GetMapping("/groupRankings")
+    @GetMapping("/rankings/groups")
     public List<GroupRankingEntry> getGroupRankings() {
         return groupRankingService.computeGroupRankings();
     }

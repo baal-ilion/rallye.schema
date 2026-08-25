@@ -18,7 +18,7 @@ export interface GroupRankingEntry {
 export class GroupRankingService {
 
   // IMPORTANT : on passe par le proxy /api
-  private baseUrl = '/api/rankings/groupss';
+  private baseUrl = '/api/rankings/groups';
 
   constructor(private http: HttpClient) { }
 

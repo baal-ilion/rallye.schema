@@ -63,7 +63,7 @@ button.calendar:active {
 
 .result-list-row {
   display: grid;
-  grid-template-columns: minmax(0, var(--result-label-width, 3rem)) 2.1rem;
+  grid-template-columns: var(--result-label-width, 3rem) 2.1rem;
   align-items: center;
   min-height: 2rem;
   gap: .35rem;
@@ -76,7 +76,9 @@ button.calendar:active {
   color: var(--rs-title);
   font-size: .72rem;
   line-height: 1.15;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
   justify-self: stretch;
   text-align: right;
 }
