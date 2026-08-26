@@ -11,7 +11,7 @@ import { Team } from './models/team';
 export class TeamService {
   constructor(private http: HttpClient) { }
 
-  getTeams(): Observable<HalCollection<Team>> {
+  getTeams(): Observable<HalCollection<Team, 'teams'>> {
     return this.http.get(AppConfigService.settings.apiUrl.rallyeSchema + '/teams');
   }
 

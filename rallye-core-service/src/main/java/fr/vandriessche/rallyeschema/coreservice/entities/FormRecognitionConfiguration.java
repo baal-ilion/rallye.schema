@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.hateoas.server.core.Relation;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,6 +13,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @Document
+@Relation(collectionRelation = "formRecognitionConfigurations")
 @CompoundIndex(unique = true, def = "{'challenge' : 1, 'page' : 1}")
 public class FormRecognitionConfiguration {
 	@Id

@@ -78,9 +78,10 @@ export class SubmittedFormActionsComponent implements OnInit, OnChanges {
   private async loadSame(same: HalLink): Promise<SubmittedFormMetadata[]> {
     if (same?.href) {
       try {
-        const sames = await this.uploadService.getResource<HalCollection<SubmittedFormMetadata>>(same.href)
+        const sames = await this.uploadService
+          .getResource<HalCollection<SubmittedFormMetadata, 'submittedFormMetadatas'>>(same.href)
           .toPromise();
-        return sames?._embedded?.submittedFormMetadataes ?? [];
+        return sames?._embedded?.submittedFormMetadatas ?? [];
       } catch (error) {
         console.log(error);
       }

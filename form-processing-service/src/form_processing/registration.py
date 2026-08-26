@@ -137,10 +137,12 @@ def align_locally(image: np.ndarray, reference: np.ndarray) -> LocalAlignment:
         np.arange(width, dtype=np.float32),
         np.arange(height, dtype=np.float32),
     )
+    map_x = np.asarray(coordinates_x + dx, dtype=np.float32)
+    map_y = np.asarray(coordinates_y + dy, dtype=np.float32)
     corrected = cv2.remap(
         image,
-        coordinates_x + dx,
-        coordinates_y + dy,
+        map_x,
+        map_y,
         cv2.INTER_CUBIC,
         borderMode=cv2.BORDER_REPLICATE,
     )

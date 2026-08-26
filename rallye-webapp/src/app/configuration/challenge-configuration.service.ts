@@ -12,7 +12,7 @@ export class ChallengeConfigurationService {
 
   constructor(private http: HttpClient) { }
 
-  getChallengeConfigurations(): Observable<HalCollection<ChallengeConfiguration>> {
+  getChallengeConfigurations(): Observable<HalCollection<ChallengeConfiguration, 'challengeConfigurations'>> {
     return this.http.get(AppConfigService.settings.apiUrl.rallyeSchema + '/challengeConfigurations');
   }
 

@@ -7,6 +7,7 @@ import java.util.List;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.hateoas.server.core.Relation;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,6 +15,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @Document
+@Relation(collectionRelation = "challengeResults")
 @CompoundIndex(unique = true, def = "{'challenge' : 1, 'team' : 1}")
 public class ChallengeResult {
 	@Id

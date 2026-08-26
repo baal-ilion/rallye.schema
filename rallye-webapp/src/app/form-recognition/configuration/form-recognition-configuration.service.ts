@@ -11,7 +11,7 @@ import { FormRecognitionConfiguration } from './models/form-recognition-configur
 export class FormRecognitionConfigurationService {
   constructor(private http: HttpClient) { }
 
-  getFormRecognitionConfigurations(): Observable<HalCollection<FormRecognitionConfiguration>> {
+  getFormRecognitionConfigurations(): Observable<HalCollection<FormRecognitionConfiguration, 'formRecognitionConfigurations'>> {
     return this.http.get(AppConfigService.settings.apiUrl.rallyeSchema + '/formRecognitionConfigurations');
   }
 

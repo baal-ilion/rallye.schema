@@ -5,6 +5,7 @@ import java.time.Instant;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.hateoas.server.core.Relation;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,6 +13,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @Document
+@Relation(collectionRelation = "submittedFormMetadatas")
 public class SubmittedFormMetadata {
 	@Id
 	private String id;

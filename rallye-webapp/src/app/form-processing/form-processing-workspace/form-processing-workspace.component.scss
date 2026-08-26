@@ -71,4 +71,52 @@
 .selection-state h2 { margin:0; color:#4b443d; font-size:1.25rem; }
 .selection-state p { max-width:34rem; margin:0; }
 .verification-panel { min-width:0; overflow:auto; }
-@media(max-width:900px){.processing-page{padding:.7rem}.processing-header{align-items:flex-start;flex-direction:column}.processing-workspace{grid-template-columns:1fr}.queue-panel{max-height:36vh}.verification-panel{min-height:55vh}}
+
+/* Comme sur Validation des épreuves, la page reste fixe sur les écrans de
+   travail et chaque panneau gère son propre défilement. */
+@media (min-width: 768px) {
+  :host {
+    display: block;
+    height: calc(100vh - 72px);
+    overflow: hidden;
+  }
+
+  .processing-page {
+    display: flex;
+    height: 100%;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .processing-page > .row,
+  .queue-filters {
+    flex: 0 0 auto;
+  }
+
+  .processing-workspace {
+    height: auto;
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+  }
+
+  .queue-panel,
+  .verification-panel {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .queue-list {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .verification-panel {
+    overscroll-behavior: contain;
+  }
+}
+
+@media(max-width:767.98px){.processing-page{padding:.7rem}.processing-header{align-items:flex-start;flex-direction:column}.processing-workspace{grid-template-columns:1fr}.queue-panel{max-height:36vh}.verification-panel{min-height:55vh}}

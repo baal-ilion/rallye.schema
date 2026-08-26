@@ -29,7 +29,7 @@ export class SubmittedFormService {
     });
   }
 
-  getFiles(pageNumber = 0, pageSize = 20): Observable<HalCollection<SubmittedFormMetadata>> {
+  getFiles(pageNumber = 0, pageSize = 20): Observable<HalCollection<SubmittedFormMetadata, 'submittedFormMetadatas'>> {
     const params = new HttpParams().set('page', pageNumber.toString()).set('size', pageSize.toString())
       .set('leaseOwner', this.verificationOwner);
     return this.http.get(AppConfigService.settings.apiUrl.rallyeSchema + '/submittedFormsMetadata/search/findByCheckedIsFalse', { params });

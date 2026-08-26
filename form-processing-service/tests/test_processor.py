@@ -38,8 +38,14 @@ def _encode(image: np.ndarray) -> bytes:
 
 
 def _damaged_perspective_photo(reference: np.ndarray) -> np.ndarray:
-    source = np.float32([[0, 0], [WIDTH - 1, 0], [WIDTH - 1, HEIGHT - 1], [0, HEIGHT - 1]])
-    destination = np.float32([[130, 90], [1120, 20], [1210, 1700], [45, 1610]])
+    source = np.asarray(
+        [[0, 0], [WIDTH - 1, 0], [WIDTH - 1, HEIGHT - 1], [0, HEIGHT - 1]],
+        dtype=np.float32,
+    )
+    destination = np.asarray(
+        [[130, 90], [1120, 20], [1210, 1700], [45, 1610]],
+        dtype=np.float32,
+    )
     matrix = cv2.getPerspectiveTransform(source, destination)
     photo = cv2.warpPerspective(reference, matrix, (1280, 1800), borderValue=(190, 180, 165))
 
@@ -124,10 +130,12 @@ def test_normalizes_a_perspective_photo_against_reference():
     assert result.normalized_width == WIDTH
     assert result.normalized_height == HEIGHT
     assert result.status in {"READY", "READY_WITH_WARNINGS"}
+    assert result.normalized_image_base64 is not None
     normalized = cv2.imdecode(
         np.frombuffer(base64.b64decode(result.normalized_image_base64), dtype=np.uint8),
         cv2.IMREAD_COLOR,
     )
+    assert normalized is not None
     assert normalized.shape[:2] == (HEIGHT, WIDTH)
 
 
@@ -165,11 +173,13 @@ def test_automatically_rotates_a_sideways_photo():
     sideways = cv2.rotate(reference, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
     result = process_image(_encode(sideways), _encode(reference))
+    assert result.normalized_image_base64 is not None
     normalized = cv2.imdecode(
         np.frombuffer(base64.b64decode(result.normalized_image_base64), dtype=np.uint8),
         cv2.IMREAD_COLOR,
     )
 
+    assert normalized is not None
     assert result.detected_rotation_degrees == 90
     assert result.reference_alignment_error < 3.5
     assert result.automatic_marker_detection
@@ -206,11 +216,11 @@ def test_reads_identification_boxes_from_the_active_template():
     cv2.rectangle(reference, (365, 275), (405, 315), (0, 0, 0), -1)
     cv2.rectangle(reference, (455, 365), (495, 405), (0, 0, 0), -1)
     template = """<template><fields><group>
-      <question question="Equipe1"><values>
+      <question question="TeamTens"><values>
         <value response="2"><point x="385" y="295"/></value>
         <value response="8"><point x="475" y="295"/></value>
       </values></question>
-      <question question="Equipe2"><values>
+      <question question="TeamUnits"><values>
         <value response="3"><point x="475" y="385"/></value>
         <value response="9"><point x="565" y="385"/></value>
       </values></question>
@@ -226,12 +236,13 @@ def test_reads_identification_boxes_from_the_active_template():
 def test_reads_identification_when_reference_image_and_xml_use_different_corner_coordinates():
     reference = _reference_form()
     source_markers = detect_markers(reference).points.astype(np.float32)
-    declared_markers = np.float32([
-        [210, 180], [1030, 180], [1030, 1574], [210, 1574],
-    ])
+    declared_markers = np.asarray(
+        [[210, 180], [1030, 180], [1030, 1574], [210, 1574]],
+        dtype=np.float32,
+    )
     transformation = cv2.getPerspectiveTransform(source_markers, declared_markers)
 
-    source_positions = np.float32([[[365, 295], [475, 385]]])
+    source_positions = np.asarray([[[365, 295], [475, 385]]], dtype=np.float32)
     declared_positions = cv2.perspectiveTransform(source_positions, transformation)[0]
     cv2.rectangle(reference, (345, 275), (385, 315), (0, 0, 0), -1)
     cv2.rectangle(reference, (455, 365), (495, 405), (0, 0, 0), -1)
@@ -244,11 +255,11 @@ def test_reads_identification_when_reference_image_and_xml_use_different_corner_
         )
     )
     template = f"""<template><corners>{corners}</corners><fields><group>
-      <question question="Equipe1"><values>
+      <question question="TeamTens"><values>
         <value response="2"><point x="{declared_positions[0][0]}" y="{declared_positions[0][1]}"/></value>
         <value response="8"><point x="{declared_positions[0][0] + 80}" y="{declared_positions[0][1]}"/></value>
       </values></question>
-      <question question="Equipe2"><values>
+      <question question="TeamUnits"><values>
         <value response="3"><point x="{declared_positions[1][0]}" y="{declared_positions[1][1]}"/></value>
         <value response="9"><point x="{declared_positions[1][0] + 80}" y="{declared_positions[1][1]}"/></value>
       </values></question>
@@ -262,86 +273,6 @@ def test_reads_identification_when_reference_image_and_xml_use_different_corner_
         [result.target_markers.top_left.x, result.target_markers.top_left.y],
         declared_markers[0],
     )
-
-
-def test_reads_correction_boxes_with_the_ony_priority_rule():
-    reference = _reference_form()
-    positions = {
-        "FAUX": {"O": (340, 520), "N": (380, 520), "Y": (420, 520)},
-        "JUSTE": {"O": (340, 610), "N": (380, 610), "Y": (420, 610)},
-        "CORRIGE_FAUX": {"O": (340, 700), "N": (380, 700), "Y": (420, 700)},
-        "CORRIGE_JUSTE": {"O": (340, 790), "N": (380, 790), "Y": (420, 790)},
-    }
-    for label, marked_values in {
-        "FAUX": (),
-        "JUSTE": ("Y",),
-        "CORRIGE_FAUX": ("Y", "N"),
-        "CORRIGE_JUSTE": ("Y", "N", "O"),
-    }.items():
-        for response in marked_values:
-            x, y = positions[label][response]
-            cv2.rectangle(reference, (x - 12, y - 12), (x + 12, y + 12), (0, 0, 0), -1)
-
-    questions = []
-    for label, values in positions.items():
-        xml_values = "".join(
-            f'<value response="{response}"><point x="{point[0]}" y="{point[1]}"/></value>'
-            for response, point in values.items()
-        )
-        questions.append(f'<question question="{label}"><values>{xml_values}</values></question>')
-    template = f"<template><fields><group>{''.join(questions)}</group></fields></template>"
-
-    result = process_image(_encode(reference), _encode(reference), template_xml=template)
-    corrections = {correction.label: correction for correction in result.corrections}
-
-    assert corrections["FAUX"].value is False
-    assert corrections["FAUX"].marked_values == []
-    assert corrections["JUSTE"].value is True
-    assert corrections["JUSTE"].marked_values == ["Y"]
-    assert corrections["CORRIGE_FAUX"].value is False
-    assert corrections["CORRIGE_FAUX"].marked_values == ["N", "Y"]
-    assert corrections["CORRIGE_JUSTE"].value is True
-    assert corrections["CORRIGE_JUSTE"].marked_values == ["O", "N", "Y"]
-
-
-def test_reads_correction_boxes_with_the_ony_priority_rule():
-    reference = _reference_form()
-    positions = {
-        "FAUX": {"O": (340, 520), "N": (380, 520), "Y": (420, 520)},
-        "JUSTE": {"O": (340, 610), "N": (380, 610), "Y": (420, 610)},
-        "CORRIGE_FAUX": {"O": (340, 700), "N": (380, 700), "Y": (420, 700)},
-        "CORRIGE_JUSTE": {"O": (340, 790), "N": (380, 790), "Y": (420, 790)},
-    }
-    for label, marked_values in {
-        "FAUX": (),
-        "JUSTE": ("Y",),
-        "CORRIGE_FAUX": ("Y", "N"),
-        "CORRIGE_JUSTE": ("Y", "N", "O"),
-    }.items():
-        for response in marked_values:
-            x, y = positions[label][response]
-            cv2.rectangle(reference, (x - 12, y - 12), (x + 12, y + 12), (0, 0, 0), -1)
-
-    questions = []
-    for label, values in positions.items():
-        xml_values = "".join(
-            f'<value response="{response}"><point x="{point[0]}" y="{point[1]}"/></value>'
-            for response, point in values.items()
-        )
-        questions.append(f'<question question="{label}"><values>{xml_values}</values></question>')
-    template = f"<template><fields><group>{''.join(questions)}</group></fields></template>"
-
-    result = process_image(_encode(reference), _encode(reference), template_xml=template)
-    corrections = {correction.label: correction for correction in result.corrections}
-
-    assert corrections["FAUX"].value is False
-    assert corrections["FAUX"].marked_values == []
-    assert corrections["JUSTE"].value is True
-    assert corrections["JUSTE"].marked_values == ["Y"]
-    assert corrections["CORRIGE_FAUX"].value is False
-    assert corrections["CORRIGE_FAUX"].marked_values == ["N", "Y"]
-    assert corrections["CORRIGE_JUSTE"].value is True
-    assert corrections["CORRIGE_JUSTE"].marked_values == ["O", "N", "Y"]
 
 
 def test_reads_correction_boxes_with_the_ony_priority_rule():
@@ -416,10 +347,14 @@ def test_keeps_the_top_page_when_another_page_protrudes_underneath():
         150 : 150 + visible_underlying.shape[1],
     ] = visible_underlying
 
-    source_corners = np.float32(
-        [[0, 0], [WIDTH - 1, 0], [WIDTH - 1, HEIGHT - 1], [0, HEIGHT - 1]]
+    source_corners = np.asarray(
+        [[0, 0], [WIDTH - 1, 0], [WIDTH - 1, HEIGHT - 1], [0, HEIGHT - 1]],
+        dtype=np.float32,
     )
-    top_corners = np.float32([[210, 170], [1280, 260], [1210, 1900], [120, 1810]])
+    top_corners = np.asarray(
+        [[210, 170], [1280, 260], [1210, 1900], [120, 1810]],
+        dtype=np.float32,
+    )
     transformation = cv2.getPerspectiveTransform(source_corners, top_corners)
     top_page = cv2.warpPerspective(reference, transformation, (1500, 2050))
     top_mask = cv2.warpPerspective(

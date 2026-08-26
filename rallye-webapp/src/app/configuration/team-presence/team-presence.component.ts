@@ -55,7 +55,7 @@ export class TeamPresenceComponent implements OnInit, OnDestroy {
       this.error = undefined;
     }
     this.teamService.getTeams().subscribe({
-      next: (collection: HalCollection<Team>) => {
+      next: (collection: HalCollection<Team, 'teams'>) => {
         const embedded: any = collection._embedded || {};
         const nextTeams = embedded.teams || [];
         if (!sameData(this.teams, nextTeams)) {
