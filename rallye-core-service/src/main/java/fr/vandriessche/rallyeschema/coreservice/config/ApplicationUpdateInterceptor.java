@@ -31,7 +31,7 @@ public class ApplicationUpdateInterceptor implements HandlerInterceptor {
         if (path.contains("submittedForm")) return "SUBMITTED_FORMS";
         if (path.contains("challengeResult") || path.contains("challengeResponse")) return "RESULTS";
         if (path.contains("team")) return "TEAMS";
-        if (path.contains("challengeConfiguration") || path.contains("challengeGroup") || path.contains("form-design")
+        if (path.contains("challengeConfiguration") || path.contains("challengeGroup") || path.contains("formDesign")
                 || path.contains("rallyConfiguration") || path.equals("/rally") || path.equals("/api/rally")
                 || path.contains("sharing/configuration")) return "CONFIGURATION";
         if (path.contains("database")) return "DATABASE";

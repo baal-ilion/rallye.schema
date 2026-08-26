@@ -14,7 +14,7 @@ export class ChallengeService {
 
   constructor(private http: HttpClient) { }
 
-  getChallenges(crit: ChallengeCriteria): Observable<HalCollection<ChallengeResult>> {
+  getChallenges(crit: ChallengeCriteria): Observable<HalCollection<ChallengeResult, 'challengeResults'>> {
     let params = new HttpParams();
     if (crit.challenge) {
       params = params.set('challenge', crit.challenge.toString());
@@ -39,7 +39,7 @@ export class ChallengeService {
     return this.http.get(AppConfigService.settings.apiUrl.rallyeSchema + '/challengeResults', { params });
   }
 
-  getChallengesByTeam(team: number): Observable<HalCollection<ChallengeResult>> {
+  getChallengesByTeam(team: number): Observable<HalCollection<ChallengeResult, 'challengeResults'>> {
     const params = new HttpParams().set('team', team.toString());
     return this.http.get(AppConfigService.settings.apiUrl.rallyeSchema + '/challengeResults/search/findByTeam', { params });
   }

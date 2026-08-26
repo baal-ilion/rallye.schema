@@ -1,3 +1,1 @@
-export interface HalEmbedded<T> {
-  [s: string]: T[];
-}
+export type HalEmbedded<T, R extends string> = Record<R, T[]>;
