@@ -4,6 +4,7 @@ import { MatDialogRef } from '@angular/material/dialog';
 import { StandardContext, SpelExpressionEvaluator } from 'spel2js';
 import { PerformanceScoringRange } from '../models/performance-scoring-range';
 import { TeamService } from '../team.service';
+import { PerformanceScoring, PerformanceValueFormat } from '../models/performance-scoring';
 
 @Component({
   selector: 'app-modify-performance-scoring-range',
@@ -12,8 +13,11 @@ import { TeamService } from '../team.service';
 })
 export class ModifyPerformanceScoringRangeComponent implements OnInit {
   @Input() range: PerformanceScoringRange;
+  @Input() performanceScoring: PerformanceScoring;
+  readonly defaultFormat = PerformanceValueFormat.DECIMAL;
   rangeForm: UntypedFormGroup;
-  result: number;
+  result: number | null = null;
+  simulationError = '';
   perfPointAllocationType = {
     VALUE: 'SCORE',
     BEGIN_UP_RANK: 'DATE',
@@ -31,6 +35,7 @@ export class ModifyPerformanceScoringRangeComponent implements OnInit {
 
   ngOnInit() {
     this.createForm();
+    this.rangeForm.valueChanges.subscribe(() => this.computeResult());
     this.teamService.getTeams().subscribe((value) => {
       const teams = value._embedded.teams;
       this.rangeForm.patchValue({ nbAllTeam: teams.length, nbTeam: Math.trunc(teams.length / 2) });
@@ -42,31 +47,49 @@ export class ModifyPerformanceScoringRangeComponent implements OnInit {
 
   private createForm() {
     const n: number = null;
+    const begin = this.range.begin ?? 0;
+    const end = this.range.end ?? (begin + 20);
     this.rangeForm = this.formBuilder.group({
       point: this.range.point,
       expression: this.range.expression,
       pointType: this.range.point || !this.range.expression ? 'point' : 'expression',
-      value: Math.trunc((this.range.begin ?? 0 + this.range.end ?? (this.range.begin + 20)) / 2),
+      value: (begin + end) / 2,
       nbAllTeam: n,
       nbTeam: n,
     });
   }
 
   computeResult() {
+    const formValue = this.rangeForm.getRawValue();
+    if (formValue.pointType !== 'expression' || !formValue.expression?.trim()) {
+      this.result = null;
+      this.simulationError = '';
+      return;
+    }
     try {
       const spelContext = StandardContext.create({}, {});
       const locals = {
-        valeur: this.rangeForm.value.value,
-        nbEqInscrites: this.rangeForm.value.nbAllTeam,
-        nbEqParticipantes: this.rangeForm.value.nbTeam,
+        valeur: formValue.value,
+        nbEqInscrites: formValue.nbAllTeam,
+        nbEqParticipantes: formValue.nbTeam,
         arrondi: (i: number) => Math.trunc(i)
       };
-      const compiledExpression = SpelExpressionEvaluator.compile(this.rangeForm.value.expression);
-      this.result = Math.trunc(compiledExpression.eval(spelContext, locals));
+      const compiledExpression = SpelExpressionEvaluator.compile(this.normalizeDecimalSeparators(formValue.expression));
+      const evaluated = Number(compiledExpression.eval(spelContext, locals));
+      if (!Number.isFinite(evaluated)) {
+        throw new Error('Le résultat de la formule n’est pas un nombre.');
+      }
+      this.result = Math.trunc(evaluated);
+      this.simulationError = '';
     } catch (error) {
       console.log(error);
       this.result = null;
+      this.simulationError = 'La formule ne peut pas être calculée avec les valeurs saisies.';
     }
+  }
+
+  private normalizeDecimalSeparators(expression: string): string {
+    return expression.replace(/(\d),(?=\d)/g, '$1.');
   }
 
   submitForm() {

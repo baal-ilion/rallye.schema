@@ -150,7 +150,11 @@
           <div [formGroup]="performance" class="performance-list-row">
             <label class="performance-list-label">{{performance.value.name}}</label>
             <div class="performance-list-control">
-              <input type="number" step="any" formControlName="performanceValue" />
+              <app-performance-value-input formControlName="performanceValue"
+                [format]="performance.value.valueFormat"
+                [decimalPlaces]="performance.value.decimalPlaces"
+                [unit]="performance.value.unit">
+              </app-performance-value-input>
             </div>
           </div>
         </div>

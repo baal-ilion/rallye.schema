@@ -115,43 +115,69 @@
 
 .performance-point-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  justify-items: center;
+  grid-template-columns: fit-content(100%);
+  justify-content: center;
+  justify-items: stretch;
   gap: 1rem;
   margin-top: .8rem;
 }
 
 .performance-point-card {
-  width: max-content;
+  width: 100%;
   max-width: 100%;
   min-width: 0;
   overflow: hidden;
-  border: 1px solid var(--rs-border);
-  border-radius: var(--rs-radius);
-  background: #fff;
-  box-shadow: var(--rs-shadow);
 }
 
 .performance-point-card-content {
   min-width: 0;
+  color: var(--rs-title);
+  font-family: inherit;
+  font-size: .75rem;
 }
 
 .performance-point-card-header {
   display: flex;
   align-items: center;
   min-height: 2.75rem;
-  padding: .6rem .85rem;
-  border-bottom: 1px solid var(--rs-border);
-  background: var(--rs-soft);
 }
 
 .performance-point-card-header h5 {
   width: 100%;
   margin: 0;
   color: var(--rs-title);
-  font-size: .9rem;
+  font-family: inherit;
+  font-size: .85rem;
   font-weight: 700;
   text-align: center;
+}
+
+.performance-format-settings {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: .75rem;
+  padding: .75rem;
+  margin: .75rem .75rem .6rem;
+  border: 1px solid #d7dddb;
+  border-radius: .45rem;
+  background: #f7f8f7;
+}
+.performance-format-field { display: flex; flex: 0 0 18rem; flex-direction: column; gap: .25rem; }
+.performance-format-field:has([formControlName="decimalPlaces"]) { flex-basis: 7rem; }
+.performance-format-field label { margin: 0; font-family: inherit; font-size: .75rem; font-weight: 600; }
+.performance-format-field .form-control,
+.performance-format-field .custom-select {
+  width: 100%;
+  height: 2.35rem;
+  min-height: 2.35rem;
+  font-family: inherit;
+  font-size: .75rem;
+}
+@media (max-width: 900px) {
+  .performance-format-field { flex: 1 1 15rem; }
+  .performance-format-field:has([formControlName="decimalPlaces"]) { flex: 0 1 7rem; }
 }
 
 .performance-range-card {
@@ -221,6 +247,16 @@
   padding-bottom: .25rem !important;
   gap: .3rem;
   background: #fff;
+  max-width: min(100%, 38rem);
+}
+
+.performance-range-bounds:has(app-performance-value-input) {
+  width: max-content;
+  max-width: none;
+}
+
+.performance-range-interval:has(app-performance-value-input) {
+  width: auto;
 }
 
 .performance-range-number {
@@ -246,7 +282,8 @@
 .performance-range-card label {
   min-height: 1.1rem;
   color: var(--rs-title);
-  font-size: .7rem;
+  font-family: inherit;
+  font-size: .75rem;
   line-height: 1.2;
 }
 
@@ -277,9 +314,9 @@
   box-sizing: border-box;
   width: 1rem !important;
   min-width: 0;
-  height: 1.95rem;
-  min-height: 1.95rem;
-  max-height: 1.95rem;
+  height: 2.35rem;
+  min-height: 2.35rem;
+  max-height: 2.35rem;
   font-size: .75rem;
   border-color: #ced4da;
   background-color: #fff;
@@ -288,9 +325,9 @@
 .performance-range-points > .border > button {
   flex: 0 0 auto;
   box-sizing: border-box;
-  height: 1.95rem;
-  min-height: 1.95rem;
-  max-height: 1.95rem;
+  height: 2.35rem;
+  min-height: 2.35rem;
+  max-height: 2.35rem;
   margin-left: 0 !important;
   padding-top: 0;
   padding-bottom: 0;
@@ -303,7 +340,9 @@
 }
 
 .performance-range-card .form-control,
-.performance-range-card .custom-select {
+.performance-range-card .custom-select,
+.performance-range-card button {
+  font-family: inherit;
   font-size: .75rem;
 }
 
@@ -362,3 +401,16 @@
     padding: .55rem;
   }
 }
+.configuration-unsaved-banner {
+  display: flex;
+  align-items: center;
+  margin: 1rem 0;
+  padding: .75rem 1rem;
+  border: 1px solid #c99a28;
+  border-radius: .5rem;
+  background: #fff4d3;
+  box-shadow: 0 .25rem .7rem rgba(48, 58, 67, .14);
+  color: #49370d;
+}
+.configuration-unsaved-banner div { display: flex; flex-direction: column; }
+.configuration-unsaved-banner span { font-size: .82rem; }

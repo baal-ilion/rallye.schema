@@ -1,0 +1,20 @@
+<div class="performance-value-input" [class.segmented]="segmented">
+  <ng-container *ngIf="!segmented; else segmentedInput">
+    <input type="number" [step]="numberStep"
+      [value]="value" [disabled]="disabled" (input)="updateNumber($any($event.target).value)" (blur)="touch()">
+  </ng-container>
+  <ng-template #segmentedInput>
+    <input type="number" class="segment segment-main" [value]="value === null ? '' : first" [disabled]="disabled"
+      (input)="first = +$any($event.target).value; updateSegments()">
+    <span>{{ firstSymbol }}</span>
+    <input type="number" class="segment" min="0" max="59" [value]="value === null ? '' : second" [disabled]="disabled"
+      (input)="second = +$any($event.target).value; updateSegments()">
+    <span>{{ secondSymbol }}</span>
+    <ng-container *ngIf="hasThird">
+      <input type="number" class="segment" min="0" max="59" [value]="value === null ? '' : third" [disabled]="disabled"
+        (input)="third = +$any($event.target).value; updateSegments()">
+      <span>″</span>
+    </ng-container>
+  </ng-template>
+  <span class="performance-unit" *ngIf="unit.trim()">{{ unit.trim() }}</span>
+</div>

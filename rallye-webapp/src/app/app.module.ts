@@ -60,6 +60,8 @@ import { PaginationComponent } from './shared/pagination/pagination.component';
 import { GameManagementComponent } from './game-management/game-management.component';
 import { DatabaseMaintenanceComponent } from './database/database-maintenance/database-maintenance.component';
 import { SyncTableColumnsDirective } from './shared/sync-table-columns.directive';
+import { PerformanceValueInputComponent } from './shared/performance-value/performance-value-input.component';
+import { PerformanceValuePipe } from './shared/performance-value/performance-value.pipe';
 
 registerLocaleData(localeFr, 'fr', localeFrExtra);
 
@@ -111,6 +113,8 @@ registerLocaleData(localeFr, 'fr', localeFrExtra);
         TeamQrCodeComponent,
         PaginationComponent,
         SyncTableColumnsDirective,
+        PerformanceValueInputComponent,
+        PerformanceValuePipe,
     ],
     bootstrap: [AppComponent], imports: [BrowserModule,
         RouterModule,

@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { Subject } from 'rxjs';
 import { auditTime, filter, takeUntil } from 'rxjs/operators';
 import { ApplicationUpdateService } from 'src/app/services/application-update.service';
@@ -20,6 +20,7 @@ import { QuestionType } from '../models/question-type';
 import { PerformanceScorings, QuestionDefinitions, QuestionScorings, ChallengeConfiguration } from '../models/challenge-configuration';
 import { ChallengeGroup } from '../models/challenge-group';
 import { ChallengeConfigurationService } from '../challenge-configuration.service';
+import { PerformanceValueFormat } from '../models/performance-scoring';
 
 type PerfPointAllocation = 'SCORE' | 'DATE' | 'RANK';
 type PartialQuestionDefinition = { name: string; type?: QuestionType };
@@ -30,6 +31,16 @@ type PartialQuestionDefinition = { name: string; type?: QuestionType };
   styleUrls: ['./modify-challenge-configuration.component.scss']
 })
 export class ModifyChallengeConfigurationComponent implements OnInit, OnDestroy {
+  readonly performanceValueFormats = [
+    { value: PerformanceValueFormat.INTEGER, label: 'Nombre entier', example: '125' },
+    { value: PerformanceValueFormat.DECIMAL, label: 'Nombre décimal', example: '12,5' },
+    { value: PerformanceValueFormat.DURATION_MINUTES_SECONDS, label: 'Minutes, secondes', example: '15′ 08″' },
+    { value: PerformanceValueFormat.DURATION_HOURS_MINUTES, label: 'Heures, minutes', example: '2 h 15′' },
+    { value: PerformanceValueFormat.DURATION_HOURS_MINUTES_SECONDS, label: 'Heures, minutes, secondes', example: '2 h 15′ 08″' },
+    { value: PerformanceValueFormat.ANGLE_DEGREES_MINUTES, label: 'Degrés, minutes', example: '48° 51′' },
+    { value: PerformanceValueFormat.ANGLE_DEGREES_MINUTES_SECONDS, label: 'Degrés, minutes, secondes', example: '48° 51′ 29″' }
+  ];
+  readonly decimalFormat = PerformanceValueFormat.DECIMAL;
   challengeConfiguration!: ChallengeConfiguration;
   challengeConfigurations: ChallengeConfiguration[] = [];
   challengeGroups: ChallengeGroup[] = [];
@@ -62,6 +73,12 @@ export class ModifyChallengeConfigurationComponent implements OnInit, OnDestroy 
   private questionPointLabelWidthCache = new Map<string, string>();
   private destroy$ = new Subject<void>();
   private synchronizationInitialized = false;
+  private loadedConfigurationSignature = '';
+  private configurationLoaded = false;
+
+  get hasUnsavedChanges(): boolean {
+    return this.configurationLoaded && this.currentConfigurationSignature() !== this.loadedConfigurationSignature;
+  }
 
   get formDesignerUrl(): string {
     const challengeId = this.challengeConfiguration?.id ? `?challengeId=${encodeURIComponent(this.challengeConfiguration.id)}` : '';
@@ -92,6 +109,14 @@ export class ModifyChallengeConfigurationComponent implements OnInit, OnDestroy 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  confirmBrowserExit(event: BeforeUnloadEvent): void {
+    if (this.hasUnsavedChanges) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
   }
   getQuestionDefinitionLabelWidth(): string {
     return this.getControlsLabelWidth(this.questionDefinitions);
@@ -127,7 +152,7 @@ export class ModifyChallengeConfigurationComponent implements OnInit, OnDestroy 
         filter(update => update.domain === 'CONFIGURATION' || update.domain === 'DATABASE'),
         auditTime(150), takeUntil(this.destroy$)
       ).subscribe(() => {
-        if (!this.challengeConfigurationForm?.dirty && !this.dialogService.hasOpenDialogs()) this.ngOnInit();
+        if (!this.hasUnsavedChanges && !this.dialogService.hasOpenDialogs()) this.ngOnInit();
       });
     }
     this.questionDefinitionName = '';
@@ -135,6 +160,8 @@ export class ModifyChallengeConfigurationComponent implements OnInit, OnDestroy 
     this.removedQuestionDefinitions = [];
     this.questionDefinitionNames = [];
     this.formRecognitionConfigurationUrls = [];
+    this.configurationLoaded = false;
+    this.loadedConfigurationSignature = '';
 
     // Formulaire réactif : on ajoute groupId
     this.challengeConfigurationForm = this.formBuilder.group({
@@ -197,6 +224,9 @@ export class ModifyChallengeConfigurationComponent implements OnInit, OnDestroy 
           this.formRecognitionConfigurationUrls.push(formRecognitionConfigurationUrl.href);
         }
       }
+      this.challengeConfigurationForm.markAsPristine();
+      this.configurationLoaded = true;
+      this.loadedConfigurationSignature = this.currentConfigurationSignature();
     }, error => {
       this.questionDefinitionName = '';
       this.removedQuestionDefinitions = [];
@@ -210,6 +240,14 @@ export class ModifyChallengeConfigurationComponent implements OnInit, OnDestroy 
       this.questionDefinitions.clear();
       console.log(error);
       this.router.navigateByUrl('/configuration/challenges');
+    });
+  }
+
+  private currentConfigurationSignature(): string {
+    if (!this.challengeConfigurationForm) return '';
+    return JSON.stringify({
+      form: this.challengeConfigurationForm.getRawValue(),
+      removedQuestions: [...this.removedQuestionDefinitions].sort((left, right) => this.compareLabels(left, right))
     });
   }
 
@@ -232,6 +270,9 @@ export class ModifyChallengeConfigurationComponent implements OnInit, OnDestroy 
       ranges.push(this.buildFormGroup({} as PerformanceScoringRange));
       this.performanceScorings.push(this.formBuilder.group({
         name: questionDefinition.name,
+        valueFormat: performancePoint?.valueFormat || PerformanceValueFormat.DECIMAL,
+        decimalPlaces: performancePoint?.decimalPlaces ?? 2,
+        unit: performancePoint?.unit || '',
         ranges
       }));
     }
@@ -438,8 +479,14 @@ export class ModifyChallengeConfigurationComponent implements OnInit, OnDestroy 
     const modifiedPerformanceScorings: PerformanceScorings = {};
     this.challengeConfigurationForm.value.performanceScorings.forEach((item: any) => {
       const performancePoint = this.challengeConfiguration.performanceScorings[item.name];
+      if (!performancePoint ||
+          (performancePoint.valueFormat || PerformanceValueFormat.DECIMAL) !== item.valueFormat ||
+          (performancePoint.decimalPlaces ?? 2) !== item.decimalPlaces ||
+          (performancePoint.unit || '') !== (item.unit || '')) {
+        modifiedPerformanceScorings[item.name] = item;
+      }
       item.ranges.forEach((range: any, rangeIndex: number) => {
-        if (performancePoint.ranges.length > rangeIndex) {
+        if (performancePoint?.ranges.length > rangeIndex) {
           const rangePoint = performancePoint.ranges[rangeIndex];
           if (rangePoint.type !== range.type ||
             rangePoint.begin !== range.begin ||
@@ -504,9 +551,10 @@ export class ModifyChallengeConfigurationComponent implements OnInit, OnDestroy 
     }
   }
 
-  onClickDetailPoint(range: UntypedFormGroup) {
+  onClickDetailPoint(range: UntypedFormGroup, performanceScoring: AbstractControl) {
     const modalRef: AppDialogRef<ModifyPerformanceScoringRangeComponent, PerformanceScoringRange> = this.dialogService.open(ModifyPerformanceScoringRangeComponent, { size: 'xl' });
     modalRef.componentInstance.range = range.value as PerformanceScoringRange;
+    modalRef.componentInstance.performanceScoring = performanceScoring.value;
     modalRef.result.then((result) => {
       if (!result) {
         return;

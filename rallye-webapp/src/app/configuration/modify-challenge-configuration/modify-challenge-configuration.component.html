@@ -132,11 +132,29 @@
           <div *ngFor="
                 let performanceScoring of performanceScorings.controls;
                 index as perfIndex
-              " class="performance-point-card">
+              " class="performance-point-card card">
             <div class="performance-point-card-content" [formGroup]="performanceScoring">
-              <header class="performance-point-card-header">
+              <header class="performance-point-card-header card-header">
                 <h5>{{ performanceScoring.value.name }}</h5>
               </header>
+              <div class="performance-format-settings">
+                <div class="performance-format-field">
+                  <label>Format de la valeur :</label>
+                  <select class="form-control custom-select" formControlName="valueFormat">
+                    <option *ngFor="let format of performanceValueFormats" [value]="format.value">
+                      {{ format.label }} — {{ format.example }}
+                    </option>
+                  </select>
+                </div>
+                <div class="performance-format-field" *ngIf="performanceScoring.value.valueFormat === decimalFormat">
+                  <label>Décimales :</label>
+                  <input class="form-control" type="number" min="0" max="6" formControlName="decimalPlaces">
+                </div>
+                <div class="performance-format-field performance-unit-field">
+                  <label>Unité après la valeur :</label>
+                  <input class="form-control" type="text" maxlength="20" placeholder="Ex. km, tours, %" formControlName="unit">
+                </div>
+              </div>
               <div *ngFor="let range of getRanges(performanceScoring).controls; index as i"
                 class="performance-range-card" [formGroup]="range">
                 <div class="performance-range-main">
@@ -229,13 +247,27 @@
                     <span class="performance-range-boundary">
                       [
                     </span>
-                    <input class="performance-range-number form-control form-control-sm" type="number"
-                      formControlName="begin" />
+                    <app-performance-value-input *ngIf="range.value.allocationType === 'SCORE'; else numericBegin"
+                      formControlName="begin" [format]="performanceScoring.value.valueFormat"
+                      [decimalPlaces]="performanceScoring.value.decimalPlaces"
+                      [unit]="performanceScoring.value.unit">
+                    </app-performance-value-input>
+                    <ng-template #numericBegin>
+                      <input class="performance-range-number form-control form-control-sm" type="number"
+                        formControlName="begin" />
+                    </ng-template>
                     <span class="performance-range-separator">
                       ;
                     </span>
-                    <input class="performance-range-number form-control form-control-sm" type="number"
-                      formControlName="end" />
+                    <app-performance-value-input *ngIf="range.value.allocationType === 'SCORE'; else numericEnd"
+                      formControlName="end" [format]="performanceScoring.value.valueFormat"
+                      [decimalPlaces]="performanceScoring.value.decimalPlaces"
+                      [unit]="performanceScoring.value.unit">
+                    </app-performance-value-input>
+                    <ng-template #numericEnd>
+                      <input class="performance-range-number form-control form-control-sm" type="number"
+                        formControlName="end" />
+                    </ng-template>
                     <span class="performance-range-boundary">
                       [
                     </span>
@@ -276,7 +308,7 @@
                     <input *ngIf="!range.value.point && range.value.expression"
                       class="form-control form-control-sm w-auto" type="text"
                       formControlName="expression" readonly />
-                    <button type="button" class="btn btn-sm ml-2 w-auto" (click)="onClickDetailPoint(range)">
+                    <button type="button" class="btn btn-sm ml-2 w-auto" (click)="onClickDetailPoint(range, performanceScoring)">
                       ...
                     </button>
                   </div>
@@ -291,6 +323,13 @@
           </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div *ngIf="hasUnsavedChanges" class="configuration-unsaved-banner" role="status">
+      <div>
+        <strong>Modifications non enregistrées</strong>
+        <span>Enregistrez l’épreuve avant de quitter ou de recharger cette page.</span>
       </div>
     </div>
 

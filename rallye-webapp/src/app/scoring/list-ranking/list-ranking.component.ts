@@ -18,6 +18,7 @@ import { TeamUpdateService } from '../../services/team-update.service';
 import { ApplicationUpdateService } from '../../services/application-update.service';
 import { sameData } from '../../shared/data-change.utils';
 import { RankingPresentationPanel, RankingPresentationSlide } from '../models/ranking-presentation-slide';
+import { PerformanceScoring } from '../../configuration/models/performance-scoring';
 
 @Component({
   selector: 'app-list-ranking',
@@ -49,7 +50,7 @@ export class ListRankingComponent implements OnInit, OnDestroy {
   private presentationMeasurementTimer: ReturnType<typeof setTimeout> | null = null;
   private presentationMetricsSignature = '';
   private teamReloadRequested = false;
-  challengePerformanceValues: { [challenge: number]: { name: string, values: { [team: number]: number | null } } } = {};
+  challengePerformanceValues: { [challenge: number]: { name: string, definition: PerformanceScoring, values: { [team: number]: number | null } } } = {};
 
   keyOrder = (a: KeyValue<string, Ranking[]>, b: KeyValue<string, Ranking[]>): number => {
     const ak = parseInt(a.key, 10);
@@ -192,7 +193,8 @@ export class ListRankingComponent implements OnInit, OnDestroy {
           this.challengeConfigurations[challenge]?.name || `Épreuve ${challenge}`,
           this.challengeRanking[challenge],
           this.singlePerformanceLabel(challenge),
-          this.singlePerformanceValues(challenge)));
+          this.singlePerformanceValues(challenge),
+          this.singlePerformanceDefinition(challenge)));
     }
 
     this.updatePrintLayout(panels);
@@ -224,12 +226,14 @@ export class ListRankingComponent implements OnInit, OnDestroy {
 
   private appendRankingPanel(panels: RankingPresentationPanel[], title: string, ranking: Ranking[],
       performanceLabel: string | null = null,
-      performanceValues: { [team: number]: number | null } | null = null): void {
+      performanceValues: { [team: number]: number | null } | null = null,
+      performanceDefinition: PerformanceScoring | null = null): void {
     panels.push({
       title,
       ranking,
       performanceLabel,
-      performanceValues
+      performanceValues,
+      performanceDefinition
     });
   }
 
@@ -294,7 +298,8 @@ export class ListRankingComponent implements OnInit, OnDestroy {
           this.challengeConfigurations[challenge]?.name || `Épreuve ${challenge}`,
           this.challengeRanking[challenge],
           this.singlePerformanceLabel(challenge),
-          this.singlePerformanceValues(challenge)));
+          this.singlePerformanceValues(challenge),
+          this.singlePerformanceDefinition(challenge)));
     }
     this.updatePrintLayout(panels);
   }
@@ -613,7 +618,7 @@ export class ListRankingComponent implements OnInit, OnDestroy {
 
     return forkJoin(requests).pipe(
       tap(responses => {
-        const nextPerformanceValues: { [challenge: number]: { name: string, values: { [team: number]: number | null } } } = {};
+        const nextPerformanceValues: { [challenge: number]: { name: string, definition: PerformanceScoring, values: { [team: number]: number | null } } } = {};
         responses.forEach(({ challenge, results }) => {
           const configuration = this.challengeConfigurations[challenge];
           const perfKeys = Object.keys(configuration?.performanceScorings || {});
@@ -628,7 +633,7 @@ export class ListRankingComponent implements OnInit, OnDestroy {
             const perf = sr.performances?.find(p => p.name === perfName);
             values[sr.team] = perf?.performanceValue ?? null;
           });
-          nextPerformanceValues[challenge] = { name: perfName, values };
+          nextPerformanceValues[challenge] = { name: perfName, definition: configuration.performanceScorings[perfName], values };
         });
         if (!sameData(this.challengePerformanceValues, nextPerformanceValues)) {
           this.challengePerformanceValues = nextPerformanceValues;
@@ -650,5 +655,9 @@ export class ListRankingComponent implements OnInit, OnDestroy {
   singlePerformanceValues(challengeKey: number | string): { [team: number]: number | null } | null {
     const challenge = Number(challengeKey);
     return this.challengePerformanceValues[challenge]?.values || null;
+  }
+
+  singlePerformanceDefinition(challengeKey: number | string): PerformanceScoring | null {
+    return this.challengePerformanceValues[Number(challengeKey)]?.definition || null;
   }
 }

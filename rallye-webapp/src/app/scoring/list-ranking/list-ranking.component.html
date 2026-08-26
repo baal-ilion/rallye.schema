@@ -37,7 +37,8 @@
         [viewPoints]="viewPoints"
         [reservePerformanceColumn]="isChallengeMode"
         [performanceLabel]="panel.performanceLabel || null"
-        [performanceValues]="panel.performanceValues || null">
+        [performanceValues]="panel.performanceValues || null"
+        [performanceDefinition]="panel.performanceDefinition || null">
       </app-ranking>
     </div>
   </div>
@@ -55,7 +56,8 @@
           [viewPoints]="viewPoints"
           [reservePerformanceColumn]="isChallengeMode"
           [performanceLabel]="panel.performanceLabel || null"
-          [performanceValues]="panel.performanceValues || null">
+          [performanceValues]="panel.performanceValues || null"
+          [performanceDefinition]="panel.performanceDefinition || null">
         </app-ranking>
       </div>
     </div>
@@ -74,7 +76,8 @@
       [viewPoints]="viewPoints"
       [reservePerformanceColumn]="true"
       [performanceLabel]="singlePerformanceLabel(challengeRank.key)"
-      [performanceValues]="singlePerformanceValues(challengeRank.key)">
+      [performanceValues]="singlePerformanceValues(challengeRank.key)"
+      [performanceDefinition]="singlePerformanceDefinition(challengeRank.key)">
     </app-ranking>
   </div>
 </div>
