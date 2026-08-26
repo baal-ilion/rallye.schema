@@ -1,0 +1,12 @@
+{
+  "include": [
+    "form-processing-service/src",
+    "form-processing-service/tests"
+  ],
+  "extraPaths": [
+    "form-processing-service/src",
+    "form-processing-service/.venv/Lib/site-packages"
+  ],
+  "venvPath": "form-processing-service",
+  "venv": ".venv"
+}

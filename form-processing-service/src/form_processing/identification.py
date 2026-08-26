@@ -42,8 +42,9 @@ def recognize_identification(image: np.ndarray, template_xml: str | None) -> Ide
     def combined(single: str, first: str, second: str) -> int | None:
         text = values.get(single)
         if text is None:
-            parts = (values.get(first), values.get(second))
-            text = "".join(parts) if all(part is not None for part in parts) else None
+            first_value = values.get(first)
+            second_value = values.get(second)
+            text = first_value + second_value if first_value is not None and second_value is not None else None
         return int(text) if text and text.isdigit() else None
 
     return IdentificationResult(
