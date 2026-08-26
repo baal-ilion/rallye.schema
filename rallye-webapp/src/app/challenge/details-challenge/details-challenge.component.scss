@@ -93,14 +93,8 @@ button.calendar:active {
 }
 
 .performance-list-grid {
-  display: grid;
-  grid-template-columns: repeat(
-    auto-fit,
-    minmax(
-      min(calc(var(--performance-label-width, 3rem) + 6.35rem), 100%),
-      calc(var(--performance-label-width, 3rem) + 6.35rem)
-    )
-  );
+  display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   width: 100%;
   min-width: 0;
@@ -111,26 +105,27 @@ button.calendar:active {
 
 .performance-list-item,
 .performance-list-row {
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   min-width: 0;
 }
 
 .performance-list-row {
-  display: grid;
-  grid-template-columns: minmax(0, var(--performance-label-width, 3rem)) 6rem;
+  display: flex;
   align-items: center;
+  justify-content: center;
   min-height: 2.25rem;
-  gap: .35rem;
+  gap: .55rem;
 }
 
 .performance-list-label {
-  width: 100%;
-  min-width: 0;
+  flex: 0 0 auto;
+  width: max-content;
   margin: 0;
   color: var(--rs-title);
   font-size: .72rem;
   line-height: 1.15;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
   text-align: right;
 }
 
@@ -138,11 +133,11 @@ button.calendar:active {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 6rem;
-  min-width: 6rem;
+  width: 16rem;
+  min-width: 16rem;
 }
 
-.performance-list-control input {
+.performance-list-control > input {
   width: 100%;
   min-width: 0;
   height: 1.85rem;
@@ -153,6 +148,23 @@ button.calendar:active {
   background: #fff;
   font-size: .72rem;
   text-align: center;
+}
+
+.performance-list-control app-performance-value-input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 575.98px) {
+  .performance-list-row {
+    gap: .35rem;
+  }
+
+  .performance-list-control {
+    width: min(15rem, calc(100vw - 8rem));
+    min-width: 0;
+  }
 }
 
 form.container {

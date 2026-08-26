@@ -470,8 +470,12 @@ export class DetailsChallengeComponent implements OnInit, OnChanges, OnDestroy {
         }));
       } else if (formQuestionDefinition.type === QuestionType.PERFORMANCE) {
         const performance = this.challengeResult.performances?.find(element => element.name === formQuestionDefinition.name);
+        const performanceDefinition = this.challengeConfiguration.performanceScorings?.[formQuestionDefinition.name];
         performances.push(this.formBuilder.group({
           name: formQuestionDefinition.name,
+          valueFormat: performanceDefinition?.valueFormat || 'DECIMAL',
+          decimalPlaces: performanceDefinition?.decimalPlaces ?? 2,
+          unit: performanceDefinition?.unit || '',
           performanceValue: [{
             value: performance ? performance.performanceValue : null,
             disabled: this.isReadOnly(formQuestionDefinition.name)
@@ -531,7 +535,7 @@ export class DetailsChallengeComponent implements OnInit, OnChanges, OnDestroy {
     form.getRawValue().performances.forEach((item: any) => {
       const performance = this.challengeResult.performances?.find(element => element.name === item.name);
       if (!performance || item.performanceValue !== performance.performanceValue) {
-        modifiedperformances.push(item);
+        modifiedperformances.push({ name: item.name, performanceValue: item.performanceValue });
       }
     });
   }

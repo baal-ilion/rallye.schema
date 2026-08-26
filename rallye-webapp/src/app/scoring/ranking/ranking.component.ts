@@ -1,5 +1,6 @@
 import { Component, OnInit, Input, ViewChild, ElementRef } from '@angular/core';
 import { Ranking } from '../models/ranking';
+import { PerformanceScoring } from '../../configuration/models/performance-scoring';
 
 @Component({
   selector: 'app-ranking',
@@ -13,6 +14,7 @@ export class RankingComponent implements OnInit {
   @Input() viewPoints = false;
   @Input() performanceLabel?: string | null;
   @Input() performanceValues?: { [team: number]: number | null } | null;
+  @Input() performanceDefinition?: PerformanceScoring | null;
   @Input() reservePerformanceColumn = false;
   @Input() presentationMode = false;
   @Input() synchronizeColumns = true;

@@ -30,9 +30,7 @@
         <td class="align-middle fluid-column"
           [attr.colspan]="reservePerformanceColumn && !performanceLabel ? 2 : 1">{{teams[ranking.team]?.name}}</td>
         <td *ngIf="performanceLabel" class="align-middle compact-column">
-          {{ performanceValues?.[ranking.team] !== null && performanceValues?.[ranking.team] !== undefined
-            ? (performanceValues?.[ranking.team] | number:'1.0-2')
-            : '-' }}
+          {{ performanceValues?.[ranking.team] | performanceValue:performanceDefinition }}
         </td>
         <td *ngIf="viewPoints" class="align-middle compact-column">{{ranking.total}}</td>
       </tr>

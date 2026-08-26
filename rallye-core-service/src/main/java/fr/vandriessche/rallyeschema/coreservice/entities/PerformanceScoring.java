@@ -10,6 +10,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class PerformanceScoring {
 	private String name;
+	private PerformanceValueFormat valueFormat = PerformanceValueFormat.DECIMAL;
+	private Integer decimalPlaces = 2;
+	private String unit;
 	private List<PerformanceScoringRange> ranges = new ArrayList<>();
 
 	public PerformanceScoring(String name, Long point) {

@@ -151,7 +151,7 @@ public class TeamPointService {
 				context.setVariable("nbEqParticipantes", challengeRanking.getEnds().size());
 				context.registerFunction("arrondi",
 						TeamPointService.class.getDeclaredMethod("toLongHelper", new Class[] { Double.class }));
-				Long expressionValue = parser.parseExpression(range.getExpression()).getValue(context, Long.class);
+				Long expressionValue = parser.parseExpression(normalizeDecimalSeparators(range.getExpression())).getValue(context, Long.class);
 				return expressionValue != null ? expressionValue : 0L;
 			} catch (Exception e) {
 				log.log(Level.WARNING, "Expression : " + range.getExpression() + " [#valeur=" + value
@@ -160,6 +160,10 @@ public class TeamPointService {
 			}
 		}
 		return 0l;
+	}
+
+	private String normalizeDecimalSeparators(String expression) {
+		return expression.replaceAll("(?<=\\d),(?=\\d)", ".");
 	}
 
 	private Stream<QuestionPoint> computePerformancePoint(ChallengeResult challengeResult, ChallengeRanking challengeRanking,

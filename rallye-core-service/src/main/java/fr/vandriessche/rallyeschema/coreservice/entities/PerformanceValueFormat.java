@@ -1,0 +1,11 @@
+package fr.vandriessche.rallyeschema.coreservice.entities;
+
+public enum PerformanceValueFormat {
+	INTEGER,
+	DECIMAL,
+	DURATION_MINUTES_SECONDS,
+	DURATION_HOURS_MINUTES,
+	DURATION_HOURS_MINUTES_SECONDS,
+	ANGLE_DEGREES_MINUTES,
+	ANGLE_DEGREES_MINUTES_SECONDS
+}
