@@ -1,4 +1,4 @@
-<div class="container mb-5" *ngIf="team">
+<div class="container-fluid team-progress-details" *ngIf="team">
   <div class="row mt-0">
     <div class="col-12 py-1 bg-secondary">
       <h4 class="my-auto text-center text-white">Équipe sélectionnée : Équipe {{team.team}} - {{team.name}}</h4>
@@ -11,15 +11,14 @@
       </div>
     </div>
   </div>
-  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 mt-4 mx-n4">
+  <div class="challenge-card-grid mt-4"
+    [style.--challenge-card-min-width]="challengeCardMinWidthPx + 'px'">
     <ng-template ngFor let-challengeConfiguration [ngForOf]="challengeConfigurationsToDisplay">
-      <div class="col mb-4">
+      <div class="challenge-card-item">
         <div *ngIf="challenges[challengeConfiguration.challenge] && challenges[challengeConfiguration.challenge].begin && !challenges[challengeConfiguration.challenge].end"
-          class="card border-primary h-100">
-          <div class="card-header font-weight-bold" *ngIf="!challenges[challengeConfiguration.challenge]?.checked">{{challengeConfiguration.name}}</div>
-          <div class="card-header font-weight-bold text-white bg-primary" *ngIf="challenges[challengeConfiguration.challenge]?.checked">
-            {{challengeConfiguration.name}}</div>
-          <div class="card-body text-primary">
+          class="card challenge-card challenge-card-in-progress h-100">
+          <div class="card-header font-weight-bold challenge-header-in-progress">{{challengeConfiguration.name}}</div>
+          <div class="card-body">
             <div>Épreuve {{challengeConfiguration.challenge}} en cours.</div>
           </div>
           <div class="card-footer text-center">
@@ -36,12 +35,17 @@
           </div>
         </div>
         <div *ngIf="challenges[challengeConfiguration.challenge] && challenges[challengeConfiguration.challenge].begin && challenges[challengeConfiguration.challenge].end"
-          class="card border-success h-100">
-          <div class="card-header font-weight-bold" *ngIf="!challenges[challengeConfiguration.challenge]?.checked">{{challengeConfiguration.name}}</div>
-          <div class="card-header font-weight-bold text-white bg-success" *ngIf="challenges[challengeConfiguration.challenge]?.checked">
-            {{challengeConfiguration.name}}</div>
-          <div class="card-body text-success">
-            <div>Épreuve {{challengeConfiguration.challenge}} achevée.</div>
+          class="card challenge-card challenge-card-completed h-100">
+          <div class="card-header font-weight-bold challenge-header-completed">{{challengeConfiguration.name}}</div>
+          <div class="card-body">
+            <div class="challenge-status-line">
+              <span>Épreuve {{challengeConfiguration.challenge}} achevée.</span>
+              <span class="status-pill"
+                [class.completed]="challenges[challengeConfiguration.challenge].checked"
+                [class.not-completed]="!challenges[challengeConfiguration.challenge].checked">
+                {{challenges[challengeConfiguration.challenge].checked ? 'Validée' : 'À valider'}}
+              </span>
+            </div>
           </div>
           <div class="card-footer text-center">
             <div class="btn-group">

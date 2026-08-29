@@ -3,7 +3,7 @@
     <h1 class="col-12 page-title-with-subtitle">Gestion de la base de données<span class="page-title-subtitle">Sauvegardez, restaurez ou videz complètement la base.</span></h1>
   </div>
 
-  <div class="row mt-3">
+  <div class="row mt-3" *ngIf="statusMessage || errorMessage">
     <div class="col-12" *ngIf="statusMessage">
       <div class="alert alert-success mb-2" role="alert">
         {{ statusMessage }}

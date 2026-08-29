@@ -1,10 +1,34 @@
+:host {
+  display: block;
+}
+
 .row + .row {
   margin-top: 1rem;
 }
 
+.game-management-page {
+  width: 100%;
+  max-width: none;
+  padding-right: 1rem;
+  padding-left: 1rem;
+}
+
+.challenge-section {
+  margin-bottom: 0;
+}
+
+.challenge-section > .col-12 {
+  display: block;
+}
+
+.challenge-section app-team-progress-details {
+  display: block;
+}
+
 .filters-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
   gap: 0.75rem 1rem;
   align-items: end;
 }
@@ -16,17 +40,19 @@
 }
 
 .team-input {
-  width: 100%;
+  width: 6rem;
   text-align: center;
 }
 
 /* Supprime les flèches des champs number sur mobile/desktop */
 .team-input::-webkit-outer-spin-button,
 .team-input::-webkit-inner-spin-button {
+  appearance: none;
   -webkit-appearance: none;
   margin: 0;
 }
 
 .team-input[type=number] {
+  appearance: textfield;
   -moz-appearance: textfield;
 }

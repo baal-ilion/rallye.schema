@@ -1,4 +1,4 @@
-<div class="container mb-5">
+<div class="container">
 
   <div class="row mt-4 text-center">
     <h1 class="col-12 page-title-with-subtitle">Suivi de présence<span class="page-title-subtitle">Liste des équipes et statut de présence</span></h1>
@@ -18,13 +18,13 @@
 
   <div class="presence-container mt-4" *ngIf="!loading && !error">
     <div class="presence-column">
-      <div class="card h-100 border-secondary" [style.width.px]="cardWidth">
-        <div class="card-header font-weight-bold text-secondary text-center">Absentes</div>
+      <div class="card h-100" [style.width.px]="cardWidth">
+        <div class="card-header font-weight-bold text-center">Absentes</div>
         <div class="card-body">
           <div *ngIf="absentTeams.length === 0" class="text-muted">Aucune équipe absente.</div>
           <ul class="list-unstyled mb-0 presence-list">
             <li *ngFor="let team of absentTeams; trackBy: trackTeam" class="mb-3">
-              <div class="card h-100 presence-card border-secondary">
+              <div class="card h-100 presence-card">
                 <div class="card-header font-weight-bold">
                   Équipe {{ team.team }}
                 </div>
@@ -47,17 +47,17 @@
     </div>
 
     <div class="presence-column">
-      <div class="card h-100 border-success" [style.width.px]="cardWidth">
-        <div class="card-header font-weight-bold text-success text-center">Présentes</div>
+      <div class="card h-100" [style.width.px]="cardWidth">
+        <div class="card-header font-weight-bold text-center present-teams-header">Présentes</div>
         <div class="card-body">
           <div *ngIf="presentTeams.length === 0" class="text-muted">Aucune équipe présente.</div>
           <ul class="list-unstyled mb-0 presence-list">
             <li *ngFor="let team of presentTeams; trackBy: trackTeam" class="mb-3">
-              <div class="card h-100 presence-card border-success">
-                <div class="card-header font-weight-bold text-white bg-success">
+              <div class="card h-100 presence-card">
+                <div class="card-header font-weight-bold">
                   Équipe {{ team.team }}
                 </div>
-                <div class="card-body text-success">
+                <div class="card-body">
                   <div>{{ team.name }}</div>
                 </div>
                 <div class="card-footer text-center">

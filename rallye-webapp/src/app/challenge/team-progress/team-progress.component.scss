@@ -1,5 +1,28 @@
+:host {
+  display: block;
+}
+
 .row + .row {
   margin-top: 1rem;
+}
+
+.team-progress-page {
+  width: 100%;
+  max-width: none;
+  padding-right: 1rem;
+  padding-left: 1rem;
+}
+
+.challenge-section {
+  margin-bottom: 0;
+}
+
+.challenge-section > .col-12 {
+  display: block;
+}
+
+.challenge-section app-team-progress-details {
+  display: block;
 }
 
 #teamSelect {

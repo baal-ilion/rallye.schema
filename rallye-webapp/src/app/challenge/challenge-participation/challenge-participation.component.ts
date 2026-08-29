@@ -114,7 +114,7 @@ export class ChallengeParticipationComponent implements OnInit, OnDestroy {
       this.error = undefined;
       row.result = await firstValueFrom(this.challengeService.beginChallenge(this.selectedChallenge, row.team.team));
       this.rankingUpdateService.triggerUpdate();
-      await this.refreshParticipation();
+      await this.refreshParticipation(true);
       if (navigateAfterStart) {
         await this.router.navigate(['/challenge', row.team.team, this.selectedChallenge]);
       }
@@ -155,7 +155,7 @@ export class ChallengeParticipationComponent implements OnInit, OnDestroy {
       const result = await firstValueFrom(this.challengeService.endChallenge(this.selectedChallenge, row.team.team));
       row.result = result;
       this.rankingUpdateService.triggerUpdate();
-      await this.refreshParticipation();
+      await this.refreshParticipation(true);
     } catch (error) {
       console.log(error);
       this.error = 'Impossible de terminer l\'épreuve pour cette équipe.';
@@ -177,7 +177,7 @@ export class ChallengeParticipationComponent implements OnInit, OnDestroy {
       await firstValueFrom(this.challengeService.cancelChallenge(this.selectedChallenge, row.team.team));
       row.result = undefined;
       this.rankingUpdateService.triggerUpdate();
-      await this.refreshParticipation();
+      await this.refreshParticipation(true);
     } catch (error) {
       console.log(error);
       this.error = 'Impossible d\'annuler l\'épreuve pour cette équipe.';
@@ -198,7 +198,7 @@ export class ChallengeParticipationComponent implements OnInit, OnDestroy {
       }
       row.result = await firstValueFrom(this.challengeService.undoChallenge(this.selectedChallenge, row.team.team));
       this.rankingUpdateService.triggerUpdate();
-      await this.refreshParticipation();
+      await this.refreshParticipation(true);
     } catch (error) {
       console.log(error);
       this.error = 'Impossible de reprendre l\'épreuve pour cette équipe.';

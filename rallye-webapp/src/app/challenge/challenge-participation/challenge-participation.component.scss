@@ -9,8 +9,84 @@
   min-width: 0;
 }
 
+.status-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  width: max-content;
+  max-width: 100%;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.status-card-column {
+  display: flex;
+  width: 100%;
+  min-width: max-content;
+}
+
+.status-card-column > .card {
+  width: 100%;
+}
+
+.status-card-column li .card-header,
+.status-card-column li .card-body,
+.status-card-column li .card-footer,
+.status-card-column li .btn-group {
+  white-space: nowrap;
+}
+
+/* RÃ©serve en permanence la largeur du jeu de commandes le plus large
+ * (Terminer, Annuler et DÃ©tails), mÃªme si aucune Ã©quipe n'est actuellement
+ * dans cet Ã©tat. Un changement de colonne ne redimensionne donc pas la grille. */
+.status-card-column li > .card {
+  min-width: 20rem;
+}
+
+/* Les cartes gardent leur structure standard ; seules les couleurs de leur
+ * en-tête indiquent l'état de déroulement. */
+.card .card-header.challenge-header-in-progress {
+  color: #fff;
+  background: #334c60;
+}
+
+.card .card-header.challenge-header-completed {
+  color: #fff;
+  background: #557b3a;
+}
+
+.challenge-status-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  width: 100%;
+}
+
+.status-pill {
+  flex: 0 0 auto;
+  padding: .08rem .38rem;
+  border-radius: 1rem;
+  color: #fff;
+  font-size: .62rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status-pill.completed {
+  background: #557b3a;
+}
+
+.status-pill.not-completed {
+  background: #ad4545;
+}
+
+.status-pill-placeholder {
+  visibility: hidden;
+}
+
 .card-footer .btn-group {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: center;
 }
 
@@ -31,9 +107,13 @@
 .challenge-select-wrapper {
   position: relative;
   display: inline-block;
+  width: max-content;
+  max-width: 100%;
 }
 
 .challenge-select-wrapper select {
+  width: max-content;
+  max-width: 100%;
   padding-right: 2rem;
   appearance: none;
   -webkit-appearance: none;
@@ -56,10 +136,24 @@
 }
 
 .controls-row {
-  column-gap: 2rem;
+  justify-content: center;
+  column-gap: 4rem;
   row-gap: 0.5rem;
 }
 
 .controls-actions {
-  margin-left: auto;
+  margin-left: 0;
+}
+
+@media (max-width: 575.98px) {
+  .controls-row {
+    column-gap: 2rem;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .status-card-grid {
+    grid-template-columns: 1fr;
+    width: min(100%, max-content);
+  }
 }

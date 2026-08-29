@@ -32,3 +32,10 @@
   gap: 1.5rem;
   justify-content: center;
 }
+
+/* La grande carte indique l'état par sa seule couleur d'en-tête. Les cartes
+   individuelles conservent intégralement le style standard. */
+.card .card-header.present-teams-header {
+  color: #fff;
+  background: #557b3a;
+}

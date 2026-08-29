@@ -1,4 +1,4 @@
-<div class="container mb-5">
+<div class="container">
   <div class="row mt-4 page-title-actions-row">
     <div class="col-9">
       <h1 id="ranking_title" class="text-center page-title-with-subtitle">Paramétrage des épreuves<span class="page-title-subtitle">Créez et organisez les épreuves proposées pendant le rallye.</span></h1>
@@ -13,7 +13,8 @@
     <div class="col-12">
 
       <!-- Un bloc par groupe (catégorie) -->
-      <div *ngFor="let group of groupedChallengeConfigurationDetails; trackBy: trackGroup" class="mb-4 data-table-fit">
+      <div *ngFor="let group of groupedChallengeConfigurationDetails; trackBy: trackGroup; let last = last"
+        class="data-table-fit" [class.mb-4]="!last">
         <div class="row mt-4">
           <div class="col-12 px-0 py-1 bg-secondary">
             <h4 class="my-auto text-center text-white">
