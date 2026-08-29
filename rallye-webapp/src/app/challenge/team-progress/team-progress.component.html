@@ -1,10 +1,10 @@
-<div class="container mb-5">
+<div class="container-fluid team-progress-page">
   <div class="row mt-4 text-center">
     <h1 class="col-12 page-title-with-subtitle">Suivi des équipes<span class="page-title-subtitle">Consultez et mettez à jour le parcours d’une équipe.</span></h1>
   </div>
 
   <div class="row mt-4 align-items-center">
-    <div class="col-12 d-flex align-items-center flex-wrap">
+    <div class="col-12 d-flex align-items-center justify-content-center flex-wrap">
       <label for="teamSelect" class="me-2 font-weight-bold mb-2">Équipe :</label>
       <div class="team-select-wrapper">
         <select
@@ -28,7 +28,7 @@
     </div>
   </div>
 
-  <div class="row mt-4">
+  <div class="row mt-4 challenge-section">
     <div class="col-12">
       <app-team-progress-details *ngIf="selectedTeamId" [teamId]="selectedTeamId"></app-team-progress-details>
     </div>

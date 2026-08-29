@@ -1,16 +1,16 @@
-<div class="container mb-5">
+<div class="container">
 
   <div class="row mt-4 text-center">
     <h1 class="col-12 page-title-with-subtitle">Suivi des épreuves<span class="page-title-subtitle" *ngIf="selectedChallengeLabel">Épreuve sélectionnée : {{ selectedChallengeLabel }}</span></h1>
   </div>
 
   <div class="controls-row mt-4 d-flex flex-wrap align-items-center">
-    <div class="d-flex align-items-center flex-wrap flex-grow-1 select-container">
+    <div class="d-flex align-items-center flex-wrap select-container">
       <label for="challengeSelect" class="me-2 font-weight-bold mb-2">Épreuve :</label>
-      <div class="challenge-select-wrapper flex-grow-1">
+      <div class="challenge-select-wrapper">
         <select
           id="challengeSelect"
-          class="form-control w-100"
+          class="form-control"
           [ngModel]="selectedChallenge"
           (ngModelChange)="onChallengeChange($event)"
         >
@@ -52,32 +52,23 @@
     </div>
   </div>
 
-  <div class="row mt-4" *ngIf="!loading && !error">
-    <div class="col-12 col-md-4 mb-4">
-      <div class="card h-100 border-secondary">
-        <div class="card-header font-weight-bold text-secondary">Non démarrée</div>
+  <div class="status-card-grid mt-4" *ngIf="!loading && !error">
+    <div class="status-card-column">
+      <div class="card h-100">
+        <div class="card-header font-weight-bold">Non démarrée</div>
         <div class="card-body">
           <div *ngIf="statuses.notStarted.length === 0" class="text-muted">Toutes les équipes ont commencé.</div>
           <ul class="list-unstyled mb-0">
             <li *ngFor="let row of statuses.notStarted; trackBy: trackParticipation" class="mb-3">
-              <div class="card h-100"
-                [ngClass]="{
-                  'border-primary': row.result?.begin && !row.result?.end,
-                  'border-success': row.result?.end
-                }">
-                <div class="card-header font-weight-bold"
-                  [ngClass]="{
-                    'text-white bg-primary': row.result?.checked && row.result?.begin && !row.result?.end,
-                    'text-white bg-success': row.result?.checked && row.result?.end
-                  }">
+              <div class="card h-100">
+                <div class="card-header font-weight-bold">
                   Équipe {{ row.team.team }}
                 </div>
-                <div class="card-body"
-                  [ngClass]="{
-                    'text-primary': row.result?.begin && !row.result?.end,
-                    'text-success': row.result?.end
-                  }">
-                  <div>{{ row.team.name }}</div>
+                <div class="card-body">
+                  <div class="challenge-status-line">
+                    <span>{{ row.team.name }}</span>
+                    <span class="status-pill status-pill-placeholder" aria-hidden="true">Ã€ valider</span>
+                  </div>
                 </div>
                 <div class="card-footer text-center">
                   <ng-container *ngIf="row.result?.id; else startOnly">
@@ -118,31 +109,22 @@
       </div>
     </div>
 
-    <div class="col-12 col-md-4 mb-4">
-      <div class="card h-100 border-primary">
-        <div class="card-header font-weight-bold text-primary">En cours</div>
+    <div class="status-card-column">
+      <div class="card h-100">
+        <div class="card-header font-weight-bold challenge-header-in-progress">En cours</div>
         <div class="card-body">
           <div *ngIf="statuses.inProgress.length === 0" class="text-muted">Aucune équipe en cours.</div>
           <ul class="list-unstyled mb-0">
             <li *ngFor="let row of statuses.inProgress; trackBy: trackParticipation" class="mb-3">
-              <div class="card h-100"
-                [ngClass]="{
-                  'border-primary': row.result?.begin && !row.result?.end,
-                  'border-success': row.result?.end
-                }">
-                <div class="card-header font-weight-bold"
-                  [ngClass]="{
-                    'text-white bg-primary': row.result?.checked && row.result?.begin && !row.result?.end,
-                    'text-white bg-success': row.result?.checked && row.result?.end
-                  }">
+              <div class="card h-100">
+                <div class="card-header font-weight-bold">
                   Équipe {{ row.team.team }}
                 </div>
-                <div class="card-body"
-                  [ngClass]="{
-                    'text-primary': row.result?.begin && !row.result?.end,
-                    'text-success': row.result?.end
-                  }">
-                  <div>{{ row.team.name }}</div>
+                <div class="card-body">
+                  <div class="challenge-status-line">
+                    <span>{{ row.team.name }}</span>
+                    <span class="status-pill status-pill-placeholder" aria-hidden="true">Ã€ valider</span>
+                  </div>
                 </div>
                 <div class="card-footer text-center">
                   <div class="btn-group">
@@ -180,31 +162,26 @@
       </div>
     </div>
 
-    <div class="col-12 col-md-4 mb-4">
-      <div class="card h-100 border-success">
-        <div class="card-header font-weight-bold text-success">Terminée</div>
+    <div class="status-card-column">
+      <div class="card h-100">
+        <div class="card-header font-weight-bold challenge-header-completed">Terminée</div>
         <div class="card-body">
           <div *ngIf="statuses.finished.length === 0" class="text-muted">Aucune équipe terminée.</div>
           <ul class="list-unstyled mb-0">
             <li *ngFor="let row of statuses.finished; trackBy: trackParticipation" class="mb-3">
-              <div class="card h-100"
-                [ngClass]="{
-                  'border-primary': row.result?.begin && !row.result?.end,
-                  'border-success': row.result?.end
-                }">
-                <div class="card-header font-weight-bold"
-                  [ngClass]="{
-                    'text-white bg-primary': row.result?.checked && row.result?.begin && !row.result?.end,
-                    'text-white bg-success': row.result?.checked && row.result?.end
-                  }">
+              <div class="card h-100">
+                <div class="card-header font-weight-bold">
                   Équipe {{ row.team.team }}
                 </div>
-                <div class="card-body"
-                  [ngClass]="{
-                    'text-primary': row.result?.begin && !row.result?.end,
-                    'text-success': row.result?.end
-                  }">
-                  <div>{{ row.team.name }}</div>
+                <div class="card-body">
+                  <div class="challenge-status-line">
+                    <span>{{ row.team.name }}</span>
+                    <span class="status-pill"
+                      [class.completed]="row.result?.checked"
+                      [class.not-completed]="!row.result?.checked">
+                      {{row.result?.checked ? 'Validée' : 'À valider'}}
+                    </span>
+                  </div>
                 </div>
                 <div class="card-footer text-center">
                   <div class="btn-group">

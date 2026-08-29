@@ -1,11 +1,85 @@
+:host {
+  display: block;
+}
+
 .row + .row {
   margin-top: 1rem;
 }
 
-.card .btn-group {
+.team-progress-details {
+  width: 100%;
+  max-width: none;
+  padding-right: 0;
+  padding-left: 0;
+}
+
+.team-progress-details > .row:first-child {
+  margin-right: .25rem;
+  margin-left: .25rem;
+}
+
+.challenge-card-grid {
+  display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-content: flex-start;
+  align-items: stretch;
+  width: 100%;
+  gap: 1rem;
+}
+
+.challenge-card-item {
+  flex: 0 0 min(var(--challenge-card-min-width, 15.5rem), 100%);
+  min-width: 0;
+}
+
+.card .card-header {
+  white-space: nowrap;
+}
+
+/* Seules les couleurs varient selon l'état. Toutes les autres propriétés de
+ * l'en-tête standard (hauteur, bordures, rayon et trait doré) sont conservées. */
+.card .card-header.challenge-header-in-progress {
+  color: #fff;
+  background: #334c60;
+}
+
+.card .card-header.challenge-header-completed {
+  color: #fff;
+  background: #557b3a;
+}
+
+.challenge-status-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  width: 100%;
+}
+
+.status-pill {
+  flex: 0 0 auto;
+  padding: .08rem .38rem;
+  border-radius: 1rem;
+  color: #fff;
+  font-size: .62rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status-pill.completed {
+  background: #557b3a;
+}
+
+.status-pill.not-completed {
+  background: #ad4545;
+}
+
+.card .btn-group {
+  flex-wrap: nowrap;
+  justify-content: center;
   gap: 0.35rem;
+  white-space: nowrap;
 }
 
 .card .btn-group .btn {

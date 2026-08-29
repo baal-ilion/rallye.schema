@@ -27,6 +27,7 @@ export class TeamProgressDetailsComponent implements OnInit, OnDestroy, OnChange
   challenges: { [challenge: number]: ChallengeResult } = {};
   loading = false;
   error?: string;
+  challengeCardMinWidthPx = 248;
   private destroy$ = new Subject<void>();
   private ignoreNextUpdate = false;
 
@@ -133,6 +134,7 @@ export class TeamProgressDetailsComponent implements OnInit, OnDestroy, OnChange
       const challengeConfigurations = (await this.challengeConfigurationService.getChallengeConfigurations().toPromise())?._embedded?.challengeConfigurations ?? [];
       challengeConfigurations.sort((a, b) => (a.challenge > b.challenge) ? 1 : -1);
       this.challengeConfigurations = challengeConfigurations;
+      this.updateChallengeCardMinWidth();
     } catch (error) {
       this.challengeConfigurations = [];
     }
@@ -147,6 +149,36 @@ export class TeamProgressDetailsComponent implements OnInit, OnDestroy, OnChange
       return this.challengeConfigurations;
     }
     return this.challengeConfigurations.filter(s => s.challenge === filter);
+  }
+
+  private updateChallengeCardMinWidth(): void {
+    const titles = this.challengeConfigurations
+      .map(configuration => configuration.name ?? '')
+      .filter(title => title.length > 0);
+    if (titles.length === 0 || typeof document === 'undefined') {
+      this.challengeCardMinWidthPx = 248;
+      return;
+    }
+
+    const probe = document.createElement('span');
+    const bodyStyle = window.getComputedStyle(document.body);
+    probe.style.position = 'absolute';
+    probe.style.visibility = 'hidden';
+    probe.style.whiteSpace = 'nowrap';
+    probe.style.fontFamily = bodyStyle.fontFamily;
+    probe.style.fontSize = '1rem';
+    probe.style.fontWeight = '700';
+    document.body.appendChild(probe);
+
+    const longestTitleWidth = titles.reduce((width, title) => {
+      probe.textContent = title;
+      return Math.max(width, probe.getBoundingClientRect().width);
+    }, 0);
+    probe.remove();
+
+    // 248 px permettent au pied le plus chargé de conserver ses trois boutons sur une ligne.
+    // Les 32 px supplémentaires correspondent aux espacements horizontaux de l'en-tête.
+    this.challengeCardMinWidthPx = Math.max(248, Math.ceil(longestTitleWidth + 32));
   }
 
   onStartChallenge(challenge: number) {
