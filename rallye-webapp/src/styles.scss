@@ -1033,7 +1033,6 @@ h4.bg-secondary.text-white,
 
 /* Écrans récents : mêmes surfaces et mêmes règles que le reste du front. */
 .processing-page, .validation-page, .capture-shell, .gallery-overlay { color: var(--rs-ink) !important; background: var(--rs-page) !important; }
-.processing-page, .intake-page { padding-top: 1rem !important; }
 .intake-card, .queue-panel, .verification-panel, .gallery-card,
 .filter-panel, .validation-queue, .challenge-lifecycle-card, .challenge-validation-card {
   border: 1px solid var(--rs-border) !important;
@@ -1101,7 +1100,7 @@ app-form-capture .capture-shell:not(.camera-mode):not(.gallery-mode) {
   min-height: 0;
   max-height: none !important;
   margin: 0 auto !important;
-  padding: 0 1.25rem 1.25rem !important;
+  padding: 0 1.25rem !important;
   overflow: visible !important;
   border: 0 !important;
   border-radius: 0 !important;
@@ -1138,7 +1137,7 @@ app-form-capture .capture-shell:not(.camera-mode):not(.gallery-mode) .bottom-act
 
 @media (max-width: 700px) {
   app-form-capture .capture-shell:not(.camera-mode):not(.gallery-mode) {
-    padding: 0 .7rem .7rem !important;
+    padding: 0 .7rem !important;
   }
 
   app-form-capture .capture-shell:not(.camera-mode):not(.gallery-mode) .intake-card {
@@ -1149,9 +1148,14 @@ app-form-capture .capture-shell:not(.camera-mode):not(.gallery-mode) .bottom-act
 /* Les pages d'import et de traitement utilisent le même repère vertical
  * que toutes les autres pages : leur marge haute est portée par la ligne du
  * bandeau principal, jamais par le conteneur. */
-app-form-upload .intake-page,
-app-list-upload .processing-page {
+app-scanned-form-import .intake-page,
+app-form-capture .capture-shell:not(.camera-mode):not(.gallery-mode),
+app-form-processing-workspace .processing-page {
   padding-top: 0 !important;
+}
+
+app-scanned-form-import .intake-page {
+  padding-bottom: 0 !important;
 }
 
 /* ========================================================================
@@ -1462,10 +1466,11 @@ table.table > tbody > tr.table-info {
 /* Bandeau de page avec action intégrée (paramétrage). */
 .page-title-actions-row {
   position: relative;
-  min-height: 3.55rem;
+  height: 5.2875rem;
+  min-height: 5.2875rem;
   align-items: center;
   margin-right: 0;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
   margin-left: 0;
   padding: .5rem .8rem .5rem .7rem;
   border: 1px solid #263f52;
@@ -1483,6 +1488,7 @@ table.table > tbody > tr.table-info {
   border-radius: 4px;
   background: linear-gradient(180deg, #7ea45f 0 66%, #d4ac5b 66%);
   content: "";
+  z-index: 3;
 }
 
 .page-title-actions-row h1 {
@@ -1500,8 +1506,12 @@ table.table > tbody > tr.table-info {
 .page-title-actions-row h1::before { display: none !important; }
 
 .page-title-actions-row > [class*="col-"] {
+  position: relative;
+  z-index: 2;
   margin-top: 0 !important;
   margin-bottom: 0 !important;
+  padding-right: 0;
+  padding-left: 0;
 }
 
 .page-title-actions-row > .col-3 {
@@ -1696,11 +1706,27 @@ table.table.prize-table td,
 
 .data-table-fit h4 { text-align: center !important; }
 
-/* Conserve une zone de respiration sous le dernier tableau de chaque page.
- * Le padding appartient au conteneur de page : il ne s'ajoute donc pas entre
- * plusieurs tableaux successifs et reste visible au bas de la zone de défilement. */
+/* Cadre vertical commun à toutes les pages.
+ * `flow-root` contient les marges du premier et du dernier élément dans la
+ * page : elles ne peuvent plus s'ajouter à la hauteur minimale du conteneur
+ * et provoquer un ascenseur artificiel. La marge basse reprend la valeur du
+ * `mt-4` utilisé en haut des pages (1,5rem). */
 .raw > .col-12 {
-  padding-bottom: 2rem;
+  display: flow-root;
+  padding-bottom: 1.5rem;
+}
+
+/* Les espaces de travail sur ordinateur occupent exactement la hauteur utile
+ * et font défiler leurs panneaux, jamais la page entière. Leur marge basse
+ * est donc gérée à l'intérieur du composant. */
+@media (min-width: 768px) {
+  body:has(app-list-challenge) .raw > .col-12,
+  body:has(app-form-processing-workspace) .raw > .col-12 {
+    height: calc(100vh - 72px);
+    min-height: 0;
+    padding-bottom: 0;
+    overflow: hidden;
+  }
 }
 
 /* Sous-titre intégré au bandeau principal, sur le modèle de la page de
@@ -1761,6 +1787,27 @@ table.table.prize-table td,
   border-radius: 4px;
   background: linear-gradient(180deg, #7ea45f 0 66%, #d4ac5b 66%);
   content: "";
+  z-index: 1;
+}
+
+.page-title-with-subtitle > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Une seule respiration après le bandeau, quelle que soit la structure de
+ * la page. Les anciennes classes `mt-*` de l'objet suivant ne s'ajoutent
+ * plus à la marge du titre. */
+.row:has(> h1.page-title-with-subtitle) {
+  margin-bottom: 1.5rem;
+}
+
+.row:has(> h1.page-title-with-subtitle) > h1.page-title-with-subtitle {
+  margin-bottom: 0 !important;
+}
+
+.row:has(> h1.page-title-with-subtitle) + * {
+  margin-top: 0 !important;
 }
 
 .page-title-actions-row {
@@ -1778,7 +1825,8 @@ table.table.prize-table td,
   max-width: 100%;
   padding: .2rem .5rem .2rem .7rem !important;
   border: 0;
-  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
   box-shadow: none;
   transform: none;
 }
@@ -1853,6 +1901,8 @@ table.table.prize-table td,
 @media (max-width: 575.98px) {
   .page-title-actions-row {
     display: flex;
+    height: auto;
+    min-height: 5.2875rem;
     gap: .55rem;
     padding: .48rem .55rem .48rem .7rem;
   }
@@ -1861,4 +1911,30 @@ table.table.prize-table td,
   .page-title-actions-row > .col-12 { padding: 0 .1rem 0 .35rem; }
   .page-title-actions-row h1 { padding-left: .35rem !important; font-size: 1.25rem !important; }
   .page-title-actions-row .btn { min-height: 2.2rem; padding: .38rem .55rem; font-size: .75rem; }
+}
+
+/* Le premier tableau ne doit pas ajouter sa marge interne à l'espacement
+ * standard situé sous le bandeau principal. Les tableaux suivants gardent
+ * leur respiration habituelle. */
+:is(.page-title-actions-row, .row:has(> h1.page-title-with-subtitle))
+  + *:not(.presentation-slide):not(.print-ranking-view)
+  .data-table-fit:first-child > .row:first-child {
+  margin-top: 0 !important;
+}
+
+/* Les classements intercalent leurs vues d'impression et de présentation
+ * (masquées à l'écran) entre le titre et la vue normale. On cible donc
+ * explicitement le premier tableau visible plutôt que le simple voisin DOM. */
+.page-title-actions-row
+  ~ .standard-ranking-view > app-ranking:first-child
+  .data-table-fit > .row:first-child {
+  margin-top: 0 !important;
+}
+
+@media (min-width: 576px) {
+  /* Même axe de texte dans les bandeaux avec ou sans action. La répétition de
+   * classe neutralise proprement l'ancien sélecteur du premier h1 de page. */
+  body .page-title-actions-row.page-title-actions-row h1.page-title-with-subtitle {
+    padding: .2rem .5rem .2rem .65rem !important;
+  }
 }
