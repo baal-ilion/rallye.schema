@@ -1,9 +1,5 @@
 <main class="capture-shell" [class.camera-mode]="cameraActive" [class.gallery-mode]="galleryOpen"
-  [style.position]="cameraActive || galleryOpen ? 'fixed' : 'relative'"
-  [style.inset]="cameraActive || galleryOpen ? '0' : 'auto'"
-  [style.z-index]="cameraActive || galleryOpen ? '2000' : 'auto'"
-  [style.height]="cameraActive || galleryOpen ? '100dvh' : 'calc(100dvh - 56px)'"
-  [style.grid-template-rows]="cameraActive ? 'minmax(0,1fr)' : '3.5rem minmax(0,1fr)'">
+  [style.grid-template-rows]="cameraActive ? 'minmax(0,1fr)' : 'auto minmax(0,1fr)'">
   <input #cameraInput type="file" class="d-none" accept="image/*" capture="environment" multiple
     (change)="addDevicePhotos($event.target.files)">
 

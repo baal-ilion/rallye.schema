@@ -49,4 +49,20 @@
   .intake-header {
     width: calc(100vw - 1.4rem);
   }
+
+  :host,
+  .intake-page,
+  .intake-card,
+  .drop-zone {
+    min-height: 0 !important;
+  }
+
+  .intake-page > .row:first-child {
+    margin-top: .7rem !important;
+  }
+
+  .drop-zone {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
 }

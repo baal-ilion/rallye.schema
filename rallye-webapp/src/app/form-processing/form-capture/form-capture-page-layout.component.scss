@@ -1,0 +1,40 @@
+/* Hors prise de vue, la page suit le flux normal comme l'import de scans.
+ * La hauteur ne doit pas recréer un second viewport sous la navigation. */
+.capture-shell:not(.camera-mode):not(.gallery-mode) {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  height: auto;
+  max-height: none;
+  margin: 0 auto;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+@media (max-width: 767.98px) {
+  :host {
+    display: block;
+    min-height: 0;
+  }
+
+  .capture-shell:not(.camera-mode):not(.gallery-mode) {
+    min-height: 0;
+  }
+
+  .capture-shell:not(.camera-mode):not(.gallery-mode) > .row {
+    margin-top: .7rem !important;
+    margin-bottom: .7rem !important;
+  }
+
+  .capture-shell:not(.camera-mode):not(.gallery-mode) .launch-screen {
+    min-height: 0;
+    padding-top: 1rem;
+    padding-bottom: 4rem;
+  }
+
+  .capture-shell:not(.camera-mode):not(.gallery-mode) .primary-capture {
+    margin-bottom: 1rem;
+  }
+}

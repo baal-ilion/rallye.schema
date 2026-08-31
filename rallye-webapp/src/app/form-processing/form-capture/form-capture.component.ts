@@ -23,7 +23,7 @@ interface CapturedForm {
 @Component({
   selector: 'app-form-capture',
   templateUrl: './form-capture.component.html',
-  styleUrls: ['./form-capture.component.scss']
+  styleUrls: ['./form-capture.component.scss', './form-capture-page-layout.component.scss']
 })
 export class FormCaptureComponent implements OnDestroy {
 

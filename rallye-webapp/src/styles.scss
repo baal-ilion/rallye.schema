@@ -1952,3 +1952,20 @@ table.table.prize-table td,
     padding: .2rem .5rem .2rem .65rem !important;
   }
 }
+
+/* Les deux pages d'acquisition sont compactes sur smartphone. Leur imposer
+ * la hauteur minimale commune du contenu ajoutait la hauteur du menu une
+ * seconde fois et créait un défilement sans contenu à afficher. */
+@media (max-width: 767.98px) {
+  body:has(app-form-capture),
+  body:has(app-scanned-form-import),
+  body:has(app-form-capture) app-root,
+  body:has(app-scanned-form-import) app-root,
+  body:has(app-form-capture) app-root > .raw,
+  body:has(app-form-capture) app-root > .raw > .col-12,
+  body:has(app-scanned-form-import) app-root > .raw,
+  body:has(app-scanned-form-import) app-root > .raw > .col-12 {
+    height: auto;
+    min-height: 0;
+  }
+}
