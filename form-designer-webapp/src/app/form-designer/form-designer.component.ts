@@ -636,7 +636,7 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
         this.normalizeChallengeDesign(this.referenceChallenge);
         this.referenceChallenge.id = this.referenceChallengeId;
         this.referenceChallenge.name = 'Formulaire de référence';
-        this.referenceChallenge.hasFormDesign = true;
+        this.referenceChallenge.hasFormDesign = !!referenceDesign;
         this.referenceChallenge.formDesignVersion = referenceDesign?.version;
         const requestedChallenge = this.requestedChallengeId
           ? this.project.challenges.find(challenge => challenge.id === this.requestedChallengeId)
@@ -661,7 +661,7 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
       this.validateChallengesBeforeSave(this.project.challenges);
       await this.saveRally();
       await this.persistChallenges(this.project.challenges);
-      await this.persistReferenceForm();
+      if (this.referenceChallenge.hasFormDesign) { await this.persistReferenceForm(); }
       await this.publishAllRecognitions();
       this.setSyncState('saved', 'Projet enregistré dans la configuration partagée.');
     } catch (error) {
@@ -976,7 +976,7 @@ export class FormDesignerComponent implements OnInit, AfterViewChecked {
     const previousChallengeId = this.activeChallengeId;
     const previousSelectedBlockId = this.selectedBlockId;
     const allChallengeIds = [
-      this.referenceChallengeId,
+      ...(this.referenceChallenge.hasFormDesign ? [this.referenceChallengeId] : []),
       ...this.project.challenges.filter(challenge => challenge.hasFormDesign).map(challenge => challenge.id)
     ];
     const challengeIds = [

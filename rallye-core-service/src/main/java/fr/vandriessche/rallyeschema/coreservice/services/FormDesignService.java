@@ -19,13 +19,15 @@ public class FormDesignService {
 
 	public List<FormDesign> getChallengeFormDesigns() {
 		return formDesignRepository.findAll().stream()
+				.filter(FormDesign::isDesignerManaged)
 				.filter(design -> design.getChallengeConfigurationId() != null)
 				.collect(java.util.stream.Collectors.toList());
 	}
 
 	public FormDesign getChallengeFormDesign(String challengeConfigurationId) {
 		challengeConfigurationRepository.findById(challengeConfigurationId).orElseThrow();
-		return formDesignRepository.findByChallengeConfigurationId(challengeConfigurationId).orElse(null);
+		return formDesignRepository.findByChallengeConfigurationId(challengeConfigurationId)
+				.filter(FormDesign::isDesignerManaged).orElse(null);
 	}
 
 	public FormDesign saveChallengeFormDesign(String challengeConfigurationId, FormDesign design) {
@@ -36,16 +38,18 @@ public class FormDesignService {
 			design.setVersion(existing.getVersion());
 		}
 		design.setChallengeConfigurationId(challengeConfigurationId);
+		design.setDesignerManaged(true);
 		design.setUpdatedAt(Instant.now());
 		return formDesignRepository.save(design);
 	}
 
 	public void deleteChallengeFormDesign(String challengeConfigurationId) {
-		formDesignRepository.deleteByChallengeConfigurationId(challengeConfigurationId);
+		formDesignRepository.findByChallengeConfigurationId(challengeConfigurationId)
+				.filter(FormDesign::isDesignerManaged).ifPresent(formDesignRepository::delete);
 	}
 
 	public FormDesign getReferenceFormDesign() {
-		return formDesignRepository.findById(FormDesign.REFERENCE_ID).orElse(null);
+		return formDesignRepository.findById(FormDesign.REFERENCE_ID).filter(FormDesign::isDesignerManaged).orElse(null);
 	}
 
 	public FormDesign saveReferenceFormDesign(FormDesign design) {
@@ -55,11 +59,13 @@ public class FormDesignService {
 			design.setVersion(existing.getVersion());
 		}
 		design.setChallengeConfigurationId(null);
+		design.setDesignerManaged(true);
 		design.setUpdatedAt(Instant.now());
 		return formDesignRepository.save(design);
 	}
 
 	public void deleteReferenceFormDesign() {
-		formDesignRepository.deleteById(FormDesign.REFERENCE_ID);
+		formDesignRepository.findById(FormDesign.REFERENCE_ID).filter(FormDesign::isDesignerManaged)
+				.ifPresent(formDesignRepository::delete);
 	}
 }

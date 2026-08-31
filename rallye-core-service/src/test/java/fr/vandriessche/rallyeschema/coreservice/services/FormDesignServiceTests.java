@@ -3,6 +3,7 @@ package fr.vandriessche.rallyeschema.coreservice.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -45,6 +46,7 @@ class FormDesignServiceTests {
 		assertEquals("challenge-id", result.getId());
 		assertEquals("challenge-id", result.getChallengeConfigurationId());
 		assertEquals(6, result.getSchemaVersion());
+		assertTrue(result.isDesignerManaged());
 	}
 
 	@Test
@@ -58,12 +60,17 @@ class FormDesignServiceTests {
 
 		assertEquals(FormDesign.REFERENCE_ID, result.getId());
 		assertNull(result.getChallengeConfigurationId());
+		assertTrue(result.isDesignerManaged());
 	}
 
 	@Test
 	void deleteChallengeDesignDoesNotDeleteTheChallenge() {
+		FormDesign design = new FormDesign();
+		design.setDesignerManaged(true);
+		when(formDesignRepository.findByChallengeConfigurationId("challenge-id")).thenReturn(Optional.of(design));
+
 		formDesignService.deleteChallengeFormDesign("challenge-id");
 
-		verify(formDesignRepository).deleteByChallengeConfigurationId("challenge-id");
+		verify(formDesignRepository).delete(design);
 	}
 }

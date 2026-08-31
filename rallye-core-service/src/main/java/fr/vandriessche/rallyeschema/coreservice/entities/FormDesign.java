@@ -28,6 +28,7 @@ public class FormDesign {
 	private String challengeConfigurationId;
 
 	private Integer schemaVersion;
+	private boolean designerManaged;
 	private Map<String, Object> content = new LinkedHashMap<>();
 	private Instant updatedAt;
 }

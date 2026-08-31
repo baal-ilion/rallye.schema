@@ -183,7 +183,10 @@ public class SharingService {
 		ZipInputStream zis = new ZipInputStream(file.getInputStream());
 		ZipEntry zipEntry = zis.getNextEntry();
 		while (zipEntry != null) {
-			String name = zipEntry.getName();
+			// ZIP entry names are specified with forward slashes. Some Windows ZIP
+			// writers nevertheless emit backslashes, so normalize them before
+			// matching the archive contract.
+			String name = normalizeZipEntryName(zipEntry.getName());
 			if (name.equals(RALLY_CONFIGURATION)) {
 				recognizedEntry = true;
 				rallyConfigurations.add(readFile(zis, RallyConfiguration.class));
@@ -261,6 +264,9 @@ public class SharingService {
 
 		for (FormDesign formDesign : formDesigns) {
 			formDesign.setVersion(null);
+			if (FormDesign.REFERENCE_ID.equals(formDesign.getId())) {
+				formDesign.setDesignerManaged(true);
+			}
 			formDesignRepository.insert(formDesign);
 		}
 		if (!rallyConfigurations.isEmpty()) {
@@ -270,6 +276,10 @@ public class SharingService {
 			rallyConfiguration.setVersion(null);
 			rallyConfigurationRepository.insert(rallyConfiguration);
 		}
+	}
+
+	static String normalizeZipEntryName(String name) {
+		return name.replace('\\', '/');
 	}
 
 	private void validateSubmittedForms(HashMap<String, FormRecognitionConfiguration> formRecognitionConfigurations,
@@ -301,6 +311,9 @@ public class SharingService {
 			formReferenceImages.remove(dir);
 
 			formRecognitionConfiguration.setTemplate(template.toString(StandardCharsets.UTF_8));
+			if (REFERENCE.equals(dir)) {
+				formRecognitionConfiguration.setDesignerManaged(true);
+			}
 			if (REFERENCE.equals(dir)) {
 				formRecognitionConfigurationService.addReferenceFormRecognitionConfiguration(formRecognitionConfiguration, formReferenceImage);
 			} else {
