@@ -15,6 +15,8 @@ export class ConfigurationTransferComponent implements OnInit {
 
   exportUrl = AppConfigService.settings.apiUrl.rallyeSchema + '/sharing/configuration';
   uploadedFiles: { file: File, progress: { percentage: number } }[] = [];
+  importStatus = '';
+  importError = '';
 
   constructor(private configurationTransferService: ConfigurationTransferService, private confirmationDialogService: ConfirmationDialogService) { }
 
@@ -44,6 +46,8 @@ export class ConfigurationTransferComponent implements OnInit {
   }
 
   uploadFile(fileToUpload) {
+    this.importStatus = 'Import du paramétrage en cours…';
+    this.importError = '';
     const uploadedFile = { file: fileToUpload, progress: { percentage: 0 } };
     this.uploadedFiles.push(uploadedFile);
 
@@ -51,8 +55,14 @@ export class ConfigurationTransferComponent implements OnInit {
       if (event.type === HttpEventType.UploadProgress) {
         uploadedFile.progress.percentage = Math.round(100 * event.loaded / event.total);
       } else if (event instanceof HttpResponse) {
+        this.importStatus = 'Paramétrage importé avec succès.';
         console.log('File is completely uploaded!');
       }
+    }, error => {
+      this.importStatus = '';
+      this.importError = error?.error?.message
+        || 'Le paramétrage n’a pas pu être importé. Vérifiez que le fichier ZIP est une archive de paramétrage valide.';
+      console.error('Configuration import failed', error);
     });
   }
 }
