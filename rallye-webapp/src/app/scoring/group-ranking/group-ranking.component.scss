@@ -42,6 +42,13 @@
 .presentation-active > .row.d-print-none { display: none !important; }
 .presentation-active .standard-ranking-view { display: none !important; }
 
+/* Each ranking is wrapped in its own row. The global first-ranking rule removes
+ * the internal top margin from every one of those rows, so restore a consistent
+ * gap only between consecutive rankings in the standard view. */
+.standard-ranking-view + .standard-ranking-view {
+  margin-top: 1rem;
+}
+
 .presentation-slide {
   display: grid;
   grid-template-columns: minmax(0, 1500px);
