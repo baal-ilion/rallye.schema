@@ -27,5 +27,8 @@ public class FormRecognitionConfiguration {
 	private Integer height;
 	private Integer width;
 
+	/** Indique que le cycle de vie de cette page appartient au designer. */
+	private boolean designerManaged;
+
 	private LinkedHashMap<String, FormQuestionDefinition> questions = new LinkedHashMap<>();
 }

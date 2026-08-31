@@ -3,6 +3,7 @@ package fr.vandriessche.rallyeschema.coreservice.services;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -106,6 +107,7 @@ class SharingServiceTests {
 		design.setVersion(4L);
 		design.setChallengeConfigurationId("challenge-id");
 		design.setSchemaVersion(7);
+		design.setDesignerManaged(true);
 		design.setContent(new java.util.LinkedHashMap<>(java.util.Map.of(
 				"sections", java.util.List.of(java.util.Map.of(
 						"verticalTitle", true,
@@ -124,7 +126,38 @@ class SharingServiceTests {
 		verify(formDesignRepository).insert(restoredDesign.capture());
 		assertEquals(7, restoredDesign.getValue().getSchemaVersion());
 		assertEquals(design.getContent(), restoredDesign.getValue().getContent());
+		assertTrue(restoredDesign.getValue().isDesignerManaged());
 		verify(rallyConfigurationRepository).insert(any(RallyConfiguration.class));
+	}
+
+	@Test
+	void importPreservesDesignerOwnershipOfChallengeForms() throws Exception {
+		ChallengeConfiguration challenge = new ChallengeConfiguration(83);
+		challenge.setId("challenge-id");
+		FormRecognitionConfiguration configuration = new FormRecognitionConfiguration();
+		configuration.setChallenge(83);
+		configuration.setPage(1);
+		configuration.setDesignerManaged(true);
+
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		try (ZipOutputStream zip = new ZipOutputStream(output)) {
+			write(zip, "challengeConfiguration/challengeConfiguration-83/challengeConfiguration-83.json", challenge);
+			String directory = "challengeConfiguration/challengeConfiguration-83/formRecognitionConfiguration-83-1/";
+			write(zip, directory + "configuration-83-1.json", configuration);
+			zip.putNextEntry(new ZipEntry(directory + "template-83-1.xtmpl"));
+			zip.write("<template/>".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+			zip.closeEntry();
+			zip.putNextEntry(new ZipEntry(directory + "reference-image-83-1.png"));
+			zip.write(new byte[] { 1, 2, 3 });
+			zip.closeEntry();
+		}
+
+		sharingService.importConfigurationArchive(new MockMultipartFile("file", "configuration.zip",
+				"application/zip", output.toByteArray()));
+
+		ArgumentCaptor<FormRecognitionConfiguration> restored = ArgumentCaptor.forClass(FormRecognitionConfiguration.class);
+		verify(formRecognitionConfigurationService).addFormRecognitionConfiguration(restored.capture(), isNull(), any());
+		assertTrue(restored.getValue().isDesignerManaged());
 	}
 
 	@Test
@@ -172,5 +205,19 @@ class SharingServiceTests {
 			}
 		}
 		return entries;
+	}
+
+	@Test
+	void normalizesWindowsZipEntryNames() {
+		assertEquals(
+				"challengeConfiguration/challengeConfiguration-41/challengeConfiguration-41.json",
+				SharingService.normalizeZipEntryName(
+						"challengeConfiguration\\challengeConfiguration-41\\challengeConfiguration-41.json"));
+	}
+
+	@Test
+	void keepsStandardZipEntryNamesUnchanged() {
+		assertEquals("rally/configuration.json",
+				SharingService.normalizeZipEntryName("rally/configuration.json"));
 	}
 }

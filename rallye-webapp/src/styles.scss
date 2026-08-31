@@ -90,6 +90,20 @@ body {
     background: #fff !important;
   }
 
+  /* Le cadre global de l'application remplit la hauteur de l'écran en mode
+   * interactif. En impression, cette hauteur minimale produisait un grand bloc
+   * gris après le dernier classement. Le papier doit suivre strictement la
+   * hauteur du contenu imprimé. */
+  app-root,
+  app-root > .raw,
+  app-root > .raw > .col-12 {
+    height: auto !important;
+    min-height: 0 !important;
+    padding-bottom: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
   .raw,
   .raw > .col-12 {
     width: 100% !important;

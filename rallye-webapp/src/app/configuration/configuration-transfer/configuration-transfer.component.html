@@ -44,6 +44,12 @@
               </div>
             </div>
           </div>
+          <div *ngIf="importStatus" class="alert alert-success mt-3 mb-0" role="status">
+            {{ importStatus }}
+          </div>
+          <div *ngIf="importError" class="alert alert-danger mt-3 mb-0" role="alert">
+            {{ importError }}
+          </div>
         </div>
       </div>
     </div>

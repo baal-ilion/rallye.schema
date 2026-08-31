@@ -89,6 +89,7 @@ public class FormRecognitionConfigurationService {
 		formRecognitionConfiguration.setId(null);
 		formRecognitionConfiguration.setChallenge(null);
 		formRecognitionConfiguration.setPage(null);
+		formRecognitionConfiguration.setDesignerManaged(true);
 		fillFormRecognitionConfiguration(formRecognitionConfiguration);
 		fillFormRecognitionConfiguration(formRecognitionConfiguration, formReferenceImage);
 		formRecognitionConfiguration = formRecognitionConfigurationRepository.save(formRecognitionConfiguration);
@@ -142,6 +143,7 @@ public class FormRecognitionConfigurationService {
 
 	public void deleteFormRecognitionConfigurationsByChallenge(Integer challenge) {
 		new ArrayList<>(formRecognitionConfigurationRepository.findByChallenge(challenge))
+				.stream().filter(FormRecognitionConfiguration::isDesignerManaged)
 				.forEach(configuration -> deleteCascadeFormRecognitionConfiguration(configuration.getId()));
 	}
 
@@ -155,12 +157,18 @@ public class FormRecognitionConfigurationService {
 			configuration.setChallenge(challenge);
 			FormRecognitionConfiguration existing = formRecognitionConfigurationRepository.findByChallengeAndPage(challenge, configuration.getPage())
 					.orElse(null);
+			if (existing != null && !existing.isDesignerManaged()) {
+				throw new IllegalStateException("Le formulaire de l'épreuve " + challenge + ", page " + configuration.getPage()
+						+ " a été configuré en dehors du designer et ne peut pas être remplacé par celui-ci.");
+			}
 			configuration.setId(existing == null ? null : existing.getId());
+			configuration.setDesignerManaged(true);
 			savedPages.add(addFormRecognitionConfiguration(configuration, null, makeGeneratedFormReferenceImage(generatedPage)));
 		}
 		List<Integer> publishedPageNumbers = savedPages.stream().map(FormRecognitionConfiguration::getPage)
 				.collect(java.util.stream.Collectors.toList());
-		existingPages.stream().filter(existing -> !publishedPageNumbers.contains(existing.getPage()))
+		existingPages.stream().filter(FormRecognitionConfiguration::isDesignerManaged)
+				.filter(existing -> !publishedPageNumbers.contains(existing.getPage()))
 				.forEach(existing -> deleteCascadeFormRecognitionConfiguration(existing.getId()));
 		return savedPages;
 	}
@@ -171,8 +179,12 @@ public class FormRecognitionConfigurationService {
 		configuration.setChallenge(null);
 		configuration.setPage(null);
 		FormRecognitionConfiguration existingReference = getReferenceFormRecognitionConfiguration().orElse(null);
+		if (existingReference != null && !existingReference.isDesignerManaged()) {
+			throw new IllegalStateException("Le formulaire de référence a été configuré en dehors du designer et ne peut pas être remplacé par celui-ci.");
+		}
 		if (existingReference != null)
 			configuration.setId(existingReference.getId());
+		configuration.setDesignerManaged(true);
 		fillFormRecognitionConfiguration(configuration);
 		FormReferenceImage referenceImage = makeGeneratedFormReferenceImage(generated);
 		fillFormRecognitionConfiguration(configuration, referenceImage);
@@ -183,7 +195,8 @@ public class FormRecognitionConfigurationService {
 	}
 
 	public void deleteReferenceFormRecognitionConfiguration() {
-		getReferenceFormRecognitionConfiguration().ifPresent(reference -> deleteFormRecognitionConfiguration(reference.getId()));
+		getReferenceFormRecognitionConfiguration().filter(FormRecognitionConfiguration::isDesignerManaged)
+				.ifPresent(reference -> deleteFormRecognitionConfiguration(reference.getId()));
 	}
 
 	public FormRecognitionConfiguration updateFormRecognitionConfiguration(FormRecognitionConfiguration formRecognitionConfiguration, MultipartFile fileModel)

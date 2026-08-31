@@ -14,6 +14,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 @Configuration
 public class MessageQueueConfig {
 
@@ -110,7 +112,10 @@ public class MessageQueueConfig {
 
 	@Bean
 	public Jackson2JsonMessageConverter producerJackson2MessageConverter() {
-		return new Jackson2JsonMessageConverter();
+		// The AMQP converter does not use Spring Boot's configured ObjectMapper by
+		// default. Registering the available Jackson modules is required for Java
+		// time values (Instant in particular) to round-trip correctly.
+		return new Jackson2JsonMessageConverter(new ObjectMapper().findAndRegisterModules());
 	}
 
 }
