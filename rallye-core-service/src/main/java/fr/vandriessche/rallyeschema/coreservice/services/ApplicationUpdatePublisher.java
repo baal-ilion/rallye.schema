@@ -13,6 +13,6 @@ public class ApplicationUpdatePublisher {
 
     public void publish(String domain, String path, String method) {
         messagingTemplate.convertAndSend("/topic/applicationUpdate",
-                Map.of("domain", domain, "path", path, "method", method));
+                (Object) Map.of("domain", domain, "path", path, "method", method));
     }
 }

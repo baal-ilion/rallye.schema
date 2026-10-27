@@ -53,7 +53,9 @@ form-processing:
 
 ---
 spring:
-  profiles: test
+  config:
+    activate:
+      on-profile: test
   rabbitmq:
     listener:
       simple:
@@ -66,7 +68,9 @@ spring:
 
 ---
 spring:
-  profiles: docker
+  config:
+    activate:
+      on-profile: docker
   data:
     mongodb:
       database: rallye

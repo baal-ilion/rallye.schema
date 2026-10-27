@@ -17,10 +17,11 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.resttestclient.TestRestTemplate;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,7 +29,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.jayway.jsonpath.JsonPath;
 
 import fr.vandriessche.rallyeschema.coreservice.controllers.FormRecognitionConfigurationController;
@@ -38,6 +40,7 @@ import fr.vandriessche.rallyeschema.coreservice.repositories.FormRecognitionConf
 import fr.vandriessche.rallyeschema.coreservice.repositories.ChallengeConfigurationRepository;
 
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = "server.ssl.enabled=false")
+@AutoConfigureTestRestTemplate
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @ActiveProfiles("test")
 class FormRecognitionConfigurationControllerTests {
@@ -96,7 +99,7 @@ class FormRecognitionConfigurationControllerTests {
 		formRecognitionConfiguration.setChallenge(1);
 		formRecognitionConfiguration.setPage(1);
 		formRecognitionConfiguration.setTemplate(readStringResourceFile("Challenge 1 - Page 1.xtmpl"));
-		ObjectMapper objectMapper = new ObjectMapper();
+		ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
 		restBody.add("formRecognitionConfiguration", objectMapper.writeValueAsString(formRecognitionConfiguration));
 
 		ResponseEntity<String> result = this.restTemplate.postForEntity(baseUrl + FormRecognitionConfigurationController.URL,
@@ -154,7 +157,7 @@ class FormRecognitionConfigurationControllerTests {
 		formRecognitionConfiguration.setChallenge(1);
 		formRecognitionConfiguration.setPage(2);
 		formRecognitionConfiguration.setTemplate(readStringResourceFile("Challenge 1 - Page 2.xtmpl"));
-		ObjectMapper objectMapper = new ObjectMapper();
+		ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
 		restBody.add("formRecognitionConfiguration", objectMapper.writeValueAsString(formRecognitionConfiguration));
 
 		ResponseEntity<String> result = this.restTemplate.postForEntity(baseUrl + FormRecognitionConfigurationController.URL,

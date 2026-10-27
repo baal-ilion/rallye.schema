@@ -5,7 +5,7 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -130,8 +130,8 @@ public class FormProcessingClient {
 	public FormProcessingClient(RestTemplateBuilder builder,
 			@Value("${form-processing.url:http://localhost:8085}") String serviceUrl,
 			@Value("${form-processing.batch-url:${form-processing.url:http://localhost:8085}}") String batchServiceUrl) {
-		this(builder.setConnectTimeout(java.time.Duration.ofSeconds(3))
-				.setReadTimeout(java.time.Duration.ofSeconds(30)).build(), serviceUrl, batchServiceUrl);
+		this(builder.connectTimeout(java.time.Duration.ofSeconds(3))
+				.readTimeout(java.time.Duration.ofSeconds(30)).build(), serviceUrl, batchServiceUrl);
 	}
 
 	FormProcessingClient(RestTemplate restTemplate, String serviceUrl) {

@@ -9,12 +9,13 @@ import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
+import org.springframework.amqp.support.converter.DefaultJacksonJavaTypeMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 @Configuration
 public class MessageQueueConfig {
@@ -106,16 +107,21 @@ public class MessageQueueConfig {
 	@Bean
 	public RabbitTemplate rabbitTemplate(final ConnectionFactory connectionFactory) {
 		final RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
-		rabbitTemplate.setMessageConverter(producerJackson2MessageConverter());
+		rabbitTemplate.setMessageConverter(producerJacksonMessageConverter());
 		return rabbitTemplate;
 	}
 
 	@Bean
-	public Jackson2JsonMessageConverter producerJackson2MessageConverter() {
+	public JacksonJsonMessageConverter producerJacksonMessageConverter() {
 		// The AMQP converter does not use Spring Boot's configured ObjectMapper by
 		// default. Registering the available Jackson modules is required for Java
 		// time values (Instant in particular) to round-trip correctly.
-		return new Jackson2JsonMessageConverter(new ObjectMapper().findAndRegisterModules());
+		JacksonJsonMessageConverter converter = new JacksonJsonMessageConverter(
+				JsonMapper.builder().findAndAddModules().build());
+		DefaultJacksonJavaTypeMapper typeMapper = new DefaultJacksonJavaTypeMapper();
+		typeMapper.addTrustedPackages("fr.vandriessche.rallyeschema.coreservice.entities");
+		converter.setJavaTypeMapper(typeMapper);
+		return converter;
 	}
 
 }

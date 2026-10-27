@@ -18,6 +18,6 @@ public class ChallengeResultUpdatePublisher {
 
 	public void publishUpdate(Integer challenge, Integer team, String operation, String scope) {
 		messagingTemplate.convertAndSend("/topic/challengeResultUpdate",
-				Map.of("challenge", challenge, "team", team, "operation", operation, "scope", scope));
+				(Object) Map.of("challenge", challenge, "team", team, "operation", operation, "scope", scope));
 	}
 }

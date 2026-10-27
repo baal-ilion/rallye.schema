@@ -1,5 +1,11 @@
-## Pour utiliser java 11
-$env:java_home = "C:\Program Files\AdoptOpenJDK\jdk-11.0.3.7-hotspot\"
+## Environnement Java
+
+Le service utilise Java 25 LTS et Spring Boot 4.1. Maven est fourni par le wrapper du projet :
+
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-25"
+..\mvnw.cmd test
+```
 
 ## Configuration commune du rallye et formulaires du designer
 

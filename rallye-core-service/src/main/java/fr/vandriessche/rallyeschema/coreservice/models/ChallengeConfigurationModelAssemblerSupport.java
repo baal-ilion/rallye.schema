@@ -5,7 +5,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
-import org.springframework.lang.NonNull;
+import org.jspecify.annotations.NonNull;
 
 import fr.vandriessche.rallyeschema.coreservice.controllers.FormRecognitionConfigurationController;
 import fr.vandriessche.rallyeschema.coreservice.controllers.ChallengeConfigurationController;

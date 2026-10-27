@@ -18,8 +18,8 @@ variables:
   # `installAtEnd` and `deployAtEnd` are only effective with recent version of the corresponding plugins.
   MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
   
-# This template uses jdk11 for verifying and deploying images
-image: maven:3.6.3-jdk-11
+# Java 25 LTS toolchain used for verification and deployment.
+image: maven:3.9.16-eclipse-temurin-25
   
 # Cache downloaded dependencies and plugins between builds.
 # To keep cache across branches add 'key: "$CI_JOB_NAME"'
@@ -36,15 +36,15 @@ cache:
   except:
     - master
 
-# Verify merge requests using JDK11
-verify:jdk11:
+# Verify merge requests using Java 25.
+verify:jdk25:
   <<: *verify
  
 # To deploy packages from CI, create a ci_settings.xml file
 # For deploying packages to GitLab's Maven Repository: See https://docs.gitlab.com/ee/user/project/packages/maven_repository.html#creating-maven-packages-with-gitlab-cicd for more details.
 # Please note: The GitLab Maven Repository is currently only available in GitLab Premium / Ultimate.
 # For `master` branch run `mvn deploy` automatically.
-deploy:jdk8:
+deploy:jdk25:
   stage: deploy
   script:
     - if [ ! -f ci_settings.xml ];
@@ -53,4 +53,3 @@ deploy:jdk8:
     - 'mvn $MAVEN_CLI_OPTS deploy -s ci_settings.xml'
   only:
     - master
-  
