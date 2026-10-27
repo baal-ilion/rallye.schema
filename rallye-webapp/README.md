@@ -1,57 +1,46 @@
-# Rallye Schéma
+# Application principale Rallye Schéma
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 8.3.15.
+Ce répertoire contient le front des organisateurs, développé avec Angular 18.2.
 
-## Development server
+## Prérequis
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
+- Node.js 20.x ;
+- npm ;
+- API Rallye Schéma disponible pour utiliser les fonctions métier.
 
-## Code scaffolding
+La procédure d’installation complète se trouve dans la [notice de développement](../docs/installation-environnement-developpement.md).
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+## Installer les dépendances
 
-## Build
+```powershell
+npm ci
+```
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory. Use the `--prod` flag for a production build.
+Angular CLI est installé localement par npm : aucune installation globale n’est nécessaire.
 
-## Running unit tests
+## Lancer en développement
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+```powershell
+npm start
+```
 
-## Running end-to-end tests
+Le script synchronise la configuration du proxy puis ouvre le serveur Angular sur `http://localhost:4200`.
 
-Run `ng e2e` to execute the end-to-end tests via [Protractor](http://www.protractortest.org/).
+## Construire et tester
 
-## Further help
+```powershell
+npm run build -- --configuration=production
+npm test
+```
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI README](https://github.com/angular/angular-cli/blob/master/README.md).
+Les artefacts sont écrits dans `dist/`.
 
+## Lancer avec Docker
 
-## Build docker image dev
-docker build -t rallye-webapp:dev .
+Depuis la racine du dépôt, après génération des certificats :
 
-## run docker image dev
-docker run -it -v ${PWD}:/app -v /app/node_modules -p 4201:4200 --rm rallye-webapp:dev
+```powershell
+docker compose -f rallye-webapp/docker-compose.yml up -d --build
+```
 
-## docker-compose install image prod and run
-docker-compose up -d
-
-## docker-compose build image prod and run
-docker-compose -f docker-compose-prod.yml up -d --build
-
-## Pour mettre l'image sur dockerhub :
-docker push baalilion/rallye-webapp
-
-## Install kubernetes :
-kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml apply -f .\rallye-webapp-config-persistentvolumeclaim.yaml -f .\rallye-webapp-service.yaml -f .\rallye-webapp-deployment.yaml
-
-## Modifier le fichier de config dans kubernetes:
-# Obtenir l'adresse externe du service
-kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml get services
-# Obtenir le nom du pod
-kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml get pods
-# Obtient un TTY interactif et exécute /bin/bash depuis le pod <nom-pod>. Par défaut, la sortie se fait depuis le premier conteneur.
-kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml exec -ti deployment/rallye-webapp -- /bin/sh
-/ # cd usr/share/nginx/html/config/
-/ # vi config.json
-
+L’application est alors disponible sur `https://localhost`.

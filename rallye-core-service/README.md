@@ -1,65 +1,63 @@
-## Environnement Java
+# Service métier Rallye Schéma
 
-Le service utilise Java 25 LTS et Spring Boot 4.1. Maven est fourni par le wrapper du projet :
+Ce module contient l’API centrale du rallye. Il utilise Java 25, Spring Boot 4.1, MongoDB et RabbitMQ.
+
+## Prérequis
+
+- JDK 25 ;
+- Docker Desktop pour MongoDB, RabbitMQ et le moteur de traitement ;
+- certificats générés par les scripts du dépôt.
+
+Maven 3.9.16 est fourni par le wrapper à la racine. La procédure d’installation complète se trouve dans la [notice de développement](../docs/installation-environnement-developpement.md).
+
+## Compiler et tester
+
+Depuis la racine du dépôt :
 
 ```powershell
-$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-25"
-..\mvnw.cmd test
+.\mvnw.cmd -version
+.\mvnw.cmd clean verify
 ```
 
-## Configuration commune du rallye et formulaires du designer
+La première commande doit indiquer Java 25.
 
-Une base contient la configuration d'un seul rallye. Le back expose les données communes au front de correction et au designer :
+## Lancer depuis les sources
 
-- `GET /api/rally` : charge les paramètres globaux et crée les valeurs par défaut sur une base vierge ;
-- `PUT /api/rally` : enregistre les paramètres globaux ;
-- `GET /api/formDesigns/challenges` : liste les projets graphiques rattachés aux épreuves ;
-- `GET /api/formDesigns/challenges/{challengeConfigurationId}` : charge le projet graphique facultatif d'une épreuve ;
-- `PUT /api/formDesigns/challenges/{challengeConfigurationId}` : crée ou remplace son projet graphique ;
-- `DELETE /api/formDesigns/challenges/{challengeConfigurationId}` : supprime uniquement le formulaire, sans supprimer l'épreuve ;
-- `GET|PUT|DELETE /api/formDesigns/reference` : gère le formulaire de référence global.
+Démarrer d’abord MongoDB, RabbitMQ et le moteur de traitement comme indiqué dans la notice, puis :
 
-Une suppression via `DELETE /challengeConfigurations/{id}` supprime aussi le projet graphique rattaché. Les collections `rallyConfiguration` et `formDesign` sont incluses dans la sauvegarde et la restauration de la base.
+```powershell
+$env:SPRING_RABBITMQ_USERNAME = "rallyeschema"
+$env:SPRING_RABBITMQ_PASSWORD = "rallyeschema"
+.\mvnw.cmd -pl rallye-core-service spring-boot:run
+```
 
-## Pour supprimer l'image docker existante :
-docker rmi baalilion/rallye-core-service -f
+L’API est disponible sur `https://localhost:8443`. Son état est exposé par `https://localhost:8443/actuator/health`.
 
-## Pour créer l'image docker manuellement :
-mvnw.cmd jib:dockerBuild
+## Lancer avec Docker
 
-## Pour mettre l'image sur dockerhub :
- .\mvnw.cmd jib:build -Dimage=baalilion/rallye-core-service
+Depuis la racine du dépôt :
 
-## docker-compose
-docker-compose up -d
+```powershell
+docker compose -f rallye-core-service/docker-compose.yml up -d --build
+```
 
-## RAZ de la base de donnée
-# Suppimer le server de base de donnée
-docker rm -f mongodb
-# Supprimer les données
-docker volume rm --force rallye-core-service_rallye_mongodb_data rallye-core-service_rallye_mongodb_config
-# Réinstaller l'API depuis le répertoire rallye-core-service
-docker-compose up -d
-# Ou relacer la procedure de mise a jour
+Cette composition démarre :
 
-## Installation de kubernetes/dashboard
-Installation :
-kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml delete ns kubernetes-dashboard
-kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.3/aio/deploy/recommended.yaml
+- MongoDB ;
+- RabbitMQ et sa console de gestion ;
+- le traitement interactif des formulaires ;
+- le traitement batch des formulaires ;
+- le service métier.
 
-Créer un compte de service
-kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml apply -f dashboard-service-account.yml
+Les données sont conservées dans des volumes Docker. Ne pas utiliser `down -v` sauf pour une remise à zéro volontaire et irréversible de la base de développement.
 
-Créer une liaison de rôles
-kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml apply -f dashboard-cluster-role-binding.yml
+## Contrats du designer
 
-Obtenire la clé
-kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml -n kubernetes-dashboard get secret
-kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml -n kubernetes-dashboard describe secret admin-user-token-mpbnk
+Le service expose notamment :
 
-lancer le service :
-kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml proxy
-http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/
+- `GET` et `PUT /api/rally` pour les paramètres globaux ;
+- `GET /api/formDesigns/challenges` pour les projets graphiques d’épreuve ;
+- `GET`, `PUT` et `DELETE /api/formDesigns/challenges/{challengeConfigurationId}` pour le projet graphique d’une épreuve ;
+- `GET`, `PUT` et `DELETE /api/formDesigns/reference` pour le formulaire de référence global.
 
-## install kubernetes
-kubectl --kubeconfig=$HOME/.kube/kubeconfig.yml apply -f .\mongodb-configdb-persistentvolumeclaim.yaml -f .\mongodb-db-persistentvolumeclaim.yaml -f .\mongodb-deployment.yaml -f .\mongodb-service.yaml -f .\rabbitmq-persistentvolumeclaim.yaml -f .\rabbitmq-deployment.yaml -f .\rabbitmq-service.yaml -f .\rallye-core-service-deployment.yaml -f .\rallye-core-service-service.yaml
+Le formulaire de référence reste géré par le designer. Les formulaires d’épreuve conservent leur indicateur `designerManaged` lors des imports et exports de paramètres.

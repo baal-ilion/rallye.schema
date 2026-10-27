@@ -1,63 +1,76 @@
 # Cahier des charges — Capture photographique des formulaires
 
+> Version mise à jour le 28 octobre 2026. Ce document distingue désormais les fonctions livrées de la cible restant à réaliser. La pile de référence est Java 25 / Spring Boot 4.1, Angular 18 et Python 3.12.
+
 ## 1. Objectif
 
-Permettre à un organisateur d’utiliser le front Rallye Schéma sur un smartphone ou un ordinateur équipé d’une caméra pour photographier plusieurs pages de formulaires corrigés, puis retrouver ces pages dans le flux existant **Vérification des formulaires**.
+Permettre à un organisateur d’utiliser le front Rallye Schéma sur un smartphone ou un ordinateur équipé d’une caméra pour photographier plusieurs pages de formulaires corrigés, puis retrouver ces pages dans le flux existant **Traitement des formulaires**.
 
 Le nouveau parcours ne crée pas une nouvelle étape métier. La correction photographique et l’import de fichiers convergent vers la même file de vérification.
+
+### Architecture de référence
+
+- `rallye-webapp` : acquisition, import, traitement manuel, validation et consultation ;
+- `rallye-core-service` : API métier, stockage MongoDB, files RabbitMQ et orchestration ;
+- `form-processing-service` : normalisation, redressement et reconnaissance d’images ;
+- `form-designer-webapp` : production des formulaires, images de référence et gabarits ;
+- deux instances du moteur de traitement utilisent la même image Docker : une interactive et une batch.
+
+Les contrats métier emploient le terme **épreuve** (`challenge`) et non **étape** (`stage`). Une étape désigne seulement, dans le vocabulaire utilisateur, un type ou un regroupement d’épreuves.
 
 ## 2. Parcours cible
 
 Dans le menu **Gestion des corrections** :
 
 1. **Importer des formulaires numérisés**
-   - remplace le libellé actuel « Import des formulaires » ;
-   - conserve la sélection de plusieurs images présentes sur l’appareil ;
-   - son périmètre réel reste à préciser pour les PDF, actuellement refusés par le back.
+   - route actuelle : `/forms/import-scans` ;
+   - accepte plusieurs images présentes sur l’appareil ou déposées par glisser-déposer ;
+   - démarre automatiquement l’envoi, avec au plus deux fichiers simultanés ;
+   - n’accepte pas les PDF.
 2. **Photographier des formulaires**
-   - ouvre une interface de prise de vue adaptée au smartphone et à la caméra du PC ;
+   - route actuelle : `/forms/capture` ;
+   - ouvre une interface adaptée au smartphone et à la caméra du PC ;
    - permet de conserver plusieurs photos au cours de la même session ;
-   - permet de contrôler, recommencer, supprimer et réordonner les pages avant envoi.
-3. **Vérification des formulaires**
-   - reste l’unique écran de vérification ;
+   - permet de contrôler, recommencer et supprimer les pages.
+3. **Traitement des formulaires**
+   - route actuelle : `/forms/processing` ;
+   - reste l’unique écran de vérification et de résolution des doublons ;
    - reçoit indistinctement les imports numérisés et les photographies traitées.
 
 Flux fonctionnel :
 
 ```text
 Importer des fichiers ───────┐
-                             ├──> Vérification des formulaires
+                             ├──> Traitement des formulaires ──> Validation des épreuves
 Photographier des pages ─────┘
 ```
 
 Le redressement et la normalisation des photographies sont des traitements techniques automatiques et non un écran supplémentaire.
 
-## 3. État actuel constaté
+## 3. État livré
 
-### Front
+### Front principal
 
-- La route `/formUpload` permet de sélectionner plusieurs fichiers avec `accept="image/*"`.
-- Chaque fichier est envoyé séparément à `POST /submittedForms`.
-- Trois tentatives sont faites en cas d’échec.
-- La route `/listUpload` charge les `SubmittedFormMetadata` non vérifiés (`checked` faux ou absent).
-- L’écran de vérification permet notamment :
+- `/forms/import-scans` accepte plusieurs images avec `accept="image/*"`, le glisser-déposer, la progression et la relance d’un fichier en erreur.
+- `/forms/capture` utilise `navigator.mediaDevices.getUserMedia()` et préfère la caméra arrière. Si cette API est indisponible ou refusée, le navigateur ouvre son acquisition native avec `capture="environment"`.
+- Les prises de vue sont prévisualisées avant conservation et envoyées automatiquement, avec deux envois simultanés au maximum.
+- La galerie permet de consulter, reprendre et supprimer une photographie.
+- `/forms/processing` affiche une file paginée avec les états de traitement, des miniatures compactes et un bail de vérification évitant que deux postes modifient simultanément le même formulaire.
+- L’écran de traitement permet notamment :
   - de visualiser l’image et les points détectés ;
   - de déplacer manuellement les quatre repères ;
   - de corriger équipe, épreuve et page ;
-  - de valider, remplacer ou supprimer un formulaire.
+  - de comparer les doublons ;
+  - d’accepter, remplacer ou supprimer un formulaire.
 
-### Back
+### Service central
 
-- `SubmittedFormController` accepte une image unique sur `POST /submittedForms`.
-- Une route `/submittedForms/multiple` existe, mais n’est pas utilisée par le front.
-- `SubmittedFormService.addSubmittedForm` :
-  1. refuse tout type qui ne commence pas par `image/` ;
-  2. décode l’image avec `ImageIO` ;
-  3. lance une première reconnaissance pour identifier équipe, épreuve et page ;
-  4. recharge le modèle correspondant à l’épreuve et à la page ;
-  5. relance la reconnaissance des cases et zones ;
-  6. conserve l’image binaire envoyée et les résultats dans MongoDB ;
-  7. crée un élément non vérifié.
+- `POST /submittedForms` reçoit une image et un identifiant d’envoi idempotent facultatif dans `X-Upload-Id`.
+- L’original est conservé dans MongoDB avant le traitement asynchrone.
+- RabbitMQ distribue les traitements entre les consommateurs interactifs et batch.
+- Le service central appelle `POST /api/v1/forms/process`, remplace l’image de travail par le PNG normalisé et conserve séparément l’original.
+- Les états `READY`, `READY_WITH_WARNINGS`, attente, analyse et erreur alimentent la file de traitement.
+- Les coordonnées reconnues sont reconverties dans le repère de l’image affichée afin de rester déplaçables manuellement.
 - Si les repères ou cases ne sont pas détectés, le fichier est tout de même conservé pour correction manuelle.
 - L’échec de détection des quatre repères ne bloque jamais l’arrivée dans la vérification :
   des positions indicatives sont proposées dans les angles et restent déplaçables.
@@ -68,19 +81,29 @@ Le redressement et la normalisation des photographies sont des traitements techn
   manuellement avant la validation finale et le calcul du score.
 - La configuration autorise actuellement des fichiers multipart sans limite explicite.
 
+### Moteur de traitement
+
+- Python 3.12, FastAPI, OpenCV, NumPy et Pillow ;
+- détection des quatre repères, homographie et normalisation ;
+- utilisation facultative de l’image de référence et du gabarit XML produits par le designer ;
+- alignement local des zones et reconnaissance des marques de correction ;
+- retour de l’image normalisée, des transformations, corrections, métriques et avertissements ;
+- API de santé sur `GET /health` et traitement sur `POST /api/v1/forms/process`.
+
 ### Limites importantes
 
-- Malgré l’expression « formulaires scannés », le flux actuel accepte des images mais pas les PDF.
-- Les erreurs de reconnaissance peuvent aboutir à une réponse HTTP peu explicite : le contrôleur journalise certaines exceptions puis renvoie `null`.
-- Le traitement multiple existant peut réussir partiellement sans compte rendu détaillé par fichier.
-- L’image originale est conservée telle quelle ; aucune version redressée n’est produite.
-- Le service de traitement doit rectifier la perspective d’une photographie avant toute reconnaissance.
+- Le flux accepte des images mais pas les PDF.
+- L’API historique `/submittedForms/multiple` ne fournit pas encore un compte rendu détaillé par fichier et n’est pas utilisée par le front.
+- L’API d’import principale reste unitaire : le front orchestre le lot et affiche le résultat de chaque envoi.
+- Le réordonnancement manuel des photos avant envoi n’est pas encore proposé.
+- Les limites maximales de taille par fichier et par lot restent à formaliser et à appliquer uniformément.
+- Certaines exceptions historiques du contrôleur d’import sont encore journalisées avant une réponse vide ; elles devront devenir des erreurs HTTP structurées.
 
 ## 4. Acquisition depuis la caméra
 
-### Interface principale
+### Interface principale livrée
 
-L’interface doit utiliser `navigator.mediaDevices.getUserMedia()` afin de conserver la caméra ouverte pendant une série de prises de vue.
+L’interface utilise `navigator.mediaDevices.getUserMedia()` afin de conserver la caméra ouverte pendant une série de prises de vue.
 
 Fonctions attendues :
 
@@ -93,8 +116,8 @@ Fonctions attendues :
 - ajouter autant de pages que nécessaire ;
 - reprendre une photo ;
 - supprimer une photo ;
-- réordonner les pages ;
-- envoyer la série ;
+- réordonner les pages (reste à réaliser) ;
+- envoyer automatiquement chaque page conservée ;
 - fermer proprement la caméra lors de la sortie de l’écran.
 
 ### Solution de repli
@@ -197,11 +220,11 @@ Exemple conceptuel :
 
 Le lot n’a pas besoin d’être transactionnel : une mauvaise photo ne doit pas empêcher les autres pages d’être importées. Le résultat doit toutefois être explicite pour chaque fichier.
 
-## 9. Architecture recommandée
+## 9. Architecture retenue
 
 Le traitement d’image et la reconnaissance sont assurés par le service indépendant
-`form-processing-service`. Le front existant assure l’acquisition et la vérification,
-tandis que `SubmittedFormService` orchestre l’appel au service, le stockage et la publication.
+`form-processing-service`. Le front assure l’acquisition et la vérification,
+tandis que `SubmittedFormService` orchestre la file, l’appel au service, le stockage et la publication.
 
 Cette séparation permet :
 
@@ -209,6 +232,17 @@ Cette séparation permet :
 - un besoin de traitements asynchrones massifs ;
 - un besoin de montée en charge indépendante ;
 - l’emploi d’une pile technique impossible à intégrer proprement au service Java.
+
+Pile d’exécution :
+
+- Java 25 LTS, Maven 3.9.16 et Spring Boot 4.1.2 pour le service central ;
+- Angular 18 et Node.js 20 pour les deux fronts ;
+- Python 3.12 pour le traitement d’image ;
+- MongoDB pour les données et images ;
+- RabbitMQ pour le traitement asynchrone ;
+- Docker Compose pour la pile locale et de production.
+
+La procédure complète d’installation est décrite dans [installation-environnement-developpement.md](installation-environnement-developpement.md).
 
 ## 10. Contraintes non fonctionnelles
 
@@ -224,6 +258,14 @@ Cette séparation permet :
 - Tests sur Android/Chrome, iPhone/Safari et PC/Chrome ou Edge.
 
 ## 11. Découpage proposé
+
+### Suivi au 28 octobre 2026
+
+- Incrément 1 : livré, hors réordonnancement manuel des pages.
+- Incrément 2 : livré pour la normalisation, la perspective, les images de référence et les diagnostics ; les campagnes sur formulaires réels restent continues.
+- Incrément 3 : livré sous forme d’envois unitaires concurrents et suivis individuellement ; une API transactionnelle de lot n’est pas retenue à ce stade.
+- Incrément 4 : livré pour la correction des repères, l’acceptation, les doublons et la validation manuelle.
+- Incrément 5 : partiellement livré ; les limites de taille, tests de charge et validations multi-appareils restent à consolider.
 
 ### Incrément 1 — Acquisition et convergence
 
@@ -270,7 +312,7 @@ Cet incrément valide l’ergonomie et les navigateurs, sans prétendre encore f
 - Un utilisateur peut prendre au moins dix photos successives sans quitter la session.
 - Il peut les visualiser, supprimer et réordonner avant envoi.
 - Chaque page envoyée reçoit un résultat compréhensible.
-- Les pages acceptées apparaissent dans **Vérification des formulaires** sans étape intermédiaire.
+- Les pages acceptées apparaissent dans **Traitement des formulaires** sans action intermédiaire.
 - Une photo prise avec une perspective raisonnable est redressée et reconnue.
 - Les coordonnées affichées dans la vérification correspondent à l’image normalisée.
 - La validation produit les mêmes réponses et points qu’un scan équivalent.
