@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.xml.sax.SAXException;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import fr.vandriessche.rallyeschema.coreservice.entities.FormReferenceImage;
 import fr.vandriessche.rallyeschema.coreservice.entities.FormRecognitionConfiguration;
@@ -55,7 +55,7 @@ public class FormRecognitionConfigurationController {
 			@RequestParam("formRecognitionConfiguration") String formRecognitionConfigurationJson,
 			@RequestParam("formReferenceImage") MultipartFile formReferenceImage,
 			FormRecognitionConfigurationModelAssembler assembler) throws ParserConfigurationException, SAXException, IOException {
-		FormRecognitionConfiguration formRecognitionConfiguration = new ObjectMapper().readValue(formRecognitionConfigurationJson,
+		FormRecognitionConfiguration formRecognitionConfiguration = JsonMapper.builder().findAndAddModules().build().readValue(formRecognitionConfigurationJson,
 				FormRecognitionConfiguration.class);
 		return assembler
 				.toModel(formRecognitionConfigurationService.addFormRecognitionConfiguration(formRecognitionConfiguration, formReferenceImage, null));
@@ -120,7 +120,7 @@ public class FormRecognitionConfigurationController {
 			@RequestParam("formRecognitionConfiguration") String formRecognitionConfigurationJson,
 			@RequestParam(name = "formReferenceImage", required = false) MultipartFile formReferenceImage,
 			FormRecognitionConfigurationModelAssembler assembler) throws ParserConfigurationException, SAXException, IOException {
-		FormRecognitionConfiguration formRecognitionConfiguration = new ObjectMapper().readValue(formRecognitionConfigurationJson,
+		FormRecognitionConfiguration formRecognitionConfiguration = JsonMapper.builder().findAndAddModules().build().readValue(formRecognitionConfigurationJson,
 				FormRecognitionConfiguration.class);
 		return assembler
 				.toModel(formRecognitionConfigurationService.updateFormRecognitionConfiguration(formRecognitionConfiguration, formReferenceImage));

@@ -28,7 +28,8 @@ import org.springframework.web.multipart.MultipartFile;
 import org.xml.sax.SAXException;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import fr.vandriessche.rallyeschema.coreservice.entities.FormReferenceImage;
 import fr.vandriessche.rallyeschema.coreservice.entities.FormRecognitionConfiguration;
@@ -89,8 +90,10 @@ public class SharingService {
 	ObjectMapper objectMapper;
 
 	public void exportConfigurationArchive(OutputStream out) throws IOException {
-		ObjectMapper specificObjectMapper = new ObjectMapper().findAndRegisterModules();
-		specificObjectMapper.setSerializationInclusion(Include.NON_EMPTY);
+		ObjectMapper specificObjectMapper = JsonMapper.builder()
+				.findAndAddModules()
+				.changeDefaultPropertyInclusion(inclusion -> inclusion.withValueInclusion(Include.NON_EMPTY))
+				.build();
 		final ZipOutputStream zipOut = new ZipOutputStream(out);
 		RallyConfiguration rallyConfiguration = rallyConfigurationRepository.findById(RallyConfiguration.SINGLETON_ID).orElse(new RallyConfiguration());
 		writeJson(zipOut, RALLY_CONFIGURATION, rallyConfiguration, specificObjectMapper);

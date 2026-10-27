@@ -28,7 +28,8 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import fr.vandriessche.rallyeschema.coreservice.entities.FormDesign;
 import fr.vandriessche.rallyeschema.coreservice.entities.RallyConfiguration;
@@ -48,7 +49,7 @@ class SharingServiceTests {
 	private SharingService sharingService;
 
 	@Spy
-	private ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
+	private ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
 	@Mock
 	private TeamService teamService;
 	@Mock

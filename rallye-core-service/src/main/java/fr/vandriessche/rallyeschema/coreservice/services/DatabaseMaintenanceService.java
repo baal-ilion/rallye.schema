@@ -158,7 +158,7 @@ public class DatabaseMaintenanceService {
         mappingContext.getPersistentEntities().stream()
                 .filter(entity -> entity.isAnnotationPresent(org.springframework.data.mongodb.core.mapping.Document.class))
                 .forEach(entity -> resolver.resolveIndexFor(entity.getType())
-                        .forEach(index -> mongoTemplate.indexOps(entity.getType()).ensureIndex(index)));
+                        .forEach(index -> mongoTemplate.indexOps(entity.getType()).createIndex(index)));
     }
 
     private void dropExistingCollections(MongoDatabase database) {

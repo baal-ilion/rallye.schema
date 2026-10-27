@@ -11,7 +11,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -85,6 +85,7 @@ public class ChallengeConfigurationService {
 	private TeamPointRepository teamPointRepository;
 
 	@Autowired
+	@Lazy
 	private FormRecognitionConfigurationService formRecognitionConfigurationService;
 
 	@Autowired

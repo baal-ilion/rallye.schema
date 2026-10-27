@@ -7,7 +7,7 @@ import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
-import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 
 import fr.vandriessche.rallyeschema.coreservice.entities.SubmittedFormMetadata;
 
@@ -15,7 +15,7 @@ class MessageQueueConfigTests {
 
 	@Test
 	void instantValuesRoundTripThroughTheAmqpConverter() {
-		Jackson2JsonMessageConverter converter = new MessageQueueConfig().producerJackson2MessageConverter();
+		JacksonJsonMessageConverter converter = new MessageQueueConfig().producerJacksonMessageConverter();
 		SubmittedFormMetadata source = new SubmittedFormMetadata();
 		Instant createdAt = Instant.parse("2026-08-29T10:26:30.777Z");
 		source.setId("form-1");

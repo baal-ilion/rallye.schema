@@ -19,7 +19,7 @@ public class MongoMappingConfiguration {
 	private static final String MAP_KEY_DOT_REPLACEMENT = "__rallye_dot__";
 
 	@Bean
-	public BeanPostProcessor mongoMapKeyConfiguration() {
+	public static BeanPostProcessor mongoMapKeyConfiguration() {
 		return new BeanPostProcessor() {
 			@Override
 			public Object postProcessBeforeInitialization(Object bean, String beanName) {

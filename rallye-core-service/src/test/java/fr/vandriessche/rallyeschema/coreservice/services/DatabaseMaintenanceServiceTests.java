@@ -29,7 +29,7 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.MongoIterable;
+import com.mongodb.client.ListCollectionNamesIterable;
 
 @ExtendWith(MockitoExtension.class)
 class DatabaseMaintenanceServiceTests {
@@ -54,7 +54,7 @@ class DatabaseMaintenanceServiceTests {
 	@SuppressWarnings("unchecked")
 	void backupPreservesRichFormDesignContent() throws Exception {
 		MongoDatabase database = mock(MongoDatabase.class);
-		MongoIterable<String> collectionNames = mock(MongoIterable.class);
+		ListCollectionNamesIterable collectionNames = mock(ListCollectionNamesIterable.class);
 		MongoCursor<String> collectionNamesCursor = mock(MongoCursor.class);
 		MongoCollection<Document> emptyCollection = mock(MongoCollection.class);
 		MongoCollection<Document> formDesignCollection = mock(MongoCollection.class);

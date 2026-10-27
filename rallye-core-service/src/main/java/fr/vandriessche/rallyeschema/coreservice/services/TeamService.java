@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import fr.vandriessche.rallyeschema.coreservice.entities.LogFile;
@@ -56,15 +57,19 @@ public class TeamService {
     private TeamUpdatePublisher teamUpdatePublisher;
 
     @Autowired
+    @Lazy
     private SubmittedFormService submittedFormService;
 
     @Autowired
+    @Lazy
     private ChallengeResponseService challengeResponseService;
 
     @Autowired
+    @Lazy
     private ChallengeResultService challengeResultService;
 
     @Autowired
+    @Lazy
     private TeamPointService teamPointService;
 
     public Team addTeam(Team team) {

@@ -1,5 +1,5 @@
 # Builder image: compile and package the Spring Boot app
-FROM maven:3.8.8-eclipse-temurin-11 AS build
+FROM maven:3.9.16-eclipse-temurin-25 AS build
 WORKDIR /app
 
 # Copy pom and download dependencies first (better cache)
@@ -10,8 +10,8 @@ RUN mvn -B dependency:go-offline
 COPY src ./src
 RUN mvn -B package -DskipTests
 
-# Runtime image: slim JRE 11
-FROM eclipse-temurin:11-jre
+# Runtime image: Java 25 LTS
+FROM eclipse-temurin:25-jre
 WORKDIR /app
 
 # Copy the fat jar from the build stage

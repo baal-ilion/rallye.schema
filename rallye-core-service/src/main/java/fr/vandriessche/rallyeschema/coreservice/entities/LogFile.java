@@ -6,7 +6,7 @@ import org.bson.types.Binary;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.lang.NonNull;
+import org.jspecify.annotations.NonNull;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
